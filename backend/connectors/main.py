@@ -27,6 +27,7 @@ from psycopg.types.json import Jsonb
 
 from backend.connectors.bank import BankConnector, account_for_source, make_client
 from backend.connectors.base import Connector, iso, run_once
+from backend.connectors.mailbox import ImapConnector, imap_configured
 from backend.connectors.nbp import NbpConnector, make_nbp_client
 from backend.settings import database_url
 
@@ -42,6 +43,8 @@ def build_connector(conn: psycopg.Connection, source: dict[str, Any], bank: http
         return BankConnector(source, account_for_source(conn, source), bank)
     if source["connector"] == "fx_rates" and nbp is not None:
         return NbpConnector(source, nbp)
+    if source["connector"] == "imap_mailbox" and imap_configured():
+        return ImapConnector(source)
     return None
 
 

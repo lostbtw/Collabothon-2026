@@ -53,6 +53,7 @@ class FetchedItem:
     size_bytes: int | None = None
     storage_uri: str | None = None
     parent_external_id: str | None = None  # attachment -> its e-mail, in the same fetch
+    content: bytes | None = None  # the file itself: stored in raw_item_content with the RawItem (pipeline reads it)
 
 
 @dataclass
@@ -86,6 +87,9 @@ class AuthError(ConnectorError):
 class Connector(ABC):
     connector: str  # Connector enum value of the contract
     key_prefix: str  # first part of the idempotency key: bank, imap, nbp, ...
+    # True: an item whose file (sha256) this source already delivered is a duplicate, even under another id
+    # (the same receipt forwarded twice is one file, not two).
+    dedupe_content: bool = False
 
     def __init__(self, source: dict[str, Any]):
         self.source = source
@@ -294,12 +298,20 @@ def _commit_page(conn: psycopg.Connection, connector: Connector, source: dict[st
                 "processing_status": "queued",
                 "error": None,
             }
-            stored = conn.execute(
+            same_file = (connector.dedupe_content and item.sha256 is not None and conn.execute(
+                "select 1 from raw_items where source_id = %s and doc->>'sha256' = %s limit 1",
+                (source["id"], item.sha256)).fetchone() is not None)
+            stored = not same_file and conn.execute(
                 "insert into raw_items (id, company_id, doc) values (%s, %s, %s) on conflict do nothing",
                 (rid, company, Jsonb(doc)),
             ).rowcount == 1
             if stored:
                 new += 1
+                if item.content is not None:
+                    conn.execute(
+                        "insert into raw_item_content (raw_item_id, content_type, bytes) values (%s, %s, %s)"
+                        " on conflict do nothing",
+                        (rid, item.content_type or "application/octet-stream", item.content))
                 publish(conn, new_event("raw_item.received", company,
                                         {"raw_item_id": rid, "kind": item.kind, "source_id": source["id"]},
                                         producer="connector", correlation_id=rid), commit=False)

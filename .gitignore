@@ -15,6 +15,7 @@ pizzeria-amalfi-bank-statement-*.csv
 # secrets
 .env
 .env.*
+!.env.example
 deploy/secrets.yaml
 *.pem
 *.key
