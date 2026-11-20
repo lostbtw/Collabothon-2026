@@ -2,7 +2,8 @@
 
 Cursor: `<bookingDate>|<entryReference>` of the last line stored (the format of contracts/fixtures/source.json);
 a bare `E000000731` is accepted too. Each poll asks for the lines after that reference (the delta), page by page.
-A cursor the bank does not know (the invented ones in contracts/fixtures) is detected and the source starts over.
+A cursor pointing at a line we never stored (the invented ones in contracts/fixtures) is ignored and the source is
+read from the beginning (base.py checks it against raw_items).
 Idempotency key: sha256 of `bank:<account id>:<entryReference>`. RawItem kind `bank_transaction`, payload = the
 booked line exactly as the bank sent it (role 3's normaliser reads it).
 
@@ -72,25 +73,11 @@ class BankConnector(Connector):
     def key_scope(self) -> str:
         return self.account_id
 
+    def cursor_external_id(self, cursor: str | None) -> str | None:
+        return reference_of(cursor)
+
     def fetch(self, cursor: str | None) -> FetchResult:
-        after = reference_of(cursor)
-        lines, more = self._page(after, self.page_size)
-        if not lines and after and not self._exists(after):
-            # The cursor points at a line this bank does not have: it came from contracts/fixtures (invented
-            # example data) or from another bank. Start again from the beginning; already stored lines come back
-            # as duplicates and are not stored twice.
-            lines, more = self._page(None, self.page_size)
-            return self._result(lines, None, more, reset=True)
-        return self._result(lines, cursor, more)
-
-    def _exists(self, ref: str) -> bool:
-        """Does the bank have the line `ref`? Asks for the one line after ref-1."""
-        number = int(ref[1:])
-        previous = f"E{number - 1:09d}" if number > 1 else None
-        lines, _ = self._page(previous, 1)
-        return bool(lines) and lines[0].get("entryReference") == ref
-
-    def _result(self, lines: list[dict[str, Any]], cursor: str | None, more: bool, reset: bool = False) -> FetchResult:
+        lines, more = self._page(reference_of(cursor), self.page_size)
         items = [
             FetchedItem(
                 kind="bank_transaction",
@@ -101,7 +88,7 @@ class BankConnector(Connector):
             for line in lines
         ]
         new_cursor = f"{lines[-1].get('bookingDate', '')}|{lines[-1]['entryReference']}" if lines else cursor
-        return FetchResult(items=items, cursor=new_cursor, more=more, reset_cursor=reset)
+        return FetchResult(items=items, cursor=new_cursor, more=more)
 
     def _page(self, after: str | None, limit: int) -> tuple[list[dict[str, Any]], bool]:
         """One page of booked lines after `after`, and whether another page follows."""
