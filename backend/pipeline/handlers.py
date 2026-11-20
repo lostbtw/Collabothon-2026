@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Callable, Protocol
 
-from . import dedupe
+from . import counterparty, dedupe
 from .match import match_suggested_payload, run_matching
 from .normalise import NormaliseError, normalise_bank_line, parse_fa3, parse_infakt, transaction_ingested_payload
 from .normalise.fa3 import Fa3Error
@@ -44,6 +44,7 @@ class Context:
     raw_bytes: Callable[[dict], bytes | None]  # RawItem -> file content (XML), or None
     rates: Any = None  # NBP rates (fx.py); StandInRates until the NBP connector (#34) lands
     now: Callable[[], str] = lambda: datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    choose: Callable[[str, list[str]], str | None] | None = None  # model picks from an enum (D-09); None = rules only
 
 
 # ---------- normaliser ----------
@@ -62,7 +63,11 @@ def on_raw_item_received(ctx: Context, event: dict) -> None:
             if account is None:
                 raise NormaliseError(f"no account for source {raw['source_id']}")
             txn = normalise_bank_line(raw, account)
+            txn, new_cp = counterparty.apply_to_transaction(txn, s.list("counterparty", company_id=company), company,
+                                                            ctx.choose)
             if s.add("transaction", txn, company_id=company):
+                if new_cp:
+                    s.add("counterparty", new_cp, company_id=company)
                 ctx.publish("transaction.ingested", company, transaction_ingested_payload(txn), correlation, event["id"])
         else:
             info = ctx.company(company)
@@ -157,6 +162,12 @@ def on_document_extracted(ctx: Context, event: dict) -> None:
     if doc is None or doc.get("status") in ("rejected",):
         return
     doc = {**doc, "company_id": doc.get("company_id") or company}
+    resolved, cp = counterparty.apply_to_document(doc, s.list("counterparty", company_id=company), company, ctx.choose)
+    if cp:
+        s.put("counterparty", cp, company_id=company)
+    if resolved != doc:
+        doc = resolved
+        s.put("document", doc, company_id=company)
     correlation = event.get("correlation_id")
     existing = [d for d in s.list("document", company_id=company) if d["id"] != doc["id"]]
     result = dedupe.add_document(doc, existing)
@@ -213,15 +224,27 @@ def on_transaction_ingested(ctx: Context, event: dict) -> None:
 
 
 def on_match_decided(ctx: Context, event: dict) -> None:
-    """The bank line follows the owner's decision. Alias learning (#41) hooks in here."""
+    """The bank line follows the owner's decision; a confirmation also teaches the bank spelling as an alias (#41)."""
     s = ctx.store
+    company = event["company_id"]
     match = s.get("match", event["payload"]["match_id"])
     if not match or not match.get("transaction_id"):
         return
     txn = s.get("transaction", match["transaction_id"])
-    if txn:
-        status = "matched" if event["payload"]["status"] == "confirmed" else "unmatched"
-        s.put("transaction", {**txn, "match_status": status}, company_id=event["company_id"])
+    if txn is None:
+        return
+    confirmed = event["payload"]["status"] == "confirmed"
+    txn = {**txn, "match_status": "matched" if confirmed else "unmatched"}
+    document = s.get("document", match["document_id"]) if confirmed else None
+    if document:
+        cps, doc_out, txn_out = counterparty.learn_from_match(document, txn, s.list("counterparty", company_id=company),
+                                                              company)
+        for cp in cps:
+            s.put("counterparty", cp, company_id=company)
+        if doc_out:
+            s.put("document", doc_out, company_id=company)
+        txn = txn_out or txn
+    s.put("transaction", txn, company_id=company)
 
 
 HANDLERS: dict[str, dict[str, list[Callable[[Context, dict], None]]]] = {
