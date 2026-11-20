@@ -13,5 +13,5 @@ export default defineConfig({
     // Live mode in local development: forward API calls to the backend.
     proxy: { "/api": { target: process.env.VITE_API_PROXY ?? "http://localhost:8000", changeOrigin: true } },
   },
-  test: { environment: "node", include: ["src/**/*.test.{ts,tsx}"] },
+  test: { environment: "node", include: ["src/**/*.test.{ts,tsx}"], env: { VITE_API_MODE: "mock" } },
 });

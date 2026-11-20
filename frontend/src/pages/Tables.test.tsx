@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { api } from "../api/client";
+import { fixtures } from "../api/mock";
+import { formatMoney } from "../lib/money";
 import { LedgerView } from "./Ledger";
 import { TransactionsView } from "./Transactions";
 
@@ -12,7 +14,7 @@ describe("Transactions", () => {
   });
   it("shows the amount in the account's currency and the original amount beside it", async () => {
     const html = renderToStaticMarkup(<TransactionsView items={(await api.transactions("co_borsuk")).items} parties={[]} />);
-    expect(html).toContain("-180.62 PLN");
+    expect(html).toContain(formatMoney(fixtures.transactions.find((t) => t.id === "txn_731")!.amount_base));
     expect(html).toContain("-45.00 USD");
     expect(html).toContain("Matched");
   });

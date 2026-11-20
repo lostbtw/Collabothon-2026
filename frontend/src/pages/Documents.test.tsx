@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { api } from "../api/client";
 import { fixtures, resetMockState } from "../api/mock";
 import { DocumentView } from "./Documents";
+import { formatMoney } from "../lib/money";
 import { buildPatch, fields, flagNotes, whoPaid } from "./documents/model";
 
 afterEach(resetMockState);
@@ -25,7 +26,8 @@ describe("Document view", () => {
 
   it("words the banner and flags from the match, not from the model", () => {
     expect(whoPaid(fixtures.matches[1])).toEqual({ headline: "Paid from a company account", detail: null });
-    expect(flagNotes(fixtures.documents[1], fixtures.matches[1])).toEqual(["45.00 USD = 175.95 PLN at 3.9099", "Bought abroad: you report the VAT yourself (reverse charge)"]);
+    const t = fixtures.documents[1].totals;
+    expect(flagNotes(fixtures.documents[1], fixtures.matches[1])).toEqual([`${formatMoney(t.gross)} = ${formatMoney(t.gross_base)} at ${t.fx!.rate}`, "Bought abroad: you report the VAT yourself (reverse charge)"]);
   });
 
   it("marks low-confidence and missing fields", () => {

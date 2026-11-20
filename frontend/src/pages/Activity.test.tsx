@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { api } from "../api/client";
-import { resetMockState } from "../api/mock";
+import { fixtures, resetMockState } from "../api/mock";
 import { ActivityView, loadDetail } from "./Activity";
 
 afterEach(resetMockState);
@@ -29,7 +29,7 @@ describe("Activity feed", () => {
     const { items } = await api.activity("co_borsuk");
     const matched = items.find((a) => a.subject?.type === "match")!;
     const html = render(<ActivityView items={[matched]} onUndo={async () => {}} open={{ [matched.at]: await loadDetail(matched) }} />);
-    expect(html).toContain("45.00 USD x NBP 3.9099 = 175.95 PLN");
+    expect(html).toContain(fixtures.matches.find((m) => m.id === "mat_pixel11")!.reasons[0].detail.split(";")[0]);
   });
 
   it("undo rejects the automatic match and the line leaves the feed", async () => {

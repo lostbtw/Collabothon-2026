@@ -49,7 +49,7 @@ const ACTIVITY = [
   { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read Jan's receipt and worked out that he paid privately", subject: { type: "document", id: "doc_rcpt412" }, evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt", url: "/documents/doc_rcpt412" }] },
   { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", subject: null, evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/sources" }] },
   { at: "2026-11-21T09:58:00Z", agent: "ingestion", text: "Merged 61 duplicates, such as one PixelBoard invoice that arrived three times", subject: { type: "document", id: "doc_pixel11" }, evidence: [{ kind: "document", id: "doc_pixel11", label: "PixelBoard invoice", url: "/documents/doc_pixel11" }] },
-  { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments, including a 45.00 USD invoice to a 180.62 PLN card line", subject: { type: "match", id: "mat_pixel11" }, evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
+  { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments, including a 45.00 USD invoice to a 185.57 PLN card line", subject: { type: "match", id: "mat_pixel11" }, evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
 ];
 
 // Not in the fixtures: FX Shield's exposure list. Same numbers as rec_fx01 / rec_fx02 and as the API's stand-in.
