@@ -10,7 +10,7 @@ Ordo turns a small company's scattered money data into one owner-approved ledger
 | [contracts/](contracts/README.md) | Schemas, API, events and fixtures every role builds against |
 | [DECISIONS.md](DECISIONS.md) | Why things are the way they are |
 
-Set-up per person: clone, `echo <your role number 1-6> > .role`, install the GitHub CLI and run `gh auth login`, start Claude Code in the folder, pick a ticket (see `CLAUDE.md` section 2) and run `/implement #<number>`.
+Set-up per person: clone, `echo <your role number 1-6> > .role`, start Claude Code in the folder, pick a ticket in the browser (see `CLAUDE.md` section 2) and tell Claude its number. One branch and one pull request per ticket; nobody commits to `main` directly.
 
 Checks: `python3 contracts/validate_fixtures.py` (expects `0 invalid`).
 

@@ -4,7 +4,7 @@ Six people build **Ordo** (an "Autonomous CFO" for small companies) at Collaboth
 
 Ordo connects to where a small company's money data lives (mailbox, bank accounts, invoicing tool, exchange rates), reads and reconciles it into one owner-approved ledger, forecasts cash day by day, and when a gap is coming explains why and prepares the fix (up to a credit line), which runs only after the owner approves, and only in simulation. A second agent, FX Shield, protects the foreign-currency deals where exchange-rate risk really matters.
 
-Read first: your role's **spec issue** (`gh issue view <spec> --comments`), `GLOSSARY.md`, `contracts/README.md`.
+Read first: your role's **spec issue** (open it in the browser or read it through the API), `GLOSSARY.md`, `contracts/README.md`.
 
 ## 1. Which role am I?
 
@@ -23,31 +23,25 @@ Shared, change only by the contract rule (section 4): `contracts/`. Never edit a
 
 ## 2. The work loop
 
-Tickets are GitHub issues: sub-issues of your spec, labelled `role:<N>`. Conventions and commands: `docs/agents/issue-tracker.md`.
+Tickets are GitHub issues: sub-issues of your spec, labelled `role:<N>`. Everything about issues and pull requests is done **in the browser** (no `gh` CLI needed): `https://github.com/lostbtw/Collabothon-2026/issues`. Filter by label `role:<N>`; a ticket is startable when it has no open "blocked by" and no assignee.
 
-At the start of the session and after finishing every ticket:
-
-```bash
-git pull --rebase --autostash
-gh issue list --label role:<N> --state open --search "-is:blocked -label:spec no:assignee" --json number,title --jq '.[] | "\(.number) \(.title)"'
-gh issue list --label role:<N> --label needs-triage --state open   # requests from other roles
-```
+At the start of the session and after finishing every ticket: `git switch main && git pull --rebase`. The human tells you which ticket to work on (its number or its `R<role>·<id>` title). Read it and its parent spec; the human can paste the text, or you can read a public issue with `curl -s https://api.github.com/repos/lostbtw/Collabothon-2026/issues/<n>`. Requests from other roles carry the label `needs-triage`.
 
 Take musts before shoulds. For each ticket:
 
-1. Claim it: `gh issue edit <n> --add-assignee @me`. Read the ticket and its parent spec.
-2. The human runs `/implement #<n>`. Work in your folders only, commit small with `#<n>` in the message, `git pull --rebase --autostash && git push` often. `main` must always run.
-3. Done = acceptance criteria met, tests pass, and it works against the **real** thing it depends on: `gh issue comment <n> --body "Done in <sha>: <what was verified>"`, then `gh issue close <n>`.
+1. The human claims it in the browser (Assignees: assign yourself).
+2. **Never commit to `main` directly.** One branch per ticket, cut from fresh `main`: `git switch main && git pull --rebase && git switch -c r<role>/<n>-<short-slug>` (for example `r2/13-bank-sim`). Work in your folders only, commit small with `#<n>` in the message, push the branch often (`git push -u origin <branch>`).
+3. Done = acceptance criteria met, tests pass, and it works against the **real** thing it depends on. Then the human opens a pull request into `main` (GitHub shows a link after `git push`), title `R<role>·<id> <title>`, body `Closes #<n>. <what was verified>`. Before merging: `git fetch && git rebase origin/main`, tests green. Merge it yourselves (squash) once it is green; use another role's review only for changes under `contracts/`. Merging closes the ticket through `Closes #<n>`.
 
-**Integrates with** (in the ticket body) means the dependency is not finished but a stand-in exists: build against the stand-in, comment "works on the stand-in", start a background wait, and take the next ticket. When the wait ends, swap in the real thing first, then close.
+`main` must always run. After a merge, delete the branch and start the next ticket from fresh `main`. A ticket that is blocked by another ticket's code branches from `main` once that code is merged; if it must start earlier, branch from the other branch and say so in the PR.
 
-```bash
-until [ "$(gh issue view <dep> --json state --jq .state)" = CLOSED ]; do sleep 120; done   # run in the background
-```
+**Integrates with** (in the ticket body) means the dependency is not finished but a stand-in exists: build against the stand-in, open the PR as a **draft** with "works on the stand-in" in the body, and take the next ticket. When the real dependency lands, swap it in first, mark the PR ready, then merge.
 
-Need something from another role (a field, an endpoint, a fix)? Leave their code alone and open a request: `gh issue create --label "role:<their N>,needs-triage" --title "..." --body "..."`, or comment on their ticket.
+Need something from another role (a field, an endpoint, a fix)? Leave their code alone: comment on their ticket, or open a new issue with labels `role:<their N>` and `needs-triage`.
 
 Running out of time? Propose a cut from section 5 to the human. A must-have is never dropped silently: close it with label `wontfix` and a comment naming what replaces it.
+
+A contract change (section 4) is its own small PR under `contracts/`, merged before the code that depends on it.
 
 ## 3. Product rules every role builds to
 
@@ -100,11 +94,11 @@ After each ticket, say in two lines: what is done, what you start next, and whet
 
 ### Issue tracker
 
-Specs and tickets are GitHub issues in `lostbtw/Collabothon-2026` (specs #1–#6, tickets are their sub-issues). See `docs/agents/issue-tracker.md`.
+Specs and tickets are GitHub issues in `lostbtw/Collabothon-2026` (specs #1–#6, tickets are their sub-issues).
 
 ### Triage labels
 
-The five default triage labels, plus `spec`, `role:<N>` and `priority:<must|should>`. See `docs/agents/triage-labels.md`.
+Labels: `spec`, `role:<N>`, `priority:<must|should>`, `needs-triage` (a request waiting for the owning role).
 
 ### Domain docs
 
