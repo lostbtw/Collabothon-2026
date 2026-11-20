@@ -5,6 +5,7 @@ import type { Match, OrdoDocument } from "../api/types.gen";
 import { ControlBadges } from "../components/ControlBadges";
 import { Evidence } from "../components/More";
 import { PageState } from "../components/PageState";
+import { PageHead } from "../components/ui";
 import { useCompany } from "../lib/company";
 import { dateTime } from "../lib/dates";
 import { useLive } from "../lib/live";
@@ -37,7 +38,7 @@ export function Activity() {
   }
   return (
     <>
-      <div className="hstack"><h1>What I did on my own</h1><ControlBadges level="analysed_autonomously" /></div>
+      <PageHead title="What Ordo did on its own" sub={<>Every step it took without asking. Anything here can be undone. <ControlBadges level="analysed_autonomously" /></>}><Link to="/todo" className="button">Back to To-do</Link></PageHead>
       <PageState state={state} keepWhileLoading empty={(d) => d.items.length === 0}>
         {(activity) => <ActivityView items={activity.items} onUndo={undo} />}
       </PageState>

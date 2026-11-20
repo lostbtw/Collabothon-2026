@@ -21,10 +21,10 @@ export function toastFor(e: OrdoEvent, sender?: string | null): Toast | null {
     const from = first(sender) || (typeof p.seller === "string" ? p.seller : "");
     return { id: e.id, text: `New receipt${from ? ` from ${from}` : ""}${isMoney(p.gross) ? ` · ${formatMoney(p.gross)}` : ""}`, to: `/documents/${p.document_id}` };
   }
-  if (e.type === "recommendation.created" && typeof p.recommendation_id === "string") return { id: e.id, text: "New card in your inbox", to: `/inbox/${p.recommendation_id}` };
+  if (e.type === "recommendation.created" && typeof p.recommendation_id === "string") return { id: e.id, text: "New to-do", to: `/todo#${p.recommendation_id}` };
   if (e.type === "forecast.updated" && isMoney(p.min_balance)) {
     const was = isMoney(p.min_balance_previous) ? ` (was ${formatMoney(p.min_balance_previous, { decimals: false })})` : "";
-    return { id: e.id, text: `Forecast updated: lowest point ${formatMoney(p.min_balance, { decimals: false })}${was}`, to: "/" };
+    return { id: e.id, text: `Forecast updated: lowest point ${formatMoney(p.min_balance, { decimals: false })}${was}`, to: "/#cash" };
   }
   return null;
 }

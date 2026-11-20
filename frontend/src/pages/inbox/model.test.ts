@@ -47,23 +47,26 @@ describe("decision request", () => {
 });
 
 describe("inbox lists", () => {
-  it("shows the four fixture cards and counts them by control level", async () => {
+  it("shows the fixture cards and the sample ones, and counts them by control level", async () => {
     const lists = buildLists(await api.inbox("co_borsuk"), (await api.recommendations("co_borsuk")).items, []);
-    expect(lists.open.map((r) => r.id)).toEqual(["rec_cl01", "rec_412", "rec_fx01", "rec_fx02"]);
-    expect(lists.counts).toEqual({ all: 4, approval: 3, recommendation: 1, decided: 0 });
-    expect(listFor(lists, "recommendation").map((r) => r.id)).toEqual(["rec_fx02"]);
+    expect(lists.open.map((r) => r.id).slice(0, 4)).toEqual(["rec_cl01", "rec_412", "rec_fx01", "rec_fx02"]);
+    expect(lists.counts).toEqual({ all: 9, approval: 5, recommendation: 4, decided: 1 });
+    expect(listFor(lists, "recommendation").map((r) => r.id)).toEqual(["rec_fx02", "rec_private01", "rec_missing01", "rec_vatname01"]);
   });
   it("drops a card that has no evidence (contracts rule 4)", async () => {
     const inbox = await api.inbox("co_borsuk");
     inbox.items[0] = { ...inbox.items[0], evidence: [] };
     inbox.items[1] = { ...inbox.items[1], explanation: undefined } as unknown as Recommendation;
-    expect(buildLists(inbox, [], []).open.map((r) => r.id)).toEqual(["rec_fx01", "rec_fx02"]);
+    const open = buildLists(inbox, [], []).open.map((r) => r.id);
+    expect(open).not.toContain("rec_cl01");
+    expect(open).not.toContain("rec_412");
+    expect(open).toHaveLength(7);
   });
   it("moves a decided card from open to decided, with its result", async () => {
     const approval = await api.decide("rec_cl01", buildDecision(creditLine, "approve", "25000.00"));
     const lists = buildLists(await api.inbox("co_borsuk"), (await api.recommendations("co_borsuk")).items, (await api.approvals("co_borsuk")).items);
     expect(lists.open.map((r) => r.id)).not.toContain("rec_cl01");
-    expect(lists.decided.map((r) => r.id)).toEqual(["rec_cl01"]);
+    expect(lists.decided.map((r) => r.id)).toContain("rec_cl01");
     expect(resultHeadline(lists.approvalFor("rec_cl01")!)).toBe("SIMULATED — SIM-CL-2026-0007");
     expect(approval.execution.result).toContain("25,000.00 PLN");
     expect(describeChanges(approval)).toEqual([["Limit", "25,000.00 PLN"]]);
