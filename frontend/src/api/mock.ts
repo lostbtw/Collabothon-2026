@@ -56,10 +56,16 @@ const ACTIVITY = [
 const decisions = new Map<string, Approval>();
 const documentEdits = new Map<string, OrdoDocument>();
 const undoneMatches = new Set<string>();
+const syncedAt = new Map<string, string>();
+// The mock's clock: the demo moment, moving forward from when the page was opened.
+const DEMO_START = Date.parse("2026-11-21T10:15:00Z");
+const openedAt = Date.now();
+const demoNow = (): string => new Date(DEMO_START + (Date.now() - openedAt)).toISOString();
 export function resetMockState(): void {
   decisions.clear();
   documentEdits.clear();
   undoneMatches.clear();
+  syncedAt.clear();
 }
 
 /** Applies a partial correction to a document, level by level (totals.gross replaces only gross). */
@@ -125,10 +131,15 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   const page = <I,>(items: I[]) => ({ items, next_cursor: null });
   let result: unknown;
 
-  if (method === "GET" && path === "/health") result = { status: "ok", llm: { base_url: "mock", model: "mock", reachable: false }, demo_clock: "2026-11-21T10:15:00Z" };
+  if (method === "GET" && path === "/health") result = { status: "ok", llm: { base_url: "mock", model: "mock", reachable: false }, demo_clock: demoNow() };
   else if (method === "GET" && path === "/companies") result = { items: COMPANIES };
-  else if (method === "GET" && path === "/sources") result = { items: byCompany(f.sources, company) };
-  else if (method === "POST" && seg[0] === "sources" && seg[2] === "sync") result = { ...f.syncRuns[0], source_id: seg[1], trigger: "manual" };
+  else if (method === "GET" && path === "/sources")
+    result = { items: byCompany(f.sources, company).map((s) => (syncedAt.has(s.id) ? { ...s, last_synced_at: syncedAt.get(s.id), last_success_at: syncedAt.get(s.id) } : s)) };
+  else if (method === "POST" && seg[0] === "sources" && seg[2] === "sync") {
+    const at = demoNow();
+    syncedAt.set(find(f.sources, seg[1]).id, at);
+    result = { ...f.syncRuns[0], source_id: seg[1], trigger: "manual", started_at: at, finished_at: at };
+  }
   else if (method === "GET" && path === "/sync-runs") result = { items: f.syncRuns.filter((r) => !q.get("source_id") || r.source_id === q.get("source_id")) };
   else if (method === "GET" && seg[0] === "raw-items" && seg.length === 2) result = find(f.rawItems, seg[1]);
   else if (method === "GET" && path === "/documents")

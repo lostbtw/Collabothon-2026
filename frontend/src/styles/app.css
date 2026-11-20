@@ -186,6 +186,9 @@ button.linklike { height: auto; padding: 0; margin-top: 4px; border: 0; border-r
 .chart-low-label { fill: var(--text-primary); font-size: 13px; font-weight: 500; paint-order: stroke; stroke: var(--bg-surface); stroke-width: 4px; }
 .chart-tip { position: absolute; top: 0; transform: translateX(-50%); padding: 6px 10px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); white-space: nowrap; pointer-events: none; }
 
+/* Sources */
+tr.source td { vertical-align: middle; }
+
 /* Document view */
 .doc-cols { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
 .doc-preview { display: flex; flex-direction: column; gap: 12px; align-items: center; }
