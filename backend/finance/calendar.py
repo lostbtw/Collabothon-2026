@@ -1,6 +1,6 @@
 """Business days and month arithmetic for the forecast. Pure, no database.
 
-Public holidays are known for Poland (Borsuk Labs) and Germany (Pizzeria Amalfi); other countries count
+Public holidays are known for Poland and Germany (company country PL or DE); other countries count
 weekends only. PL-CAL-04: a payment due on a weekend or holiday moves to the next business day (UNVERIFIED rule,
 shown as a hint).
 """

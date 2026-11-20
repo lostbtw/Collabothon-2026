@@ -64,7 +64,7 @@ def borsuk(without: tuple[str, ...] = ()) -> dict:
          "delay_days": 23, "confidence": 0.6},
         {"id": "doc_fv_2026_11_045", "kind": "receivable", "label": "Invoice 2026/11/045 Lakeshore Robotics",
          "key": "lakeshore", "amount": {"amount": "40000.00", "currency": "USD"}, "due_date": "2027-01-05",
-         "delay_days": 0, "confidence": 0.8},
+         "delay_days": 0, "confidence": 0.9},  # no late payments seen: same confidence as the engine gives
     ]
     ledger = [{"id": f"led_{i['document_id']}", "type": "reimbursement_liability", "status": "approved",
                "cash_date": "2026-11-30", "amount_base": {"amount": i["amount_pln"], "currency": "PLN"},
