@@ -29,9 +29,9 @@ spec:
                   name: docling-api-key
                   key: DOCLING_SERVE_API_KEY
             - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
-              value: "2"
+              value: "1"
             - name: OMP_NUM_THREADS
-              value: "4"
+              value: "8"
           readinessProbe:
             httpGet:
               path: /health
