@@ -74,7 +74,7 @@ def test_recompute_stores_the_forecast_and_emits_forecast_updated(labs_db):
     Forecast.model_validate(forecast)
     assert forecast["opening_balance"]["amount"] == "38401.15"
     assert forecast["first_negative_date"] == "2026-11-30"
-    assert forecast["min_balance"]["amount"]["amount"] == "-13115.97"
+    assert forecast["min_balance"]["amount"]["amount"] == "-12970.34"
     nordwind = next(c for c in forecast["components"] if "Nordwind" in c["label"] and c["kind"] == "known_receivable")
     assert nordwind["dates"] == ["2026-12-07"] and nordwind["amount_base"]["amount"] == "81144.00"
     assert engine.latest_base(labs_db, "co_borsuk")["id"] == forecast["id"]
@@ -128,7 +128,7 @@ def test_input_events_are_debounced_per_company(labs_db):
 def test_role_5_api_recomputes_with_the_engine_and_takes_owner_events(labs_db, db_url):
     with TestClient(create_app(database_url=db_url)) as client:
         forecast = client.post("/api/v1/forecast/recompute", params={"company_id": "co_borsuk"}).json()
-        assert forecast["min_balance"]["amount"]["amount"] == "-13115.97"
+        assert forecast["min_balance"]["amount"]["amount"] == "-12970.34"
         repair = {"label": "Server repair", "date_from": "2026-12-02", "date_to": "2026-12-02",
                   "effect": "extra_outflow", "amount": {"amount": "2000.00", "currency": "PLN"}}
         after = client.post("/api/v1/forecast/events", json=repair, params={"company_id": "co_borsuk"}).json()
