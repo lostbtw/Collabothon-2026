@@ -12,10 +12,9 @@ KNOWN_SCENARIO_ISSUES = {
     # The FA(3) XML and its PDF copy carry different invoice numbers (FV/EM/00006 vs 00683, FV/BS/00038 vs 00688),
     # so they look like two invoices; the PDF copy takes the bank line and the XML stays unpaid.
     "fa3_20261110_01": "dup_01 numbers differ", "fa3_20261114_01": "dup_02 numbers differ",
-    # The hand-written PIXELBOARD line (180.62 PLN, from fixture txn_731 at NBP 3.9099) is 1.2% below the
-    # scenario's own mid rate for 19 Nov, outside the -0.5..+4.5% card spread band.
-    "nov_036": "PixelBoard line not priced with the scenario's mid rate",
 }
+# The hand-written PIXELBOARD line (180.62 PLN) uses the fixture's NBP 3.9099, not the scenario's mid rate; the stand-in
+# rate table (normalise/standin_rates.json) carries 3.9099 for 18 Nov, so nov_036 matches like on the cluster.
 NEVER_MISSING = {"bank_fee", "tax_or_social_security", "salary", "reimbursement_payout", "internal_transfer"}
 
 
@@ -53,7 +52,7 @@ class Scenario(unittest.TestCase):
                 wrong.append((t["document_id"], want, got))
         self.assertEqual(wrong, [])
         self.assertEqual(set(missed) - set(KNOWN_SCENARIO_ISSUES), set())
-        self.assertGreaterEqual(right, 537)
+        self.assertGreaterEqual(right, 538)
 
     def test_who_paid_and_vat_lost(self):
         who = [t["document_id"] for t in self.truth["documents"] if t["match_type"] != "duplicate_document"

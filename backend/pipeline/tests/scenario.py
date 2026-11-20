@@ -11,7 +11,7 @@ from pathlib import Path
 from backend.pipeline import counterparty, dedupe, missing
 from backend.pipeline.match import run_matching
 from backend.pipeline.normalise import commerzbank_csv, normalise_bank_line, parse_fa3
-from backend.pipeline.normalise.fx import to_base
+from backend.pipeline.normalise.fx import StandInRates, to_base
 from backend.pipeline.normalise.money import money
 
 OUT = Path(__file__).resolve().parents[3] / "sim" / "scenario" / "out"
@@ -24,31 +24,7 @@ ACCOUNTS = [  # from sim/scenario/README.md
     {"id": "acc_owner", "company_id": "co_borsuk", "kind": "owner_private", "currency": "PLN", "card_last4": ["9021"],
      "source_id": "src_bank_owner"},
 ]
-def _scenario_mid_rate():
-    """The invented mid rate the scenario prices its card lines with (sim/scenario/bank_2026.py)."""
-    import importlib.util
-    import sys
-    folder = OUT.parent
-    sys.path.insert(0, str(folder))
-    try:
-        spec = importlib.util.spec_from_file_location("scenario_bank_2026", folder / "bank_2026.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module.mid_rate
-    finally:
-        sys.path.remove(str(folder))
-
-
-_MID = None
-
-
-def rates(currency: str, day: date):
-    """Stand-in NBP table (#34): the scenario's mid rate on every weekday."""
-    global _MID
-    if currency not in ("EUR", "USD") or day.weekday() >= 5:
-        return None
-    _MID = _MID or _scenario_mid_rate()
-    return Decimal(f"{_MID(currency, day):.4f}"), None
+rates = StandInRates()  # the same stand-in NBP table the pipeline process uses on the cluster
 
 
 def available() -> bool:

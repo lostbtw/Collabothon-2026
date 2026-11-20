@@ -6,8 +6,10 @@ by looking back to the latest published date.
 published on exactly that date, or None if no table was published. The real one is role 2's NBP connector
 (#34, `/fx/rates`); `StandInRates` covers tests and demos until it lands.
 """
+import json
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from .money import money, round_cents, to_decimal
 
@@ -19,15 +21,22 @@ class RateNotFound(LookupError):
     pass
 
 
+STANDIN_TABLE = Path(__file__).with_name("standin_rates.json")
+
+
+def _load_standin() -> dict:
+    data = json.loads(STANDIN_TABLE.read_text(encoding="utf-8"))
+    return {(ccy, day): (rate, None) for ccy, days in data.items() if not ccy.startswith("_")
+            for day, rate in days.items()}
+
+
 class StandInRates:
-    """STAND-IN for the NBP rates connector (#34). Values are illustrative, not real NBP rates."""
+    """STAND-IN for the NBP rates connector (#34): standin_rates.json, built from role 4's scenario by
+    build_standin_rates.py (USD on 18 Nov 2026 = 3.9099, the fixture rate). Not real NBP rates."""
 
     def __init__(self, table: dict | None = None):
         # {(currency, "YYYY-MM-DD"): ("rate", "table no or None")}
-        self.table = table if table is not None else {
-            ("USD", "2026-11-18"): ("3.9099", None),  # contracts/fixtures/document.json doc_pixel11
-            ("EUR", "2026-11-18"): ("4.2310", None),
-        }
+        self.table = table if table is not None else _load_standin()
 
     def __call__(self, currency: str, day: date):
         hit = self.table.get((currency, day.isoformat()))
