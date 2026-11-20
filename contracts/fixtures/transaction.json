@@ -8,17 +8,17 @@
     "booking_date": "2026-11-20",
     "value_date": "2026-11-19",
     "amount": {
-      "amount": "-180.62",
+      "amount": "-185.57",
       "currency": "PLN"
     },
     "amount_base": {
-      "amount": "-180.62",
+      "amount": "-185.57",
       "currency": "PLN"
     },
     "fx": {
-      "rate": "4.0138",
+      "rate": "4.1238",
       "rate_date": "2026-11-19",
-      "source": "bank card rate (implied: 180.62 / 45.00)",
+      "source": "bank card rate (implied: 185.57 / 45.00)",
       "rule": "bank_actual"
     },
     "original_amount": {

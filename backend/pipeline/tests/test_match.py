@@ -97,7 +97,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(score_pair(doc, txn, BY_ACCOUNT), (0.0, []))
 
     def test_fx_outside_spread_band_is_no_match(self):
-        txn = line(amount_base={"amount": "-185.00", "currency": "PLN"})  # +5.1% over 175.95
+        txn = line(amount_base={"amount": "-190.00", "currency": "PLN"})  # +5.1% over 180.77
         self.assertEqual(score_pair(DOCS["doc_pixel11"], txn, BY_ACCOUNT), (0.0, []))
 
     def test_transfer_with_invoice_number_and_iban(self):

@@ -146,11 +146,11 @@
         "currency": "USD"
       },
       "gross_base": {
-        "amount": "175.95",
+        "amount": "180.77",
         "currency": "PLN"
       },
       "fx": {
-        "rate": "3.9099",
+        "rate": "4.0170",
         "rate_date": "2026-11-18",
         "source": "NBP table A (illustrative)",
         "rule": "pl_tax_prev_business_day"

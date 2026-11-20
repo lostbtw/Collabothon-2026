@@ -4,6 +4,7 @@
 - Borsuk Labs: role 4's scenario (sim/scenario/out), same CSV format, plus its story items and People.
 """
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from backend.finance.series import counterparty_key
@@ -14,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[3]
 SCENARIO = ROOT / "sim" / "scenario" / "out"
 PIZZERIA_CSV = next((p for p in (DEFAULT_CSV, SCENARIO / DEFAULT_CSV.name) if p.is_file()), None)
 RATES = {"PLN": "1", "EUR": "4.41", "USD": "4.0613"}  # demo-day rates (spec #4)
+STORY_CLOSING = {"acc_pln": Decimal("24730.15"), "acc_eur": Decimal("3100.00")}  # 20 Nov 2026, sim/scenario/world.py
 
 
 def bank_lines(path: Path, account: dict) -> list[dict]:
@@ -40,13 +42,17 @@ CLIENTS = ["MEBLOSTYL SP Z O O (SAMPLE)", "PIEKARNIA ZLOTY KLOS SP Z O O (SAMPLE
 
 def borsuk(without: tuple[str, ...] = ()) -> dict:
     """Borsuk Labs on 21 Nov 2026: bank lines, open invoices of the story and the 10 approved reimbursements."""
-    accounts = [{"id": "acc_pln", "currency": "PLN", "include_in_liquidity": True,
-                 "opening_balance": {"amount": "82730.06", "currency": "PLN"}},
-                {"id": "acc_eur", "currency": "EUR", "include_in_liquidity": True,
-                 "opening_balance": {"amount": "7909.43", "currency": "EUR"}}]
+    accounts = [{"id": "acc_pln", "currency": "PLN", "include_in_liquidity": True},
+                {"id": "acc_eur", "currency": "EUR", "include_in_liquidity": True}]
     transactions = []
     for account in accounts:
-        transactions += bank_lines(SCENARIO / f"bank_{account['id']}.csv", account)
+        lines = bank_lines(SCENARIO / f"bank_{account['id']}.csv", account)
+        # The story fixes the closing balance (sim/scenario/world.py); the opening one is derived from it, as the
+        # scenario does, so regenerating the bank lines (e.g. other card rates) never moves the cash story.
+        booked = sum((Decimal(t["amount_base"]["amount"]) for t in lines), Decimal(0))
+        account["opening_balance"] = {"amount": f"{STORY_CLOSING[account['id']] - booked:.2f}",
+                                      "currency": account["currency"]}
+        transactions += lines
     people = json.loads((SCENARIO / "people.json").read_text(encoding="utf-8"))
     items = json.loads((SCENARIO / "story_items.json").read_text(encoding="utf-8"))
     open_items = [

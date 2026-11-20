@@ -243,7 +243,7 @@ def index_entry(d, path):
     party = PARTIES[d["party"]]
     bank = d.get("bank")
     return {
-        "id": d["id"], "file": str(path.relative_to(OUT)), "number": d["number"], "direction": d["direction"],
+        "id": d["id"], "file": path.relative_to(OUT).as_posix(), "number": d["number"], "direction": d["direction"],
         "issue_date": d["issue"].isoformat(), "due_date": d["due"].isoformat() if d.get("due") else None,
         "counterparty": party["name"], "counterparty_tax_id": party.get("nip") or "".join(party["vat_eu"]),
         "description": d["line"], "vat_rate": d["rate"],

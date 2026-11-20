@@ -27,6 +27,7 @@ from psycopg.types.json import Jsonb
 
 from backend.connectors.bank import BankConnector, account_for_source, make_client
 from backend.connectors.base import Connector, iso, run_once
+from backend.connectors.nbp import NbpConnector, make_nbp_client
 from backend.settings import database_url
 
 log = logging.getLogger("ordo.connectors")
@@ -34,10 +35,13 @@ DEMO_INTERVAL_SECONDS = 15
 TICK_SECONDS = 2.0
 
 
-def build_connector(conn: psycopg.Connection, source: dict[str, Any], bank: httpx.Client) -> Connector | None:
+def build_connector(conn: psycopg.Connection, source: dict[str, Any], bank: httpx.Client,
+                    nbp: httpx.Client | None = None) -> Connector | None:
     """The connector for a source, or None when role 2 has none for it (yet)."""
     if source["connector"] == "bank_psd2":
         return BankConnector(source, account_for_source(conn, source), bank)
+    if source["connector"] == "fx_rates" and nbp is not None:
+        return NbpConnector(source, nbp)
     return None
 
 
@@ -119,7 +123,7 @@ def apply_demo_intervals(conn: psycopg.Connection) -> None:
 
 
 def tick(conn: psycopg.Connection, bank: httpx.Client, *, now: datetime | None = None, first: bool = False,
-         sleep: Callable[[float], None] = time.sleep) -> list[dict[str, Any]]:
+         sleep: Callable[[float], None] = time.sleep, nbp: httpx.Client | None = None) -> list[dict[str, Any]]:
     """One pass over the sources. Returns the SyncRuns finished in it."""
     now = now or datetime.now(UTC)
     by_id = {s["id"]: s for s in _sources(conn)}
@@ -127,7 +131,7 @@ def tick(conn: psycopg.Connection, bank: httpx.Client, *, now: datetime | None =
     manual_sources = set()
     for source_id, run_id in manual_requests(conn):
         source = by_id.get(source_id)
-        connector = build_connector(conn, source, bank) if source else None
+        connector = build_connector(conn, source, bank, nbp) if source else None
         if connector is None:
             continue
         manual_sources.add(source_id)
@@ -137,7 +141,7 @@ def tick(conn: psycopg.Connection, bank: httpx.Client, *, now: datetime | None =
     for source in by_id.values():
         if source["id"] in manual_sources or not _is_due(source, now, first):
             continue
-        connector = build_connector(conn, source, bank)
+        connector = build_connector(conn, source, bank, nbp)
         if connector is None:
             continue
         result = run_once(conn, connector, trigger="startup" if first else "schedule", sleep=sleep)
@@ -154,7 +158,7 @@ def run(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
 
-    with psycopg.connect(database_url()) as conn, make_client() as bank:
+    with psycopg.connect(database_url()) as conn, make_client() as bank, make_nbp_client() as nbp:
         if args.reset_cursors:
             log.info("reset the cursors of %d bank sources", reset_bank_cursors(conn))
         if os.environ.get("ORDO_DEMO_MODE") == "1":
@@ -164,7 +168,7 @@ def run(argv: list[str]) -> int:
             log.info("closed %d runs left running by a previous process", closed)
         first = True
         while True:
-            tick(conn, bank, first=first)
+            tick(conn, bank, first=first, nbp=nbp)
             first = False
             if args.once:
                 return 0

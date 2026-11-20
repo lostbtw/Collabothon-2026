@@ -294,7 +294,7 @@
       "booking_date": "2026-11-03",
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
       "amount": {
-        "amount": "-1709.48",
+        "amount": "-1660.26",
         "currency": "PLN"
       }
     },
@@ -374,7 +374,7 @@
       "booking_date": "2026-11-03",
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
       "amount": {
-        "amount": "-1709.48",
+        "amount": "-1660.26",
         "currency": "PLN"
       }
     },
@@ -752,7 +752,7 @@
       "booking_date": "2026-11-05",
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
       "amount": {
-        "amount": "-1550.97",
+        "amount": "-1517.00",
         "currency": "PLN"
       }
     },
@@ -906,7 +906,7 @@
       "booking_date": "2026-11-06",
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
       "amount": {
-        "amount": "-535.34",
+        "amount": "-536.58",
         "currency": "PLN"
       }
     },
@@ -1520,7 +1520,7 @@
       "booking_date": "2026-11-09",
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
       "amount": {
-        "amount": "-361.04",
+        "amount": "-351.21",
         "currency": "PLN"
       }
     },
@@ -2262,7 +2262,7 @@
       "booking_date": "2026-11-12",
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
       "amount": {
-        "amount": "-556.53",
+        "amount": "-537.66",
         "currency": "PLN"
       }
     },
@@ -2484,7 +2484,7 @@
       "booking_date": "2026-11-13",
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
       "amount": {
-        "amount": "-268.38",
+        "amount": "-268.58",
         "currency": "PLN"
       }
     },
@@ -3161,7 +3161,7 @@
       "booking_date": "2026-11-18",
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
       "amount": {
-        "amount": "-61.65",
+        "amount": "-60.82",
         "currency": "PLN"
       }
     },
@@ -3242,7 +3242,7 @@
       "booking_date": "2026-11-18",
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
       "amount": {
-        "amount": "-323.82",
+        "amount": "-319.45",
         "currency": "PLN"
       }
     },
@@ -3390,7 +3390,7 @@
       "booking_date": "2026-11-20",
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
       "amount": {
-        "amount": "-180.62",
+        "amount": "-185.57",
         "currency": "PLN"
       }
     },
