@@ -29,7 +29,7 @@ export function fields(d: OrdoDocument): Field[] {
 }
 
 /**
- * The PATCH body: only the fields that changed. Returns an error text instead when an entry is not valid.
+ * The PATCH body: only the blocks that changed (a block such as `buyer` is sent whole). Returns an error text instead when an entry is not valid.
  * Amounts stay decimal strings (parseAmount), never floating point.
  */
 export function buildPatch(d: OrdoDocument, edits: Record<FieldKey, string>): { patch: DocumentPatch | null; error: string | null } {
@@ -41,12 +41,12 @@ export function buildPatch(d: OrdoDocument, edits: Record<FieldKey, string>): { 
       // VAT may be zero; a total may not.
       const amount = f.key === "vat" && /^0+([.,]0{1,2})?$/.test(typed) ? "0.00" : parseAmount(typed);
       if (amount === null) return { patch: null, error: `${f.label}: enter an amount such as 1299.00.` };
-      patch.totals = { ...patch.totals, [f.key]: { amount, currency: d.totals.gross.currency } };
+      patch.totals = { ...(patch.totals ?? d.totals), [f.key]: { amount, currency: d.totals.gross.currency } };
     } else if (f.key === "issue_date") {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(typed)) return { patch: null, error: "Date: use the form 2026-11-20." };
       patch.issue_date = typed;
-    } else if (f.key === "seller_tax_id") patch.seller = { tax_id: typed || null };
-    else patch.buyer = { tax_id: typed || null };
+    } else if (f.key === "seller_tax_id") patch.seller = { ...d.seller, tax_id: typed || null };
+    else patch.buyer = { ...d.buyer, tax_id: typed || null };
   }
   return { patch: Object.keys(patch).length ? patch : null, error: null };
 }

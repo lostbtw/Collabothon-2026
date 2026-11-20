@@ -37,7 +37,7 @@ describe("Document view", () => {
   it("sends only the changed fields, amounts as decimal strings", () => {
     expect(buildPatch(receipt, typed())).toEqual({ patch: null, error: null });
     expect(buildPatch(receipt, typed({ gross: "1 289,50", buyer_tax_id: "9990000014" }))).toEqual({
-      patch: { totals: { gross: { amount: "1289.50", currency: "PLN" } }, buyer: { tax_id: "9990000014" } },
+      patch: { totals: { ...receipt.totals, gross: { amount: "1289.50", currency: "PLN" } }, buyer: { ...receipt.buyer, tax_id: "9990000014" } },
       error: null,
     });
     expect(buildPatch(receipt, typed({ gross: "abc" })).error).toContain("Total");

@@ -18,8 +18,9 @@ export type LedgerSummary = {
   kpis: { reimbursements_owed: Money; vat_lost_ytd: Money; documents_missing: number; tax_due_next_30d: Money };
 };
 export type ActivityItem = { at: string; agent: string; text: string; subject?: { type: string; id: string } | null; evidence: EvidenceLink[] };
-/** Partial Document: only totals, dates, seller, buyer and category_suggestion.category may be corrected. */
-export type DocumentPatch = { issue_date?: string; totals?: { gross?: Money; vat?: Money }; seller?: { tax_id?: string | null }; buyer?: { tax_id?: string | null } };
+/** Partial Document: only totals, dates, seller, buyer and category_suggestion.category may be corrected.
+ * Each of those is sent whole (the API validates the block it receives), with only the corrected value changed. */
+export type DocumentPatch = { issue_date?: string; totals?: OrdoDocument["totals"]; seller?: OrdoDocument["seller"]; buyer?: OrdoDocument["buyer"] };
 export type DecisionRequest = { decision: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: "dashboard" | "chat" };
 export type ChatAnswer = {
   session_id: string;
