@@ -16,7 +16,8 @@ PDF = b"%PDF-1.7 sample"
 
 
 class FakeDocling:
-    def __init__(self, status_code=200, status="success", markdown=HERO_MARKDOWN, error=None):
+    def __init__(self, status_code=200, status="success", markdown=HERO_MARKDOWN, error=None, content=None):
+        self.content = content
         self.requests = []
         self.status_code, self.status, self.markdown, self.error = status_code, status, markdown, error
 
@@ -24,7 +25,8 @@ class FakeDocling:
         self.requests.append(request)
         if self.error:
             raise self.error
-        body = {"document": {"md_content": self.markdown}, "status": self.status, "errors": [],
+        body = {"document": {"md_content": self.markdown, "json_content": self.content}, "status": self.status,
+                "errors": [],
                 "processing_time": 1.0, "timings": {}}
         return httpx.Response(self.status_code, json=body)
 
@@ -84,7 +86,7 @@ def test_photo_is_sent_with_forced_ocr_in_polish_and_english():
     assert field_value(form, "force_ocr") == ["true"]
     assert field_value(form, "do_ocr") == ["true"]
     assert field_value(form, "ocr_lang") == ["pl", "en"]
-    assert field_value(form, "to_formats") == ["md"]
+    assert field_value(form, "to_formats") == ["md", "json"]
     assert b'filename="photo.jpg"' in form
     assert b"Content-Type: image/jpeg" in form
 
@@ -236,3 +238,37 @@ def test_token_usage_is_summed_over_the_corrective_turn():
 def test_missing_usage_leaves_tokens_empty():
     result = run(JPEG, "image/jpeg", today=TODAY, docling_client=FakeDocling().client(), llm_client=FakeModel(HERO))
     assert result.model_tokens == {}
+
+
+PICTURE_CONTENT = {
+    "texts": [
+        {"text": "FAKTURA VAT", "children": []},
+        {"text": "Razem do zaplaty: 489,00 PLN", "children": []},
+        {"text": "", "children": []},
+        {"text": "Logo text", "children": []},
+    ],
+    "groups": [{"children": [{"$ref": "#/texts/1"}, {"$ref": "#/texts/2"}]}],
+    "pictures": [
+        {"children": [{"$ref": "#/texts/0"}, {"$ref": "#/groups/0"}, {"$ref": "#/texts/99"}]},
+        {"children": []},
+    ],
+}
+
+
+def test_text_inside_a_picture_replaces_its_placeholder():
+    fake_model = FakeModel(HERO)
+    extract(docling_fake=FakeDocling(markdown="<!-- image -->", content=PICTURE_CONTENT), model_fake=fake_model)
+    sent = fake_model.calls[0]["messages"][-1]["content"]
+    assert "FAKTURA VAT\n\nRazem do zaplaty: 489,00 PLN" in sent
+    assert "<!-- image -->" not in sent
+
+
+def test_picture_without_text_keeps_its_placeholder():
+    markdown = "Header\n\n<!-- image -->\n\nmiddle\n\n<!-- image -->\n\nend"
+    result = docling.with_picture_text(markdown, PICTURE_CONTENT)
+    assert result == "Header\n\nFAKTURA VAT\n\nRazem do zaplaty: 489,00 PLN\n\nmiddle\n\n<!-- image -->\n\nend"
+
+
+def test_markdown_without_pictures_is_unchanged():
+    assert docling.with_picture_text("SUMA PLN 1 299,00", PICTURE_CONTENT) == "SUMA PLN 1 299,00"
+    assert docling.with_picture_text("<!-- image -->", None) == "<!-- image -->"

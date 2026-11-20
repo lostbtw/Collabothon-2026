@@ -18,6 +18,7 @@ IMAGES = {
     "image/tif": "tiff",
 }
 OCR_LANGS = ["pl", "en"]
+PICTURE = "<!-- image -->"
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,7 @@ def media_type(content_type: str | None) -> str:
 
 def options(kind: str) -> dict[str, str | list[str]]:
     form: dict[str, str | list[str]] = {
-        "to_formats": "md",
+        "to_formats": ["md", "json"],
         "do_ocr": "true",
         "force_ocr": "false" if kind == PDF else "true",
         "ocr_engine": os.environ.get("ORDO_DOCLING_OCR_ENGINE", "rapidocr"),
@@ -81,5 +82,42 @@ def convert(data: bytes, content_type: str, *, client: httpx.Client | None = Non
     if status not in ("success", "partial_success"):
         raise ExtractionError(f"docling-serve conversion {status}: {body.get('errors')}")
     warnings = ["The document was only partly converted"] if status == "partial_success" else []
-    markdown = (body.get("document") or {}).get("md_content") or ""
+    document = body.get("document") or {}
+    markdown = with_picture_text(document.get("md_content") or "", document.get("json_content"))
     return Conversion(markdown=markdown, seconds=seconds, warnings=warnings)
+
+
+def with_picture_text(markdown: str, content: dict | None) -> str:
+    if PICTURE not in markdown or not isinstance(content, dict):
+        return markdown
+    texts = [_picture_text(picture, content) for picture in content.get("pictures") or []]
+    parts = markdown.split(PICTURE)
+    result = parts[0]
+    for index, part in enumerate(parts[1:]):
+        text = texts[index] if index < len(texts) else ""
+        result += (text or PICTURE) + part
+    return result
+
+
+def _picture_text(picture: dict, content: dict) -> str:
+    lines: list[str] = []
+    _collect(picture.get("children") or [], content, lines, depth=0)
+    return "\n\n".join(lines)
+
+
+def _collect(children: list, content: dict, lines: list[str], depth: int) -> None:
+    if depth > 8:
+        return
+    for child in children:
+        ref = (child or {}).get("$ref", "") if isinstance(child, dict) else ""
+        _, _, path = ref.partition("#/")
+        kind, _, number = path.partition("/")
+        if kind not in ("texts", "groups") or not number.isdigit():
+            continue
+        items = content.get(kind) or []
+        if int(number) >= len(items):
+            continue
+        item = items[int(number)]
+        if kind == "texts" and (item.get("text") or "").strip():
+            lines.append(item["text"].strip())
+        _collect(item.get("children") or [], content, lines, depth + 1)

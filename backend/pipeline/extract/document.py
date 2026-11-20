@@ -26,13 +26,15 @@ def build_document(answer: dict[str, Any], *, model: str, today: date | None = N
     vat = _money(answer.get("vat"))
     net = _money(answer.get("net"))
     field_confidence = _field_confidence(answer.get("field_confidence"))
+    if _copied_gross(net, gross, vat):
+        net = None
     if net is None and gross is not None and vat is not None:
         net = _format(Decimal(gross) - Decimal(vat))
         derived = [field_confidence[k] for k in ("gross", "vat") if k in field_confidence]
         if derived:
             field_confidence["net"] = min(derived)
 
-    vat_lines = _vat_lines(answer.get("vat_lines"))
+    vat_lines = _vat_lines(answer.get("vat_lines"), gross)
     raw_currency = _text(answer.get("currency"))
     currency = raw_currency.upper() if raw_currency and re.fullmatch(r"[A-Za-z]{3}", raw_currency) else BASE_CURRENCY
     raw_issue_date = _text(answer.get("issue_date"))
@@ -96,13 +98,20 @@ def build_document(answer: dict[str, Any], *, model: str, today: date | None = N
     }
 
 
-def _vat_lines(raw: Any) -> list[dict[str, str]]:
+def _copied_gross(net: str | None, gross: str | None, vat: str | None) -> bool:
+    return (net is not None and gross is not None and vat is not None
+            and Decimal(net) == Decimal(gross) and Decimal(vat) != 0)
+
+
+def _vat_lines(raw: Any, total_gross: str | None) -> list[dict[str, str]]:
     result = []
     for line in raw or []:
         if not isinstance(line, dict):
             continue
         rate = normalise_vat_rate(_text(line.get("rate")))
         net, vat, gross = _money(line.get("net")), _money(line.get("vat")), _money(line.get("gross"))
+        if gross is None and _copied_gross(net, total_gross, vat):
+            gross = net
         if gross is not None and vat is not None:
             net = _format(Decimal(gross) - Decimal(vat))
         if rate is None or net is None or vat is None:

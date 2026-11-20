@@ -204,6 +204,21 @@ def test_vat_line_net_is_gross_minus_vat_whatever_the_model_wrote():
     assert doc["status"] == "extracted"
 
 
+def test_net_copied_from_gross_is_derived_again():
+    answer = copy.deepcopy(HERO)
+    answer.update(net="1299.00", vat_lines=[{"rate": "23", "net": "1299.00", "vat": "242.90", "gross": None}])
+    doc = build(answer)
+    assert doc["totals"]["net"]["amount"] == "1056.10"
+    assert doc["vat_lines"] == [{"rate": "23", "net": "1056.10", "vat": "242.90"}]
+    assert doc["status"] == "extracted"
+    assert doc["extraction"]["warnings"] == []
+
+
+def test_net_equal_to_gross_stays_when_there_is_no_vat():
+    doc = build(USD_INVOICE)
+    assert doc["totals"]["net"]["amount"] == "480.00"
+
+
 def test_incomplete_vat_lines_are_dropped():
     answer = copy.deepcopy(HERO)
     answer["vat_lines"] = [{"rate": "23", "net": None, "vat": None, "gross": "1299.00"}]
