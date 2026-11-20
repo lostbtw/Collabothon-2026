@@ -135,15 +135,18 @@ def _generate(seed: int):
                 if k == 0:
                     docs.append(doc)
         truth.append({"event": i, "doc_id": doc_id, "txn_id": txn_id, "paid_by": PAID_BY[payer],
+                      "doc_missing": doc_id is None and txn_id is not None,
                       "vat_lost": round(vat * NBP[cur], 2) if (not buyer_is_company and vat > 0) else 0.0})
-    for k in range(8):  # unrelated bank noise
+    for k in range(8):  # unrelated bank noise: salaries and ZUS go out, client payments come in (sign follows text)
+        v = rnd.choice([-8200.0, -3120.55, 14760.0, 9840.0])
+        t = rnd.choice(["WYNAGRODZENIE 10/2026", "ZUS SKLADKI", "FV 12/10/2026 KLIENT SAMPLE"])
+        v = abs(v) if t.startswith("FV") else -abs(v)
         bank.append({"id": f"txn_N{k}", "account_id": "acc_w_pln",
                      "booking_date": (date(2026, 10, 10) + timedelta(days=k)).isoformat(),
-                     "amount": _m(v := rnd.choice([-8200.0, -3120.55, 14760.0, 9840.0]), "PLN"),
-                     "amount_base": _m(v, "PLN"),
-                     "description": (t := rnd.choice(["WYNAGRODZENIE 10/2026", "ZUS SKLADKI", "FV 12/10/2026 KLIENT SAMPLE"])),
+                     "amount": _m(v, "PLN"), "amount_base": _m(v, "PLN"), "description": t,
                      "counterparty_name_raw": t, "counterparty_account": None, "card_last4": None,
-                     "transaction_type": "transfer_out", "recurring_series_id": None, "match_status": "unmatched"})
+                     "transaction_type": "transfer_in" if v > 0 else "transfer_out", "recurring_series_id": None,
+                     "match_status": "unmatched"})
     rnd.shuffle(docs)
     rnd.shuffle(bank)
     rnd.shuffle(all_copies)

@@ -8,6 +8,7 @@ Environment: ORDO_DATABASE_URL (backend/settings.py); ORDO_RAW_DIR = where pvc:/
 """
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -18,10 +19,11 @@ from backend.db.store import Store
 from backend.settings import database_url
 
 from .counterparty import model_chooser
-from .handlers import COMPANY_TAX_IDS, HANDLERS, PRODUCER, Context, default_rates
+from .handlers import HANDLERS, PRODUCER, Context, default_rates, sweep
 
 log = logging.getLogger("ordo.pipeline")
 MAX_ATTEMPTS = 3
+SWEEP_SECONDS = int(os.environ.get("ORDO_PIPELINE_SWEEP_SECONDS", "60"))
 _CHOOSE = model_chooser()  # the cluster's model for category/kind when rules do not decide; None if disabled
 
 
@@ -35,8 +37,7 @@ def make_context(conn: psycopg.Connection) -> Context:
     def _company(company_id: str) -> dict:
         row = conn.execute("select to_jsonb(c) from companies c where id = %s", (company_id,)).fetchone()
         info = dict(row[0]) if row else {"id": company_id}
-        info["as_of_date"] = str(info.get("as_of_date") or "") or None
-        info["tax_id"] = info.get("tax_id") or COMPANY_TAX_IDS.get(company_id)
+        info["as_of_date"] = str(info.get("as_of_date") or "") or None  # companies.tax_id: migration 007
         return info
 
     def _people(company_id: str) -> list[dict]:
@@ -112,14 +113,32 @@ def process_pending(conn: psycopg.Connection, consumer: str, retry_after_seconds
                 conn.commit()
 
 
+def sweep_all(conn: psycopg.Connection) -> None:
+    """Missing documents and due-but-unpaid documents (#43), for every company."""
+    try:
+        ctx = make_context(conn)
+        for (company,) in conn.execute("select id from companies").fetchall():
+            counts = sweep(ctx, company)
+            if any(counts.values()):
+                log.info("pipeline: sweep %s %s", company, counts)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        log.exception("pipeline: sweep failed")
+
+
 def run(argv: list[str]) -> int:
     logging.basicConfig(level=logging.INFO)
     with psycopg.connect(database_url(), autocommit=False) as conn:
         listener = psycopg.connect(database_url(), autocommit=True)
         listener.execute("listen outbox")
         log.info("pipeline: listening (normaliser, matcher)")
+        last_sweep = 0.0
         while True:
             for consumer in ("normaliser", "matcher"):  # normaliser first: its output feeds the matcher
                 process_pending(conn, consumer)
+            if time.monotonic() - last_sweep >= SWEEP_SECONDS:
+                sweep_all(conn)
+                last_sweep = time.monotonic()
             for _ in listener.notifies(timeout=5.0, stop_after=1):  # wake on NOTIFY, or poll every 5 s
                 pass

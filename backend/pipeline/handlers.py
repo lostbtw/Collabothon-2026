@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Callable, Protocol
 
-from . import counterparty, dedupe
+from . import counterparty, dedupe, missing
 from .match import match_suggested_payload, run_matching
 from .normalise import NormaliseError, normalise_bank_line, parse_fa3, parse_infakt, transaction_ingested_payload
 from .normalise.fa3 import Fa3Error
@@ -22,9 +22,6 @@ from .normalise.fx import StandInRates
 from .who_paid import document_flags
 
 PRODUCER = "pipeline"
-
-# STAND-IN until the companies table carries tax_id (requested from role 5 on spec #5).
-COMPANY_TAX_IDS = {"co_borsuk": "9990000014"}
 
 
 class Store(Protocol):
@@ -142,9 +139,9 @@ def _save_match(ctx: Context, company: str, doc: dict, result: dict, correlation
     ctx.publish("match.suggested", company, match_suggested_payload(match), correlation, causation)
 
 
-def match_document(ctx: Context, company: str, doc: dict, correlation: str | None, causation: str) -> None:
+def match_document(ctx: Context, company: str, doc: dict, correlation: str | None, causation: str | None) -> None:
     info, people, accounts = _company_inputs(ctx, company)
-    txns = ctx.store.list("transaction", company_id=company, match_status="unmatched")
+    txns = ctx.store.list("transaction", company_id=company, match_status=["unmatched", "missing_document"])
     previous = _existing_match(ctx, doc["id"])
     if previous and previous.get("transaction_id"):  # its own line stays a candidate when re-matching
         own = ctx.store.get("transaction", previous["transaction_id"])
@@ -152,7 +149,27 @@ def match_document(ctx: Context, company: str, doc: dict, correlation: str | Non
             txns.append({**own, "match_status": "unmatched"})
     [result] = run_matching([doc], txns, company=info, people=people, accounts=accounts, now=ctx.now(),
                             as_of=info.get("as_of_date"), senders={doc["id"]: sender_of(ctx, doc)})
+    if missing.is_unpaid_question(result["match"]) and missing.not_yet_due(doc, info.get("as_of_date")) \
+            and not _existing_match(ctx, doc["id"]):
+        return  # unpaid and not due yet: a payable for the forecast, not a question (#43); the sweep asks later
     _save_match(ctx, company, doc, result, correlation, causation)
+
+
+def sweep(ctx: Context, company: str) -> dict:
+    """Periodic pass (#43): flag bank lines without a document, ask about purchase documents that became due."""
+    s = ctx.store
+    as_of = ctx.company(company).get("as_of_date")
+    counts = {"missing_document": 0, "no_document_needed": 0, "asked": 0}
+    for txn in s.list("transaction", company_id=company, match_status="unmatched"):
+        status = missing.line_status(txn, as_of)
+        if status:
+            s.put("transaction", {**txn, "match_status": status}, company_id=company)
+            counts[status] += 1
+    matched = {m["document_id"] for m in s.list("match", company_id=company)}
+    for doc in missing.documents_to_ask_about(s.list("document", company_id=company), matched, as_of):
+        match_document(ctx, company, doc, (doc.get("raw_item_ids") or [None])[0], None)
+        counts["asked"] += 1
+    return counts
 
 
 def on_document_extracted(ctx: Context, event: dict) -> None:
@@ -203,15 +220,16 @@ def on_transaction_ingested(ctx: Context, event: dict) -> None:
     s = ctx.store
     company = event["company_id"]
     txn = s.get("transaction", event["payload"]["transaction_id"])
-    if txn is None or txn.get("match_status") != "unmatched":
+    if txn is None or txn.get("match_status") not in ("unmatched", "missing_document"):
         return
     waiting = []
     for doc in s.list("document", company_id=company):
         if doc.get("status") in ("duplicate", "rejected"):
             continue
         previous = _existing_match(ctx, doc["id"])
-        if previous and previous["status"] == "suggested" and previous["match_type"] == "document_no_transaction":
-            waiting.append(doc)
+        if previous is None or (previous["status"] == "suggested"
+                                and previous["match_type"] == "document_no_transaction"):
+            waiting.append(doc)  # an open question, or a payable not due yet (#43) that this line may pay
     if not waiting:
         return
     info, people, accounts = _company_inputs(ctx, company)
