@@ -82,6 +82,7 @@ class ModelReading:
     answer: dict[str, Any]
     seconds: float
     warnings: list[str] = field(default_factory=list)
+    tokens: dict[str, int] = field(default_factory=dict)
 
 
 def default_client() -> Any:
@@ -105,24 +106,27 @@ def read(markdown: str, *, client: Any = None) -> ModelReading:
     messages = [{"role": "system", "content": SYSTEM},
                 {"role": "user", "content": "Extract the fields from this document:\n\n" + markdown}]
     started = time.monotonic()
-    answer, problems, content = _ask(client, messages)
+    tokens: dict[str, int] = {}
+    answer, problems, content = _ask(client, messages, tokens)
     if problems:
         messages += [{"role": "assistant", "content": content or ""},
                      {"role": "user", "content": "Your answer does not match the required JSON: "
                       + "; ".join(problems)[:500] + ". Answer again with the JSON object only."}]
-        answer, problems, _ = _ask(client, messages)
+        answer, problems, _ = _ask(client, messages, tokens)
     if problems:
         raise ExtractionError("model answer does not match the schema: " + "; ".join(problems)[:300])
-    return ModelReading(answer=answer, seconds=time.monotonic() - started, warnings=warnings)
+    return ModelReading(answer=answer, seconds=time.monotonic() - started, warnings=warnings, tokens=tokens)
 
 
-def _ask(client: Any, messages: list[dict[str, str]]) -> tuple[dict[str, Any] | None, list[str], str | None]:
+def _ask(client: Any, messages: list[dict[str, str]],
+         tokens: dict[str, int]) -> tuple[dict[str, Any] | None, list[str], str | None]:
     try:
         response = client.chat.completions.create(
             model=settings.llm_model(), messages=messages, response_format=response_format(),
             reasoning_effort="low", temperature=0, max_tokens=MAX_TOKENS)
     except Exception as error:
         raise ExtractionError(f"model call failed: {type(error).__name__}: {error}") from error
+    _count(tokens, response)
     choice = response.choices[0]
     content = choice.message.content
     if choice.finish_reason == "length":
@@ -134,3 +138,15 @@ def _ask(client: Any, messages: list[dict[str, str]]) -> tuple[dict[str, Any] | 
     problems = sorted(f"{'/'.join(map(str, e.absolute_path)) or 'answer'}: {e.message}"
                       for e in Draft202012Validator(SCHEMA).iter_errors(answer))
     return (None if problems else answer), problems, content
+
+
+def _count(tokens: dict[str, int], response: Any) -> None:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return
+    details = getattr(usage, "completion_tokens_details", None)
+    counts = {"calls": 1, "prompt": getattr(usage, "prompt_tokens", 0) or 0,
+              "completion": getattr(usage, "completion_tokens", 0) or 0,
+              "reasoning": getattr(details, "reasoning_tokens", 0) or 0}
+    for key, value in counts.items():
+        tokens[key] = tokens.get(key, 0) + value

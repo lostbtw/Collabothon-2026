@@ -36,7 +36,8 @@ class FakeDocling:
 
 
 class FakeModel:
-    def __init__(self, *contents, finish_reasons=None, error=None):
+    def __init__(self, *contents, finish_reasons=None, error=None, usage=None):
+        self.usage = usage
         self.contents = list(contents)
         self.finish_reasons = list(finish_reasons or ["stop"] * len(contents))
         self.calls = []
@@ -51,7 +52,8 @@ class FakeModel:
         if not isinstance(content, str):
             content = json.dumps(content)
         message = SimpleNamespace(content=content)
-        return SimpleNamespace(choices=[SimpleNamespace(message=message, finish_reason=self.finish_reasons.pop(0))])
+        return SimpleNamespace(choices=[SimpleNamespace(message=message, finish_reason=self.finish_reasons.pop(0))],
+                               usage=self.usage)
 
 
 def extract(data=JPEG, content_type="image/jpeg", docling_fake=None, model_fake=None):
@@ -214,3 +216,23 @@ def test_ocr_engine_and_image_scale_can_be_tuned(monkeypatch):
     extract(docling_fake=fake)
     assert field_value(fake.form(), "ocr_engine") == ["rapidocr"]
     assert field_value(fake.form(), "images_scale") == ["1.0"]
+
+
+def test_photo_uses_rapidocr_by_default(monkeypatch):
+    monkeypatch.delenv("ORDO_DOCLING_OCR_ENGINE", raising=False)
+    fake = FakeDocling()
+    extract(docling_fake=fake)
+    assert field_value(fake.form(), "ocr_engine") == ["rapidocr"]
+
+
+def test_token_usage_is_summed_over_the_corrective_turn():
+    usage = SimpleNamespace(prompt_tokens=900, completion_tokens=400,
+                            completion_tokens_details=SimpleNamespace(reasoning_tokens=120))
+    fake = FakeModel("not json", HERO, usage=usage)
+    result = run(JPEG, "image/jpeg", today=TODAY, docling_client=FakeDocling().client(), llm_client=fake)
+    assert result.model_tokens == {"calls": 2, "prompt": 1800, "completion": 800, "reasoning": 240}
+
+
+def test_missing_usage_leaves_tokens_empty():
+    result = run(JPEG, "image/jpeg", today=TODAY, docling_client=FakeDocling().client(), llm_client=FakeModel(HERO))
+    assert result.model_tokens == {}

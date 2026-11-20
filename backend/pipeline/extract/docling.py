@@ -39,7 +39,7 @@ def options(kind: str) -> dict[str, str | list[str]]:
         "to_formats": "md",
         "do_ocr": "true",
         "force_ocr": "false" if kind == PDF else "true",
-        "ocr_engine": os.environ.get("ORDO_DOCLING_OCR_ENGINE", "easyocr"),
+        "ocr_engine": os.environ.get("ORDO_DOCLING_OCR_ENGINE", "rapidocr"),
         "ocr_lang": OCR_LANGS,
         "table_mode": "fast",
         "include_images": "false",

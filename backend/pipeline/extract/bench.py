@@ -71,6 +71,7 @@ def bench_file(path: Path, truth: dict[str, tuple[str, str]], today: date | None
     record.update(
         docling_seconds=round(result.docling_seconds, 2),
         model_seconds=round(result.model_seconds, 2),
+        model_tokens=result.model_tokens,
         total_seconds=round(time.monotonic() - started, 2),
         gross=list(extracted),
         gross_correct=(extracted == expected) if expected else None,
@@ -90,8 +91,10 @@ def row(record: dict[str, Any]) -> str:
     gross = " ".join(record["gross"]) if record.get("gross") else "-"
     expected = " ".join(record["expected"]) if record.get("expected") else "-"
     note = record["error"] or "; ".join(record.get("warnings") or [])
+    tokens = record.get("model_tokens") or {}
+    used = f"{tokens['completion']}/{tokens['reasoning']}" if "completion" in tokens else "-"
     return (f"{Path(record['file']).name:<24} {_seconds(record.get('docling_seconds')):>7} "
-            f"{_seconds(record.get('model_seconds')):>7} {_seconds(record.get('total_seconds')):>7} "
+            f"{_seconds(record.get('model_seconds')):>7} {used:>9} {_seconds(record.get('total_seconds')):>7} "
             f"{gross:>14} {expected:>14} {record['verdict']:<7} {_score(record.get('confidence')):>5}  {note}")
 
 
@@ -118,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     truth = load_truth(args.truth)
     docling_client = docling.default_client()
     llm_client = model.default_client()
-    print(f"{'file':<24} {'docling':>7} {'model':>7} {'total':>7} {'gross':>14} {'expected':>14} "
+    print(f"{'file':<24} {'docling':>7} {'model':>7} {'out/reas':>9} {'total':>7} {'gross':>14} {'expected':>14} "
           f"{'verdict':<7} {'conf':>5}  warnings")
     records = []
     try:

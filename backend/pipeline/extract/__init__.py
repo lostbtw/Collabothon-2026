@@ -19,6 +19,7 @@ class Extraction:
     docling_seconds: float
     model_seconds: float
     markdown: str
+    model_tokens: dict[str, int]
 
 
 def run(data: bytes, content_type: str, *, today: date | None = None,
@@ -28,7 +29,7 @@ def run(data: bytes, content_type: str, *, today: date | None = None,
     document = build_document(reading.answer, model=settings.llm_model(), today=today,
                               warnings=[*conversion.warnings, *reading.warnings])
     return Extraction(document=document, docling_seconds=conversion.seconds, model_seconds=reading.seconds,
-                      markdown=conversion.markdown)
+                      markdown=conversion.markdown, model_tokens=reading.tokens)
 
 
 def extract_document(data: bytes, content_type: str, *, today: date | None = None,

@@ -196,6 +196,14 @@ def test_values_outside_the_contract_are_dropped():
     assert schema_errors(doc) == []
 
 
+def test_vat_line_net_is_gross_minus_vat_whatever_the_model_wrote():
+    answer = copy.deepcopy(HERO)
+    answer["vat_lines"] = [{"rate": "23", "net": "1064.71", "vat": "242.90", "gross": "1299.00"}]
+    doc = build(answer)
+    assert doc["vat_lines"] == [{"rate": "23", "net": "1056.10", "vat": "242.90"}]
+    assert doc["status"] == "extracted"
+
+
 def test_incomplete_vat_lines_are_dropped():
     answer = copy.deepcopy(HERO)
     answer["vat_lines"] = [{"rate": "23", "net": None, "vat": None, "gross": "1299.00"}]

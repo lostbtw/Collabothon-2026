@@ -103,7 +103,7 @@ def _vat_lines(raw: Any) -> list[dict[str, str]]:
             continue
         rate = normalise_vat_rate(_text(line.get("rate")))
         net, vat, gross = _money(line.get("net")), _money(line.get("vat")), _money(line.get("gross"))
-        if net is None and gross is not None and vat is not None:
+        if gross is not None and vat is not None:
             net = _format(Decimal(gross) - Decimal(vat))
         if rate is None or net is None or vat is None:
             continue
