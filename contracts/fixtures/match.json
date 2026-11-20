@@ -20,7 +20,7 @@
       {
         "rule": "card_last4",
         "weight": 0.06,
-        "detail": "Card *7730 on the receipt is not a company card (*4417) nor the owner's card (*9021)"
+        "detail": "Card *7730 on the receipt is not a company card (*2290, *4417) nor the owner's card (*9021)"
       }
     ],
     "paid_by": "employee_private",
