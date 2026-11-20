@@ -232,18 +232,40 @@ def german(amount):
     return f"{amount:.2f}".replace(".", ",")
 
 
+def purchase_doc(number, issue, due, line=None):
+    """Invoice data for a purchase paid by bank transfer (Borsuk Labs is the buyer)."""
+    return {"direction": "purchase", "pay": "transfer", "number": number, "issue": issue, "due": due, "line": line}
+
+
+def sale_doc(number, issue, due):
+    """Invoice data for a sale (Borsuk Labs is the seller), paid by bank transfer."""
+    return {"direction": "sale", "pay": "transfer", "number": number, "issue": issue, "due": due}
+
+
 class Book:
-    """Collects rows per account: (booking, value, type, reference, payer, account, amount)."""
+    """Collects rows per account: (booking, value, type, reference, payer, account, amount).
+
+    A row can carry `doc`: the data of the invoice behind it (used by fa3_2026.py). Documents
+    never consume random numbers, so adding them does not change the bank lines.
+    """
 
     def __init__(self):
         self.rows = {acc: [] for acc in ACCOUNTS}
+        self.docs = []
 
-    def add(self, acc, booking, ttype, ref, payer, cp_acc, amount, value=None):
-        self.rows[acc].append((booking, value or booking, ttype, ref, payer, cp_acc, money(amount)))
+    def add(self, acc, booking, ttype, ref, payer, cp_acc, amount, value=None, doc=None):
+        row = (booking, value or booking, ttype, ref, payer, cp_acc, money(amount))
+        self.rows[acc].append(row)
+        if doc is not None:
+            self.docs.append({"party": payer, "party_account": cp_acc, **doc,
+                              "bank": {"account": acc, "booking_date": row[0], "value_date": row[1],
+                                       "reference": ref, "amount": row[6], "currency": ACCOUNTS[acc]["currency"]}})
 
-    def card(self, acc, purchase, descriptor, payer, amount, card):
+    def card(self, acc, purchase, descriptor, payer, amount, card, doc=None):
+        if doc is not None:
+            doc = {"direction": "purchase", "pay": "card", "issue": purchase, "paid": purchase, **doc}
         self.add(acc, next_bank_day(purchase), "GIRO CARD PAYMENT", f"{descriptor} KARTA *{card}", payer, "",
-                 -money(amount), value=purchase)
+                 -money(amount), value=purchase, doc=doc)
 
 
 def noisy(rng, descriptor):
@@ -260,7 +282,8 @@ def random_day(rng, m, first=1, last=None):
 def daily_cards(book, rng, m, count, last_day=None):
     for _ in range(count):
         desc, payer, lo, hi = rng.choice(CARD_PLN)
-        book.card("acc_pln", random_day(rng, m, last=last_day), noisy(rng, desc), payer, rng.uniform(lo, hi), "4417")
+        book.card("acc_pln", random_day(rng, m, last=last_day), noisy(rng, desc), payer, rng.uniform(lo, hi), "4417",
+                  doc={})
     for _ in range(max(1, count // 6)):
         desc, payer, lo, hi = rng.choice(CARD_EUR)
         book.card("acc_eur", random_day(rng, m, last=last_day), desc, payer, rng.uniform(lo, hi), "2290")
@@ -277,12 +300,16 @@ def generate_month(book, rng, m):
     pln, eur, owner = "acc_pln", "acc_eur", "acc_owner"
 
     # Recurring payments.
-    book.add(pln, on_or_after(date(2026, m, 1)), "RENT PAYMENT",
-             f"CZYNSZ {mm} BIURO 4B FV CW/{mm}/{m + 6:03d}", *COWORKING, "-2460.00")
-    book.add(pln, on_or_after(date(2026, m, 1)), "BANK FEE", f"OPLATA ZA PROWADZENIE RACHUNKU {prev}", "", "", "-39.00")
-    book.add(eur, on_or_after(date(2026, m, 1)), "BANK FEE", f"ACCOUNT FEE EUR {prev}", "", "", "-5.00")
-    book.add(pln, on_or_after(date(2026, m, 10)), "SUPPLIER PAYMENT",
-             f"FV {100 + m}/{mm} OBSLUGA KSIEGOWA {mm}", *ACCOUNTING, "-1230.00")
+    first = on_or_after(date(2026, m, 1))
+    book.add(pln, first, "RENT PAYMENT",
+             f"CZYNSZ {mm} BIURO 4B FV CW/{mm}/{m + 6:03d}", *COWORKING, "-2460.00",
+             doc=purchase_doc(f"CW/{mm}/{m + 6:03d}", date(2026, m, 1), first, f"Najem stanowiska biurowego {mm}"))
+    book.add(pln, first, "BANK FEE", f"OPLATA ZA PROWADZENIE RACHUNKU {prev}", "", "", "-39.00")
+    book.add(eur, first, "BANK FEE", f"ACCOUNT FEE EUR {prev}", "", "", "-5.00")
+    day10 = on_or_after(date(2026, m, 10))
+    book.add(pln, day10, "SUPPLIER PAYMENT",
+             f"FV {100 + m}/{mm} OBSLUGA KSIEGOWA {mm}", *ACCOUNTING, "-1230.00",
+             doc=purchase_doc(f"{100 + m}/{mm}", date(2026, m, 3), day10, f"Obsługa księgowa {mm}"))
     book.add(pln, on_or_after(date(2026, m, 15)), "DIRECT DEBIT", f"SKLADKI ZUS {prev} NIP 9990000014", *ZUS,
              -rng.randrange(910000, 970001, 100) / 100)
     day20 = on_or_after(date(2026, m, 20))
@@ -304,7 +331,12 @@ def generate_month(book, rng, m):
     # Pay run on the last bank day, plus reimbursements owed to the team (M1/M2).
     payday = last_bank_day(m)
     for name, iban, ttype, ref, amount in PAY_RUN:
-        book.add(pln, payday, ttype, ref.format(m=m, mm=mm), name, iban, f"-{amount}")
+        ref = ref.format(m=m, mm=mm)
+        doc = None
+        if ttype == "SUPPLIER PAYMENT":  # B2B contractor invoice; salaries have no invoice
+            number, line = ref[3:].split(" ", 1)
+            doc = purchase_doc(number, date(2026, m, 25), payday, line.capitalize())
+        book.add(pln, payday, ttype, ref, name, iban, f"-{amount}", doc=doc)
     book.add(owner, payday, "INCOMING TRANSFER", f"WYNAGRODZENIE ZARZADU {mm}", COMPANY,
              ACCOUNTS[pln]["iban"], PAY_RUN[-1][4])
     for name, iban, *_ in rng.sample(PAY_RUN[:6], rng.randint(1, 4)):
@@ -318,20 +350,25 @@ def generate_month(book, rng, m):
     def gross(lo, hi, step):
         return (rng.randrange(lo, hi + 1, step) * trend / 100).quantize(Decimal("1")) * 100 * Decimal("1.23")
 
+    issued = date(2026, m, 1) - timedelta(days=1)  # invoices for the previous month, issued on its last day
     book.add(pln, on_or_after(date(2026, m, 4) + timedelta(days=rng.randint(0, 5))), "INCOMING TRANSFER",
-             f"FV {inv}/041", *PIEKARNIA, gross(10000, 16000, 100))
+             f"FV {inv}/041", *PIEKARNIA, gross(10000, 16000, 100),
+             doc=sale_doc(f"{inv}/041", issued, date(2026, m, 4)))
     book.add(pln, on_or_after(date(2026, m, 15) + timedelta(days=rng.randint(0, 4))), "INCOMING TRANSFER",
-             f"ZAPLATA ZA FV {inv}/043", *KADROWNIA, gross(6000, 10000, 100))
+             f"ZAPLATA ZA FV {inv}/043", *KADROWNIA, gross(6000, 10000, 100),
+             doc=sale_doc(f"{inv}/043", issued, date(2026, m, 15)))
     book.add(pln, on_or_after(date(2026, m, 27)), "INCOMING TRANSFER", f"FV {inv}/042", *MEBLOSTYL,
-             gross(30000, 40000, 500))
+             gross(30000, 40000, 500), doc=sale_doc(f"{inv}/042", issued, date(2026, m, 27)))
 
     # Irregular purchase 3-9k.
     kind, text, payer, cp_acc, lo, hi = rng.choice(IRREGULAR)
     if kind == "card":
-        book.card(pln, random_day(rng, m), text, payer, rng.randrange(lo, hi + 1, 1), "4417")
+        book.card(pln, random_day(rng, m), text, payer, rng.randrange(lo, hi + 1, 1), "4417", doc={})
     else:
-        book.add(pln, on_or_after(random_day(rng, m, last=26)), "SUPPLIER PAYMENT", text.format(m=m), payer, cp_acc,
-                 -rng.randrange(lo, hi + 1, 10))
+        day = on_or_after(random_day(rng, m, last=26))
+        ref = text.format(m=m)
+        book.add(pln, day, "SUPPLIER PAYMENT", ref, payer, cp_acc, -rng.randrange(lo, hi + 1, 10),
+                 doc=purchase_doc(ref[3:].split(" ", 1)[0], day - timedelta(days=7), day))
     if m in PRIVATE_ON_COMPANY:
         desc, payer, amount = PRIVATE_ON_COMPANY[m]
         book.card(pln, date(2026, m, 14), desc, payer, amount, "4417")
@@ -345,12 +382,13 @@ def generate_month(book, rng, m):
     rate = Decimal(f"{mid_rate('USD', figment) * 1.03:.4f}")
     book.card(owner, figment, "FIGMENT DESIGN* 15.00 USD", "FIGMENT DESIGN INC (SAMPLE)",
               -fx_amount("15.00", rate), "9021")
-    if m == 5:  # M3: client trip to Warsaw on the owner's card
+    if m == 5:  # M3: client trip to Warsaw on the owner's card; invoices made out to the company
         book.card(owner, date(2026, 5, 19), "RAILEXPRESS BILETY LODZ-WARSZAWA", "RAILEXPRESS S.A. (SAMPLE)",
-                  "139.80", "9021")
+                  "139.80", "9021", doc={"messiness": ["M3"]})
         book.card(owner, date(2026, 5, 19), "HOTEL CENTRUM WARSZAWA", "HOTEL CENTRUM WARSZAWA (SAMPLE)",
-                  "455.00", "9021")
-        book.card(owner, date(2026, 5, 20), "TAXIGO*TRIP WARSZAWA", "TAXIGO SP Z O O (SAMPLE)", "38.70", "9021")
+                  "455.00", "9021", doc={"messiness": ["M3"]})
+        book.card(owner, date(2026, 5, 20), "TAXIGO*TRIP WARSZAWA", "TAXIGO SP Z O O (SAMPLE)", "38.70", "9021",
+                  doc={"messiness": ["M3"]})
 
     daily_cards(book, rng, m, rng.randint(34, 42))
 
@@ -361,7 +399,9 @@ def generate_nordwind(book, rng):
         issue = f"2026/{due_month - 1:02d}" if due_month > 1 else "2025/12"
         amount = Decimal(rng.randrange(18000, 22001, 50))
         paid = on_or_after(date(2026, due_month, 14) + timedelta(days=delay))
-        book.add("acc_eur", paid, "INCOMING TRANSFER", f"INV {issue}/044 BORSUK LABS", *NORDWIND, amount)
+        due = date(2026, due_month, 14)
+        book.add("acc_eur", paid, "INCOMING TRANSFER", f"INV {issue}/044 BORSUK LABS", *NORDWIND, amount,
+                 doc=sale_doc(f"{issue}/044", due - timedelta(days=30), due))
         convert = (amount - 500) // 100 * 100
         day = next_bank_day(paid)
         rate = Decimal(f"{mid_rate('EUR', day) * 0.996:.4f}")
@@ -370,13 +410,20 @@ def generate_nordwind(book, rng):
         book.add("acc_pln", day, "INTERNAL TRANSFER", ref, COMPANY, ACCOUNTS["acc_eur"]["iban"], convert * rate)
 
 
+# October invoices paid in November (the hand-written rows above).
+NOV_DOCS = {
+    "FV 2026/10/041": sale_doc("2026/10/041", date(2026, 10, 31), date(2026, 11, 4)),
+    "ZAPLATA ZA FV 2026/10/043": sale_doc("2026/10/043", date(2026, 10, 31), date(2026, 11, 15)),
+}
+
+
 def add_november(book, rng):
     for acc, rows in NOV_ROWS.items():
         for booking, value, ttype, payer, cp_acc, ref, amount in rows:
             if isinstance(amount, tuple):
                 amount = fx_amount(*amount)
             d = lambda s: date(2026, int(s[3:]), int(s[:2]))  # noqa: E731
-            book.add(acc, d(booking), ttype, ref, payer, cp_acc, amount, value=d(value))
+            book.add(acc, d(booking), ttype, ref, payer, cp_acc, amount, value=d(value), doc=NOV_DOCS.get(ref))
     # Daily purchases 1-18 Nov, booked by 19 Nov, so the PIXELBOARD line stays last.
     daily_cards(book, rng, 11, rng.randint(22, 26), last_day=18)
 
@@ -386,13 +433,19 @@ def check(acc, rows):
         assert START <= value <= booking <= END and is_bank_day(booking), (acc, booking, value)
 
 
-def main():
+def build():
+    """Generate every bank line (and the invoice data behind it). Same seed -> same result."""
     rng = random.Random(SEED)
     book = Book()
     for m in range(1, 11):
         generate_month(book, rng, m)
     generate_nordwind(book, rng)
     add_november(book, rng)
+    return book
+
+
+def main():
+    book = build()
 
     OUT.mkdir(exist_ok=True)
     total = 0
