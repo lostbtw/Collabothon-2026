@@ -265,6 +265,37 @@ def test_load_csv_rejects_bad_input(client):
     assert client.post("/admin/load-csv", content=MINI_CSV.encode()).status_code == 401
 
 
+# ---------- autoload at start ----------
+def test_autoload_fills_the_account_at_start_and_after_reset(tmp_path):
+    path = tmp_path / "pizzeria.csv"
+    path.write_text(MINI_CSV, encoding="utf-8")
+    c = TestClient(create_app(Store(), token=TOKEN, autoload_csv=str(path)))
+    lines = c.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]
+    assert len(lines) == 4  # a fresh bank is not empty
+    # other accounts are untouched
+    assert c.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
+    c.post("/admin/transactions", json={"accountId": "acc_pln", "amount": "-1"}, headers=AUTH)
+    c.post("/admin/clock", json={"now": "2025-06-01", "accountId": "acc_pizzeria"}, headers=AUTH)
+    r = c.post("/admin/reset", headers=AUTH)
+    assert r.json() == {"status": "reset", "autoloaded": True}
+    assert len(c.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]) == 4
+    assert c.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
+    assert c.get("/admin/clock", headers=AUTH).json() == {"now": None, "accounts": {}}
+
+
+def test_autoload_fails_fast_when_the_file_is_missing_or_the_account_unknown(tmp_path):
+    with pytest.raises(RuntimeError, match="could not be loaded"):
+        create_app(Store(), token=TOKEN, autoload_csv=str(tmp_path / "nope.csv"))
+    path = tmp_path / "p.csv"
+    path.write_text(MINI_CSV, encoding="utf-8")
+    with pytest.raises(RuntimeError, match="not a known account"):
+        create_app(Store(), token=TOKEN, autoload_csv=str(path), autoload_account="acc_nope")
+    bad = tmp_path / "bad.csv"
+    bad.write_text('"a";"b"\n"1";"2"\n', encoding="utf-8")
+    with pytest.raises(RuntimeError, match="could not be loaded"):
+        create_app(Store(), token=TOKEN, autoload_csv=str(bad))
+
+
 # ---------- the organisers' real file (not in Git; set BANK_TEST_CSV to run) ----------
 REAL = os.environ.get("BANK_TEST_CSV")
 
