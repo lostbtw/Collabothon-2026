@@ -60,8 +60,8 @@ History + keyword rules + the LLM constrained to a JSON-schema enum (vLLM struct
 **D-10 — Agents: plain `openai` SDK + our own small tool loop; tools also exposed over MCP. No heavy framework.**
 vLLM and OGX both expose the OpenAI API, so a 60-line loop has no hidden behaviour to debug at 03:00, and MCP exposure keeps the OGX bonus open as a configuration change. Chat starts with 5 fixed tools; free SQL is a guarded extra.
 
-**D-12 — One multimodal open model served with vLLM; the size is chosen by GPU.**
-24 GB: Qwen3.5-9B FP8. 48 GB or more: Qwen3.8-27B FP8. Fallback: Mistral Small 3.1 24B quantised from `registry.redhat.io`. Not yet run by us; it is the first task on the cluster. Three models (text + classifier + vision) on one GPU were rejected.
+**D-12 — gpt-oss-20b on the GPU, docling-serve on CPU; no vision model.**
+gpt-oss-20b (open weights, vLLM 0.11 on RHAIIS, `openai` tool parser, token auth) reads Markdown, fills JSON schemas and runs the agents' tool loops. docling-serve does OCR and layout on CPU, so every document goes docling-serve → gpt-oss-20b. Both were already deployed and serving in project `cfo-ai` when recon (#7) ran, gpt-oss-20b calls tools natively in vLLM, and OCR on CPU leaves the one L4 (23 GB, 21.7 GB taken by gpt-oss-20b) to a single model. No fallback model. The earlier plan, one multimodal Qwen sized by GPU with a Mistral fallback, was dropped. Three models (text + classifier + vision) on one GPU were rejected.
 
 **D-13 — Bonus set: vLLM, MLflow tracing + evaluation, Jupyter notebook; NeMo Guardrails as should-have; OGX + MCP as stretch.**
 Not taken: MaaS, llm-d (high risk on one node), Quarkus, Dev Spaces, OpenShell (3+ h each, no product value). Red Hat's own advice is to focus on the hard criteria and the domain logic.
