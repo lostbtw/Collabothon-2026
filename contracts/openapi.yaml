@@ -87,7 +87,7 @@ paths:
       requestBody:
         content:
           multipart/form-data:
-            schema: {type: object, properties: {file: {type: string, format: binary}, submitted_by: {type: string}}}
+            schema: {type: object, properties: {file: {type: string, format: binary}, submitted_by: {type: string}, transaction_id: {type: string, description: "Optional. The bank line the owner adds this receipt to; stored as metadata.for_transaction_id and preferred by matching"}}}
       responses:
         '201': {description: Created, content: {application/json: {schema: {$ref: './schemas/raw_item.schema.json'}}}}
   /documents:
