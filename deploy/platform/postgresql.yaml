@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-data
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: postgresql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: postgresql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: registry.redhat.io/rhel9/postgresql-16:latest
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: POSTGRESQL_USER
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: POSTGRESQL_PASSWORD
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: POSTGRESQL_DATABASE
+          readinessProbe:
+            exec:
+              command: ["/usr/libexec/check-container"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["/usr/libexec/check-container", "--live"]
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgsql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgresql-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: postgresql
+spec:
+  selector:
+    app.kubernetes.io/name: postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
