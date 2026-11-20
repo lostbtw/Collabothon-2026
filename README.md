@@ -12,6 +12,8 @@ Ordo turns a small company's scattered money data into one owner-approved ledger
 
 Set-up per person: clone, `echo <your role number 1-6> > .role`, start Claude Code in the folder, pick a ticket in the browser (see `CLAUDE.md` section 2) and tell Claude its number. One branch and one pull request per ticket; nobody commits to `main` directly.
 
-Checks: `python3 contracts/validate_fixtures.py` (expects `0 invalid`).
+Backend: one Python 3.12 package in `backend/`, managed with [uv](https://docs.astral.sh/uv/). `uv sync` installs it; each process starts as `uv run python -m backend <api|connectors|pipeline|agents>`. Your process goes in `backend/<your folder>/main.py` as `run(argv)`; until then the entrypoint is a placeholder. Tests live next to the code they test (`backend/<folder>/tests/`).
+
+Checks (the same ones CI runs on every pull request): `python3 contracts/validate_fixtures.py` (expects `0 invalid`), `uv run python -m pytest` (all backend tests), and `npx tsc --noEmit` in `frontend/`.
 
 Everything in this repository is synthetic. Company, people, vendors and tax ids are invented and marked SAMPLE.
