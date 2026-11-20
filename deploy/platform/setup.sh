@@ -210,15 +210,16 @@ verify() {
 
 app() {
   local name
-  for name in ordo-db llm-token; do
+  for name in ordo-db llm-token docling-api-key; do
     if ! secret_exists "$name"; then
       echo "secret $name is missing, see deploy/secrets.example.yaml" >&2
       exit 1
     fi
   done
-  oc apply -f "$APP/config.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml"
-  oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
-  oc -n "$NS" rollout status deployment/ordo-web --timeout=300s
+  oc apply -f "$APP/config.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml"
+  for name in ordo-api ordo-web ordo-pipeline; do
+    oc -n "$NS" rollout status "deployment/$name" --timeout=300s
+  done
 }
 
 db_fixtures() {
