@@ -59,6 +59,7 @@ SCHEMA = _object({
 SYSTEM = (
     "You read invoices and receipts for a small Polish company's bookkeeping. "
     "The document comes as Markdown converted by OCR, so expect broken lines and misread characters. "
+    "Do not deliberate: think in at most one short sentence, then write the answer. "
     "Answer only with the JSON object the schema asks for. "
     "Copy only values that are printed on the document; use null for anything that is not printed, "
     "and never calculate a value that is missing. "
