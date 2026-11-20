@@ -72,7 +72,7 @@
       {
         "rule": "amount_fx_within_spread",
         "weight": 0.35,
-        "detail": "45.00 USD x NBP 3.9099 = 175.95 PLN; bank charged 180.62 PLN (+2.7%, inside the 0..4.5% card spread band)"
+        "detail": "45.00 USD x NBP 4.0170 = 180.77 PLN; bank charged 185.57 PLN (+2.7%, inside the 0..4.5% card spread band)"
       },
       {
         "rule": "date_lag",
