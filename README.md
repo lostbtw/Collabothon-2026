@@ -10,7 +10,7 @@ Ordo turns a small company's scattered money data into one owner-approved ledger
 | [contracts/](contracts/README.md) | Schemas, API, events and fixtures every role builds against |
 | [DECISIONS.md](DECISIONS.md) | Why things are the way they are |
 
-Set-up per person: clone, `echo <your role number 1-6> > .role`, install the GitHub CLI and run `gh auth login`, start Claude Code in the folder, pick a ticket (see `CLAUDE.md` section 2) and run `/implement #<number>`.
+Set-up per person: clone, `echo <your role number 1-6> > .role`, start Claude Code in the folder, pick a ticket in the browser (see `CLAUDE.md` section 2) and tell Claude its number. One branch and one pull request per ticket; nobody commits to `main` directly.
 
 API with demo data, one command (no Docker needed): `uv sync --group localdb && uv run python -m backend.api.dev`, then http://localhost:8080/api/v1/inbox (docs at http://localhost:8080/docs). Every path of `contracts/openapi.yaml` answers from the database, loaded with `contracts/fixtures`; SSE at `/api/v1/events/stream` replays `fixtures/event.json` and then relays new events.
 

@@ -6,7 +6,7 @@ How the engineering skills should consume this repo's domain documentation when 
 
 - **`GLOSSARY.md`** at the repo root: the project's vocabulary.
 - **`DECISIONS.md`** at the repo root: this repo's decision log, used instead of `docs/adr/`. `R-xx` entries are recommendations on the team's fixed decisions, `D-xx` entries are decisions on how to build; newest at the bottom. Read the entries that touch the area you're about to work in.
-- **The spec issue of the role you work for** (#1–#6, see `docs/agents/issue-tracker.md`): the domain rules, numbers and decision tables for that area.
+- **The spec issue of the role you work for** (#1–#6): the domain rules, numbers and decision tables for that area.
 
 If `GLOSSARY.md` or `DECISIONS.md` is missing, **proceed silently**. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) maintains them.
 
