@@ -246,12 +246,52 @@ def test_recover_closes_runs_left_running_by_a_dead_process(db, pln):
     assert Store(db).get("source", "src_bank_pln")["status"] == "degraded"
 
 
-def test_reset_cursors_and_demo_interval(db, bank):
-    add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-21|E000000731", items_total=731)  # fixture-style mock
+# ---------- the invented cursors of contracts/fixtures heal themselves ----------
+def test_fixture_cursor_is_detected_and_the_source_starts_over(db, bank):
+    # exactly what `python -m backend.db fixtures` leaves: "already read up to E000000731, 731 items"
+    add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-21|E000000731", items_total=731)
     inject(bank)
-    assert _tick(db, bank, datetime.now(UTC))[0]["items_new"] == 0  # the mock cursor hides the real line
-    assert connectors.reset_bank_cursors(db) == 1
-    assert _tick(db, bank, datetime.now(UTC))[0]["items_new"] == 1
+    inject(bank, amount="-5.00")
+    result = poll(db, add_source_noop(db), bank)
+    assert result["items_new"] == 2
+    src = Store(db).get("source", "src_bank_pln")
+    assert src["cursor"] == "2026-11-20|E000000002"
+    assert src["items_total"] == 2  # counted in the database, not 731 + 2
+
+
+def add_source_noop(db):
+    return Store(db).get("source", "src_bank_pln")
+
+
+def test_fixture_cursor_with_an_empty_bank_is_cleared(db, bank):
+    add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-21|E000000731", items_total=731)
+    result = poll(db, add_source_noop(db), bank)
+    assert result["status"] == "success" and result["items_new"] == 0
+    src = Store(db).get("source", "src_bank_pln")
+    assert src["cursor"] is None and src["items_total"] == 0
+    inject(bank)  # the first real line then arrives normally
+    assert poll(db, add_source_noop(db), bank)["items_new"] == 1
+
+
+def test_a_valid_cursor_is_kept_when_nothing_is_new(db, bank, pln):
+    inject(bank)
+    poll(db, pln, bank)
+    again = poll(db, add_source_noop(db), bank)
+    assert again["items_fetched"] == 0  # nothing re-read
+    assert Store(db).get("source", "src_bank_pln")["cursor"] == "2026-11-20|E000000001"
+
+
+def test_counter_matches_the_database_even_after_a_manual_reset(db, bank, pln):
+    inject(bank)
+    inject(bank, amount="-5.00")
+    poll(db, pln, bank)
+    assert connectors.reset_bank_cursors(db) == 1  # the manual tool still exists; it is no longer needed
+    again = poll(db, add_source_noop(db), bank)
+    assert (again["items_new"], again["items_duplicate"]) == (0, 2)
+    assert Store(db).get("source", "src_bank_pln")["items_total"] == 2  # not 0
+
+
+def test_demo_interval(db, bank, pln):
     connectors.apply_demo_intervals(db)
     assert Store(db).get("source", "src_bank_pln")["poll_interval_seconds"] == 15
 
