@@ -60,7 +60,6 @@ class FetchResult:
     items: list[FetchedItem]
     cursor: str | None  # cursor after these items; stored only once they are committed
     more: bool = False  # another page is waiting: fetch again from `cursor` in the same run
-    reset_cursor: bool = False  # the stored cursor was invalid: store `cursor` even when it is None
 
 
 class ConnectorError(Exception):
@@ -94,6 +93,12 @@ class Connector(ABC):
     def key_scope(self) -> str:
         """What external ids are unique within (account, mailbox). Defaults to the source."""
         return self.source["id"]
+
+    def cursor_external_id(self, cursor: str | None) -> str | None:
+        """The external id of the item the cursor points at, if the cursor names one (bank: the entryReference).
+        A cursor whose item is not in our database is not ours (contracts/fixtures, another bank): the run then
+        starts from the beginning. None = this connector cannot tell, the cursor is trusted."""
+        return None
 
     @abstractmethod
     def fetch(self, cursor: str | None) -> FetchResult:
@@ -170,8 +175,14 @@ def run_once(
 
 def _run(conn, connector, *, trigger, run_id, sleep, clock) -> dict[str, Any]:
     source = _load_source(conn, connector.source["id"])
-    conn.commit()  # end the read so each `with conn.transaction()` below is a real, separately committed transaction
     connector.source = source
+    cursor_before = source.get("cursor")
+    pointed = connector.cursor_external_id(cursor_before)
+    if pointed is not None:
+        key = idempotency_key(connector.key_prefix, connector.key_scope(), pointed)
+        if conn.execute("select 1 from raw_items where idempotency_key = %s", (key,)).fetchone() is None:
+            source["cursor"] = None  # not a cursor we wrote: read from the beginning, duplicates are skipped
+    conn.commit()  # end the reads so each `with conn.transaction()` below is a real, separately committed transaction
     company = source["company_id"]
     started = clock()
     run: dict[str, Any] = {
@@ -182,7 +193,7 @@ def _run(conn, connector, *, trigger, run_id, sleep, clock) -> dict[str, Any]:
         "started_at": iso(started),
         "finished_at": None,
         "status": "running",
-        "cursor_before": source.get("cursor"),
+        "cursor_before": cursor_before,
         "cursor_after": source.get("cursor"),
         "items_fetched": 0,
         "items_new": 0,
@@ -294,7 +305,7 @@ def _commit_page(conn: psycopg.Connection, connector: Connector, source: dict[st
                                         producer="connector", correlation_id=rid), commit=False)
             else:
                 dup += 1
-        if result.cursor is not None or result.reset_cursor:
+        if result.cursor is not None:
             source["cursor"] = result.cursor
         # counted, not added up: stays right whatever happened to the cursor (fixtures, a reset, a re-read)
         source["items_total"] = conn.execute("select count(*) from raw_items where source_id = %s",
