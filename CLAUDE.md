@@ -13,7 +13,7 @@ Read the file `.role` in the repo root (one digit, 1–6, not committed). If it 
 | 1 | Platform, model, document reading | `deploy/`, `notebooks/`, `backend/pipeline/extract/` |
 | 2 | Connectors and sync | `backend/connectors/`, `backend/queue/`, `backend/executor/`, `sim/bank/`, `sim/releaser/` |
 | 3 | Matching and document test set | `backend/pipeline/` (except `extract/`), `sim/documents/` |
-| 4 | Finance engine, rules, scenario, pitch | `backend/finance/`, `sim/scenario/`, `docs/05_DEMO_AND_PITCH.md` |
+| 4 | Finance engine, rules, scenario | `backend/finance/`, `sim/scenario/` |
 | 5 | API, agents, approvals (integration captain) | `backend/api/`, `backend/agents/`, `backend/db/` |
 | 6 | Frontend and UX | `frontend/` |
 

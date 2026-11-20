@@ -1,6 +1,6 @@
 {
   "role": 4,
-  "name": "Finance engine, rules, scenario, pitch",
+  "name": "Finance engine, rules, scenario",
   "owner": "",
   "now": "",
   "updated_at": "",
@@ -90,33 +90,6 @@
       "note": "",
       "evidence": "",
       "mock": "compute from contracts/fixtures/ledger_entry.json shape until 3.4 lands"
-    },
-    {
-      "id": "4.7",
-      "title": "1-minute pitch + Q&A for the Saturday feedback session; attend it",
-      "priority": "must",
-      "est_h": 2,
-      "needs": [],
-      "status": "todo",
-      "started_at": null,
-      "done_at": null,
-      "note": "",
-      "evidence": ""
-    },
-    {
-      "id": "4.8",
-      "title": "Final pitch script, rehearsals, questions to organisers",
-      "priority": "must",
-      "est_h": 3,
-      "needs": [
-        "4.7"
-      ],
-      "status": "todo",
-      "started_at": null,
-      "done_at": null,
-      "note": "",
-      "evidence": "",
-      "after_freeze": true
     },
     {
       "id": "4.6",

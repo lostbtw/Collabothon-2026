@@ -1,6 +1,6 @@
 # 05 — Demo, pitch and critic pass
 
-Self-contained. Owner: role 6 (pitch) with role 5 (demo operator).
+Self-contained. Owner: the whole team, after the feature freeze (Saturday 22:00). The speaker is chosen then; nobody prepares the presentation before that. The scripts below are drafts to start from.
 Working product name: **Ordo**. Demo companies: **Borsuk Labs sp. z o.o. (SAMPLE)** and the organisers' **Pizzeria Amalfi**.
 Schedule (VERIFIED, [collabothon.eu/schedule](https://www.collabothon.eu/schedule/)): feedback sessions Sat 14:00–18:00; coding ends Sun 10:00; presentations Sun 10:30–15:00.
 Pitch length assumed 3 minutes — UNVERIFIED, ask the organisers (Q2 in `06_RISKS_AND_QUESTIONS.md`). A 5-minute stretch is marked.

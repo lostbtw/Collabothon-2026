@@ -60,7 +60,8 @@ Rebalanced from the starting suggestion. Changes and reasons:
 | Outbox framework and simulated executor moved from role 5 to role 2 (tasks 2.12, 2.13); chat split into a 3-hour must and a 2-hour should | `tools/status.py forecast` showed role 5 at 27 must-have hours against 22 working hours before the freeze, and role 2 at 15.5. Role 2 already owns the Sandbox Bank the executor talks to |
 | Synthetic data, domain rules and pitch moved **out of** the frontend role | Frontend alone is about 25 hours. A person who must also write the generator and the pitch would finish none of them |
 | Receipt/PDF **extraction** (the model-facing part) moved to role 1 | The model owner tunes prompts, JSON schema and serving flags together, and evaluates them in MLflow (which is also a bonus item) |
-| Role 4 becomes "finance engine + domain + pitch" | The person who owns the numbers tells the story and owns the scenario data, so the demo numbers and the engine cannot drift apart |
+| Role 4 is "finance engine + domain rules + scenario" | The person who owns the forecast also owns the scenario data, so the demo numbers and the engine cannot drift apart |
+| No role owns the pitch (team decision, 20 Nov) | Everyone builds the application first. The presentation is prepared by the whole team after the feature freeze, and the speaker is chosen then. The script is already drafted in `05_DEMO_AND_PITCH.md` |
 | Dataset split across three roles by artefact | Scenario definition (role 4), document rendering (role 3), release through real sources (role 2). Each needs that data for their own tests anyway |
 
 Ownership check — nothing is orphaned:
@@ -75,7 +76,9 @@ Ownership check — nothing is orphaned:
 | Matching rules | Role 3 |
 | Domain rules table (tax hints, calendar) | Role 4 |
 | Scenario numbers, ground truth | Role 4 |
-| Pitch, feedback session, questions to organisers | Role 4 (speaker), role 6 (slides) |
+| Pitch, slides, speaker | Whole team, after the feature freeze (Saturday 22:00). Not assigned now |
+| Feedback session (Saturday 14:00–18:00) | Whoever is least blocked at that moment; they read the 1-minute text in `05_DEMO_AND_PITCH.md` section 2 and show the app. No preparation task |
+| Questions to organisers | Anyone, on Discord, from `06_RISKS_AND_QUESTIONS.md` section 2 |
 | API, DB schema, event queue, integration | Role 5 ("integration captain") |
 | Control model, approvals, simulated execution | Role 5 |
 | UI/UX, demo polish | Role 6 |
@@ -159,13 +162,13 @@ Done when: forwarding an e-mail with a photo creates exactly one `email` and one
 
 Done when: on the scenario data, every purchase in `ground_truth.json` gets the right `paid_by`; the hero receipt produces `fixtures/match.json[0]`-shaped output; no auto-confirmation ever happens for an item with a tax consequence.
 
-### Role 4 — Finance engine, domain rules, scenario and pitch
+### Role 4 — Finance engine, domain rules and scenario
 
 | | |
 |---|---|
-| Skills | Python, finance/accounting sense, clear speaker |
+| Skills | Python, finance/accounting sense |
 | Inputs | Spikes 01 and 03; `02_DATA_AND_SYNC.md` sections 2.5 and 5; schemas `ledger_entry`, `forecast`; `05_DEMO_AND_PITCH.md` |
-| Outputs | Ledger; forecast with components and alerts; scenarios; tax calendar; scenario definition + `ground_truth.json`; the pitch |
+| Outputs | Ledger; forecast with components and alerts; scenarios; tax calendar; scenario definition + `ground_truth.json` |
 | Depends on | Role 3 for approved ledger entries (use bank lines + fixtures until then) |
 | Mocks | Pizzeria CSV directly; `fixtures/forecast.json` |
 
@@ -178,8 +181,6 @@ Done when: on the scenario data, every purchase in `ground_truth.json` gets the 
 | 4.5 | Endpoints `/ledger`, `/ledger/summary`, `/forecast/*` (with role 5) | 2 h | Must |
 | 4.6a | "VAT lost this year" figure in `/ledger/summary` (the demo script shows it at 1:15) | 0.5 h | Must |
 | 4.6 | Tax calendar (VAT 25th, advances 20th, ZUS 15th, weekend shift) + VAT position from the ledger + tax-reserve recommendation data | 2.5 h | Should — first should-have to build |
-| 4.7 | 1-minute pitch and Q&A for the feedback session; go to the session | 2 h | Must |
-| 4.8 | Final pitch script, rehearsals, questions to organisers | 3 h | Must |
 | 4.9 | FX exposure list + simulated forward on the pizzeria CHF tranches | 3 h | Nice |
 | 4.10 | Month-over-month insight sentence | 1 h | Nice |
 
@@ -232,7 +233,6 @@ Done when: approving `rec_cl01` with a changed limit creates an Approval with `e
 | 6.8 | Company switcher (Borsuk Labs / Pizzeria Amalfi); data-quality notes | 1 h | Must |
 | 6.9 | Live toasts and chart animation on `forecast.updated` | 2 h | Must (it is the live moment) |
 | 6.10 | Simple/Detailed toggle; large-type check; empty and error states | 2 h | Should |
-| 6.11 | Slides: problem, architecture, control model | 1 h | Must |
 | 6.12 | Language toggle PL/DE | 2 h | Nice |
 
 Done when: the whole 3-minute script can be clicked through against fixtures (Saturday 13:00) and against the real backend (Saturday 22:00); every card shows control level and execution mode; a person who has not seen the app can say what to do next within 10 seconds of seeing the dashboard.
@@ -245,14 +245,14 @@ Milestones are **bold**. "All" = whole team.
 
 ### Friday 20 Nov
 
-| Time | R1 Platform + reading | R2 Connectors | R3 Matching | R4 Finance + pitch | R5 API + agents | R6 Frontend |
+| Time | R1 Platform + reading | R2 Connectors | R3 Matching | R4 Finance | R5 API + agents | R6 Frontend |
 |---|---|---|---|---|---|---|
 | 17:00–17:30 | All: read this file, confirm roles, copy `/contracts`, `/docs`, `/spikes` into the fresh event repo, agree channel and branch rules | | | | | |
 | 17:30–18:30 | 1.1 recon; post GPU + egress results | 2.1 mailbox + bot; 2.2 base class | Read spike 04; start 3.1 | 4.1 scenario definition | 5.1 migrations | 6.1 shell + mock mode |
 | 18:30–20:00 | 1.2 model download + serving | 2.4 bank simulator | 3.1 normaliser | 4.1 scenario; 4.4 pizzeria test first | 5.2 skeleton API on fixtures | 6.2 dashboard on fixtures |
 | 20:00–20:30 | All: food + 10-minute stand-up. Decide model by GPU. Unblock | | | | | |
 | 20:30–22:00 | 1.3 project, Postgres, builds, routes. **M1 (22:00): "hello model" page served from the cluster, calling the served model — hard criteria met** | 2.5 bank connector; load pizzeria CSV; 2.12 outbox | 3.2 dedup | 4.2 forecast engine on pizzeria | **5.2 done by 21:00**; 5.4 state machine | 6.3 inbox cards |
-| 22:00–00:00 | 1.3 deploy skeleton API + frontend + bank sim to the cluster | 2.3 mailbox connector | 3.3 match scoring | 4.2 forecast; write 1-minute pitch draft | 5.4 state machine | 6.3 Why panel; 6.5 sources |
+| 22:00–00:00 | 1.3 deploy skeleton API + frontend + bank sim to the cluster | 2.3 mailbox connector | 3.3 match scoring | 4.2 forecast | 5.4 state machine | 6.3 Why panel; 6.5 sources |
 | 00:00 | **M2: walking skeleton on the cluster — frontend + skeleton API + Postgres + bank simulator deployed; one e-mail fetched into a RawItem.** Stand-up, then sleep | | | | | |
 
 ### Saturday 21 Nov
@@ -261,14 +261,14 @@ Milestones are **bold**. "All" = whole team.
 |---|---|---|---|---|---|---|
 | 08:30–09:00 | All: stand-up. Check M1/M2 really hold. Re-plan if the model is not serving | | | | | |
 | 09:00–11:00 | 1.4 extraction on real photos | 2.3 finish; 2.6 NBP; 2.13 executor | 3.7 print + photograph receipts; templates | 4.3 alerts + credit sizing | 5.4 finish; 5.10 cards | 6.4 document view |
-| 11:00–13:00 | 1.4 + checks; 1.5 MLflow autolog | 2.7 releaser (drip one item end to end) | 3.4 who-paid + ledger proposals (now on real extraction) | 4.5 endpoints; 4.7 pitch for feedback | 5.6 liquidity agent | 6.9 live toasts; 6.6 feed |
+| 11:00–13:00 | 1.4 + checks; 1.5 MLflow autolog | 2.7 releaser (drip one item end to end) | 3.4 who-paid + ledger proposals (now on real extraction) | 4.5 endpoints; 4.6a VAT-lost figure | 5.6 liquidity agent | 6.9 live toasts; 6.6 feed |
 | 13:00 | **M3: hero flow works once on the cluster: forwarded photo -> document -> "paid privately" -> reimbursement card -> forecast moves. Clickable demo of the full script on fixtures where real data is missing.** Record a screen video immediately | | | | | |
-| 13:00–14:00 | All: lunch; R4 + R6 rehearse the 1-minute pitch twice | | | | | |
-| 14:00–18:00 | 1.6 eval notebook; 1.9 show vLLM + MLflow + Jupyter to Red Hat | 2.8 inFakt; 2.9 Commerzbank sandbox (90 min box) | 3.5 counterparties; 3.6 endpoints | **Feedback session** (R4 + R5 attend, 30 min, slot unknown); 4.6 tax calendar | 5.7 chat | 6.2 chart polish; 6.7 chat panel; 6.8 switcher |
+| 13:00–14:00 | All: lunch | | | | | |
+| 14:00–18:00 | 1.6 eval notebook; 1.9 show vLLM + MLflow + Jupyter to Red Hat | 2.8 inFakt; 2.9 Commerzbank sandbox (90 min box) | 3.5 counterparties; 3.6 endpoints | 4.6 tax calendar. **Feedback session** (slot unknown): whoever is least blocked goes for 30 min with the 1-minute text from `05_DEMO_AND_PITCH.md` | 5.7 chat | 6.2 chart polish; 6.7 chat panel; 6.8 switcher |
 | 18:00–18:30 | **All: decision meeting.** Apply feedback using the options table in `05_DEMO_AND_PITCH.md` section 2. Decide stretch items. Update the cut list | | | | | |
 | 18:30–20:00 | 1.7 guardrails | 2.7 backfill run of the full scenario | 3.8 missing documents | 4.4 scenario regression; fix numbers | 5.7 chat; 5.8 MCP | 6.10 simple/detailed |
 | 20:00 | **M4: liquidity flow complete on real data: forecast, alert, credit card with explanation, approve with edit, simulated execution, chart redraws. Pizzeria company works with the June event** | | | | | |
-| 20:00–22:00 | 1.8 smoke script; limits; 1.9 show guardrails | 2.10 Telegram fallback | Fix matching misses found in backfill | 4.8 pitch script | 5.9 SQL tool or bug fixing | Demo polish, empty/error states |
+| 20:00–22:00 | 1.8 smoke script; limits; 1.9 show guardrails | 2.10 Telegram fallback | Fix matching misses found in backfill | 4.9 FX exposure if on track, else help role 6 | 5.9 SQL tool or bug fixing | Demo polish, empty/error states |
 | **22:00** | **FEATURE FREEZE.** Only bug fixes, data fixes and copy changes after this. Nothing new is started. Anything unfinished is cut or mocked | | | | | |
 | 22:00–23:30 | All: integration slot. Run the whole script three times on the cluster. Every failure becomes a ticket with one owner | | | | | |
 | 23:30–00:30 | **M5: fallback video recorded** (full script, on the cluster). Rehearsal 1 with a timer. Then sleep | | | | | |
@@ -294,9 +294,9 @@ Milestones are **bold**. "All" = whole team.
 | 1 | Served model; deployed services; extraction; MLflow traces + eval notebook; smoke script | NeMo Guardrails | OSS coding agent in a workbench | OGX + MCP registration |
 | 2 | Mailbox, bank simulator + connector, NBP, outbox framework, simulated executor, releaser | inFakt, Commerzbank sandbox, Telegram | — | KSeF API |
 | 3 | Normaliser, dedup, matching, who-paid, endpoints, document test set | Missing-document detection | Private-use flag | — |
-| 4 | Scenario, forecast, alerts + credit sizing, regressions, endpoints, pitch | Tax calendar + reserve | FX exposure + forward; insights sentence | — |
+| 4 | Scenario, forecast, alerts + credit sizing, regressions, endpoints, VAT-lost figure | Tax calendar + reserve | FX exposure + forward; insights sentence | — |
 | 5 | Schema, skeleton API, state machine, liquidity agent, chat with 5 tools | Chat hardening; MCP server; SQL tool | Reminder draft | — |
-| 6 | Shell, dashboard, inbox + Why, document view, sources, feed, chat panel, switcher, live toasts, slides | Simple/Detailed toggle | PL/DE toggle | — |
+| 6 | Shell, dashboard, inbox + Why, document view, sources, feed, chat panel, switcher, live toasts | Simple/Detailed toggle | PL/DE toggle | — |
 
 ## 5. Cut order when time runs out
 

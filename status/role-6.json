@@ -144,19 +144,6 @@
       "mock": "replay contracts/fixtures/event.json from the skeleton API stream"
     },
     {
-      "id": "6.11",
-      "title": "Slides: problem, architecture, control model",
-      "priority": "must",
-      "est_h": 1,
-      "needs": [],
-      "status": "todo",
-      "started_at": null,
-      "done_at": null,
-      "note": "",
-      "evidence": "",
-      "after_freeze": true
-    },
-    {
       "id": "6.10",
       "title": "Simple/Detailed toggle, large-type check, empty and error states",
       "priority": "should",
