@@ -60,7 +60,8 @@ def test_balance_is_opening_plus_visible_lines(client):
     post_line(client, amount="-180.62")
     b = client.get("/v1/accounts/acc_pln/balances", headers=PSD2).json()["balances"][0]
     assert b["balanceType"] == "closingBooked"
-    assert b["balanceAmount"] == {"amount": "31019.38", "currency": "PLN"}  # 31200.00 - 180.62
+    # no file loaded: the account starts at role 4's closing balance 24,730.15
+    assert b["balanceAmount"] == {"amount": "24549.53", "currency": "PLN"}  # 24730.15 - 180.62
     assert b["referenceDate"] == "2026-11-20"
 
 
@@ -135,7 +136,7 @@ def test_lines_after_the_clock_are_hidden_and_advancing_reveals_them(client):
     seen = client.get(url, headers=PSD2).json()["transactions"]["booked"]
     assert [t["transactionAmount"]["amount"] for t in seen] == ["-10.00"]
     bal = client.get("/v1/accounts/acc_pln/balances", headers=PSD2).json()["balances"][0]
-    assert bal["balanceAmount"]["amount"] == "31190.00" and bal["referenceDate"] == "2026-11-15"
+    assert bal["balanceAmount"]["amount"] == "24720.15" and bal["referenceDate"] == "2026-11-15"
 
     client.post("/admin/clock", json={"advanceDays": 10}, headers=AUTH)  # -> 2026-11-25
     seen = client.get(url, headers=PSD2).json()["transactions"]["booked"]
