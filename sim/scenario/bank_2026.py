@@ -163,9 +163,10 @@ NOV_ROWS = {
         # Tax office series kept separate (payroll withholding vs CIT advance).
         ("20.11", "20.11", "TAX OFFICE TRANSFER", *US_LODZ, "PIT-4 10/2026 NIP 9990000014", "-3850.00"),
         ("20.11", "20.11", "TAX OFFICE TRANSFER", *US_LODZ, "CIT-5 ZALICZKA 10/2026 NIP 9990000014", "-7050.00"),
-        # Same line as contracts/fixtures/transaction.json txn_731 (balance after = 24,730.15).
+        # Same line as contracts/fixtures/transaction.json txn_731 (balance after = 24,730.15): 45 USD at the real
+        # NBP rate of 18 Nov (4.0170) plus a 2.7% card spread.
         ("20.11", "19.11", "GIRO CARD PAYMENT", "PIXELBOARD INC (SAMPLE)", "",
-         "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417", "-180.62"),
+         "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417", "-185.57"),
     ],
     "acc_eur": [
         ("02.11", "02.11", "BANK FEE", "", "", "ACCOUNT FEE EUR 10/2026", "-5.00"),
