@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { CompanyProvider } from "./lib/company";
 import { Activity } from "./pages/Activity";
@@ -6,8 +6,11 @@ import { Chat } from "./pages/Chat";
 import { Dashboard } from "./pages/Dashboard";
 import { DocumentDetail, Documents } from "./pages/Documents";
 import { Inbox } from "./pages/Inbox";
+import { Ledger } from "./pages/Ledger";
 import { NotBuiltYet } from "./pages/NotBuiltYet";
+import { MatchRedirect } from "./pages/Redirects";
 import { Sources } from "./pages/Sources";
+import { Transactions } from "./pages/Transactions";
 
 export function App() {
   return (
@@ -19,6 +22,12 @@ export function App() {
           <Route path="inbox/:id" element={<Inbox />} />
           <Route path="documents" element={<Documents />} />
           <Route path="documents/:id" element={<DocumentDetail />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="transactions/:id" element={<Transactions />} />
+          <Route path="accounts/:accountId" element={<Transactions />} />
+          <Route path="ledger" element={<Ledger />} />
+          <Route path="matches/:id" element={<MatchRedirect />} />
+          <Route path="forecast/:id" element={<Navigate to="/" replace />} />
           <Route path="sources" element={<Sources />} />
           <Route path="activity" element={<Activity />} />
           <Route path="chat" element={<Chat />} />

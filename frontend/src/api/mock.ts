@@ -162,7 +162,10 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     const items = byCompany(f.accounts, company);
     const forecast = byCompany(f.forecasts, company)[0];
     result = { items, total_liquidity_base: forecast?.opening_balance ?? null };
-  } else if (method === "GET" && path === "/transactions") result = page(f.transactions.filter((t) => !q.get("account_id") || t.account_id === q.get("account_id")));
+  } else if (method === "GET" && path === "/transactions") {
+    const accountIds = new Set(byCompany(f.accounts, company).map((a) => a.id));
+    result = page(f.transactions.filter((t) => accountIds.has(t.account_id) && (!q.get("account_id") || t.account_id === q.get("account_id"))));
+  }
   else if (method === "GET" && seg[0] === "transactions" && seg.length === 2) result = find(f.transactions, seg[1]);
   else if (method === "GET" && path === "/counterparties") result = { items: byCompany(f.counterparties, company) };
   else if (method === "GET" && path === "/matches")
