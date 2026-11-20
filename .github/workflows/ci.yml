@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fixtures validate against their schemas
+        run: python3 contracts/validate_fixtures.py
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ordo_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 20
+    env:
+      ORDO_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ordo_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --locked
+      - name: Backend tests (all roles, including role 4's regression tests)
+        run: uv run python -m pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is there a frontend yet?
+        id: fe
+        run: echo "present=$([ -f frontend/package.json ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.fe.outputs.present == 'yes'
+        with:
+          node-version: "22"
+      - name: Type-check
+        if: steps.fe.outputs.present == 'yes'
+        working-directory: frontend
+        run: |
+          npm ci
+          npx tsc --noEmit
