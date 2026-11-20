@@ -76,8 +76,10 @@ class DecisionTable(unittest.TestCase):
         self.assertFalse(has_tax_consequence(match["consequences"]))  # reverse charge alone may auto-confirm
         self.assertEqual(schema_errors(match, "match"), [])
 
-    def test_employee_receipt_with_company_nip_keeps_vat(self):
-        c = unmatched(receipt(buyer_nip="9990000014"))["consequences"]
+    def test_employee_invoice_to_the_company_keeps_vat(self):
+        doc = receipt(buyer_nip="9990000014")
+        doc["doc_type"] = "invoice"
+        c = unmatched(doc)["consequences"]
         self.assertTrue(c["vat_deductible"])
         self.assertIsNone(c["vat_lost"])
         self.assertEqual(c["reimbursement_owed"], {"amount": "1299.00", "currency": "PLN"})
@@ -88,9 +90,33 @@ class DecisionTable(unittest.TestCase):
         self.assertTrue(c["vat_deductible"])
         self.assertIn("PL-VAT-02", c["rule_ids"])
 
-    def test_receipt_over_450_is_not_a_simplified_invoice(self):
+    def test_receipt_over_450_is_not_an_invoice_even_with_the_company_nip(self):
         c = unmatched(receipt(gross="450.01", vat="84.15", buyer_nip="9990000014"))["consequences"]
         self.assertNotIn("PL-VAT-02", c["rule_ids"])
+        self.assertEqual((c["vat_deductible"], c["vat_lost"]), (False, {"amount": "84.15", "currency": "PLN"}))
+        self.assertIn("PL-VAT-01", c["rule_ids"])
+
+    def test_contractor_forwarding_a_receipt_is_reimbursed(self):
+        people = PEOPLE + [{"person_id": "per_anna", "name": "Anna Wrona (SAMPLE)",
+                            "email": "anna.wrona@devmail.sample", "role": "contractor"}]
+        m = match_for_unmatched_document(receipt(sender="anna.wrona@devmail.sample", card="5521"), company=COMPANY,
+                                         people=people, accounts=ACCOUNTS, transactions=[], now=NOW, as_of=AS_OF)
+        self.assertEqual((m["paid_by"], m["payer"]["person_id"], m["payer"]["role"]),
+                         ("employee_private", "per_anna", "unknown"))
+        self.assertEqual(schema_errors(m, "match"), [])
+
+    def test_sales_invoice_has_no_vat_verdict(self):
+        doc = receipt()
+        doc.update(direction="sale", doc_type="invoice")
+        c = unmatched(doc)["consequences"]
+        self.assertEqual((c["vat_deductible"], c["vat_lost"], c["rule_ids"]), (None, None, []))
+
+    def test_invoice_paid_in_cash_by_the_company(self):
+        doc = receipt(card=None, sender=None, buyer_nip="9990000014")
+        doc.update(doc_type="invoice")
+        doc["payment"].update(method="cash", paid=True)
+        m = unmatched(doc)
+        self.assertEqual((m["paid_by"], m["consequences"]["vat_deductible"]), ("company_account", True))
 
     def test_unknown_sender(self):
         m = unmatched(receipt(sender="someone@else.sample"))

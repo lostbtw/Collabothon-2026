@@ -175,7 +175,8 @@ def run_matching(documents: list[dict], transactions: list[dict], *, company: di
     company_accounts = [a for a in accounts if a.get("company_id") == company["id"]]
     by_account = {a["id"]: a for a in company_accounts}
     docs = [d for d in documents if d.get("status") != "duplicate" and d["company_id"] == company["id"]]
-    lines = [t for t in transactions if t["account_id"] in by_account and t.get("match_status", "unmatched") == "unmatched"]
+    lines = [t for t in transactions if t["account_id"] in by_account
+             and t.get("match_status", "unmatched") in ("unmatched", "missing_document")]  # a late receipt still fits
 
     candidates = []  # (score, doc index, txn index, reasons)
     for di, doc in enumerate(docs):

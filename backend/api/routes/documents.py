@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Depends
 from backend.api import contract
 from backend.api.decisions import decide_match, record_approval
 from backend.api.deps import ApiError, company_id, conn, get_or_404, store
+from backend.db.events import new_event, publish
 from backend.db.store import Store
 
 router = APIRouter()
@@ -52,9 +53,15 @@ def correct_document(id: str, patch: dict[str, Any] = Body(...), c: psycopg.Conn
     problems = contract.entity_errors("document", updated)
     if problems:
         raise ApiError(422, "invalid_request", "; ".join(problems[:5]))
-    record_approval(c, company=document["company_id"], subject_type="document", subject_id=id,
-                    decision="approved_with_changes", changes=patch)
+    approval = record_approval(c, company=document["company_id"], subject_type="document", subject_id=id,
+                               decision="approved_with_changes", changes=patch)
     s.put("document", updated)
+    # The corrected document goes through the matcher again (dedup, match, who paid), as after extraction.
+    publish(c, new_event("document.extracted", document["company_id"],
+                         {"document_id": id, "status": updated["status"], "gross": updated["totals"]["gross"],
+                          "seller": updated["seller"]["name"], "flags": updated.get("flags", [])},
+                         producer="api", correlation_id=(updated.get("raw_item_ids") or [None])[0],
+                         causation_id=approval["id"]))
     return updated
 
 

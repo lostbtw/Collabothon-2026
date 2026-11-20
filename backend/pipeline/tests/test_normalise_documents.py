@@ -49,7 +49,7 @@ class Fa3Invoice(unittest.TestCase):
         doc = parse_fa3(usd_invoice("2026-11-19"), RAW, BORSUK, rates=StandInRates())
         self.assertEqual(schema_errors(doc, "document"), [])
         expected = next(d for d in fixture("document") if d["id"] == "doc_pixel11")["totals"]
-        self.assertEqual(doc["totals"]["gross_base"], expected["gross_base"])  # 45.00 x 3.9099 = 175.95 PLN
+        self.assertEqual(doc["totals"]["gross_base"], expected["gross_base"])  # 45.00 x 4.0170 = 180.77 PLN
         self.assertEqual(doc["totals"]["fx"], expected["fx"])
         self.assertEqual(doc["flags"], ["foreign_currency", "reverse_charge"])
 
@@ -61,7 +61,7 @@ class Fa3Invoice(unittest.TestCase):
         self.assertEqual(doc["totals"]["gross_base"], {"amount": "177.75", "currency": "PLN"})
 
     def test_missing_rate_leaves_gross_base_empty_with_warning(self):
-        doc = parse_fa3(usd_invoice("2026-06-01"), RAW, BORSUK, rates=StandInRates())
+        doc = parse_fa3(usd_invoice("2024-06-03"), RAW, BORSUK, rates=StandInRates())  # before the table
         self.assertIsNone(doc["totals"]["gross_base"])
         self.assertEqual(len(doc["extraction"]["warnings"]), 1)
         self.assertEqual(schema_errors(doc, "document"), [])

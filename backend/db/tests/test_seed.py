@@ -40,3 +40,10 @@ def test_no_real_e_mail_address_is_committed():
     for person in people:
         assert person["email"].endswith(".sample"), person["email"]
         assert "SAMPLE" in person["name"]
+
+
+def test_seed_stores_each_company_tax_id_for_who_paid(db):
+    seed(db)
+
+    tax_ids = dict(db.execute("select id, tax_id from companies").fetchall())
+    assert tax_ids == {"co_borsuk": "9990000014", "co_amalfi": None}

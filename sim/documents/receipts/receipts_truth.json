@@ -1,0 +1,158 @@
+[
+  {
+    "id": "rcpt_hero",
+    "purpose": "Hero receipt: Jan pays privately, no company NIP, VAT lost 242.90 PLN (fixture doc_rcpt412 / mat_412). Copy 1 live, copy 2 backup.",
+    "doc_type": "receipt",
+    "number": "PARAGON 004512/11/2026",
+    "issue_date": "2026-11-20",
+    "seller": {
+      "name": "ElektroMarkt Polska S.A. (SAMPLE)",
+      "tax_id": "9990000043"
+    },
+    "buyer": {
+      "tax_id": null,
+      "is_company": false
+    },
+    "totals": {
+      "net": {
+        "amount": "1056.10",
+        "currency": "PLN"
+      },
+      "vat": {
+        "amount": "242.90",
+        "currency": "PLN"
+      },
+      "gross": {
+        "amount": "1299.00",
+        "currency": "PLN"
+      }
+    },
+    "vat_lines": [
+      {
+        "rate": "23",
+        "net": "1056.10",
+        "vat": "242.90"
+      }
+    ],
+    "lines": [
+      {
+        "description": "Monitor 27 cali QHD (SAMPLE)",
+        "quantity": 1.0,
+        "unit_price": "1299.00",
+        "vat_rate": null
+      }
+    ],
+    "payment": {
+      "method": "card",
+      "card_last4": "7730"
+    }
+  },
+  {
+    "id": "rcpt_cafe",
+    "purpose": "Small receipt WITH company NIP: simplified invoice, VAT stays deductible (PL-VAT-02). Paid with company card *4417.",
+    "doc_type": "receipt",
+    "number": "PARAGON 000883/11/2026",
+    "issue_date": "2026-11-18",
+    "seller": {
+      "name": "Kawiarnia Pod Lipą (SAMPLE)",
+      "tax_id": "9990000103"
+    },
+    "buyer": {
+      "tax_id": "9990000014",
+      "is_company": true
+    },
+    "totals": {
+      "net": {
+        "amount": "43.52",
+        "currency": "PLN"
+      },
+      "vat": {
+        "amount": "3.48",
+        "currency": "PLN"
+      },
+      "gross": {
+        "amount": "47.00",
+        "currency": "PLN"
+      }
+    },
+    "vat_lines": [
+      {
+        "rate": "8",
+        "net": "43.52",
+        "vat": "3.48"
+      }
+    ],
+    "lines": [
+      {
+        "description": "Kawa latte duża (SAMPLE)",
+        "quantity": 2.0,
+        "unit_price": "14.00",
+        "vat_rate": null
+      },
+      {
+        "description": "Croissant maślany (SAMPLE)",
+        "quantity": 2.0,
+        "unit_price": "9.50",
+        "vat_rate": null
+      }
+    ],
+    "payment": {
+      "method": "card",
+      "card_last4": "4417"
+    }
+  },
+  {
+    "id": "rcpt_office",
+    "purpose": "Office supplies on the owner's private card *9021, no company NIP: owed to owner, VAT lost.",
+    "doc_type": "receipt",
+    "number": "PARAGON 002377/11/2026",
+    "issue_date": "2026-11-19",
+    "seller": {
+      "name": "Biuromax sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000149"
+    },
+    "buyer": {
+      "tax_id": null,
+      "is_company": false
+    },
+    "totals": {
+      "net": {
+        "amount": "194.29",
+        "currency": "PLN"
+      },
+      "vat": {
+        "amount": "44.69",
+        "currency": "PLN"
+      },
+      "gross": {
+        "amount": "238.98",
+        "currency": "PLN"
+      }
+    },
+    "vat_lines": [
+      {
+        "rate": "23",
+        "net": "194.29",
+        "vat": "44.69"
+      }
+    ],
+    "lines": [
+      {
+        "description": "Papier ksero A4 ryza (SAMPLE)",
+        "quantity": 2.0,
+        "unit_price": "24.99",
+        "vat_rate": null
+      },
+      {
+        "description": "Toner do drukarki (SAMPLE)",
+        "quantity": 1.0,
+        "unit_price": "189.00",
+        "vat_rate": null
+      }
+    ],
+    "payment": {
+      "method": "card",
+      "card_last4": "9021"
+    }
+  }
+]

@@ -1,0 +1,3540 @@
+[
+  {
+    "id": "nov_001",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_001.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Coworking Piotrkowska sp. z o.o. (SAMPLE)",
+      "tax_id": "9990010001",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "CW/11/2026/017",
+    "issue_date": "2026-11-01",
+    "due_date": "2026-11-02",
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Najem stanowiska biurowego 11/2026",
+        "quantity": "1",
+        "unit_price_net": "2000.00",
+        "net": "2000.00",
+        "vat_rate": "23",
+        "vat": "460.00",
+        "gross": "2460.00"
+      }
+    ],
+    "totals": {
+      "net": "2000.00",
+      "vat": "460.00",
+      "gross": "2460.00"
+    },
+    "payment": {
+      "method": "transfer",
+      "card_last4": null,
+      "paid_date": null,
+      "bank_account": "PL00999900000000000000020001"
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000674",
+      "booking_date": "2026-11-02",
+      "reference": "CZYNSZ 11/2026 BIURO 4B FV CW/11/2026/017",
+      "amount": {
+        "amount": "-2460.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_002",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_002.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Coworking Piotrkowska sp. z o.o. (SAMPLE)",
+      "tax_id": "9990010001",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "CW/11/2026/017",
+    "issue_date": "2026-11-01",
+    "due_date": "2026-11-02",
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Najem stanowiska biurowego 11/2026",
+        "quantity": "1",
+        "unit_price_net": "2000.00",
+        "net": "2000.00",
+        "vat_rate": "23",
+        "vat": "460.00",
+        "gross": "2460.00"
+      }
+    ],
+    "totals": {
+      "net": "2000.00",
+      "vat": "460.00",
+      "gross": "2460.00"
+    },
+    "payment": {
+      "method": "transfer",
+      "card_last4": null,
+      "paid_date": null,
+      "bank_account": "PL00999900000000000000020001"
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000674",
+      "booking_date": "2026-11-02",
+      "reference": "CZYNSZ 11/2026 BIURO 4B FV CW/11/2026/017",
+      "amount": {
+        "amount": "-2460.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": "nov_001",
+    "arrives_days_after_issue": 5,
+    "flags": [
+      "duplicate_suspected"
+    ],
+    "messiness": [
+      "M5"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_003",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_003.jpg",
+    "photo_defects": [
+      "rotated_8deg"
+    ],
+    "seller": {
+      "name": "Paliwex sp. z o.o. (SAMPLE)",
+      "tax_id": "9990012224",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 912",
+        "93-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/PX/00696/11/2026",
+    "issue_date": "2026-11-01",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Paliwo PB95",
+        "quantity": "1",
+        "unit_price_net": "236.79",
+        "net": "236.79",
+        "vat_rate": "23",
+        "vat": "54.46",
+        "gross": "291.25"
+      }
+    ],
+    "totals": {
+      "net": "236.79",
+      "vat": "54.46",
+      "gross": "291.25"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-01",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000676",
+      "booking_date": "2026-11-02",
+      "reference": "PALIWEX 112 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-291.25",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_004",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_004.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "CodeHarbor Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000101",
+      "country": "US",
+      "address": [
+        "999 Market Street",
+        "San Francisco, CA 94199"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1001",
+    "issue_date": "2026-11-02",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Team plan, 12 seats, monthly",
+        "quantity": "1",
+        "unit_price_net": "420.00",
+        "net": "420.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "420.00"
+      }
+    ],
+    "totals": {
+      "net": "420.00",
+      "vat": "0.00",
+      "gross": "420.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-02",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000678",
+      "booking_date": "2026-11-03",
+      "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-1660.26",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_005",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_005.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "CodeHarbor Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000101",
+      "country": "US",
+      "address": [
+        "999 Market Street",
+        "San Francisco, CA 94199"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1001",
+    "issue_date": "2026-11-02",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Team plan, 12 seats, monthly",
+        "quantity": "1",
+        "unit_price_net": "420.00",
+        "net": "420.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "420.00"
+      }
+    ],
+    "totals": {
+      "net": "420.00",
+      "vat": "0.00",
+      "gross": "420.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-02",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000678",
+      "booking_date": "2026-11-03",
+      "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-1660.26",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": "nov_004",
+    "arrives_days_after_issue": 1,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge",
+      "duplicate_suspected"
+    ],
+    "messiness": [
+      "M6",
+      "M5"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_006",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_006.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Lingua Bridge GmbH (SAMPLE)",
+      "tax_id": "DE999999101",
+      "country": "DE",
+      "address": [
+        "Spreeweg 999",
+        "10999 Berlin"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "LB-2026-0912",
+    "issue_date": "2026-11-02",
+    "due_date": "2026-11-16",
+    "currency": "EUR",
+    "lines": [
+      {
+        "description": "Translation EN-DE, product documentation",
+        "quantity": "1",
+        "unit_price_net": "240.00",
+        "net": "240.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "240.00"
+      }
+    ],
+    "totals": {
+      "net": "240.00",
+      "vat": "0.00",
+      "gross": "240.00"
+    },
+    "payment": {
+      "method": "transfer",
+      "card_last4": null,
+      "paid_date": null,
+      "bank_account": "DE00SAMPLE0000000000000001"
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_eur",
+      "entry_reference": "E000000093",
+      "booking_date": "2026-11-16",
+      "reference": "INV LB-2026-0912 TRANSLATION DE",
+      "amount": {
+        "amount": "-240.00",
+        "currency": "EUR"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_007",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_007.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Parkuj.pl sp. z o.o. (SAMPLE)",
+      "tax_id": "9990015553",
+      "country": "PL",
+      "address": [
+        "ul. Postojowa 990",
+        "30-999 Kraków"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/PK/00716/11/2026",
+    "issue_date": "2026-11-02",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Opłata parkingowa",
+        "quantity": "1",
+        "unit_price_net": "18.65",
+        "net": "18.65",
+        "vat_rate": "23",
+        "vat": "4.29",
+        "gross": "22.94"
+      }
+    ],
+    "totals": {
+      "net": "18.65",
+      "vat": "4.29",
+      "gross": "22.94"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-02",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000679",
+      "booking_date": "2026-11-03",
+      "reference": "PARKUJ.PL LODZ KARTA *4417",
+      "amount": {
+        "amount": "-22.94",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_008",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_008.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Biuro Rachunkowe Kalinowska (SAMPLE)",
+      "tax_id": "9990010372",
+      "country": "PL",
+      "address": [
+        "ul. Zielona 912",
+        "90-998 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "112/11/2026",
+    "issue_date": "2026-11-03",
+    "due_date": "2026-11-10",
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Obsługa księgowa 11/2026",
+        "quantity": "1",
+        "unit_price_net": "1000.00",
+        "net": "1000.00",
+        "vat_rate": "23",
+        "vat": "230.00",
+        "gross": "1230.00"
+      }
+    ],
+    "totals": {
+      "net": "1000.00",
+      "vat": "230.00",
+      "gross": "1230.00"
+    },
+    "payment": {
+      "method": "transfer",
+      "card_last4": null,
+      "paid_date": null,
+      "bank_account": "PL00999900000000000000020002"
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000692",
+      "booking_date": "2026-11-10",
+      "reference": "FV 112/11/2026 OBSLUGA KSIEGOWA 11/2026",
+      "amount": {
+        "amount": "-1230.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt401",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "receipt",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "marta@borsuk-labs.sample",
+    "submitted_by": "per_marta",
+    "artefact": "november/doc_rcpt401.jpg",
+    "photo_defects": [
+      "blur"
+    ],
+    "seller": {
+      "name": "Bistro Piotrkowska 90 s.c. (SAMPLE)",
+      "tax_id": "9990012968",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990/1",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/BP/401/11/2026",
+    "issue_date": "2026-11-04",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Team lunch",
+        "quantity": "1",
+        "unit_price_net": "450.00",
+        "net": "450.00",
+        "vat_rate": "8",
+        "vat": "36.00",
+        "gross": "486.00"
+      }
+    ],
+    "totals": {
+      "net": "450.00",
+      "vat": "36.00",
+      "gross": "486.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "3318",
+      "paid_date": "2026-11-04",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_marta",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M2",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_009",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_009.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Cloudnest B.V. (SAMPLE)",
+      "tax_id": "NL999999101B01",
+      "country": "NL",
+      "address": [
+        "Keizersgracht 999",
+        "1099 AA Amsterdam"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1002",
+    "issue_date": "2026-11-04",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Cloud hosting, monthly",
+        "quantity": "1",
+        "unit_price_net": "380.00",
+        "net": "380.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "380.00"
+      }
+    ],
+    "totals": {
+      "net": "380.00",
+      "vat": "0.00",
+      "gross": "380.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-04",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000681",
+      "booking_date": "2026-11-05",
+      "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-1517.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_010",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_010.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Domenowo sp. z o.o. (SAMPLE)",
+      "tax_id": "9990016676",
+      "country": "PL",
+      "address": [
+        "ul. Serwerowa 960",
+        "50-999 Wrocław"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/DM/00705/11/2026",
+    "issue_date": "2026-11-05",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Domena i hosting",
+        "quantity": "1",
+        "unit_price_net": "44.67",
+        "net": "44.67",
+        "vat_rate": "23",
+        "vat": "10.28",
+        "gross": "54.95"
+      }
+    ],
+    "totals": {
+      "net": "44.67",
+      "vat": "10.28",
+      "gross": "54.95"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-05",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000685",
+      "booking_date": "2026-11-06",
+      "reference": "DOMENOWO.PL KARTA *4417",
+      "amount": {
+        "amount": "-54.95",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_011",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_011.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Noteforge Ltd (SAMPLE)",
+      "tax_id": "IE9999101X",
+      "country": "IE",
+      "address": [
+        "99 Harbour Road",
+        "Dublin D99 X999"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1003",
+    "issue_date": "2026-11-05",
+    "due_date": null,
+    "currency": "EUR",
+    "lines": [
+      {
+        "description": "Workspace, 7 users, monthly",
+        "quantity": "1",
+        "unit_price_net": "120.00",
+        "net": "120.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "120.00"
+      }
+    ],
+    "totals": {
+      "net": "120.00",
+      "vat": "0.00",
+      "gross": "120.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-05",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000683",
+      "booking_date": "2026-11-06",
+      "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
+      "amount": {
+        "amount": "-536.58",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_012",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_012.jpg",
+    "photo_defects": [
+      "shadow"
+    ],
+    "seller": {
+      "name": "Paliwex sp. z o.o. (SAMPLE)",
+      "tax_id": "9990012224",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 912",
+        "93-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/PX/00678/11/2026",
+    "issue_date": "2026-11-05",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Paliwo PB95",
+        "quantity": "1",
+        "unit_price_net": "202.11",
+        "net": "202.11",
+        "vat_rate": "23",
+        "vat": "46.49",
+        "gross": "248.60"
+      }
+    ],
+    "totals": {
+      "net": "202.11",
+      "vat": "46.49",
+      "gross": "248.60"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-05",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000682",
+      "booking_date": "2026-11-05",
+      "reference": "PALIWEX 112 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-248.60",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_013",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_013.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Paliwex sp. z o.o. (SAMPLE)",
+      "tax_id": "9990012224",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 912",
+        "93-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/PX/00678/11/2026",
+    "issue_date": "2026-11-05",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Paliwo PB95",
+        "quantity": "1",
+        "unit_price_net": "202.11",
+        "net": "202.11",
+        "vat_rate": "23",
+        "vat": "46.49",
+        "gross": "248.60"
+      }
+    ],
+    "totals": {
+      "net": "202.11",
+      "vat": "46.49",
+      "gross": "248.60"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-05",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000682",
+      "booking_date": "2026-11-05",
+      "reference": "PALIWEX 112 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-248.60",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": "nov_012",
+    "arrives_days_after_issue": 1,
+    "flags": [
+      "duplicate_suspected"
+    ],
+    "messiness": [
+      "M11",
+      "M5"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_014",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_014.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "RailExpress S.A. (SAMPLE)",
+      "tax_id": "9990016297",
+      "country": "PL",
+      "address": [
+        "ul. Dworcowa 970",
+        "00-997 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/RE/00240/11/2026",
+    "issue_date": "2026-11-05",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Bilet kolejowy",
+        "quantity": "1",
+        "unit_price_net": "129.44",
+        "net": "129.44",
+        "vat_rate": "8",
+        "vat": "10.36",
+        "gross": "139.80"
+      }
+    ],
+    "totals": {
+      "net": "129.44",
+      "vat": "10.36",
+      "gross": "139.80"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "9021",
+      "paid_date": "2026-11-05",
+      "bank_account": null
+    },
+    "paid_by": "owner_private",
+    "paid_by_person_id": "per_tomek",
+    "bank_line": {
+      "account": "acc_owner",
+      "entry_reference": "E000000242",
+      "booking_date": "2026-11-06",
+      "reference": "RAILEXPRESS BILETY LODZ-WARSZAWA KARTA *9021",
+      "amount": {
+        "amount": "-139.80",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M3"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt402",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "anna.wrona@devmail.sample",
+    "submitted_by": "per_anna",
+    "artefact": "november/doc_rcpt402.jpg",
+    "photo_defects": [
+      "crumpled"
+    ],
+    "seller": {
+      "name": "RailExpress S.A. (SAMPLE)",
+      "tax_id": "9990016297",
+      "country": "PL",
+      "address": [
+        "ul. Dworcowa 970",
+        "00-997 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/RE/402/11/2026",
+    "issue_date": "2026-11-05",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Train ticket Lodz-Warszawa",
+        "quantity": "1",
+        "unit_price_net": "129.44",
+        "net": "129.44",
+        "vat_rate": "8",
+        "vat": "10.36",
+        "gross": "139.80"
+      }
+    ],
+    "totals": {
+      "net": "129.44",
+      "vat": "10.36",
+      "gross": "139.80"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "5521",
+      "paid_date": "2026-11-05",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_anna",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M2",
+      "M11",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt403",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "piotr.lis@devmail.sample",
+    "submitted_by": "per_piotr",
+    "artefact": "november/doc_rcpt403.jpg",
+    "photo_defects": [
+      "low_light"
+    ],
+    "seller": {
+      "name": "DevCamp sp. z o.o. (SAMPLE)",
+      "tax_id": "9990017405",
+      "country": "PL",
+      "address": [
+        "ul. Konferencyjna 950",
+        "00-996 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Piotr Lis (SAMPLE)",
+      "tax_id": null,
+      "country": "PL",
+      "address": null
+    },
+    "number": "FV/DC/403/11/2026",
+    "issue_date": "2026-11-06",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Workshop ticket",
+        "quantity": "1",
+        "unit_price_net": "934.15",
+        "net": "934.15",
+        "vat_rate": "23",
+        "vat": "214.85",
+        "gross": "1149.00"
+      }
+    ],
+    "totals": {
+      "net": "934.15",
+      "vat": "214.85",
+      "gross": "1149.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "6604",
+      "paid_date": "2026-11-06",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_piotr",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible",
+      "missing_tax_id"
+    ],
+    "messiness": [
+      "M1",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_015",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_015.jpg",
+    "photo_defects": [
+      "cropped_edge"
+    ],
+    "seller": {
+      "name": "Koszyk 24 sp. z o.o. (SAMPLE)",
+      "tax_id": "9990014074",
+      "country": "PL",
+      "address": [
+        "ul. Zgierska 930",
+        "91-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/K24/00715/11/2026",
+    "issue_date": "2026-11-06",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Artykuły spożywcze do biura",
+        "quantity": "1",
+        "unit_price_net": "34.93",
+        "net": "34.93",
+        "vat_rate": "5",
+        "vat": "1.75",
+        "gross": "36.68"
+      }
+    ],
+    "totals": {
+      "net": "34.93",
+      "vat": "1.75",
+      "gross": "36.68"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-06",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000690",
+      "booking_date": "2026-11-09",
+      "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-36.68",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_016",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_016.jpg",
+    "photo_defects": [
+      "perspective"
+    ],
+    "seller": {
+      "name": "Kawiarnia Ziarno (SAMPLE)",
+      "tax_id": "9990013703",
+      "country": "PL",
+      "address": [
+        "ul. 6 Sierpnia 940",
+        "90-992 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/KZ/00706/11/2026",
+    "issue_date": "2026-11-07",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Kawa i wypieki",
+        "quantity": "1",
+        "unit_price_net": "14.77",
+        "net": "14.77",
+        "vat_rate": "8",
+        "vat": "1.18",
+        "gross": "15.95"
+      }
+    ],
+    "totals": {
+      "net": "14.77",
+      "vat": "1.18",
+      "gross": "15.95"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-07",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000687",
+      "booking_date": "2026-11-09",
+      "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
+      "amount": {
+        "amount": "-15.95",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_017",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_017.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Mailfox Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000102",
+      "country": "US",
+      "address": [
+        "999 Peachtree St",
+        "Atlanta, GA 30399"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1004",
+    "issue_date": "2026-11-07",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "E-mail delivery, monthly",
+        "quantity": "1",
+        "unit_price_net": "89.00",
+        "net": "89.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "89.00"
+      }
+    ],
+    "totals": {
+      "net": "89.00",
+      "vat": "0.00",
+      "gross": "89.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-07",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000686",
+      "booking_date": "2026-11-09",
+      "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-351.21",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_018",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_018.jpg",
+    "photo_defects": [
+      "glare"
+    ],
+    "seller": {
+      "name": "Bistro Piotrkowska 90 s.c. (SAMPLE)",
+      "tax_id": "9990012968",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990/1",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/BP/00682/11/2026",
+    "issue_date": "2026-11-09",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa gastronomiczna",
+        "quantity": "1",
+        "unit_price_net": "288.89",
+        "net": "288.89",
+        "vat_rate": "8",
+        "vat": "23.11",
+        "gross": "312.00"
+      }
+    ],
+    "totals": {
+      "net": "288.89",
+      "vat": "23.11",
+      "gross": "312.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-09",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000693",
+      "booking_date": "2026-11-10",
+      "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-312.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11",
+      "M12"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt404",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "karolina.mazur@devmail.sample",
+    "submitted_by": "per_karolina",
+    "artefact": "november/doc_rcpt404.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Sklepik.pl sp. z o.o. (SAMPLE)",
+      "tax_id": "9990015926",
+      "country": "PL",
+      "address": [
+        "ul. Handlowa 980",
+        "61-999 Poznań"
+      ]
+    },
+    "buyer": {
+      "name": "Karolina Mazur (SAMPLE)",
+      "tax_id": null,
+      "country": "PL",
+      "address": null
+    },
+    "number": "FV/SP/404/11/2026",
+    "issue_date": "2026-11-09",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Drawing tablet",
+        "quantity": "1",
+        "unit_price_net": "560.16",
+        "net": "560.16",
+        "vat_rate": "23",
+        "vat": "128.84",
+        "gross": "689.00"
+      }
+    ],
+    "totals": {
+      "net": "560.16",
+      "vat": "128.84",
+      "gross": "689.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "2287",
+      "paid_date": "2026-11-09",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_karolina",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible",
+      "missing_tax_id"
+    ],
+    "messiness": [
+      "M1"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt405",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "receipt",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "michal.dudek@devmail.sample",
+    "submitted_by": "per_michal",
+    "artefact": "november/doc_rcpt405.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "ElektroMarkt Polska S.A. (SAMPLE)",
+      "tax_id": "9990000043",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 945",
+        "93-998 Łódź"
+      ]
+    },
+    "buyer": null,
+    "number": "PARAGON/EM/405/11/2026",
+    "issue_date": "2026-11-10",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "USB-C hub",
+        "quantity": "1",
+        "unit_price_net": "178.05",
+        "net": "178.05",
+        "vat_rate": "23",
+        "vat": "40.95",
+        "gross": "219.00"
+      }
+    ],
+    "totals": {
+      "net": "178.05",
+      "vat": "40.95",
+      "gross": "219.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "8842",
+      "paid_date": "2026-11-10",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_michal",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible",
+      "missing_tax_id"
+    ],
+    "messiness": [
+      "M1",
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_019",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_019.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "ElektroMarkt Polska S.A. (SAMPLE)",
+      "tax_id": "9990000043",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 945",
+        "93-998 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/EM/00683/11/2026",
+    "issue_date": "2026-11-10",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Laptop 14 cali",
+        "quantity": "1",
+        "unit_price_net": "3982.93",
+        "net": "3982.93",
+        "vat_rate": "23",
+        "vat": "916.07",
+        "gross": "4899.00"
+      }
+    ],
+    "totals": {
+      "net": "3982.93",
+      "vat": "916.07",
+      "gross": "4899.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-10",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000694",
+      "booking_date": "2026-11-12",
+      "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
+      "amount": {
+        "amount": "-4899.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": "fa3_20261110_01",
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "duplicate_suspected"
+    ],
+    "messiness": [
+      "M5"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_020",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_020.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Sushi Kamień sp. z o.o. (SAMPLE)",
+      "tax_id": "9990013330",
+      "country": "PL",
+      "address": [
+        "ul. Narutowicza 950",
+        "90-993 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/SK/00713/11/2026",
+    "issue_date": "2026-11-10",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa gastronomiczna",
+        "quantity": "1",
+        "unit_price_net": "144.29",
+        "net": "144.29",
+        "vat_rate": "8",
+        "vat": "11.54",
+        "gross": "155.83"
+      }
+    ],
+    "totals": {
+      "net": "144.29",
+      "vat": "11.54",
+      "gross": "155.83"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-10",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000697",
+      "booking_date": "2026-11-12",
+      "reference": "SUSHI KAMIEN LODZ KARTA *4417",
+      "amount": {
+        "amount": "-155.83",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_021",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_021.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Hotel Centrum Warszawa sp. z o.o. (SAMPLE)",
+      "tax_id": "9990018511",
+      "country": "PL",
+      "address": [
+        "ul. Hotelowa 920",
+        "00-995 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/HC/00241/11/2026",
+    "issue_date": "2026-11-12",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa hotelowa",
+        "quantity": "1",
+        "unit_price_net": "452.78",
+        "net": "452.78",
+        "vat_rate": "8",
+        "vat": "36.22",
+        "gross": "489.00"
+      }
+    ],
+    "totals": {
+      "net": "452.78",
+      "vat": "36.22",
+      "gross": "489.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "9021",
+      "paid_date": "2026-11-12",
+      "bank_account": null
+    },
+    "paid_by": "owner_private",
+    "paid_by_person_id": "per_tomek",
+    "bank_line": {
+      "account": "acc_owner",
+      "entry_reference": "E000000246",
+      "booking_date": "2026-11-13",
+      "reference": "HOTEL CENTRUM WARSZAWA KARTA *9021",
+      "amount": {
+        "amount": "-489.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M3"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_022",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_022.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Hotel Centrum Warszawa sp. z o.o. (SAMPLE)",
+      "tax_id": "9990018511",
+      "country": "PL",
+      "address": [
+        "ul. Hotelowa 920",
+        "00-995 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/HC/00241/11/2026",
+    "issue_date": "2026-11-12",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa hotelowa",
+        "quantity": "1",
+        "unit_price_net": "452.78",
+        "net": "452.78",
+        "vat_rate": "8",
+        "vat": "36.22",
+        "gross": "489.00"
+      }
+    ],
+    "totals": {
+      "net": "452.78",
+      "vat": "36.22",
+      "gross": "489.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "9021",
+      "paid_date": "2026-11-12",
+      "bank_account": null
+    },
+    "paid_by": "owner_private",
+    "paid_by_person_id": "per_tomek",
+    "bank_line": {
+      "account": "acc_owner",
+      "entry_reference": "E000000246",
+      "booking_date": "2026-11-13",
+      "reference": "HOTEL CENTRUM WARSZAWA KARTA *9021",
+      "amount": {
+        "amount": "-489.00",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": "nov_021",
+    "arrives_days_after_issue": 1,
+    "flags": [
+      "duplicate_suspected"
+    ],
+    "messiness": [
+      "M3",
+      "M5"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt406",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "jan@borsuk-labs.sample",
+    "submitted_by": "per_jan",
+    "artefact": "november/doc_rcpt406.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Paliwex sp. z o.o. (SAMPLE)",
+      "tax_id": "9990012224",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 912",
+        "93-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/PX/406/11/2026",
+    "issue_date": "2026-11-12",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Fuel, client visit",
+        "quantity": "1",
+        "unit_price_net": "218.21",
+        "net": "218.21",
+        "vat_rate": "23",
+        "vat": "50.19",
+        "gross": "268.40"
+      }
+    ],
+    "totals": {
+      "net": "218.21",
+      "vat": "50.19",
+      "gross": "268.40"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "7730",
+      "paid_date": "2026-11-12",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_jan",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M2",
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_023",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_023.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "RailExpress S.A. (SAMPLE)",
+      "tax_id": "9990016297",
+      "country": "PL",
+      "address": [
+        "ul. Dworcowa 970",
+        "00-997 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/RE/00712/11/2026",
+    "issue_date": "2026-11-12",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Bilet kolejowy",
+        "quantity": "1",
+        "unit_price_net": "133.45",
+        "net": "133.45",
+        "vat_rate": "8",
+        "vat": "10.68",
+        "gross": "144.13"
+      }
+    ],
+    "totals": {
+      "net": "133.45",
+      "vat": "10.68",
+      "gross": "144.13"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-12",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000700",
+      "booking_date": "2026-11-13",
+      "reference": "RAILEXPRESS BILETY KARTA *4417",
+      "amount": {
+        "amount": "-144.13",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_024",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_024.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Taskloom Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000103",
+      "country": "US",
+      "address": [
+        "999 Mission St",
+        "San Francisco, CA 94199"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1005",
+    "issue_date": "2026-11-12",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Project management, monthly",
+        "quantity": "1",
+        "unit_price_net": "136.00",
+        "net": "136.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "136.00"
+      }
+    ],
+    "totals": {
+      "net": "136.00",
+      "vat": "0.00",
+      "gross": "136.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-12",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000695",
+      "booking_date": "2026-11-12",
+      "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-537.66",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "doc_rcpt407",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "marta@borsuk-labs.sample",
+    "submitted_by": "per_marta",
+    "artefact": "november/doc_rcpt407.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Biurosfera sp. z o.o. (SAMPLE)",
+      "tax_id": "9990014447",
+      "country": "PL",
+      "address": [
+        "ul. Fabryczna 920",
+        "00-999 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/BS/407/11/2026",
+    "issue_date": "2026-11-13",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Office supplies",
+        "quantity": "1",
+        "unit_price_net": "125.45",
+        "net": "125.45",
+        "vat_rate": "23",
+        "vat": "28.85",
+        "gross": "154.30"
+      }
+    ],
+    "totals": {
+      "net": "125.45",
+      "vat": "28.85",
+      "gross": "154.30"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "3318",
+      "paid_date": "2026-11-13",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_marta",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M2",
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_025",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_025.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Domenowo sp. z o.o. (SAMPLE)",
+      "tax_id": "9990016676",
+      "country": "PL",
+      "address": [
+        "ul. Serwerowa 960",
+        "50-999 Wrocław"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/DM/00708/11/2026",
+    "issue_date": "2026-11-13",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Domena i hosting",
+        "quantity": "1",
+        "unit_price_net": "44.13",
+        "net": "44.13",
+        "vat_rate": "23",
+        "vat": "10.15",
+        "gross": "54.28"
+      }
+    ],
+    "totals": {
+      "net": "44.13",
+      "vat": "10.15",
+      "gross": "54.28"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-13",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000706",
+      "booking_date": "2026-11-16",
+      "reference": "DOMENOWO.PL KARTA *4417",
+      "amount": {
+        "amount": "-54.28",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_026",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_026.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Signdesk B.V. (SAMPLE)",
+      "tax_id": "NL999999102B01",
+      "country": "NL",
+      "address": [
+        "Prinsengracht 999",
+        "1099 AB Amsterdam"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1006",
+    "issue_date": "2026-11-13",
+    "due_date": null,
+    "currency": "EUR",
+    "lines": [
+      {
+        "description": "E-signature, monthly",
+        "quantity": "1",
+        "unit_price_net": "60.00",
+        "net": "60.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "60.00"
+      }
+    ],
+    "totals": {
+      "net": "60.00",
+      "vat": "0.00",
+      "gross": "60.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-13",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000699",
+      "booking_date": "2026-11-13",
+      "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
+      "amount": {
+        "amount": "-268.58",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_027",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_027.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Taxigo sp. z o.o. (SAMPLE)",
+      "tax_id": "9990015180",
+      "country": "PL",
+      "address": [
+        "ul. Taksówkowa 900",
+        "00-998 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/TG/00242/11/2026",
+    "issue_date": "2026-11-13",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Przewóz osób",
+        "quantity": "1",
+        "unit_price_net": "42.87",
+        "net": "42.87",
+        "vat_rate": "8",
+        "vat": "3.43",
+        "gross": "46.30"
+      }
+    ],
+    "totals": {
+      "net": "42.87",
+      "vat": "3.43",
+      "gross": "46.30"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "9021",
+      "paid_date": "2026-11-13",
+      "bank_account": null
+    },
+    "paid_by": "owner_private",
+    "paid_by_person_id": "per_tomek",
+    "bank_line": {
+      "account": "acc_owner",
+      "entry_reference": "E000000247",
+      "booking_date": "2026-11-13",
+      "reference": "TAXIGO*TRIP WARSZAWA KARTA *9021",
+      "amount": {
+        "amount": "-46.30",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M3",
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_028",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_028.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Biurosfera sp. z o.o. (SAMPLE)",
+      "tax_id": "9990014447",
+      "country": "PL",
+      "address": [
+        "ul. Fabryczna 920",
+        "00-999 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/BS/00688/11/2026",
+    "issue_date": "2026-11-14",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Materiały biurowe",
+        "quantity": "1",
+        "unit_price_net": "314.15",
+        "net": "314.15",
+        "vat_rate": "23",
+        "vat": "72.25",
+        "gross": "386.40"
+      }
+    ],
+    "totals": {
+      "net": "314.15",
+      "vat": "72.25",
+      "gross": "386.40"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-14",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000702",
+      "booking_date": "2026-11-16",
+      "reference": "BIUROSFERA.PL ZAM 55120 KARTA *4417",
+      "amount": {
+        "amount": "-386.40",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": "fa3_20261114_01",
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "duplicate_suspected"
+    ],
+    "messiness": [
+      "M5"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_029",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_029.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Nordpetro S.A. (SAMPLE)",
+      "tax_id": "9990012595",
+      "country": "PL",
+      "address": [
+        "ul. Rokicińska 921",
+        "92-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/NP/00701/11/2026",
+    "issue_date": "2026-11-14",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Olej napędowy ON",
+        "quantity": "1",
+        "unit_price_net": "253.20",
+        "net": "253.20",
+        "vat_rate": "23",
+        "vat": "58.23",
+        "gross": "311.43"
+      }
+    ],
+    "totals": {
+      "net": "253.20",
+      "vat": "58.23",
+      "gross": "311.43"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-14",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000703",
+      "booking_date": "2026-11-16",
+      "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-311.43",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_030",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "pl",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_030.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Kurieron sp. z o.o. (SAMPLE)",
+      "tax_id": "9990014826",
+      "country": "PL",
+      "address": [
+        "ul. Logistyczna 910",
+        "05-999 Stryków"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "FV/KR/00707/11/2026",
+    "issue_date": "2026-11-15",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa kurierska",
+        "quantity": "1",
+        "unit_price_net": "27.97",
+        "net": "27.97",
+        "vat_rate": "23",
+        "vat": "6.43",
+        "gross": "34.40"
+      }
+    ],
+    "totals": {
+      "net": "27.97",
+      "vat": "6.43",
+      "gross": "34.40"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-15",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000705",
+      "booking_date": "2026-11-16",
+      "reference": "KURIERON*NADANIE 45807 KARTA *4417",
+      "amount": {
+        "amount": "-34.40",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_031",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_031.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Bistro Piotrkowska 90 s.c. (SAMPLE)",
+      "tax_id": "9990012968",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990/1",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/BP/00703/11/2026",
+    "issue_date": "2026-11-16",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa gastronomiczna",
+        "quantity": "1",
+        "unit_price_net": "221.00",
+        "net": "221.00",
+        "vat_rate": "8",
+        "vat": "17.68",
+        "gross": "238.68"
+      }
+    ],
+    "totals": {
+      "net": "221.00",
+      "vat": "17.68",
+      "gross": "238.68"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-16",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000713",
+      "booking_date": "2026-11-17",
+      "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-238.68",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_032",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_032.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Taxigo sp. z o.o. (SAMPLE)",
+      "tax_id": "9990015180",
+      "country": "PL",
+      "address": [
+        "ul. Taksówkowa 900",
+        "00-998 Warszawa"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/TG/00697/11/2026",
+    "issue_date": "2026-11-16",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Przewóz osób",
+        "quantity": "1",
+        "unit_price_net": "45.73",
+        "net": "45.73",
+        "vat_rate": "8",
+        "vat": "3.66",
+        "gross": "49.39"
+      }
+    ],
+    "totals": {
+      "net": "45.73",
+      "vat": "3.66",
+      "gross": "49.39"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-16",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000711",
+      "booking_date": "2026-11-17",
+      "reference": "TAXIGO*TRIP LODZ KARTA *4417",
+      "amount": {
+        "amount": "-49.39",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "doc_rcpt408",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "receipt",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "anna.wrona@devmail.sample",
+    "submitted_by": "per_anna",
+    "artefact": "november/doc_rcpt408.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Taxigo sp. z o.o. (SAMPLE)",
+      "tax_id": "9990015180",
+      "country": "PL",
+      "address": [
+        "ul. Taksówkowa 900",
+        "00-998 Warszawa"
+      ]
+    },
+    "buyer": null,
+    "number": "PARAGON/TG/408/11/2026",
+    "issue_date": "2026-11-16",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Taxi to client",
+        "quantity": "1",
+        "unit_price_net": "58.80",
+        "net": "58.80",
+        "vat_rate": "8",
+        "vat": "4.70",
+        "gross": "63.50"
+      }
+    ],
+    "totals": {
+      "net": "58.80",
+      "vat": "4.70",
+      "gross": "63.50"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "5521",
+      "paid_date": "2026-11-16",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_anna",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible",
+      "missing_tax_id"
+    ],
+    "messiness": [
+      "M1",
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_033",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "simplified_invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_033.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Bistro Piotrkowska 90 s.c. (SAMPLE)",
+      "tax_id": "9990012968",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990/1",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "PARAGON/BP/00702/11/2026",
+    "issue_date": "2026-11-17",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Usługa gastronomiczna",
+        "quantity": "1",
+        "unit_price_net": "132.34",
+        "net": "132.34",
+        "vat_rate": "8",
+        "vat": "10.59",
+        "gross": "142.93"
+      }
+    ],
+    "totals": {
+      "net": "132.34",
+      "vat": "10.59",
+      "gross": "142.93"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-17",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000716",
+      "booking_date": "2026-11-18",
+      "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
+      "amount": {
+        "amount": "-142.93",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [],
+    "messiness": [
+      "M11"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_034",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "owner@borsuk-labs.sample",
+    "submitted_by": "per_tomek",
+    "artefact": "november/nov_034.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Figment Design Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000106",
+      "country": "US",
+      "address": [
+        "999 Broadway",
+        "New York, NY 10099"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1009",
+    "issue_date": "2026-11-17",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Design tool, 1 editor, monthly",
+        "quantity": "1",
+        "unit_price_net": "15.00",
+        "net": "15.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "15.00"
+      }
+    ],
+    "totals": {
+      "net": "15.00",
+      "vat": "0.00",
+      "gross": "15.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "9021",
+      "paid_date": "2026-11-17",
+      "bank_account": null
+    },
+    "paid_by": "owner_private",
+    "paid_by_person_id": "per_tomek",
+    "bank_line": {
+      "account": "acc_owner",
+      "entry_reference": "E000000256",
+      "booking_date": "2026-11-18",
+      "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
+      "amount": {
+        "amount": "-60.82",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M3",
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_035",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_035.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Logbear Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000104",
+      "country": "US",
+      "address": [
+        "999 Pine St",
+        "Seattle, WA 98199"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1007",
+    "issue_date": "2026-11-17",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Log monitoring, monthly",
+        "quantity": "1",
+        "unit_price_net": "80.00",
+        "net": "80.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "80.00"
+      }
+    ],
+    "totals": {
+      "net": "80.00",
+      "vat": "0.00",
+      "gross": "80.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-17",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000715",
+      "booking_date": "2026-11-18",
+      "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-319.45",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "doc_rcpt409",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "piotr.lis@devmail.sample",
+    "submitted_by": "per_piotr",
+    "artefact": "november/doc_rcpt409.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "Sushi Kamień sp. z o.o. (SAMPLE)",
+      "tax_id": "9990013330",
+      "country": "PL",
+      "address": [
+        "ul. Narutowicza 950",
+        "90-993 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Piotr Lis (SAMPLE)",
+      "tax_id": null,
+      "country": "PL",
+      "address": null
+    },
+    "number": "FV/SK/409/11/2026",
+    "issue_date": "2026-11-18",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Client dinner",
+        "quantity": "1",
+        "unit_price_net": "649.07",
+        "net": "649.07",
+        "vat_rate": "8",
+        "vat": "51.93",
+        "gross": "701.00"
+      }
+    ],
+    "totals": {
+      "net": "649.07",
+      "vat": "51.93",
+      "gross": "701.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "6604",
+      "paid_date": "2026-11-18",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_piotr",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible",
+      "missing_tax_id"
+    ],
+    "messiness": [
+      "M1"
+    ],
+    "live_in_demo": false
+  },
+  {
+    "id": "nov_036",
+    "direction": "purchase",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "email",
+    "sender": "faktury@dostawcy.sample",
+    "submitted_by": null,
+    "artefact": "november/nov_036.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Pixelboard Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000105",
+      "country": "US",
+      "address": [
+        "999 Folsom St",
+        "San Francisco, CA 94199"
+      ]
+    },
+    "buyer": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "number": "INV-2026-11-1008",
+    "issue_date": "2026-11-19",
+    "due_date": null,
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Whiteboard, monthly",
+        "quantity": "1",
+        "unit_price_net": "45.00",
+        "net": "45.00",
+        "vat_rate": "np",
+        "vat": "0.00",
+        "gross": "45.00"
+      }
+    ],
+    "totals": {
+      "net": "45.00",
+      "vat": "0.00",
+      "gross": "45.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid_date": "2026-11-19",
+      "bank_account": null
+    },
+    "paid_by": "company_account",
+    "paid_by_person_id": null,
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000719",
+      "booking_date": "2026-11-20",
+      "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
+      "amount": {
+        "amount": "-185.57",
+        "currency": "PLN"
+      }
+    },
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "messiness": [
+      "M6"
+    ],
+    "live_in_demo": false,
+    "note": "VAT reverse charge (buyer accounts for VAT)"
+  },
+  {
+    "id": "nov_lakeshore",
+    "direction": "sale",
+    "kind": "invoice",
+    "doc_type": "invoice",
+    "format": "pdf",
+    "language": "en",
+    "channel": "accounting_api",
+    "sender": null,
+    "submitted_by": null,
+    "artefact": "november/nov_lakeshore.pdf",
+    "photo_defects": [],
+    "seller": {
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "9990000014",
+      "country": "PL",
+      "address": [
+        "ul. Piotrkowska 990 lok. 4B",
+        "90-999 Łódź"
+      ]
+    },
+    "buyer": {
+      "name": "Lakeshore Robotics Inc. (SAMPLE)",
+      "tax_id": "EIN 99-0000201",
+      "country": "US",
+      "address": [
+        "999 Lake Shore Drive",
+        "Chicago, IL 60699"
+      ]
+    },
+    "number": "2026/11/045",
+    "issue_date": "2026-11-20",
+    "due_date": "2027-01-05",
+    "currency": "USD",
+    "lines": [
+      {
+        "description": "Robot fleet dashboard, software development (fixed price)",
+        "quantity": "1",
+        "unit_price_net": "40000.00",
+        "net": "40000.00",
+        "vat_rate": "np I",
+        "vat": "0.00",
+        "gross": "40000.00"
+      }
+    ],
+    "totals": {
+      "net": "40000.00",
+      "vat": "0.00",
+      "gross": "40000.00"
+    },
+    "payment": {
+      "method": "transfer",
+      "card_last4": null,
+      "paid_date": null,
+      "bank_account": null
+    },
+    "paid_by": null,
+    "paid_by_person_id": null,
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "foreign_currency"
+    ],
+    "messiness": [],
+    "live_in_demo": false,
+    "note": "FX Shield hero case: 40,000 USD, profit 8,000 PLN, due in 45 days"
+  },
+  {
+    "id": "doc_rcpt412",
+    "direction": "purchase",
+    "kind": "receipt",
+    "doc_type": "receipt",
+    "format": "photo",
+    "language": "pl",
+    "channel": "photo",
+    "sender": "jan@borsuk-labs.sample",
+    "submitted_by": "per_jan",
+    "artefact": "november/doc_rcpt412.jpg",
+    "photo_defects": [],
+    "seller": {
+      "name": "ElektroMarkt Polska S.A. (SAMPLE)",
+      "tax_id": "9990000043",
+      "country": "PL",
+      "address": [
+        "ul. Pabianicka 945",
+        "93-998 Łódź"
+      ]
+    },
+    "buyer": null,
+    "number": "PARAGON 004512/11/2026",
+    "issue_date": "2026-11-20",
+    "due_date": null,
+    "currency": "PLN",
+    "lines": [
+      {
+        "description": "Monitor 27 cali QHD (SAMPLE)",
+        "quantity": "1",
+        "unit_price_net": "1056.10",
+        "net": "1056.10",
+        "vat_rate": "23",
+        "vat": "242.90",
+        "gross": "1299.00"
+      }
+    ],
+    "totals": {
+      "net": "1056.10",
+      "vat": "242.90",
+      "gross": "1299.00"
+    },
+    "payment": {
+      "method": "card",
+      "card_last4": "7730",
+      "paid_date": "2026-11-20",
+      "bank_account": null
+    },
+    "paid_by": "employee_private",
+    "paid_by_person_id": "per_jan",
+    "bank_line": null,
+    "duplicate_of": null,
+    "arrives_days_after_issue": 0,
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible",
+      "missing_tax_id"
+    ],
+    "messiness": [
+      "M1"
+    ],
+    "live_in_demo": true
+  }
+]

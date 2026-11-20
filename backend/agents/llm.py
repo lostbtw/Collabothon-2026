@@ -25,10 +25,11 @@ def default_client():
     None when ORDO_LLM_ENABLED=0."""
     if os.environ.get("ORDO_LLM_ENABLED", "1") == "0":
         return None
-    from openai import OpenAI
+    from openai import DefaultHttpx2Client, OpenAI
 
     return OpenAI(base_url=settings.llm_base_url(), api_key=settings.llm_token(),
-                  timeout=float(os.environ.get("ORDO_LLM_TIMEOUT_SECONDS", "60")), max_retries=0)
+                  timeout=float(os.environ.get("ORDO_LLM_TIMEOUT_SECONDS", "60")), max_retries=0,
+                  http_client=DefaultHttpx2Client(verify=settings.llm_verify()))
 
 
 def _json(content: str | None) -> Any:

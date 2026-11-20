@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-fixtures
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: db-fixtures
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: fixtures
+          image: ordo-backend:latest
+          command: ["python", "-m", "backend.db", "fixtures"]
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

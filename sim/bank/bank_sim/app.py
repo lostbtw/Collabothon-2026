@@ -9,6 +9,7 @@ import os
 import re
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -64,31 +65,48 @@ class ClockIn(BaseModel):
 
 
 # ---------- app ----------
+def autoload_plan(csv_path: str | None, csv_account: str, csv_dir: str | None) -> list[tuple[str, str]]:
+    """(account id, file) pairs to load at start: every bank_acc_<x>.csv in csv_dir goes to account acc_<x>
+    (role 4's sim/scenario/out), plus the single csv_path for csv_account (the pizzeria, not in Git)."""
+    plan: list[tuple[str, str]] = []
+    if csv_dir:
+        folder = Path(csv_dir)
+        if not folder.is_dir():
+            raise RuntimeError(f"BANK_AUTOLOAD_DIR '{csv_dir}' is not a folder")
+        plan += [(f"acc_{p.stem.removeprefix('bank_acc_')}", str(p)) for p in sorted(folder.glob("bank_acc_*.csv"))]
+        if not plan:
+            raise RuntimeError(f"BANK_AUTOLOAD_DIR '{csv_dir}' has no bank_acc_*.csv files")
+    if csv_path:
+        plan.append((csv_account, csv_path))
+    return plan
+
+
 def create_app(store: Store | None = None, token: str | None = None, autoload_csv: str | None = None,
-               autoload_account: str | None = None) -> FastAPI:
-    """autoload_csv: path of the organisers' CSV to load at start and after /admin/reset, so a restarted
-    bank is never empty. Defaults to the env var BANK_AUTOLOAD_CSV (account: BANK_AUTOLOAD_ACCOUNT, default acc_pizzeria)."""
+               autoload_account: str | None = None, autoload_dir: str | None = None) -> FastAPI:
+    """Files loaded at start and after /admin/reset, so a restarted bank is never empty:
+    autoload_dir (env BANK_AUTOLOAD_DIR): a folder of bank_acc_<x>.csv files, each into account acc_<x>;
+    autoload_csv (env BANK_AUTOLOAD_CSV): one file, into autoload_account (env BANK_AUTOLOAD_ACCOUNT, default acc_pizzeria)."""
     store = store or Store()
     expected = token or os.environ.get("BANK_TOKEN", "demo-token")
-    csv_path = autoload_csv or os.environ.get("BANK_AUTOLOAD_CSV")
-    csv_account = autoload_account or os.environ.get("BANK_AUTOLOAD_ACCOUNT", "acc_pizzeria")
+    plan = autoload_plan(autoload_csv or os.environ.get("BANK_AUTOLOAD_CSV"),
+                         autoload_account or os.environ.get("BANK_AUTOLOAD_ACCOUNT", "acc_pizzeria"),
+                         autoload_dir or os.environ.get("BANK_AUTOLOAD_DIR"))
     app = FastAPI(title="Sandbox Bank simulator (SIMULATED)", version="0.1.0")
     app.state.store = store
 
     def apply_autoload() -> None:
-        if not csv_path:
-            return
-        acc = store.accounts.get(csv_account)
-        if acc is None:
-            raise RuntimeError(f"BANK_AUTOLOAD_ACCOUNT '{csv_account}' is not a known account")
-        try:
-            with open(csv_path, "rb") as f:
-                iban, lines = parse_commerzbank_csv(f.read())
-        except (OSError, CsvError) as exc:  # fail fast: a bank that silently starts empty ruins the demo
-            raise RuntimeError(f"BANK_AUTOLOAD_CSV '{csv_path}' could not be loaded: {exc}") from exc
-        acc.lines = lines
-        if iban:
-            acc.iban = iban
+        for account_id, path in plan:
+            acc = store.accounts.get(account_id)
+            if acc is None:
+                raise RuntimeError(f"autoload: '{account_id}' (for {path}) is not a known account")
+            try:
+                with open(path, "rb") as f:
+                    iban, lines = parse_commerzbank_csv(f.read())
+            except (OSError, CsvError) as exc:  # fail fast: a bank that silently starts empty ruins the demo
+                raise RuntimeError(f"autoload: '{path}' could not be loaded: {exc}") from exc
+            acc.set_lines(lines)
+            if iban:
+                acc.iban = iban
 
     def bearer(authorization: str | None = Header(default=None)) -> None:
         if authorization != f"Bearer {expected}":
@@ -225,7 +243,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
             iban, lines = parse_commerzbank_csv(await request.body())
         except CsvError as exc:
             raise HTTPException(422, f"CSV_INVALID: {exc}") from exc
-        acc.lines = lines
+        acc.set_lines(lines)
         if iban:
             acc.iban = iban
         return {"accountId": acc.resource_id, "lines": len(lines),
@@ -267,7 +285,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
     def reset() -> dict:
         store.reset()
         apply_autoload()
-        return {"status": "reset", "autoloaded": bool(csv_path)}
+        return {"status": "reset", "autoloaded": bool(plan)}
 
     apply_autoload()
     return app

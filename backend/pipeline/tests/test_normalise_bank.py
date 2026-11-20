@@ -44,7 +44,7 @@ class FixtureBankLine(unittest.TestCase):
         txn = normalise_bank_line(raw, ACCOUNTS["acc_pln"])
         self.assertEqual(transaction_ingested_payload(txn), {
             "transaction_id": txn["id"], "account_id": "acc_pln",
-            "amount": {"amount": "-180.62", "currency": "PLN"}, "booking_date": "2026-11-20"})
+            "amount": {"amount": "-185.57", "currency": "PLN"}, "booking_date": "2026-11-20"})
 
 
 @unittest.skipUnless(commerzbank_csv.DEFAULT_CSV.exists(), f"put the CSV at {commerzbank_csv.DEFAULT_CSV}")

@@ -27,7 +27,9 @@
     "kind": "company_bank",
     "name": "Company account EUR",
     "iban_masked": "PL** **** 0425",
-    "card_last4": [],
+    "card_last4": [
+      "2290"
+    ],
     "currency": "EUR",
     "source_id": "src_bank_eur",
     "balance": {
