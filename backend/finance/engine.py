@@ -18,27 +18,73 @@ import psycopg
 from backend.db.events import new_event, publish
 from backend.db.store import Store
 
-from .forecast import HORIZON_DAYS, build_forecast, recurring_series_ids, summarise
+from .forecast import build_forecast, recurring_series_ids
+from .scenarios import credit_line_size, stress_of, with_changes
 from .series import name_key
+from .settings import (BUFFER_MONTHS, BUFFER_ROUND, BUFFER_SHARE, DEFAULT_PAYMENT_DAYS, DEMO_DAY_RATES_PLN,
+                       EVENT_TAIL_DAYS, HORIZON_DAYS)
+
+try:  # role 2's NBP connector (#34): stored table A rates
+    from backend.connectors.nbp import rate_on
+except ImportError:  # pragma: no cover
+    rate_on = None
 
 log = logging.getLogger("ordo.finance")
 PRODUCER = "finance"
 
-# Demo-day rates, used everywhere (spec #4); NBP rates replace them when role 2's rate connector lands.
-DEMO_DAY_RATES_PLN = {"PLN": Decimal("1"), "EUR": Decimal("4.41"), "USD": Decimal("4.0613")}
-# Spec #4: the pizzeria's forecast is seen from 15 May 2025; its July gap (3 Jul) is 49 days ahead.
-HORIZON_BY_COMPANY = {"co_amalfi": 60}
-# Safety buffer per company (contracts/fixtures/forecast.json); below it the forecast raises `below_buffer`.
-SAFETY_BUFFER = {"co_borsuk": Decimal("10000")}
 SETTLED = {"confirmed", "auto_confirmed"}
-DEFAULT_PAYMENT_DAYS = 14
 
 
-def rates_for(base: str) -> dict[str, Decimal]:
-    """Base-currency units per 1 unit of each currency."""
-    if base not in DEMO_DAY_RATES_PLN:
-        return {base: Decimal(1)}
-    return {c: r / DEMO_DAY_RATES_PLN[base] for c, r in DEMO_DAY_RATES_PLN.items()}
+def _pln_per_unit(conn: psycopg.Connection | None, currency: str, on: date) -> tuple[Decimal, str] | None:
+    """PLN for 1 unit: the stored NBP table A rate of `on` (or the last one before), else the demo-day rate."""
+    if currency == "PLN":
+        return Decimal(1), "PLN"
+    found = rate_on(conn, currency, on, "booking_day") if (conn is not None and rate_on) else None
+    if found:
+        return Decimal(found["rate"]), f"{found['source']} of {found['rate_date']}"
+    if currency in DEMO_DAY_RATES_PLN:
+        return DEMO_DAY_RATES_PLN[currency], "demo-day rate (spec #4)"
+    return None
+
+
+def rates_for(base: str, currencies: set[str], on: date, conn: psycopg.Connection | None = None) -> dict[str, Decimal]:
+    """Base-currency units per 1 unit of each currency the company holds or invoices in."""
+    rates = {base: Decimal(1)}
+    base_pln = _pln_per_unit(conn, base, on)
+    for currency in sorted(currencies - {base}):
+        pln = _pln_per_unit(conn, currency, on)
+        if pln and base_pln:
+            rates[currency] = pln[0] / base_pln[0]
+    return rates
+
+
+def horizon_for(as_of: str, events: list[dict]) -> int:
+    """The default horizon, longer when an owner event ends late: the event and what follows it stay visible."""
+    last_end = max((e["date_to"] for e in events), default=None)
+    if last_end is None:
+        return HORIZON_DAYS
+    needed = (date.fromisoformat(last_end) - date.fromisoformat(as_of)).days + EVENT_TAIL_DAYS
+    return max(HORIZON_DAYS, needed)
+
+
+def safety_buffer_for(transactions: list[dict], accounts: list[dict], rates: dict[str, Decimal],
+                      as_of: str) -> Decimal | None:
+    """A share of the average monthly outflows of the last full months before the as-of date, rounded up."""
+    liquid = {a["id"] for a in accounts if a.get("include_in_liquidity")}
+    first = date.fromisoformat(as_of).replace(day=1)
+    months = []
+    for _ in range(BUFFER_MONTHS):
+        first = (first - timedelta(days=1)).replace(day=1)
+        months.append(first.isoformat()[:7])
+    out = Decimal(0)
+    for t in transactions:
+        amount = Decimal(t["amount_base"]["amount"])
+        if t.get("account_id") in liquid and amount < 0 and t["booking_date"][:7] in months:
+            out += -amount * rates.get(t["amount_base"]["currency"], Decimal(1))
+    if out == 0:
+        return None
+    raw = out / len(months) * BUFFER_SHARE
+    return (raw / BUFFER_ROUND).to_integral_value(rounding="ROUND_CEILING") * BUFFER_ROUND
 
 
 def _company(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
@@ -139,13 +185,15 @@ def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
                                 status="approved") if not e.get("cash_date") or e["cash_date"] > as_of]
     events = [r[0] for r in conn.execute("select doc from forecast_events where company_id = %s order by seq",
                                          (company_id,)).fetchall()]
+    currencies = {a["currency"] for a in accounts} | {i["amount"]["currency"] for i in open_items}
+    rates = rates_for(company["base_currency"], currencies, date.fromisoformat(as_of), conn)
     return {"company": {k: company[k] for k in ("id", "base_currency", "as_of_date", "country")},
-            "accounts": accounts, "transactions": transactions, "rates": rates_for(company["base_currency"]),
+            "accounts": accounts, "transactions": transactions, "rates": rates,
             "open_items": open_items, "ledger_entries": ledger, "events": events,
             "invoice_keys": sorted(invoice_keys), "people_keys": sorted(people_keys),
             "own_keys": [name_key(company["name"])],
-            "horizon_days": HORIZON_BY_COMPANY.get(company_id, HORIZON_DAYS),
-            "safety_buffer": SAFETY_BUFFER.get(company_id)}
+            "horizon_days": horizon_for(as_of, events),
+            "safety_buffer": safety_buffer_for(transactions, accounts, rates, as_of)}
 
 
 def latest_base(conn: psycopg.Connection, company_id: str) -> dict[str, Any] | None:
@@ -237,40 +285,25 @@ def recompute(conn: psycopg.Connection, company_id: str, *, correlation_id: str 
 
 
 def scenario(conn: psycopg.Connection, company_id: str, body: dict[str, Any]) -> dict[str, Any]:
-    """What-if on the latest stored base forecast, stored with `scenario_of` (POST /forecast/scenario).
+    """POST /forecast/scenario: the latest stored base forecast with the request applied, stored with `scenario_of`.
 
-    `credit_line` {limit: Money, from}: the limit is available from that date (default: the as-of date), so every
-    balance from then on is higher by it. Shifted receivables and payables arrive with #44 (4.3); until then such
-    a request is listed as an assumption and changes no number.
+    credit_line {limit, from}, shift_receivable {document_id, new_date}, shift_payable {component_id, days}
+    (backend/finance/scenarios.py). A scenario is never the base forecast.
     """
     base = latest_base(conn, company_id) or recompute(conn, company_id)
-    currency = base["base_currency"]
-    points = [dict(p) for p in base["points"]]
-    components = list(base["components"])
-    assumptions = list(base["assumptions"])
-    line = body.get("credit_line")
-    if line:
-        limit = Decimal(line["limit"]["amount"])
-        start = line.get("from") or base["as_of_date"]
-        for p in points:
-            if p["date"] >= start:
-                for k in ("balance", "low", "high"):
-                    if p.get(k) is not None:
-                        p[k] = f"{Decimal(p[k]) + limit:.2f}"
-        components.append({"id": "c_credit_line", "label": f"Credit line {limit:,.2f} {currency} (simulated)",
-                           "kind": "scenario_action", "amount_base": {"amount": f"{limit:.2f}", "currency": currency},
-                           "schedule": f"available from {start}", "dates": [start], "confidence": 1.0,
-                           "evidence": [{"kind": "forecast", "id": base["id"], "label": "Base forecast",
-                                         "url": f"/forecast/{base['id']}"}]})
-    for other in sorted(k for k in body if k != "credit_line"):
-        assumptions.append(f"Scenario '{other}' requested; it is computed with #44, not yet")
-    as_of = date.fromisoformat(base["as_of_date"])
-    buffer = Decimal(base["safety_buffer"]["amount"]) if base.get("safety_buffer") else None
-    min_balance, first_negative, alerts = summarise(points, as_of, currency, buffer)
+    result = with_changes(base, body)
     now = datetime.now(UTC)
-    copy = {**base, "id": f"{base['id']}_s{now:%H%M%S%f}", "scenario_of": base["id"], "inputs_hash": None,
-            "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "points": points, "components": components,
-            "assumptions": assumptions, "min_balance": min_balance, "first_negative_date": first_negative,
-            "alerts": alerts}
-    Store(conn).add("forecast", copy, company_id=company_id)
-    return copy
+    result.update(id=f"{base['id']}_s{now:%H%M%S%f}", scenario_of=base["id"], inputs_hash=None,
+                  generated_at=now.strftime("%Y-%m-%dT%H:%M:%SZ"))
+    Store(conn).add("forecast", result, company_id=company_id)
+    return result
+
+
+def stress(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
+    """The stress case of the latest base forecast: {label, date, balance, receivable_component_id, extra_days}."""
+    return stress_of(latest_base(conn, company_id) or recompute(conn, company_id))
+
+
+def credit_line(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
+    """The credit line that covers the worst case: {limit, shortfall, basis, rule, stress}."""
+    return credit_line_size(latest_base(conn, company_id) or recompute(conn, company_id))

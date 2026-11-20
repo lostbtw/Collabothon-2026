@@ -25,10 +25,9 @@ from typing import Any, Iterable
 
 from .calendar import last_business_day, on_or_after
 from .series import Flow, counterparty_key, detect, template, weekday_averages
+from .settings import BAND, HORIZON_DAYS, VARIABLE_WEEKS
 
 METHOD = "recurring-schedule + weekday-average v1"
-HORIZON_DAYS = 45
-BAND = Decimal("0.5")            # everyday flows: low case = spending x 1.5 and income x 0.5
 VARIABLE_CONFIDENCE = 0.5
 CENT = Decimal("0.01")
 
@@ -237,7 +236,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
             "id": f"c_everyday_{side}",
             "label": ("Everyday spending" if side == "out" else "Everyday income") + f" (for example {names})",
             "kind": "variable_average", "amount_base": money(total, base),
-            "schedule": f"mean per weekday over the {8} weeks up to {as_of}",
+            "schedule": f"mean per weekday over the {VARIABLE_WEEKS} weeks up to {as_of}",
             "dates": [], "confidence": VARIABLE_CONFIDENCE,
             "evidence": [_txn_link(by_key[k][-1], base) for k in picks],
         })
@@ -264,8 +263,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     min_balance, first_negative, alerts = summarise(points, as_of, base, safety_buffer)
 
     assumptions = [f"Only bank lines booked up to {as_of} are used.",
-                   "Everyday flows: mean per weekday over the last 8 weeks; the band shows them from 0% "
-                   "(high) to 150% of spending and 50% of income (low)."]
+                   f"Everyday flows: mean per weekday over the last {VARIABLE_WEEKS} weeks; the band shows them from 0% "
+                   f"(high) to {100 + BAND * 100:.0f}% of spending and {100 - BAND * 100:.0f}% of income (low)."]
     assumptions += [f"1 {c} = {r} {base}" for c, r in sorted(rate.items()) if c != base and (
         any(a["currency"] == c for a in included.values()) or any(i["amount"]["currency"] == c for i in open_items))]
     digest = inputs_hash(as_of=as_of, horizon=horizon_days, rates=rate, buffer=safety_buffer,

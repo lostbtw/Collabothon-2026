@@ -24,12 +24,9 @@ from decimal import Decimal
 from statistics import mean, pstdev
 
 from .calendar import add_months, day_in_month, last_business_day, next_business_day, on_or_after
+from .settings import CLIENT_CV, LOOSE_CV, MIN_OCCURRENCES, STABLE_CV, VARIABLE_WEEKS
 
-VARIABLE_WEEKS = 8
-MIN_OCCURRENCES = 2
-STABLE_CV = 0.02       # amount varies by at most 2%: confidence 0.95
-LOOSE_CV = 0.15        # by at most 15% (taxes, card rates): confidence 0.8, amount = mean
-CLIENT_CV = 0.5        # clients paid by invoice: only the date must be regular
+
 KINDS = {"salary": "salary", "tax": "tax", "social_security": "social_security"}
 
 
