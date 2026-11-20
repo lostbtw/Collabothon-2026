@@ -1,5 +1,10 @@
 [
   {"id": "per_tomek", "company_id": "co_borsuk", "name": "Tomasz Borsuk (SAMPLE)", "email": "owner@borsuk-labs.sample", "role": "owner"},
   {"id": "per_jan", "company_id": "co_borsuk", "name": "Jan Kowalski (SAMPLE)", "email": "jan@borsuk-labs.sample", "role": "employee"},
+  {"id": "per_marta", "company_id": "co_borsuk", "name": "Marta Zielinska (SAMPLE)", "email": "marta@borsuk-labs.sample", "role": "employee"},
+  {"id": "per_anna", "company_id": "co_borsuk", "name": "Anna Wrona (SAMPLE)", "email": "anna.wrona@devmail.sample", "role": "contractor"},
+  {"id": "per_piotr", "company_id": "co_borsuk", "name": "Piotr Lis (SAMPLE)", "email": "piotr.lis@devmail.sample", "role": "contractor"},
+  {"id": "per_karolina", "company_id": "co_borsuk", "name": "Karolina Mazur (SAMPLE)", "email": "karolina.mazur@devmail.sample", "role": "contractor"},
+  {"id": "per_michal", "company_id": "co_borsuk", "name": "Michal Dudek (SAMPLE)", "email": "michal.dudek@devmail.sample", "role": "contractor"},
   {"id": "per_amalfi_owner", "company_id": "co_amalfi", "name": "Lucia Amalfi (SAMPLE)", "email": "owner@pizzeria-amalfi.sample", "role": "owner"}
 ]
