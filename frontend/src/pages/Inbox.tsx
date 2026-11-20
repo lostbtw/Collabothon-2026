@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Approval, EvidenceLink, Recommendation } from "../api/types.gen";
@@ -14,12 +14,17 @@ import {
   type Decided, type Filter, type InboxLists,
 } from "./inbox/model";
 
+// Design rule for this screen: the card shows the decision and the key figures only.
+// Everything that explains it (why, evidence, numbers, other options) is one click away, closed by default.
+
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "approval", label: "Needs approval" },
   { key: "recommendation", label: "Recommendations" },
   { key: "decided", label: "Decided" },
 ];
+
+type OnDecide = (rec: Recommendation, kind: "approve" | "reject", editedAmount: string | null) => Promise<void>;
 
 export function Inbox() {
   const { companyId } = useCompany();
@@ -34,7 +39,7 @@ export function Inbox() {
     [companyId, reload],
   );
 
-  async function decide(rec: Recommendation, kind: "approve" | "reject", editedAmount: string | null) {
+  const decide: OnDecide = async (rec, kind, editedAmount) => {
     const approval = await api.decide(rec.id, buildDecision(rec, kind, editedAmount));
     setJustDecided((d) => ({ ...d, [rec.id]: { rec, approval } }));
     // Stay on the card so the owner sees the result; it now lives under "Decided".
@@ -42,7 +47,7 @@ export function Inbox() {
     navigate(`/inbox/${rec.id}`, { replace: true });
     setReload((n) => n + 1);
     requestRefresh();
-  }
+  };
 
   return (
     <PageState state={state} keepWhileLoading>
@@ -53,13 +58,7 @@ export function Inbox() {
   );
 }
 
-export function InboxView({ lists, filter, onFilter, selectedId, onDecide }: {
-  lists: InboxLists;
-  filter: Filter;
-  onFilter: (f: Filter) => void;
-  selectedId?: string;
-  onDecide: (rec: Recommendation, kind: "approve" | "reject", editedAmount: string | null) => Promise<void>;
-}) {
+export function InboxView({ lists, filter, onFilter, selectedId, onDecide }: { lists: InboxLists; filter: Filter; onFilter: (f: Filter) => void; selectedId?: string; onDecide: OnDecide }) {
   const items = listFor(lists, filter);
   const selected = [...lists.open, ...lists.decided].find((r) => r.id === selectedId) ?? items[0];
   return (
@@ -87,12 +86,11 @@ export function InboxView({ lists, filter, onFilter, selectedId, onDecide }: {
                   {approval ? <DecisionChip approval={approval} /> : r.valid_until ? <span className="caption muted">by {shortDate(r.valid_until)}</span> : null}
                 </div>
                 <div className="body15 medium">{r.title}</div>
-                <div className="caption muted">{AGENT_LABEL[r.agent]} · {dateTime(r.created_at)}</div>
               </Link>
             );
           })}
         </nav>
-        {selected ? <Detail key={selected.id} rec={selected} approval={lists.approvalFor(selected.id)} onDecide={onDecide} /> : <div className="card muted">Select a card to see why Ordo suggests it.</div>}
+        {selected ? <Detail key={selected.id} rec={selected} approval={lists.approvalFor(selected.id)} onDecide={onDecide} /> : <div className="card muted">Nothing selected.</div>}
       </div>
     </>
   );
@@ -110,11 +108,29 @@ function Evidence({ links }: { links: EvidenceLink[] }) {
   );
 }
 
-export function Detail({ rec, approval, onDecide }: {
-  rec: Recommendation;
-  approval?: Approval;
-  onDecide: (rec: Recommendation, kind: "approve" | "reject", editedAmount: string | null) => Promise<void>;
-}) {
+/** A closed-by-default section: the title and a count are visible, the content opens on click. */
+function More({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
+  return (
+    <details>
+      <summary>{title}{count !== undefined && <span className="muted">{count}</span>}</summary>
+      <div className="more-body">{children}</div>
+    </details>
+  );
+}
+
+/** Two lines of summary; the rest on request. */
+function Summary({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const long = text.length > 150;
+  return (
+    <div>
+      <p className={`body15 tertiary${long && !open ? " clamp" : ""}`}>{text}</p>
+      {long && <button type="button" className="linklike" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Show less" : "Show more"}</button>}
+    </div>
+  );
+}
+
+export function Detail({ rec, approval, onDecide }: { rec: Recommendation; approval?: Approval; onDecide: OnDecide }) {
   const x = rec.explanation;
   const facts = impactFacts(rec);
   const by = x.generated_by;
@@ -123,12 +139,10 @@ export function Detail({ rec, approval, onDecide }: {
       <div className="hstack">
         <ControlBadges level={rec.control_level} execution={rec.execution_mode} />
         {approval && <DecisionChip approval={approval} />}
-        <span className="grow" />
-        <span className="small muted">{AGENT_LABEL[rec.agent]} · {dateTime(rec.created_at)} · {Math.round(x.confidence * 100)}% confident</span>
       </div>
       <div className="stack" style={{ gap: 8 }}>
         <h1>{rec.title}</h1>
-        <p className="body15 tertiary">{rec.summary}</p>
+        <Summary text={rec.summary} />
       </div>
       {facts.length > 0 && (
         <div className="impact">
@@ -138,56 +152,46 @@ export function Detail({ rec, approval, onDecide }: {
         </div>
       )}
 
-      <h2>Why</h2>
-      <ol className="reasons">
-        {x.why.map((w, i) => (<li key={w} className="reason"><span className="reason-n">{i + 1}</span><span>{w}</span></li>))}
-      </ol>
-      <div className="stack" style={{ gap: 8 }}>
-        <div className="caption muted">Evidence</div>
-        <Evidence links={rec.evidence} />
-      </div>
+      {approval ? <Result approval={approval} /> : <Decision rec={rec} onDecide={onDecide} />}
 
-      {x.calculation && x.calculation.length > 0 && (
-        <>
-          <hr className="divider" />
-          <h2>The numbers</h2>
-          <div className="stack">
+      <div className="more">
+        <More title="Why" count={x.why.length}>
+          <ol className="reasons">
+            {x.why.map((w, i) => (<li key={w} className="reason"><span className="reason-n">{i + 1}</span><span>{w}</span></li>))}
+          </ol>
+        </More>
+        <More title="Evidence" count={rec.evidence.length}><Evidence links={rec.evidence} /></More>
+        {x.calculation && x.calculation.length > 0 && (
+          <More title="The numbers" count={x.calculation.length}>
             {x.calculation.map((c) => (
               <div key={c.label} className="calc-row">
                 <div className="grow"><div>{c.label}</div>{c.formula && <div className="caption muted">{c.formula}</div>}</div>
-                <div className="body15 medium right">{c.value}</div>
+                <div className="medium right">{c.value}</div>
               </div>
             ))}
-          </div>
-        </>
-      )}
-
-      {x.alternatives && x.alternatives.length > 0 && (
-        <>
-          <hr className="divider" />
-          <h2>Other options</h2>
-          <div className="stack">
+          </More>
+        )}
+        {x.alternatives && x.alternatives.length > 0 && (
+          <More title="Other options" count={x.alternatives.length}>
             {x.alternatives.map((a) => (
               <div key={a.label} className="calc-row">
                 <div className="grow"><div>{a.label}</div><div className="caption muted">{[a.pros, a.cons].filter(Boolean).join(". ")}</div></div>
                 <div className="tertiary right">{a.cost ? formatMoney(a.cost, { decimals: false }) : "cost unknown"}</div>
               </div>
             ))}
-          </div>
-        </>
-      )}
-
-      {approval ? <Result approval={approval} /> : <Decision rec={rec} onDecide={onDecide} />}
-
-      <p className="caption muted">
-        {(x.assumptions ?? []).map((a) => `${a}. `)}
-        {by && <>Numbers: {by.numbers === "finance-engine" ? "finance engine" : by.numbers}. Wording: {by.wording === "template" ? "fixed template" : "the model on your cluster"}.{by.trace_id ? ` Trace ${by.trace_id}.` : ""}</>}
-      </p>
+          </More>
+        )}
+        <More title="About this card">
+          <p className="small tertiary">{AGENT_LABEL[rec.agent]} · {dateTime(rec.created_at)} · {Math.round(x.confidence * 100)}% confident</p>
+          {by && <p className="small tertiary">Numbers: {by.numbers === "finance-engine" ? "finance engine" : by.numbers}. Wording: {by.wording === "template" ? "fixed template" : "the model on your cluster"}.{by.trace_id ? ` Trace ${by.trace_id}.` : ""}</p>}
+          {(x.assumptions ?? []).map((a) => <p key={a} className="small tertiary">Assumes: {a}</p>)}
+        </More>
+      </div>
     </article>
   );
 }
 
-function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: (rec: Recommendation, kind: "approve" | "reject", editedAmount: string | null) => Promise<void> }) {
+function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: OnDecide }) {
   const edit = editableAmount(rec);
   const original = edit ? formatMoney(edit.value).replace(` ${edit.value.currency}`, "") : "";
   const [amount, setAmount] = useState(original);
@@ -196,8 +200,7 @@ function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: (rec: Reco
   const [error, setError] = useState<string | null>(null);
 
   if (!canApprove(rec)) {
-    if (rec.control_level !== "approval_required") return <div className="result-box neutral"><p>Nothing to approve. This is advice; no action is prepared.</p><div className="hstack"><Link to="/chat" className="button outline">Ask Ordo about this</Link></div></div>;
-    return <div className="result-box neutral"><p>This action cannot run in this build. Only simulated actions against the Sandbox Bank are allowed.</p></div>;
+    return <p className="small muted">{rec.control_level !== "approval_required" ? "Advice only. Nothing to approve." : "This action cannot run in this build. Only simulated actions are allowed."}</p>;
   }
 
   const parsed = edit ? parseAmount(amount) : null;
@@ -216,9 +219,7 @@ function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: (rec: Reco
   }
 
   return (
-    <div className="approve-box">
-      <h2>What happens when you approve</h2>
-      <p>{rec.proposed_action?.preview ?? "SIMULATED: the action runs against the Sandbox Bank. No real bank is contacted."}{edit && step === "idle" ? " You can change the amount first." : ""}</p>
+    <div className="stack">
       {step === "idle" && (
         <div className="hstack">
           {edit && (
@@ -230,15 +231,14 @@ function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: (rec: Reco
           )}
           <button type="button" className="primary" disabled={invalid} onClick={() => setStep("approve")}>Approve (SIMULATED)</button>
           <button type="button" className="outline" onClick={() => setStep("reject")}>Reject</button>
-          <Link to="/chat" className="button outline">Ask Ordo about this</Link>
         </div>
       )}
       {invalid && step === "idle" && <p className="danger small" role="alert">Enter an amount such as 25000 or 25,000.00.</p>}
       {step === "approve" && (
         <div className="confirm" role="alertdialog" aria-label="Confirm approval">
-          <p className="medium">SIMULATED. Approve “{rec.title}”?</p>
-          {changed && edit && parsed && <p>You changed the {edit.label.toLowerCase()} from {formatMoney(edit.value)} to {formatMoney({ amount: parsed, currency: edit.value.currency })}.</p>}
-          <p className="tertiary">It is sent to the Sandbox Bank only. No real bank is contacted and no real money moves.</p>
+          <p className="medium">Approve? This is SIMULATED.</p>
+          <p className="tertiary">{rec.proposed_action?.preview ?? "It runs against the Sandbox Bank only. No real bank is contacted."}</p>
+          {changed && edit && parsed && <p>New {edit.label.toLowerCase()}: {formatMoney({ amount: parsed, currency: edit.value.currency })} (was {formatMoney(edit.value)}).</p>}
           <div className="hstack">
             <button type="button" className="primary" disabled={busy} onClick={() => run("approve")}>{busy ? "Sending…" : "Yes, approve (SIMULATED)"}</button>
             <button type="button" className="outline" disabled={busy} onClick={() => setStep("idle")}>Back</button>
@@ -247,8 +247,7 @@ function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: (rec: Reco
       )}
       {step === "reject" && (
         <div className="confirm" role="alertdialog" aria-label="Confirm rejection">
-          <p className="medium">Reject “{rec.title}”?</p>
-          <p className="tertiary">Nothing is sent anywhere. The card moves to Decided.</p>
+          <p className="medium">Reject? Nothing will be sent.</p>
           <div className="hstack">
             <button type="button" className="primary" disabled={busy} onClick={() => run("reject")}>{busy ? "Saving…" : "Yes, reject"}</button>
             <button type="button" className="outline" disabled={busy} onClick={() => setStep("idle")}>Back</button>
@@ -262,13 +261,12 @@ function Decision({ rec, onDecide }: { rec: Recommendation; onDecide: (rec: Reco
 
 function Result({ approval }: { approval: Approval }) {
   const rejected = approval.decision === "rejected";
-  const changes = describeChanges(approval);
+  const changes = describeChanges(approval).map(([k, v]) => `${k.toLowerCase()} changed to ${v}`);
   return (
     <div className={`result-box ${rejected ? "neutral" : "positive"}`} role="status">
       <p className={`body15 medium${rejected ? "" : " positive"}`}>{resultHeadline(approval)}</p>
       {!rejected && approval.execution.result && <p>{approval.execution.result}</p>}
-      {changes.length > 0 && <p>You changed: {changes.map(([k, v]) => `${k.toLowerCase()} ${v}`).join(", ")}.</p>}
-      <p className="small tertiary">{rejected ? "Rejected" : "Approved"} by {approval.decided_by.name} · {dateTime(approval.decided_at)}</p>
+      <p className="small tertiary">{[`${rejected ? "Rejected" : "Approved"} by ${approval.decided_by.name}`, dateTime(approval.decided_at), ...changes].join(" · ")}</p>
       {!rejected && approval.execution.effects && approval.execution.effects.length > 0 && <Evidence links={approval.execution.effects} />}
     </div>
   );

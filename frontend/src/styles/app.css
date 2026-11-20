@@ -145,11 +145,20 @@ dl.fields dd { margin: 0; }
 .reason-n { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--bg-neutral-tint); color: var(--text-tertiary); font-size: 12px; }
 .calc-row { display: flex; gap: 16px; align-items: flex-start; }
 .calc-row .right { white-space: nowrap; }
-.approve-box, .result-box { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: var(--radius-md); }
-.approve-box { background: var(--bg-lavender); gap: 16px; }
+.result-box { display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-radius: var(--radius-md); }
 .result-box.positive { background: var(--bg-positive-tint); }
 .result-box.neutral { background: var(--bg-neutral-tint); }
-.confirm { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--radius-sm); background: var(--bg-surface); }
+.confirm { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; border-radius: var(--radius-md); background: var(--bg-lavender); }
+/* Closed-by-default sections: the explanation is there, but only when asked for. */
+.more { border-top: 1px solid var(--border-hairline); margin-bottom: -12px; }
+.more details + details { border-top: 1px solid var(--border-hairline); }
+.more summary { display: flex; align-items: center; gap: 8px; height: 44px; cursor: pointer; list-style: none; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::after { content: ""; margin-left: auto; margin-right: 4px; width: 6px; height: 6px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); transform: rotate(45deg); transition: transform 0.15s; }
+.more details[open] summary::after { transform: rotate(-135deg); }
+.more-body { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 16px; }
+.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+button.linklike { height: auto; padding: 0; margin-top: 4px; border: 0; border-radius: 4px; background: none; color: var(--accent); font-size: 13px; }
 .field { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-full); background: var(--bg-surface); }
 .field:focus-within { border-color: var(--accent); }
 .field input[type="text"] { flex: none; width: 96px; height: auto; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; }
