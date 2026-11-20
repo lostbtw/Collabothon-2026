@@ -1,15 +1,16 @@
 """Outbox handlers of the consumer group `finance` (contracts/events.md).
 
     match.decided          book the Ledger entries of a confirmed purchase Match, emit ledger.entry.approved (#27)
-    transaction.ingested   -- forecast recompute arrives with #28
-    ledger.entry.approved  -- forecast recompute arrives with #28
-    approval.recorded      -- nothing yet
-    execution.simulated    -- forecast recompute arrives with #28
+    transaction.ingested   mark the company: its forecast is recomputed 2 s after the last such event (#28)
+    ledger.entry.approved  same
+    execution.simulated    same
+    approval.recorded      -- nothing
 
 Every handler can run twice: entries have ids derived from the Match and `Store.add` ignores a repeated id,
 and `ledger.entry.approved` is emitted only for entries stored now.
 """
 import logging
+import time
 from typing import Any, Callable
 
 import psycopg
@@ -21,6 +22,34 @@ from .ledger import entries_for_match
 
 log = logging.getLogger("ordo.finance")
 PRODUCER = "finance"
+DEBOUNCE_SECONDS = 2.0
+# company id -> (time of its last input event, that event); emptied by recompute_due()
+DIRTY: dict[str, tuple[float, dict[str, Any]]] = {}
+
+
+def on_inputs_changed(conn: psycopg.Connection, event: dict[str, Any]) -> None:
+    """A new bank line, an approved Ledger entry or an executed action: the forecast must be recomputed."""
+    if event.get("company_id"):
+        DIRTY[event["company_id"]] = (time.monotonic(), event)
+
+
+def recompute_due(conn: psycopg.Connection, *, debounce: float = DEBOUNCE_SECONDS, now: float | None = None) -> list[str]:
+    """Recompute the forecast of every company whose last input event is at least `debounce` seconds old."""
+    from .engine import recompute  # late import: the engine reads many tables, the handlers only a few
+
+    now = time.monotonic() if now is None else now
+    done = []
+    for company, (seen, event) in list(DIRTY.items()):
+        if now - seen < debounce:
+            continue
+        del DIRTY[company]
+        try:
+            recompute(conn, company, correlation_id=event.get("correlation_id"), causation_id=event["id"])
+            done.append(company)
+        except Exception:
+            conn.rollback()
+            log.exception("finance: recompute of %s failed", company)
+    return done
 
 
 def on_match_decided(conn: psycopg.Connection, event: dict[str, Any]) -> list[str]:
@@ -61,4 +90,7 @@ def on_match_decided(conn: psycopg.Connection, event: dict[str, Any]) -> list[st
 
 HANDLERS: dict[str, list[Callable[[psycopg.Connection, dict[str, Any]], Any]]] = {
     "match.decided": [on_match_decided],
+    "transaction.ingested": [on_inputs_changed],
+    "ledger.entry.approved": [on_inputs_changed],
+    "execution.simulated": [on_inputs_changed],
 }

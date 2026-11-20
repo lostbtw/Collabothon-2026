@@ -73,6 +73,7 @@ def inputs_hash(**inputs: Any) -> str:
 def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterable[dict], rates: dict[str, Decimal],
                    open_items: Iterable[dict] = (), ledger_entries: Iterable[dict] = (), events: Iterable[dict] = (),
                    invoice_keys: Iterable[str] = (), people_keys: Iterable[str] = (), own_ibans: Iterable[str] = (),
+                   own_keys: Iterable[str] = (),
                    horizon_days: int = HORIZON_DAYS, safety_buffer: Decimal | None = None,
                    forecast_id: str | None = None, generated_at: str = "") -> dict[str, Any]:
     """The Forecast (contracts/schemas/forecast.schema.json) of one company.
@@ -91,6 +92,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     people_keys    team members: only their regular payments (salaries) are projected; their irregular ones
                    (reimbursement payouts) come from the Ledger
     own_ibans      the company's own accounts: transfers between them are not flows
+    own_keys       the company itself as a counterparty (same purpose, when only the name is known)
     """
     base = company["base_currency"]
     country = company.get("country") or ""
@@ -99,7 +101,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     rate = {k: Decimal(str(v)) for k, v in rates.items()}
     people_keys, invoice_keys = set(people_keys), set(invoice_keys)
     open_items, ledger_entries, events = list(open_items), list(ledger_entries), list(events)
-    included, transactions, opening, flows, last_line = _prepare(company, accounts, transactions, rate, own_ibans)
+    included, transactions, opening, flows, last_line = _prepare(company, accounts, transactions, rate, own_ibans,
+                                                                 own_keys)
 
     # ---- part 1: recurring series, open invoices, reimbursements, announced flows ------------------------------
     series, rest = detect(flows, as_of, country, loose_keys=invoice_keys)
@@ -116,7 +119,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
 
     for s in series:
         dates = [d for d in s.dates(as_of, end, country) if not any(  # an open invoice replaces that occurrence
-            i.get("key") == s.key and abs((expected_at[i["id"]] - d).days) <= 10 for i in open_items)]
+            s.key in (i.get("keys") or [i.get("key")]) and abs((expected_at[i["id"]] - d).days) <= 10 for i in open_items)]
         if not dates:
             continue
         for d in dates:
@@ -258,29 +261,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     })
 
     # ---- summary ---------------------------------------------------------------------------------------------
-    low_point = min(points, key=lambda p: (Decimal(p["balance"]), p["date"]))
-    negative = [p for p in points if Decimal(p["balance"]) < 0]
-    alerts = []
-    if negative:
-        first = date.fromisoformat(negative[0]["date"])
-        run, prev = [], None
-        for p in points:
-            day = date.fromisoformat(p["date"])
-            if day < first:
-                continue
-            if Decimal(p["balance"]) >= 0:
-                break
-            run.append(p)
-            prev = day
-        days_ahead = (first - as_of).days
-        alerts.append({"type": "cash_gap", "severity": "critical" if days_ahead <= 14 else "warning",
-                       "date_from": first.isoformat(), "date_to": prev.isoformat(),
-                       "max_shortfall": money(-min(Decimal(p["balance"]) for p in run), base),
-                       "days_ahead": days_ahead})
-    elif safety_buffer is not None and Decimal(low_point["balance"]) < safety_buffer:
-        alerts.append({"type": "below_buffer", "severity": "warning", "date_from": low_point["date"],
-                       "date_to": None, "max_shortfall": money(safety_buffer - Decimal(low_point["balance"]), base),
-                       "days_ahead": (date.fromisoformat(low_point["date"]) - as_of).days})
+    min_balance, first_negative, alerts = summarise(points, as_of, base, safety_buffer)
 
     assumptions = [f"Only bank lines booked up to {as_of} are used.",
                    "Everyday flows: mean per weekday over the last 8 weeks; the band shows them from 0% "
@@ -301,19 +282,45 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         "horizon_days": horizon_days, "base_currency": base, "opening_balance": money(opening, base),
         "safety_buffer": money(safety_buffer, base) if safety_buffer is not None else None,
         "method": METHOD, "points": points, "components": components,
-        "min_balance": {"date": low_point["date"], "amount": money(Decimal(low_point["balance"]), base)},
-        "first_negative_date": negative[0]["date"] if negative else None,
+        "min_balance": min_balance, "first_negative_date": first_negative,
         "alerts": alerts, "events": events, "assumptions": assumptions, "scenario_of": None,
         "inputs_hash": digest,
     }
 
 
+def summarise(points: list[dict], as_of: date, base: str, safety_buffer: Decimal | None = None):
+    """(min_balance, first_negative_date, alerts) of daily points; the forecast line is `balance`."""
+    low_point = min(points, key=lambda p: (Decimal(p["balance"]), p["date"]))
+    negative = [p for p in points if Decimal(p["balance"]) < 0]
+    alerts = []
+    if negative:
+        first = date.fromisoformat(negative[0]["date"])
+        run = []
+        for p in points:
+            if p["date"] < first.isoformat():
+                continue
+            if Decimal(p["balance"]) >= 0:
+                break
+            run.append(p)
+        days_ahead = (first - as_of).days
+        alerts.append({"type": "cash_gap", "severity": "critical" if days_ahead <= 14 else "warning",
+                       "date_from": first.isoformat(), "date_to": run[-1]["date"],
+                       "max_shortfall": money(-min(Decimal(p["balance"]) for p in run), base),
+                       "days_ahead": days_ahead})
+    elif safety_buffer is not None and Decimal(low_point["balance"]) < safety_buffer:
+        alerts.append({"type": "below_buffer", "severity": "warning", "date_from": low_point["date"],
+                       "date_to": None, "max_shortfall": money(safety_buffer - Decimal(low_point["balance"]), base),
+                       "days_ahead": (date.fromisoformat(low_point["date"]) - as_of).days})
+    min_balance = {"date": low_point["date"], "amount": money(Decimal(low_point["balance"]), base)}
+    return min_balance, negative[0]["date"] if negative else None, alerts
+
+
 def _prepare(company: dict, accounts: list[dict], transactions: Iterable[dict], rate: dict[str, Decimal],
-             own_ibans: Iterable[str]):
+             own_ibans: Iterable[str], own_keys: Iterable[str] = ()):
     """Liquidity accounts, their bank lines up to the as-of date, the balance on it, and the flows that can be
     projected (everything except transfers between the company's own accounts)."""
     as_of = str(company["as_of_date"])
-    own_ibans = set(own_ibans)
+    own_ibans, own_keys = set(own_ibans), set(own_keys)
     included = {a["id"]: a for a in accounts if a.get("include_in_liquidity")}
     lines = [t for t in transactions if t.get("account_id") in included and t["booking_date"] <= as_of]
     opening = Decimal(0)
@@ -329,16 +336,18 @@ def _prepare(company: dict, accounts: list[dict], transactions: Iterable[dict], 
                  counterparty_key(t), t.get("counterparty_name_raw") or "", template(t.get("description")), t)
         opening += f.amount
         last_line[t["account_id"]] = f
-        if t.get("transaction_type") != "internal" and t.get("counterparty_account") not in own_ibans:
+        own = t.get("counterparty_account") in own_ibans or f.key in own_keys
+        if t.get("transaction_type") != "internal" and not own:
             flows.append(f)
     return included, lines, opening, flows, last_line
 
 
 def recurring_series_ids(*, company: dict, accounts: list[dict], transactions: Iterable[dict],
-                         rates: dict[str, Decimal], own_ibans: Iterable[str] = ()) -> dict[str, str]:
+                         rates: dict[str, Decimal], own_ibans: Iterable[str] = (),
+                         own_keys: Iterable[str] = ()) -> dict[str, str]:
     """transaction id -> recurring_series_id for every bank line in a detected series (written onto
     Transactions; role 3 auto-confirms only lines that carry one)."""
     rate = {k: Decimal(str(v)) for k, v in rates.items()}
-    _, _, _, flows, _ = _prepare(company, accounts, transactions, rate, own_ibans)
+    _, _, _, flows, _ = _prepare(company, accounts, transactions, rate, own_ibans, own_keys)
     series, _ = detect(flows, date.fromisoformat(str(company["as_of_date"])), company.get("country") or "")
     return {f.transaction["id"]: s.id for s in series for f in s.flows}

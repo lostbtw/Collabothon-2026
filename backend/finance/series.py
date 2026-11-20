@@ -16,6 +16,7 @@ Everything else is *variable*: projected as the mean amount per weekday over the
 """
 import hashlib
 import re
+import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -91,9 +92,15 @@ def template(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"\d+", "", text or "")).strip()
 
 
+def name_key(name: str | None) -> str:
+    """'Piekarnia Złoty Kłos sp. z o.o.' and 'PIEKARNIA ZLOTY KLOS SP Z O O' give the same key."""
+    folded = unicodedata.normalize("NFKD", (name or "").replace("ł", "l").replace("Ł", "L"))
+    folded = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", " ", folded.lower()).strip()
+
+
 def counterparty_key(txn: dict) -> str:
-    name = txn.get("counterparty_name_raw") or ""
-    return txn.get("counterparty_id") or re.sub(r"[^a-z0-9]+", " ", name.lower()).strip()
+    return txn.get("counterparty_id") or name_key(txn.get("counterparty_name_raw"))
 
 
 def _fits(days: list[date], rule: str, dom: int, country: str) -> bool:
