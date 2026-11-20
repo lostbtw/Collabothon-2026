@@ -45,6 +45,35 @@ def test_approving_the_credit_line_with_a_lower_limit_executes_in_simulation_wit
     assert [e["payload"]["reference"] for e in events(db, "execution.simulated")] == [approval["execution"]["reference"]]
 
 
+def test_the_approved_action_reaches_the_sandbox_bank(demo, sandbox_bank):
+    """#36: the decision endpoint runs role 2's executor; the bank holds the application with the owner's limit."""
+    approval = demo.post("/api/v1/recommendations/rec_cl01/decision", json={
+        "decision": "approved_with_changes",
+        "changes": {"proposed_action.params.limit": {"amount": "25000.00", "currency": "PLN"}},
+    }).json()
+
+    [done] = sandbox_bank.get("/admin/executions", headers={"Authorization": "Bearer test-bank-token"}).json()["executions"]
+    assert done["type"] == "credit_line_application" and done["limit"] == "25000.00"
+    assert done["reference"] == approval["execution"]["reference"]
+
+
+def test_when_the_bank_is_down_the_decision_stands_and_the_card_shows_the_failure(demo, db, monkeypatch):
+    import httpx
+
+    import backend.executor.simulated as executor
+
+    def down(request):
+        raise httpx.ConnectError("connection refused", request=request)
+
+    monkeypatch.setattr(executor, "make_client",
+                        lambda: httpx.Client(base_url="http://bank.invalid", transport=httpx.MockTransport(down)))
+    approval = demo.post("/api/v1/recommendations/rec_cl01/decision", json={"decision": "approved"}).json()
+
+    assert approval["execution"]["status"] == "failed"
+    assert "unreachable" in approval["execution"]["result"]
+    assert events(db, "execution.simulated") == []
+
+
 def test_approving_the_reimbursement_decides_its_match_with_the_same_single_approval(demo, db):
     approval = demo.post("/api/v1/recommendations/rec_412/decision", json={"decision": "approved"}).json()
 

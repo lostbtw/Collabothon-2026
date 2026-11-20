@@ -1,6 +1,7 @@
 """Where role 5's code calls other roles' in-process code, with a stand-in until theirs exists.
 
-executor (role 2, backend/executor):  execute(approval) -> {"reference", "result"}   (D-19; it emits execution.simulated)
+executor (role 2, backend/executor/simulated.py): execute_action(conn, approval, action, company)
+                                       -> {"reference", "result"}   (D-19; it emits execution.simulated)
 finance  (role 4, backend/finance/engine): recompute(conn, company_id) -> Forecast
 
 The real executor receives only the Approval; it finds the action as the Recommendation's `proposed_action` with
@@ -91,10 +92,13 @@ def _stand_in_execute(c: psycopg.Connection, approval: dict[str, Any], action: d
 
 
 def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:
-    """Run an approved action in simulation. Returns {"reference", "result"}."""
-    executor = optional_module("backend.executor")
-    if executor is not None and hasattr(executor, "execute"):
-        return executor.execute(approval)
+    """Run an approved action in simulation. Returns {"reference", "result"}.
+
+    Role 2's executor (backend/executor/simulated.py, #36) sends it to the Sandbox Bank and emits
+    `execution.simulated`; it gets the connection, the action with the owner's changes applied and the company."""
+    executor = optional_module("backend.executor.simulated")
+    if executor is not None and hasattr(executor, "execute_action"):
+        return executor.execute_action(c, approval, action, company)
     return _stand_in_execute(c, approval, action, company)
 
 
