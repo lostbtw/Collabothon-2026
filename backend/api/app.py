@@ -5,7 +5,9 @@ Entity endpoints read the database through the Store, so fixtures loaded as demo
 connectors, pipeline and finance engine are served the same way. Computations that belong to another role and do
 not exist yet answer from `stand_ins.py`.
 """
+from collections.abc import Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -14,11 +16,13 @@ from psycopg_pool import ConnectionPool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend import settings
+from backend.agents.llm import default_client
 from backend.api.deps import ApiError, error_body
 from backend.api.routes import bank, chat, documents, forecast, ledger, recommendations, sources, stream, system
 
 
-def create_app(database_url: str | None = None) -> FastAPI:
+def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | None = None) -> FastAPI:
+    """`chat_model` makes the model client for /chat (default: the cluster's vLLM, or None when disabled)."""
     url = database_url or settings.database_url()
 
     @asynccontextmanager
@@ -30,6 +34,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
             app.state.pool.close()
 
     app = FastAPI(title="Ordo API", version="0.1.0", lifespan=lifespan)
+    app.state.chat_model = chat_model or default_client
     for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream):
         app.include_router(module.router, prefix="/api/v1")
 

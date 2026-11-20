@@ -9,6 +9,7 @@ from typing import Any
 import psycopg
 from fastapi import APIRouter, Body, Depends
 
+from backend.api.forecasting import add_forecast_event
 from backend.api.deps import ApiError, company_id, conn, get_or_404, new_id, now_iso, store
 from backend.db.store import Store
 
@@ -58,19 +59,10 @@ def recompute(company: str = Depends(company_id), c: psycopg.Connection = Depend
 
 @router.post("/forecast/events", status_code=201)
 def add_event(body: dict[str, Any] = Body(...), company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
-    for field in ("label", "date_from", "date_to", "effect"):
-        if field not in body:
-            raise ApiError(422, "invalid_request", f"{field} is required")
-    event = {"id": new_id("fev"), "label": body["label"], "date_from": body["date_from"], "date_to": body["date_to"],
-             "effect": body["effect"], "amount": body.get("amount"), "source": body.get("source", "owner_form")}
-    engine = finance_engine()
-    if engine:
-        return engine.add_event(c, company, event)
-    s = Store(c)
-    base = latest_forecast(s, company)
-    updated = _new_version(base, events=[*base.get("events", []), event])
-    s.add("forecast", updated, company_id=company)
-    return updated
+    event, forecast = add_forecast_event(c, company, {**body, "source": body.get("source", "owner_form")})
+    if forecast is None:
+        raise ApiError(409, "no_forecast", f"Event {event['id']} stored; {company} has no forecast to recompute yet")
+    return forecast
 
 
 @router.post("/forecast/scenario")
