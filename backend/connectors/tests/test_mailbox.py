@@ -179,6 +179,16 @@ def test_mails_without_files_or_invoice_words_are_skipped_but_passed(db, source)
     assert result["items_fetched"] == 1
 
 
+def test_a_notification_naming_the_invoices_mailbox_is_not_an_invoice(db, source):
+    """Found on the real mailbox: Google's security mails repeat the address borsuk.invoices.demo@gmail.com."""
+    body = ("2-Step Verification turned on\n\nborsuk.invoices.demo@example.test\n"
+            "Your Google Account borsuk.invoices.demo@example.test is now protected.\n"
+            "https://myaccount.example.test/AccountChooser?Email=borsuk.invoices.demo@example.test")
+    poll(db, FakeImap({1: mail(1, sender="no-reply@accounts.example.test", subject="Security alert", body=body),
+                       2: mail(2, subject="faktura test", body="[image: obraz.png]")}))
+    assert set(items(db)) == {"<msg-2@mail.example.test>"}
+
+
 def test_a_small_inline_image_is_ignored_but_a_photo_inline_is_read(db, source):
     poll(db, FakeImap({1: mail(1, files=[("logo.png", "image/png", LOGO, True), ("receipt.jpg", "image/jpeg", PHOTO, True)])}))
     got = items(db)
