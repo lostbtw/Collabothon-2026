@@ -1,36 +1,67 @@
 import { Link } from "react-router-dom";
 import { api, type AccountsResponse, type InboxResponse, type LedgerSummary } from "../api/client";
-import type { Forecast } from "../api/types.gen";
+import type { Forecast, Transaction } from "../api/types.gen";
 import { ForecastChart } from "../components/ForecastChart";
 import { Icon } from "../components/Icon";
-import { More, MoreGroup } from "../components/More";
+import { Evidence, More, MoreGroup } from "../components/More";
 import { PageState } from "../components/PageState";
 import { useCompany } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney, isNegative } from "../lib/money";
 import { useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
-import { weather } from "./dashboard/model";
+import { dataNotes, weather } from "./dashboard/model";
 
 export function Dashboard() {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
-  // Cash and forecast must load; the other two only add a number and a button.
+  // Cash must load. A company may have no forecast yet; the rest only adds a number, a button or a note.
   const state = useApi(
-    () => Promise.all([api.accounts(companyId), api.forecast(companyId), api.ledgerSummary(companyId).catch(() => null), api.inbox(companyId).catch(() => null)]),
+    () => Promise.all([api.accounts(companyId), api.forecast(companyId).catch(() => null), api.ledgerSummary(companyId).catch(() => null), api.inbox(companyId).catch(() => null), api.transactions(companyId).then((t) => t.items).catch(() => [])]),
     [companyId, refresh],
   );
   return (
     <PageState state={state} keepWhileLoading>
-      {([accounts, forecast, summary, inbox]) => <DashboardView accounts={accounts} forecast={forecast} summary={summary} inbox={inbox} />}
+      {([accounts, forecast, summary, inbox, transactions]) => <DashboardView accounts={accounts} forecast={forecast} summary={summary} inbox={inbox} transactions={transactions} />}
     </PageState>
   );
 }
 
-export function DashboardView({ accounts, forecast, summary, inbox, flash }: { accounts: AccountsResponse; forecast: Forecast; summary: LedgerSummary | null; inbox: InboxResponse | null; flash?: boolean }) {
+type ViewProps = { accounts: AccountsResponse; forecast: Forecast | null; summary: LedgerSummary | null; inbox: InboxResponse | null; transactions?: Transaction[]; flash?: boolean };
+
+export function DashboardView({ accounts, forecast, summary, inbox, transactions = [], flash }: ViewProps) {
+  const notes = dataNotes(transactions);
+  const dataCard = notes.length > 0 && (
+    <div className="card">
+      <MoreGroup>
+        <More title="Data notes" count={notes.length}>
+          {notes.map((n) => <div key={n.text} className="calc-row"><div className="grow">{n.text}</div><Evidence links={[n.evidence]} /></div>)}
+        </More>
+      </MoreGroup>
+    </div>
+  );
+  const cash = accounts.items.filter((a) => a.include_in_liquidity && a.balance);
+  if (!forecast) {
+    return (
+      <>
+        <h1>Home</h1>
+        <div className="row">
+          <div className="card stack" style={{ gap: 4 }}>
+            <div className="tertiary">Cash</div>
+            <div className="display">{accounts.total_liquidity_base ? formatMoney(accounts.total_liquidity_base) : cash.map((a) => formatMoney(a.balance)).join(" + ")}</div>
+            <div className="small muted">{cash.length} account{cash.length === 1 ? "" : "s"}</div>
+          </div>
+          <div className="card stack" style={{ gap: 4 }}>
+            <div className="tertiary">Forecast</div>
+            <div className="body15">No forecast for this company yet.</div>
+          </div>
+        </div>
+        {dataCard}
+      </>
+    );
+  }
   const w = weather(forecast);
   const fix = inbox?.items.find((r) => r.agent === "liquidity" && r.control_level === "approval_required");
-  const cash = accounts.items.filter((a) => a.include_in_liquidity && a.balance);
   const low = forecast.min_balance;
   return (
     <>
@@ -85,6 +116,7 @@ export function DashboardView({ accounts, forecast, summary, inbox, flash }: { a
           </More>
         </MoreGroup>
       </div>
+      {dataCard}
     </>
   );
 }

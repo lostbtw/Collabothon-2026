@@ -1,8 +1,27 @@
 // Dashboard logic with no React in it. Geometry may use floating point (it is pixels);
 // every number shown to the owner is formatted from the engine's decimal strings.
-import type { Forecast, Money } from "../../api/types.gen";
+import type { EvidenceLink, Forecast, Money, Transaction } from "../../api/types.gen";
 import { daysBetween } from "../../lib/dates";
 import { isNegative } from "../../lib/money";
+
+export type DataNote = { text: string; evidence: EvidenceLink };
+
+/** Plain notes about data Ordo had to repair, each with the row that shows it. Built from the bank lines' quality flags. */
+export function dataNotes(transactions: Transaction[]): DataNote[] {
+  const notes: DataNote[] = [];
+  const converted = transactions.filter((t) => t.data_quality?.includes("currency_mismatch_fixed"));
+  if (converted.length > 0) {
+    const t = converted[0];
+    const from = t.original_amount?.currency ?? t.amount.currency;
+    notes.push({
+      text: `${converted.length} ${from} line${converted.length === 1 ? "" : "s"} converted to ${t.amount_base.currency}`,
+      evidence: { kind: "transaction", id: t.id, label: t.fx ? `Rate ${t.fx.rate}, from ${t.fx.source}` : "Open the line", url: `/transactions/${t.id}` },
+    });
+  }
+  const unresolved = transactions.filter((t) => t.data_quality?.includes("counterparty_unresolved"));
+  if (unresolved.length > 0) notes.push({ text: `${unresolved.length} line${unresolved.length === 1 ? "" : "s"} with an unknown counterparty`, evidence: { kind: "transaction", id: unresolved[0].id, label: "Open the first one", url: `/transactions/${unresolved[0].id}` } });
+  return notes;
+}
 
 export type Weather = { kind: "storm" | "cloudy" | "sunny"; headline: string };
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { api } from "../api/client";
 import { fixtures } from "../api/mock";
 import { DashboardView } from "./Dashboard";
-import { chartModel, pointAt, weather } from "./dashboard/model";
+import { chartModel, dataNotes, pointAt, weather } from "./dashboard/model";
 
 const forecast = fixtures.forecasts[0];
 
@@ -49,5 +49,28 @@ describe("Home dashboard", () => {
       expect(html).toContain(c.label.replace("'", "&#x27;"));
       expect(html).toContain(`Source: ${c.evidence![0].label.replaceAll("'", "&#x27;")}`);
     }
+  });
+});
+
+describe("second company (organisers' pizzeria data)", () => {
+  it("follows the selected company: its account, in EUR, with its as-of date", async () => {
+    const amalfi = (await api.companies()).items.find((c) => c.id === "co_amalfi")!;
+    expect(amalfi).toMatchObject({ base_currency: "EUR", as_of_date: "2025-05-15" });
+    const accounts = await api.accounts("co_amalfi");
+    expect(accounts.items.map((a) => a.id)).toEqual(["acc_pizzeria"]);
+    await expect(api.forecast("co_amalfi")).rejects.toThrow(/No forecast/);
+    const transactions = (await api.transactions("co_amalfi")).items;
+    const html = renderToStaticMarkup(<MemoryRouter><DashboardView accounts={accounts} forecast={null} summary={null} inbox={await api.inbox("co_amalfi")} transactions={transactions} /></MemoryRouter>);
+    expect(html).toContain("33,266.35 EUR");
+    expect(html).not.toContain("PLN");
+    expect(html).toContain("No forecast for this company yet.");
+  });
+
+  it("notes the converted CHF line and links to it", async () => {
+    const notes = dataNotes((await api.transactions("co_amalfi")).items);
+    expect(notes).toHaveLength(1);
+    expect(notes[0].text).toBe("1 CHF line converted to EUR");
+    expect(notes[0].evidence.url).toBe("/transactions/txn_pz0615");
+    expect(dataNotes((await api.transactions("co_borsuk")).items)).toEqual([]);
   });
 });

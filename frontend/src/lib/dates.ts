@@ -13,6 +13,11 @@ export function shortDate(iso: string, timeZone: string = DISPLAY_TIME_ZONE): st
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: isDay(iso) ? "UTC" : timeZone }).format(toDate(iso));
 }
 
+/** "15 May 2025" */
+export function longDate(iso: string, timeZone: string = DISPLAY_TIME_ZONE): string {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: isDay(iso) ? "UTC" : timeZone }).format(toDate(iso));
+}
+
 /** "21 Nov, 10:15" */
 export function dateTime(iso: string, timeZone: string = DISPLAY_TIME_ZONE): string {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone }).format(toDate(iso));

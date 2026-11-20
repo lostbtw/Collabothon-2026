@@ -161,7 +161,9 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/accounts") {
     const items = byCompany(f.accounts, company);
     const forecast = byCompany(f.forecasts, company)[0];
-    result = { items, total_liquidity_base: forecast?.opening_balance ?? null };
+    // One account: its balance is the total. Several currencies: only the finance engine may add them up.
+    const single = items.filter((a) => a.include_in_liquidity && a.balance).length === 1 ? items.find((a) => a.include_in_liquidity && a.balance)!.balance : null;
+    result = { items, total_liquidity_base: forecast?.opening_balance ?? single ?? null };
   } else if (method === "GET" && path === "/transactions") {
     const accountIds = new Set(byCompany(f.accounts, company).map((a) => a.id));
     result = page(f.transactions.filter((t) => accountIds.has(t.account_id) && (!q.get("account_id") || t.account_id === q.get("account_id"))));
@@ -174,10 +176,12 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     const items = byCompany(f.recommendations, company).filter((r) => r.status === "new" || r.status === "seen");
     result = { items, counts: { approval_required: items.filter((r) => r.control_level === "approval_required").length, recommendation: items.filter((r) => r.control_level === "recommendation").length, analysed_autonomously_today: ACTIVITY.length } };
   } else if (method === "GET" && path === "/ledger") result = page(byCompany(f.ledger, company));
+  else if (method === "GET" && path === "/ledger/summary" && company && company !== "co_borsuk") throw new MockNotFound(`No ledger summary fixture for ${company}`);
   else if (method === "GET" && path === "/ledger/summary")
     result = { rows: [], kpis: { reimbursements_owed: { amount: "5169.00", currency: "PLN" }, vat_lost_ytd: { amount: "242.90", currency: "PLN" }, documents_missing: 3, tax_due_next_30d: { amount: "25200.00", currency: "PLN" } } };
   else if (seg[0] === "forecast" && (method === "POST" || seg.length === 2)) {
-    const forecast = (seg[1] && f.forecasts.find((x) => x.id === seg[1])) || byCompany(f.forecasts, company)[0] || f.forecasts[0];
+    const forecast = (seg[1] && seg[1] !== "latest" && f.forecasts.find((x) => x.id === seg[1])) || byCompany(f.forecasts, company)[0];
+    if (!forecast) throw new MockNotFound(`No forecast fixture for ${company ?? seg[1]}`);
     result = forecast;
   } else if (method === "GET" && path === "/recommendations")
     result = { items: byCompany(f.recommendations, company).filter((r) => (!q.get("status") || r.status === q.get("status")) && (!q.get("agent") || r.agent === q.get("agent")) && (!q.get("control_level") || r.control_level === q.get("control_level"))) };
@@ -188,7 +192,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     if (decision === "rejected") undoneMatches.add(find(f.matches, seg[1]).id);
     result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision, changes: null, comment: null, execution: { mode: "none", status: "not_applicable", executed_at: null, reference: null, result: null, effects: [] } };
   } else if (method === "GET" && path === "/approvals") result = { items: [...decisions.values()] };
-  else if (method === "GET" && path === "/activity") result = { items: ACTIVITY.filter((a) => !(a.subject?.type === "match" && undoneMatches.has(a.subject.id))) };
+  else if (method === "GET" && path === "/activity") result = { items: (company && company !== "co_borsuk" ? [] : ACTIVITY).filter((a) => !(a.subject?.type === "match" && undoneMatches.has(a.subject.id))) };
   else if (method === "POST" && path === "/chat") {
     const forecast = f.forecasts[0];
     result = {
