@@ -200,12 +200,26 @@ tr.open td { border-bottom-color: transparent; }
 tr.why td { padding-top: 0; }
 .table-card td { vertical-align: middle; }
 
-/* Ask Ordo */
-.chat { display: flex; flex-direction: column; gap: 20px; padding: 24px; max-width: 820px; }
-.bubble { align-self: flex-end; max-width: 80%; padding: 10px 16px; border-radius: 16px; background: var(--bg-neutral-tint); font-size: 15px; line-height: 22px; }
-.composer { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 16px; border: 1px solid var(--border-strong); border-radius: var(--radius-full); background: var(--bg-surface); }
+/* Ask Ordo: laid out like a chat app */
+.chat-page { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; }
+.chat-empty { flex: 1; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 24px; padding-bottom: 14vh; text-align: center; }
+.chat-empty h1 { font-size: 28px; line-height: 36px; }
+.chat-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; }
+.chat-thread { flex: 1; display: flex; flex-direction: column; gap: 20px; padding-bottom: 24px; font-size: 15px; line-height: 24px; }
+.bubble { align-self: flex-end; max-width: 75%; padding: 10px 18px; border-radius: 20px; background: var(--bg-neutral-tint); white-space: pre-wrap; }
+.answer { display: flex; flex-direction: column; gap: 12px; }
+.answer .more { margin-bottom: 0; font-size: 14px; line-height: 20px; }
+.typing { display: flex; gap: 5px; padding: 8px 0; }
+.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); animation: typing 1.2s infinite ease-in-out; }
+.typing span:nth-child(2) { animation-delay: 0.15s; }
+.typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+/* The input stays at the bottom of the window while the messages scroll behind it. */
+.chat-dock { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 8px; padding: 16px 0 12px; margin-bottom: -20px; background: linear-gradient(to bottom, transparent, var(--bg-canvas) 16px); text-align: center; }
+.composer { display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 20px; border: 1px solid var(--border-strong); border-radius: 26px; background: var(--bg-surface); box-shadow: 0 2px 12px rgba(30, 30, 42, 0.06); text-align: left; }
 .composer:focus-within { border-color: var(--accent); }
-.composer input[type="text"] { border: 0; outline: 0; padding: 0; height: 32px; border-radius: 0; background: transparent; font-size: 15px; }
+.composer textarea { flex: 1; min-height: 36px; max-height: 200px; padding: 7px 0; border: 0; outline: 0; resize: none; background: transparent; font: inherit; font-size: 15px; line-height: 22px; color: inherit; }
+.composer button.send { width: 36px; height: 36px; padding: 0; flex: none; border-radius: 50%; }
 .answer-table { background: var(--bg-canvas); border: 1px solid var(--border-hairline); border-radius: var(--radius-sm); border-collapse: separate; border-spacing: 0; }
 .answer-table th, .answer-table td { padding: 8px 16px; }
 
