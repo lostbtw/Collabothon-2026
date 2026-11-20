@@ -79,7 +79,9 @@ export function Layout() {
             status={inbox.error ? "No data yet" : !inbox.data ? "…" : hedges ? `${hedges} hedge${hedges > 1 ? "s" : ""} proposed` : "Nothing to hedge"} />
           <Agent icon="percent" name="Tax"
             status={summary.error ? "No data yet" : !summary.data ? "…" : summary.data.kpis.tax_due_next_30d ? `${formatMoney(summary.data.kpis.tax_due_next_30d, { decimals: false })} due in 30 days` : "Nothing due in 30 days"} />
-          <div className="mode">Data: {API_MODE === "mock" ? "sample data (mock mode)" : "live API"}</div>
+          <div className="mode">
+            {API_MODE === "mock" ? "Sample data" : "Live data from the backend"} · <a href={API_MODE === "mock" ? "?mock=0" : "?mock=1"}>{API_MODE === "mock" ? "switch to live" : "switch to sample"}</a>
+          </div>
         </aside>
         <main className="main">
           <Outlet />
