@@ -45,3 +45,51 @@ spec:
       github:
         secretReference:
           name: github-webhook
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: ordo-sim
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: ordo-sim
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  runPolicy: Serial
+  successfulBuildsHistoryLimit: 3
+  failedBuildsHistoryLimit: 3
+  source:
+    type: Git
+    git:
+      uri: https://github.com/lostbtw/Collabothon-2026.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: deploy/images/sim.Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: ordo-sim:latest
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  triggers:
+    - type: GitHub
+      github:
+        secretReference:
+          name: github-webhook

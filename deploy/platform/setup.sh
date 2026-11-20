@@ -4,7 +4,7 @@ set -euo pipefail
 NS=cfo-ai
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-IMAGES=(backend)
+IMAGES=(backend sim)
 
 apply() {
   oc apply -f "$HERE/builds.yaml" -f "$HERE/routes.yaml"
