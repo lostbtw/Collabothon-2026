@@ -17,10 +17,12 @@ from backend.db.events import new_event, publish
 from backend.db.store import Store
 from backend.settings import database_url
 
+from .counterparty import model_chooser
 from .handlers import COMPANY_TAX_IDS, HANDLERS, PRODUCER, Context, default_rates
 
 log = logging.getLogger("ordo.pipeline")
 MAX_ATTEMPTS = 3
+_CHOOSE = model_chooser()  # the cluster's model for category/kind when rules do not decide; None if disabled
 
 
 # ---------- Postgres context ----------
@@ -58,7 +60,7 @@ def make_context(conn: psycopg.Connection) -> Context:
         return None
 
     return Context(store=Store(conn), publish=_publish, company=_company, people=_people, raw_bytes=_raw_bytes,
-                   rates=default_rates())
+                   rates=default_rates(), choose=_CHOOSE)
 
 
 # ---------- claiming ----------
