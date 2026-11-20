@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { api, type AccountsResponse, type InboxResponse, type LedgerSummary } from "../api/client";
-import type { Forecast, Transaction } from "../api/types.gen";
+import { useState } from "react";
+import type { Forecast, Money, Transaction } from "../api/types.gen";
 import { ForecastChart } from "../components/ForecastChart";
 import { Icon } from "../components/Icon";
 import { Evidence, More, MoreGroup } from "../components/More";
@@ -8,6 +9,7 @@ import { PageState } from "../components/PageState";
 import { useCompany } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney, isNegative } from "../lib/money";
+import { useLive } from "../lib/live";
 import { useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { dataNotes, weather } from "./dashboard/model";
@@ -20,16 +22,24 @@ export function Dashboard() {
     () => Promise.all([api.accounts(companyId), api.forecast(companyId).catch(() => null), api.ledgerSummary(companyId).catch(() => null), api.inbox(companyId).catch(() => null), api.transactions(companyId).then((t) => t.items).catch(() => [])]),
     [companyId, refresh],
   );
+  // A live forecast update: pulse the low point and say what it was before (the shell re-reads the data).
+  const [previousLow, setPreviousLow] = useState<Money | null>(null);
+  useLive((e) => {
+    if (e.type !== "forecast.updated") return;
+    const was = e.payload.min_balance_previous as Money | undefined;
+    setPreviousLow(was && typeof was.amount === "string" ? was : null);
+    setTimeout(() => setPreviousLow(null), 8000);
+  });
   return (
     <PageState state={state} keepWhileLoading>
-      {([accounts, forecast, summary, inbox, transactions]) => <DashboardView accounts={accounts} forecast={forecast} summary={summary} inbox={inbox} transactions={transactions} />}
+      {([accounts, forecast, summary, inbox, transactions]) => <DashboardView accounts={accounts} forecast={forecast} summary={summary} inbox={inbox} transactions={transactions} previousLow={previousLow} />}
     </PageState>
   );
 }
 
-type ViewProps = { accounts: AccountsResponse; forecast: Forecast | null; summary: LedgerSummary | null; inbox: InboxResponse | null; transactions?: Transaction[]; flash?: boolean };
+type ViewProps = { accounts: AccountsResponse; forecast: Forecast | null; summary: LedgerSummary | null; inbox: InboxResponse | null; transactions?: Transaction[]; previousLow?: Money | null };
 
-export function DashboardView({ accounts, forecast, summary, inbox, transactions = [], flash }: ViewProps) {
+export function DashboardView({ accounts, forecast, summary, inbox, transactions = [], previousLow }: ViewProps) {
   const notes = dataNotes(transactions);
   const dataCard = notes.length > 0 && (
     <div className="card">
@@ -76,7 +86,7 @@ export function DashboardView({ accounts, forecast, summary, inbox, transactions
           <div className="hstack tertiary"><Icon name={({ storm: "storm", cloudy: "cloud", sunny: "sun" } as const)[w.kind]} size={18} />Cash weather</div>
           <div className="display">{w.headline}</div>
           <div className="hstack">
-            <span className={`small ${isNegative(low.amount) ? "danger" : "muted"}`}>Lowest {formatMoney(low.amount, { decimals: false })} on {shortDate(low.date)}</span>
+            <span className={`small ${isNegative(low.amount) ? "danger" : "muted"}`}>Lowest {formatMoney(low.amount, { decimals: false })} on {shortDate(low.date)}{previousLow ? ` (was ${formatMoney(previousLow, { decimals: false })})` : ""}</span>
             <span className="grow" />
             {fix && <Link to={`/inbox/${fix.id}`} className="button primary">See the fix</Link>}
           </div>
@@ -91,7 +101,7 @@ export function DashboardView({ accounts, forecast, summary, inbox, transactions
       </div>
       <div className="card stack">
         <div className="tertiary">Next {forecast.horizon_days} days</div>
-        <ForecastChart forecast={forecast} flash={flash} />
+        <ForecastChart forecast={forecast} flash={Boolean(previousLow)} />
         <MoreGroup>
           <More title="What moves your cash" count={forecast.components.length}>
             {forecast.components.map((c) => {

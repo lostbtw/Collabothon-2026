@@ -13,6 +13,7 @@ import recommendationsJson from "@contracts/fixtures/recommendation.json";
 import sourcesJson from "@contracts/fixtures/source.json";
 import syncRunsJson from "@contracts/fixtures/sync_run.json";
 import transactionsJson from "@contracts/fixtures/transaction.json";
+import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
 import type {
   Account, Approval, Counterparty, Forecast, LedgerEntry, Match, Money, OrdoDocument, OrdoEvent, RawItem, Recommendation, Source, SyncRun, Transaction,
@@ -197,7 +198,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     const forecast = f.forecasts[0];
     result = {
       session_id: "mock-session",
-      answer: `Mock answer. The lowest projected balance is ${forecast.min_balance.amount.amount} ${forecast.min_balance.amount.currency} on ${forecast.min_balance.date}; the account first goes below zero on ${forecast.first_negative_date}.`,
+      answer: `Sample answer. The lowest point is ${formatMoney(forecast.min_balance.amount, { decimals: false })} on ${shortDate(forecast.min_balance.date)}${forecast.first_negative_date ? `; the balance first goes below zero on ${shortDate(forecast.first_negative_date)}` : ""}.`,
       evidence: [{ kind: "forecast", id: forecast.id, label: "45-day forecast", url: `/forecast/${forecast.id}` }],
       table: null, tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
     };

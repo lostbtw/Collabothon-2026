@@ -7,6 +7,7 @@ import { formatMoney } from "../lib/money";
 import { useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { Icon, type IconName } from "./Icon";
+import { Toasts } from "./Toasts";
 
 const NAV: { to: string; label: string; icon: IconName; end?: boolean; count?: "inbox" | "documents" }[] = [
   { to: "/", label: "Home", icon: "home", end: true },
@@ -54,7 +55,7 @@ export function Layout() {
         {sources.data && (
           <Link to="/sources" className="sync">
             <span className={`dot${unhealthy ? " degraded" : ""}`} style={{ marginRight: 0 }} />
-            {sourceItems.length} sources · {unhealthy ? `${unhealthy} need${unhealthy === 1 ? "s" : ""} attention` : "all connected"}
+            {sourceItems.length} source{sourceItems.length === 1 ? "" : "s"} · {unhealthy ? `${unhealthy} need${unhealthy === 1 ? "s" : ""} attention` : "all connected"}
           </Link>
         )}
         <span className="chip">Sandbox · actions are simulated</span>
@@ -84,6 +85,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <Toasts />
     </div>
   );
 }
