@@ -45,7 +45,9 @@ def line_status(txn: dict, as_of: str | None, lookback_days: int = LOOKBACK_DAYS
 
 
 def not_yet_due(doc: dict, as_of: str | None) -> bool:
-    """An unpaid purchase that is still a payable, not a question."""
+    """An unpaid purchase that is still a payable, not a question. A paid one (a card receipt) is never a payable."""
+    if (doc.get("payment") or {}).get("paid"):
+        return False
     today = _day(as_of) or date.today()
     due = _day(doc.get("due_date"))
     if due:
