@@ -1,0 +1,129 @@
+// Mock mode: answers every API path in contracts/openapi.yaml from contracts/fixtures.
+// The response shapes follow the OpenAPI spec so that live mode needs no code change.
+import accountsJson from "@contracts/fixtures/account.json";
+import approvalsJson from "@contracts/fixtures/approval.json";
+import counterpartiesJson from "@contracts/fixtures/counterparty.json";
+import documentsJson from "@contracts/fixtures/document.json";
+import eventsJson from "@contracts/fixtures/event.json";
+import forecastsJson from "@contracts/fixtures/forecast.json";
+import ledgerJson from "@contracts/fixtures/ledger_entry.json";
+import matchesJson from "@contracts/fixtures/match.json";
+import rawItemsJson from "@contracts/fixtures/raw_item.json";
+import recommendationsJson from "@contracts/fixtures/recommendation.json";
+import sourcesJson from "@contracts/fixtures/source.json";
+import syncRunsJson from "@contracts/fixtures/sync_run.json";
+import transactionsJson from "@contracts/fixtures/transaction.json";
+import type {
+  Account, Approval, Counterparty, Forecast, LedgerEntry, Match, OrdoDocument, OrdoEvent, RawItem, Recommendation, Source, SyncRun, Transaction,
+} from "./types.gen";
+
+export const fixtures = {
+  accounts: accountsJson as unknown as Account[],
+  approvals: approvalsJson as unknown as Approval[],
+  counterparties: counterpartiesJson as unknown as Counterparty[],
+  documents: documentsJson as unknown as OrdoDocument[],
+  events: eventsJson as unknown as OrdoEvent[],
+  forecasts: forecastsJson as unknown as Forecast[],
+  ledger: ledgerJson as unknown as LedgerEntry[],
+  matches: matchesJson as unknown as Match[],
+  rawItems: rawItemsJson as unknown as RawItem[],
+  recommendations: recommendationsJson as unknown as Recommendation[],
+  sources: sourcesJson as unknown as Source[],
+  syncRuns: syncRunsJson as unknown as SyncRun[],
+  transactions: transactionsJson as unknown as Transaction[],
+};
+
+class MockNotFound extends Error {
+  status = 404;
+}
+
+const COMPANIES = [
+  { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", base_currency: "PLN", country: "PL" },
+  { id: "co_amalfi", name: "Pizzeria Amalfi (organisers' data)", base_currency: "EUR", country: "DE" },
+];
+
+// Not in the fixtures yet: the "What I did on my own" feed. Numbers follow the demo script in the role 6 spec.
+const ACTIVITY = [
+  { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read a receipt forwarded by Jan and worked out that he paid privately", evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt photo, ElektroMarkt", url: "/documents/doc_rcpt412" }] },
+  { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/sources" }] },
+  { at: "2026-11-21T09:58:00Z", agent: "ingestion", text: "Merged 61 duplicates (the same purchase arriving as e-invoice, PDF and photo)", evidence: [{ kind: "document", id: "doc_pixel11", label: "Example: PixelBoard invoice", url: "/documents/doc_pixel11" }] },
+  { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments to documents, including a 45 USD invoice to a 180.62 PLN card line", evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
+];
+
+const byCompany = <T,>(items: T[], companyId: string | null): T[] =>
+  companyId ? items.filter((i) => (i as { company_id?: string }).company_id === undefined || (i as { company_id?: string }).company_id === companyId) : items;
+
+function find<T extends { id: string }>(items: T[], id: string): T {
+  const hit = items.find((i) => i.id === id);
+  if (!hit) throw new MockNotFound(`No fixture with id ${id}`);
+  return hit;
+}
+
+export async function mockRequest<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const parsed = new URL(url, "http://mock.local");
+  const path = parsed.pathname.replace(/\/$/, "");
+  const q = parsed.searchParams;
+  const company = q.get("company_id");
+  const seg = path.split("/").filter(Boolean);
+  const f = fixtures;
+  const page = <I,>(items: I[]) => ({ items, next_cursor: null });
+  let result: unknown;
+
+  if (method === "GET" && path === "/health") result = { status: "ok", llm: { base_url: "mock", model: "mock", reachable: false }, demo_clock: "2026-11-21T10:15:00Z" };
+  else if (method === "GET" && path === "/companies") result = { items: COMPANIES };
+  else if (method === "GET" && path === "/sources") result = { items: byCompany(f.sources, company) };
+  else if (method === "POST" && seg[0] === "sources" && seg[2] === "sync") result = { ...f.syncRuns[0], source_id: seg[1], trigger: "manual" };
+  else if (method === "GET" && path === "/sync-runs") result = { items: f.syncRuns.filter((r) => !q.get("source_id") || r.source_id === q.get("source_id")) };
+  else if (method === "GET" && seg[0] === "raw-items" && seg.length === 2) result = find(f.rawItems, seg[1]);
+  else if (method === "GET" && path === "/documents")
+    result = page(byCompany(f.documents, company).filter((d) => (!q.get("status") || d.status === q.get("status")) && (!q.get("direction") || d.direction === q.get("direction"))));
+  else if ((method === "GET" || method === "PATCH") && seg[0] === "documents" && seg.length === 2) {
+    const document = find(f.documents, seg[1]);
+    result = method === "PATCH" ? { ...document, ...(body as object) } : { document, duplicates: f.documents.filter((d) => d.duplicate_of === document.id), matches: f.matches.filter((m) => m.document_id === document.id) };
+  } else if (method === "GET" && path === "/accounts") {
+    const items = byCompany(f.accounts, company);
+    const forecast = byCompany(f.forecasts, company)[0];
+    result = { items, total_liquidity_base: forecast?.opening_balance ?? null };
+  } else if (method === "GET" && path === "/transactions") result = page(f.transactions.filter((t) => !q.get("account_id") || t.account_id === q.get("account_id")));
+  else if (method === "GET" && seg[0] === "transactions" && seg.length === 2) result = find(f.transactions, seg[1]);
+  else if (method === "GET" && path === "/counterparties") result = { items: byCompany(f.counterparties, company) };
+  else if (method === "GET" && path === "/matches") result = { items: f.matches.filter((m) => !q.get("status") || m.status === q.get("status")) };
+  else if (method === "GET" && path === "/inbox") {
+    const items = byCompany(f.recommendations, company).filter((r) => r.status === "new" || r.status === "seen");
+    result = { items, counts: { approval_required: items.filter((r) => r.control_level === "approval_required").length, recommendation: items.filter((r) => r.control_level === "recommendation").length, analysed_autonomously_today: ACTIVITY.length } };
+  } else if (method === "GET" && path === "/ledger") result = page(byCompany(f.ledger, company));
+  else if (method === "GET" && path === "/ledger/summary")
+    result = { rows: [], kpis: { reimbursements_owed: { amount: "5169.00", currency: "PLN" }, vat_lost_ytd: { amount: "242.90", currency: "PLN" }, documents_missing: 3, tax_due_next_30d: { amount: "25200.00", currency: "PLN" } } };
+  else if (seg[0] === "forecast" && (method === "POST" || seg.length === 2)) {
+    const forecast = (seg[1] && f.forecasts.find((x) => x.id === seg[1])) || byCompany(f.forecasts, company)[0] || f.forecasts[0];
+    result = forecast;
+  } else if (method === "GET" && path === "/recommendations")
+    result = { items: byCompany(f.recommendations, company).filter((r) => (!q.get("status") || r.status === q.get("status")) && (!q.get("agent") || r.agent === q.get("agent")) && (!q.get("control_level") || r.control_level === q.get("control_level"))) };
+  else if (method === "GET" && seg[0] === "recommendations" && seg.length === 2) result = find(f.recommendations, seg[1]);
+  else if (method === "POST" && (seg[0] === "recommendations" || seg[0] === "matches") && seg[2] === "decision") {
+    const decision = (body as { decision?: Approval["decision"] } | undefined)?.decision ?? "approved";
+    result = { ...f.approvals[0], subject_type: seg[0] === "matches" ? "match" : "recommendation", subject_id: seg[1], decision };
+  } else if (method === "GET" && path === "/approvals") result = { items: f.approvals };
+  else if (method === "GET" && path === "/activity") result = { items: ACTIVITY };
+  else if (method === "POST" && path === "/chat") {
+    const forecast = f.forecasts[0];
+    result = {
+      session_id: "mock-session",
+      answer: `Mock answer. The lowest projected balance is ${forecast.min_balance.amount.amount} ${forecast.min_balance.amount.currency} on ${forecast.min_balance.date}; the account first goes below zero on ${forecast.first_negative_date}.`,
+      evidence: [{ kind: "forecast", id: forecast.id, label: "45-day forecast", url: `/forecast/${forecast.id}` }],
+      table: null, tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
+    };
+  } else if (method === "GET" && path === "/fx/rates") result = f.documents.find((d) => d.totals.fx)?.totals.fx ?? null;
+  else if (method === "GET" && path === "/fx/exposure")
+    result = { items: f.recommendations.filter((r) => r.agent === "fx").map((r) => ({ document_id: r.subject?.id ?? null, verdict: r.type === "fx_hedge" ? "hedge_proposed" : "not_worth_it", recommendation_id: r.id })) };
+  else throw new MockNotFound(`Mock mode has no handler for ${method} ${path}`);
+
+  // Fixtures are shared module state: hand out copies so a page cannot mutate them.
+  return structuredClone(result) as T;
+}
+
+/** Mock event stream: replays contracts/fixtures/event.json once, one event every `intervalMs`. */
+export function mockEventStream(onEvent: (e: OrdoEvent) => void, intervalMs = 1500): () => void {
+  const timers = fixtures.events.map((e, i) => setTimeout(() => onEvent(structuredClone(e)), intervalMs * (i + 1)));
+  return () => timers.forEach(clearTimeout);
+}
