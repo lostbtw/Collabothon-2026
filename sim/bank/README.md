@@ -22,6 +22,16 @@ curl -X POST "http://localhost:8081/admin/load-csv?profile=commerzbank_csv&accou
 
 Replaces all lines of the account (safe to repeat). 1,125 lines, chronological, `entryReference` E000000001..E000001125. The 12 Swiss tranches stay booked as CHF inside the EUR account, as in the file.
 
+## Autoload at start
+
+The bank keeps everything in memory, so a restart empties it. To start with the pizzeria already loaded, point the bank at the CSV:
+
+```bash
+BANK_AUTOLOAD_CSV=/path/to/pizzeria-amalfi-bank-statement-2025-v6.csv uvicorn bank_sim.app:app --port 8081
+```
+
+`BANK_AUTOLOAD_ACCOUNT` picks the account (default `acc_pizzeria`). The file is loaded again after `POST /admin/reset`. If the file is missing or invalid the bank refuses to start, on purpose: an empty bank would silently ruin the demo. On the cluster the CSV goes into a ConfigMap or the image and the variable points at it (the file is not in Git).
+
 ## Accounts (invented)
 
 `acc_pln`, `acc_eur`, `acc_owner` (private card, no balance) for Borsuk Labs, and `acc_pizzeria`. Ids and opening balances follow `contracts/fixtures/account.json`.
