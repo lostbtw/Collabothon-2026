@@ -18,7 +18,8 @@ def _get(name: str, default, cast=None):
 HORIZON_DAYS = _get("HORIZON_DAYS", 45)                  # default horizon (spec #4: 45-day forecast)
 EVENT_TAIL_DAYS = _get("EVENT_TAIL_DAYS", 14)            # an owner event stays visible this long after it ends
 VARIABLE_WEEKS = _get("VARIABLE_WEEKS", 8)               # everyday flows: weekday mean over these weeks (spike 03)
-BAND = _get("BAND", Decimal("0.5"), Decimal)             # low case: everyday spending x(1+BAND), income x(1-BAND)
+BAND = _get("BAND", Decimal("0.5"), Decimal)             # fallback band (short history): spending x(1+BAND), income x(1-BAND)
+BAND_Z = _get("BAND_Z", 1.645)                           # band = +/- BAND_Z x weekly sd x open weeks (errors add up)
 DEFAULT_PAYMENT_DAYS = _get("DEFAULT_PAYMENT_DAYS", 14)  # invoice without a due date: due this many days after issue
 
 # Recurring series

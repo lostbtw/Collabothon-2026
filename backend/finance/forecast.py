@@ -10,9 +10,9 @@ to it). The forecast has two parts:
      (taxi, fuel, meals, small purchases; for a shop also its daily card revenue).
 
 Each point carries three balances:
-  high     part 1 + expected everyday income, no everyday spending
-  balance  part 1 + expected everyday income and spending          (the forecast line; alerts use it)
-  low      part 1 + everyday income x 0.5 + everyday spending x 1.5
+  balance  part 1 + expected everyday income and spending (the forecast line; alerts use it)
+  low/high a 90% range around it, from this company's own week-to-week variation of everyday flows, widening
+           with every open week (fallback with too little history: spending x1.5 / income x0.5, no spending)
 
 No LLM, no model: every number is traceable to the rows in `evidence` (D-02).
 """
@@ -24,8 +24,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Iterable
 
 from .calendar import last_business_day, on_or_after
-from .series import Flow, counterparty_key, detect, template, weekday_averages
-from .settings import BAND, HORIZON_DAYS, VARIABLE_WEEKS
+from .series import Flow, counterparty_key, detect, template, weekday_averages, weekly_spread
+from .settings import BAND, BAND_Z, HORIZON_DAYS, VARIABLE_WEEKS
 
 METHOD = "recurring-schedule + weekday-average v1"
 VARIABLE_CONFIDENCE = 0.5
@@ -104,9 +104,19 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                                                                  own_keys)
 
     # ---- part 1: recurring series, open invoices, reimbursements, announced flows ------------------------------
+    quiet: dict[date, set[str]] = defaultdict(set)   # days without everyday flows: {"in", "out"} (owner events)
+    for ev in events:
+        if ev["effect"] in ("no_variable_flows", "no_revenue"):
+            d, stop = date.fromisoformat(ev["date_from"]), date.fromisoformat(ev["date_to"])
+            while d <= stop:
+                quiet[d] |= {"in", "out"} if ev["effect"] == "no_variable_flows" else {"in"}
+                d += timedelta(days=1)
+
     series, rest = detect(flows, as_of, country, loose_keys=invoice_keys)
     variable = [f for f in rest if f.key not in people_keys and f.key not in invoice_keys]
-    averages = weekday_averages(variable, as_of)
+    history_start = flows[0].day if flows else None
+    averages = weekday_averages(variable, as_of, quiet, history_start)
+    spread = weekly_spread(variable, as_of, quiet, history_start)  # (sd of weekly sums, weeks) or None
     certain: dict[date, Decimal] = defaultdict(Decimal)
     components: list[dict[str, Any]] = []
 
@@ -172,9 +182,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                          for e in entries[:5]],
         })
 
-    quiet: dict[date, set[str]] = defaultdict(set)   # days without everyday flows: {"in", "out"}
     for ev in events:
-        start, stop = date.fromisoformat(ev["date_from"]), date.fromisoformat(ev["date_to"])
+        start = date.fromisoformat(ev["date_from"])
         link = _link("external", ev["id"], f"Owner event: {ev['label']}")
         if ev["effect"] in ("extra_inflow", "extra_outflow") and ev.get("amount"):
             amount = abs(Decimal(ev["amount"]["amount"]) * rate[ev["amount"]["currency"]])
@@ -184,11 +193,6 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                 components.append({"id": f"c_{ev['id']}", "label": ev["label"], "kind": "owner_event",
                                    "amount_base": money(amount, base), "schedule": f"on {start}",
                                    "dates": [start.isoformat()], "confidence": 0.9, "evidence": [link]})
-            continue
-        d = start
-        while d <= stop:
-            quiet[d] |= {"in", "out"} if ev["effect"] == "no_variable_flows" else {"in"}
-            d += timedelta(days=1)
 
     # ---- part 2 and the daily points -------------------------------------------------------------------------
     var_in = {k: {wd: v for wd, v in per.items() if v > 0} for k, per in averages.items()}
@@ -196,6 +200,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     totals = {"in": Decimal(0), "out": Decimal(0)}
     removed = {ev["id"]: Decimal(0) for ev in events}
     balance = high = low = opening
+    rule_low = rule_high = opening   # fallback band without enough history: spending x(1+BAND), income x(1-BAND)
+    open_days = 0                    # days with everyday flows so far: the band grows with the open weeks
     points = [{"date": as_of.isoformat(), "balance": fmt(opening), "inflow": "0.00", "outflow": "0.00",
                "low": fmt(opening), "high": fmt(opening)}]
     d = as_of
@@ -216,8 +222,15 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         totals["out"] += vout
         fixed = certain.get(d, Decimal(0))
         balance += fixed + vin + vout
-        high += fixed + vin
-        low += fixed + vin * (1 - BAND) + vout * (1 + BAND)
+        if quiet[d] != {"in", "out"}:
+            open_days += 1
+        if spread is not None:  # 90% interval from this company's own week-to-week variation
+            half = Decimal(BAND_Z) * spread[0] * Decimal(open_days / 7)
+            low, high = balance - half, balance + half
+        else:
+            rule_high += fixed + vin
+            rule_low += fixed + vin * (1 - BAND) + vout * (1 + BAND)
+            low, high = rule_low, rule_high
         day_in = max(fixed, Decimal(0)) + vin
         day_out = min(fixed, Decimal(0)) + vout
         points.append({"date": d.isoformat(), "balance": fmt(balance), "inflow": fmt(day_in),
@@ -263,8 +276,12 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     min_balance, first_negative, alerts = summarise(points, as_of, base, safety_buffer)
 
     assumptions = [f"Only bank lines booked up to {as_of} are used.",
-                   f"Everyday flows: mean per weekday over the last {VARIABLE_WEEKS} weeks; the band shows them from 0% "
-                   f"(high) to {100 + BAND * 100:.0f}% of spending and {100 - BAND * 100:.0f}% of income (low)."]
+                   f"Everyday flows: mean per weekday over the open days of the last {VARIABLE_WEEKS} weeks."]
+    assumptions.append(
+        f"Band (low-high): 90% range from the week-to-week variation of everyday flows over {spread[1]} open weeks "
+        f"(sd {shown(spread[0], base)} per week), widening by that much every open week." if spread is not None else
+        f"Band (low-high): too little history for a measured range; everyday spending x{1 + BAND} and income "
+        f"x{1 - BAND} (low), no everyday spending (high).")
     assumptions += [f"1 {c} = {r} {base}" for c, r in sorted(rate.items()) if c != base and (
         any(a["currency"] == c for a in included.values()) or any(i["amount"]["currency"] == c for i in open_items))]
     digest = inputs_hash(as_of=as_of, horizon=horizon_days, rates=rate, buffer=safety_buffer,

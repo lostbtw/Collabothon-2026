@@ -171,11 +171,61 @@ def detect(flows: list[Flow], as_of: date, country: str,
     return series, rest
 
 
-def weekday_averages(flows: list[Flow], as_of: date) -> dict[str, dict[int, Decimal]]:
-    """Per counterparty: mean amount per weekday over the trailing 8 weeks (spike 03)."""
-    cutoff = as_of - timedelta(weeks=VARIABLE_WEEKS)
-    out: dict[str, dict[int, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
+def _window(as_of: date, start: date | None, quiet: dict[date, set[str]], side: str) -> list[date]:
+    """Days of the trailing window on which the company was open for `side` ("in" or "out") and had history."""
+    first = as_of - timedelta(weeks=VARIABLE_WEEKS) + timedelta(days=1)
+    if start is not None and start > first:
+        first = start
+    days, d = [], first
+    while d <= as_of:
+        if side not in quiet.get(d, ()):
+            days.append(d)
+        d += timedelta(days=1)
+    return days
+
+
+def weekday_averages(flows: list[Flow], as_of: date, quiet: dict[date, set[str]] | None = None,
+                     start: date | None = None) -> dict[str, dict[int, Decimal]]:
+    """Per counterparty: mean amount per weekday over the trailing weeks (spike 03).
+
+    Only days the company was open count (an owner event "closed" removes its days, for income, spending or both),
+    and only days since the first bank line (`start`): a short history is not diluted over 8 weeks.
+    """
+    quiet = quiet or {}
+    open_days = {side: _window(as_of, start, quiet, side) for side in ("in", "out")}
+    per_weekday = {side: defaultdict(int) for side in open_days}
+    for side, days in open_days.items():
+        for d in days:
+            per_weekday[side][d.weekday()] += 1
+    allowed = {side: set(days) for side, days in open_days.items()}
+    sums: dict[str, dict[tuple[str, int], Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     for f in flows:
-        if cutoff < f.day <= as_of:
-            out[f.key][f.day.weekday()] += f.amount
-    return {k: {wd: v / VARIABLE_WEEKS for wd, v in per.items()} for k, per in out.items()}
+        side = "in" if f.amount > 0 else "out"
+        if f.day in allowed[side]:
+            sums[f.key][(side, f.day.weekday())] += f.amount
+    out: dict[str, dict[int, Decimal]] = {}
+    for key, per in sums.items():
+        avg: dict[int, Decimal] = defaultdict(Decimal)
+        for (side, wd), total in per.items():
+            avg[wd] += total / per_weekday[side][wd]
+        out[key] = dict(avg)
+    return out
+
+
+def weekly_spread(flows: list[Flow], as_of: date, quiet: dict[date, set[str]] | None = None,
+                  start: date | None = None) -> tuple[Decimal, int] | None:
+    """Standard deviation of the weekly net sum of everyday flows over the trailing open weeks, and their number.
+
+    A week counts only when the company was open all of it. None when fewer than 2 such weeks exist.
+    """
+    quiet = quiet or {}
+    weeks = []
+    for k in range(VARIABLE_WEEKS):
+        end = as_of - timedelta(weeks=k)
+        days = [end - timedelta(days=i) for i in range(7)]
+        if any(quiet.get(d) for d in days) or (start is not None and days[-1] < start):
+            continue
+        weeks.append(sum((f.amount for f in flows if days[-1] <= f.day <= end), Decimal(0)))
+    if len(weeks) < 2:
+        return None
+    return Decimal(str(pstdev([float(w) for w in weeks]))), len(weeks)
