@@ -117,6 +117,30 @@ dev_build_web() {
   fi
 }
 
+webhook_urls() {
+  local server secret name
+  server="$(oc whoami --show-server)"
+  secret="$(oc -n "$NS" get secret github-webhook -o jsonpath='{.data.WebHookSecretKey}' | base64 -d)"
+  for name in "${IMAGES[@]}"; do
+    echo "ordo-$name: $server/apis/build.openshift.io/v1/namespaces/$NS/buildconfigs/ordo-$name/webhooks/$secret/github"
+  done
+}
+
+freeze() {
+  local name
+  for name in "${IMAGES[@]}"; do
+    oc -n "$NS" set triggers "bc/ordo-$name" --from-github --remove
+  done
+  echo "webhook builds are off; deploy fixes with: $0 build <name>"
+}
+
+tag_demo() {
+  local name
+  for name in "${IMAGES[@]}"; do
+    oc -n "$NS" tag "ordo-$name:latest" "ordo-$name:demo"
+  done
+}
+
 job_finished() {
   local status
   status="$(oc -n "$NS" get job platform-check -o jsonpath='{.status.succeeded}{.status.failed}')"
@@ -190,8 +214,11 @@ case "$stage" in
   dev-build) dev_build "$@" ;;
   dev-build-web) dev_build_web "$@" ;;
   verify) verify ;;
+  webhook-urls) webhook_urls ;;
+  freeze) freeze ;;
+  tag-demo) tag_demo ;;
   *)
-    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|verify [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
