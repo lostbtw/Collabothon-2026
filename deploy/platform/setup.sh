@@ -7,7 +7,7 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 IMAGES=(backend)
 
 apply() {
-  oc apply -f "$HERE/builds.yaml"
+  oc apply -f "$HERE/builds.yaml" -f "$HERE/routes.yaml"
 }
 
 build() {
