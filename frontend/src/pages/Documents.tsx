@@ -7,63 +7,18 @@ import { More, MoreGroup } from "../components/More";
 import { PageState } from "../components/PageState";
 import { useCompany } from "../lib/company";
 import { shortDate } from "../lib/dates";
-import { formatMoney } from "../lib/money";
 import { requestRefresh } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
+import { plainName } from "../lib/words";
 import { buildPatch, fields, flagNotes, whoPaid, words, type FieldKey } from "./documents/model";
 
 const STATUS_CHIP: Record<OrdoDocument["status"], string> = { extracted: "neutral", needs_review: "warning", approved: "positive", rejected: "neutral", duplicate: "neutral" };
-
-const PAGE = 50;
-
-export function Documents() {
-  const { companyId } = useCompany();
-  const state = useApi(() => api.documents(companyId), [companyId]);
-  return (
-    <>
-      <h1>Documents</h1>
-      <PageState state={state} empty={(d) => d.items.length === 0}>
-        {(page) => <DocumentsView items={page.items} />}
-      </PageState>
-    </>
-  );
-}
-
-/** Newest first, 50 at a time. A sale is listed under the customer, a purchase under the seller. */
-export function DocumentsView({ items }: { items: OrdoDocument[] }) {
-  const [shown, setShown] = useState(PAGE);
-  const sorted = [...items].sort((a, b) => (b.issue_date ?? "").localeCompare(a.issue_date ?? "") || b.id.localeCompare(a.id));
-  return (
-    <>
-      <div className="card table-card">
-        <table>
-          <thead><tr><th>Date</th><th>With</th><th>Kind</th><th>Status</th><th className="right">Total</th></tr></thead>
-          <tbody>
-            {sorted.slice(0, shown).map((d) => (
-              <tr key={d.id}>
-                <td className="tertiary">{d.issue_date ? shortDate(d.issue_date) : "—"}</td>
-                <td><Link to={`/documents/${d.id}`}>{(d.direction === "sale" ? d.buyer.name : d.seller.name) || d.number || d.id}</Link></td>
-                <td className="tertiary">{d.direction === "sale" ? "Sale" : "Purchase"} · {words(d.doc_type)}</td>
-                <td><span className={`chip ${STATUS_CHIP[d.status]}`}>{words(d.status)}</span></td>
-                <td className={`right${d.direction === "sale" ? " positive" : ""}`}>{formatMoney(d.totals.gross)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="hstack">
-        <span className="muted">Showing {Math.min(shown, sorted.length)} of {sorted.length}</span>
-        {shown < sorted.length && <button type="button" className="outline" onClick={() => setShown(shown + PAGE)}>Show {Math.min(PAGE, sorted.length - shown)} more</button>}
-      </div>
-    </>
-  );
-}
 
 export function DocumentDetail() {
   const { id = "" } = useParams();
   const { companyId } = useCompany();
   const [reload, setReload] = useState(0);
-  // The document must load; the link to its inbox card is an extra.
+  // The document must load; the link to its to-do is an extra.
   const state = useApi(() => Promise.all([api.document(id), api.inbox(companyId).catch(() => null)]), [id, companyId, reload]);
   async function save(patch: DocumentPatch) {
     await api.patchDocument(id, patch);
@@ -85,9 +40,9 @@ export function DocumentView({ data, card, onSave }: { data: DocumentData; card?
   return (
     <>
       <div className="stack" style={{ gap: 8 }}>
-        <Link to="/documents" className="small">← Documents</Link>
+        <Link to="/money/payments" className="small">← All payments</Link>
         <div className="hstack">
-          <h1>{d.seller.name}</h1>
+          <h1>{plainName(d.seller.name)}</h1>
           <span className={`chip ${STATUS_CHIP[d.status]}`}>{words(d.status)}</span>
         </div>
         <p className="tertiary">{[words(d.doc_type), d.number, d.issue_date && shortDate(d.issue_date)].filter(Boolean).join(" · ")}</p>
@@ -101,7 +56,7 @@ export function DocumentView({ data, card, onSave }: { data: DocumentData; card?
                 <div className="body15 medium">{paid.headline}</div>
                 {paid.detail && <div className="tertiary">{paid.detail}</div>}
               </div>
-              {card && <Link to={`/inbox/${card.id}`} className="button primary">Decide</Link>}
+              {card && <Link to={`/todo#${card.id}`} className="button primary">Decide</Link>}
             </div>
           )}
           {notes.map((n) => <div key={n} className="note">{n}</div>)}

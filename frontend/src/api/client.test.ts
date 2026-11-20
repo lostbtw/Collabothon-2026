@@ -14,7 +14,9 @@ describe("mock mode answers every call the pages make", () => {
     expect((await api.document("doc_rcpt412")).matches[0].paid_by).toBe("employee_private");
     expect((await api.accounts("co_borsuk")).total_liquidity_base).toEqual({ amount: "38400.00", currency: "PLN" });
     expect((await api.forecast("co_borsuk")).min_balance.amount.amount).toBe("-7870.00");
-    expect((await api.inbox("co_borsuk")).items.map((r) => r.id)).toEqual(["rec_cl01", "rec_412", "rec_fx01", "rec_fx02"]);
+    const inbox = (await api.inbox("co_borsuk")).items.map((r) => r.id);
+    expect(inbox.slice(0, 4)).toEqual(["rec_cl01", "rec_412", "rec_fx01", "rec_fx02"]);
+    expect(inbox).toEqual(expect.arrayContaining(["rec_chase01", "rec_defer01", "rec_private01"]));
     expect((await api.recommendation("rec_cl01")).type).toBe("credit_line");
     expect((await api.activity("co_borsuk")).items.length).toBeGreaterThan(0);
     expect((await api.ledgerSummary("co_borsuk")).kpis.reimbursements_owed.amount).toBe("5169.00");

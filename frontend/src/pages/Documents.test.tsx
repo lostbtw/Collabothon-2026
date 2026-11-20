@@ -20,7 +20,7 @@ describe("Document view", () => {
     expect(html).toContain("Paid privately by Jan");
     expect(html).toContain("The company owes Jan 1,299.00 PLN.");
     expect(html).toContain("No company tax number: 242.90 PLN VAT cannot be recovered");
-    expect(html).toContain('href="/inbox/rec_412"');
+    expect(html).toContain('href="/todo#rec_412"');
     expect(html).toContain("please check");
   });
 

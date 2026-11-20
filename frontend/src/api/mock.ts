@@ -1,5 +1,6 @@
-// Mock mode: answers every API path in contracts/openapi.yaml from contracts/fixtures.
-// The response shapes follow the OpenAPI spec so that live mode needs no code change.
+// Mock mode: answers every API path the app calls, from contracts/fixtures plus the sample data in
+// sample.ts (for what the fixtures do not cover yet). The response shapes follow contracts/openapi.yaml
+// and the shapes agreed with role 1, so live mode needs no code change.
 import accountsJson from "@contracts/fixtures/account.json";
 import approvalsJson from "@contracts/fixtures/approval.json";
 import counterpartiesJson from "@contracts/fixtures/counterparty.json";
@@ -15,6 +16,11 @@ import syncRunsJson from "@contracts/fixtures/sync_run.json";
 import transactionsJson from "@contracts/fixtures/transaction.json";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
+import type { ChatAnswer, Person, Settings } from "./client";
+import {
+  BALANCE_HISTORY, CHAT_HISTORY, PEOPLE, PEOPLE_COSTS, RULES, SAMPLE_APPROVALS, SAMPLE_COUNTERPARTIES, SAMPLE_RECOMMENDATIONS, SAMPLE_TRANSACTIONS,
+  SETTINGS, SUBSCRIPTIONS, SUMMARY_BY_MONTH, SUMMARY_KPIS, clientsFor, readUpload,
+} from "./sample";
 import type {
   Account, Approval, Counterparty, Forecast, LedgerEntry, Match, Money, OrdoDocument, OrdoEvent, RawItem, Recommendation, Source, SyncRun, Transaction,
 } from "./types.gen";
@@ -44,10 +50,10 @@ const COMPANIES = [
   { id: "co_amalfi", name: "Pizzeria Amalfi (organisers' data)", base_currency: "EUR", country: "DE", as_of_date: "2025-05-15" },
 ];
 
-// Not in the fixtures yet: the "What I did on my own" feed. Numbers follow the demo script in the role 6 spec.
+// Not in the fixtures yet: the "What Ordo did on its own" feed. Numbers follow the demo script in the role 6 spec.
 const ACTIVITY = [
   { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read Jan's receipt and worked out that he paid privately", subject: { type: "document", id: "doc_rcpt412" }, evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt", url: "/documents/doc_rcpt412" }] },
-  { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", subject: null, evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/sources" }] },
+  { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", subject: null, evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/settings#accounts" }] },
   { at: "2026-11-21T09:58:00Z", agent: "ingestion", text: "Merged 61 duplicates, such as one PixelBoard invoice that arrived three times", subject: { type: "document", id: "doc_pixel11" }, evidence: [{ kind: "document", id: "doc_pixel11", label: "PixelBoard invoice", url: "/documents/doc_pixel11" }] },
   { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments, including a 45.00 USD invoice to a 185.57 PLN card line", subject: { type: "match", id: "mat_pixel11" }, evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
 ];
@@ -65,21 +71,49 @@ const COPIES: OrdoDocument[] = (["ksef", "photo"] as const).map((channel) => {
   return { ...original, id: `doc_pixel11_${channel}`, channel, duplicate_of: original.id, status: "duplicate" };
 });
 
-// Decisions made in this tab. The fixtures never change; this sits on top of them so that an approved
-// card leaves the inbox and shows up as decided, the way the real API behaves.
+// State changed in this tab. The fixtures never change; this sits on top of them so that an approved
+// card leaves To-do and shows up as done, the way the real API behaves.
 const decisions = new Map<string, Approval>();
 const documentEdits = new Map<string, OrdoDocument>();
 const undoneMatches = new Set<string>();
+const confirmedMatches = new Set<string>();
 const syncedAt = new Map<string, string>();
+type Upload = { raw: RawItem; doc: OrdoDocument; match: Match | null; readyAt: number };
+const uploads: Upload[] = [];
+type Session = { session_id: string; company_id: string; title: string; last_at: string; messages: { role: "user" | "assistant"; content: string; at: string }[] };
+let sessions: Session[] = [];
+let settings: Settings = structuredClone(SETTINGS);
+let people: Person[] = structuredClone(PEOPLE);
+let rules = structuredClone(RULES);
+/** How long Ordo "reads" an added file in sample mode. */
+const READ_MS = 1500;
+
 // The mock's clock: the demo moment, moving forward from when the page was opened.
 const DEMO_START = Date.parse("2026-11-21T10:15:00Z");
 const openedAt = Date.now();
 const demoNow = (): string => new Date(DEMO_START + (Date.now() - openedAt)).toISOString();
+
+function initialSessions(): Session[] {
+  return CHAT_HISTORY.map(({ session_id, title, last_at, detail }) => ({ session_id, company_id: "co_borsuk", title, last_at, messages: structuredClone(detail) }));
+}
+sessions = initialSessions();
+
 export function resetMockState(): void {
   decisions.clear();
   documentEdits.clear();
   undoneMatches.clear();
+  confirmedMatches.clear();
   syncedAt.clear();
+  uploads.length = 0;
+  sessions = initialSessions();
+  settings = structuredClone(SETTINGS);
+  people = structuredClone(PEOPLE);
+  rules = structuredClone(RULES);
+}
+
+/** Tests: make every added file "read" now instead of after READ_MS. */
+export function finishMockReads(): void {
+  for (const u of uploads) u.readyAt = 0;
 }
 
 /** Applies a partial correction to a document, level by level (totals.gross replaces only gross). */
@@ -93,6 +127,7 @@ const withDecision = (r: Recommendation): Recommendation => {
   const a = decisions.get(r.id);
   return a ? { ...r, status: a.decision === "rejected" ? "rejected" : "executed_simulated", approval_id: a.id } : r;
 };
+const allRecommendations = (): Recommendation[] => [...fixtures.recommendations, ...SAMPLE_RECOMMENDATIONS];
 
 type DecisionBody = { decision?: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: Approval["channel"] };
 
@@ -106,6 +141,7 @@ function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
     apply_credit_line: () => ({ reference: "SIM-CL-2026-0007", result: `Sandbox bank accepted the application: limit ${money("limit")}, available from 2026-11-27.`, effects: template.execution.effects }),
     create_payment_draft: () => ({ reference: "SIM-PAY-2026-0412", result: `Sandbox bank added a transfer draft of ${money("amount")} to the payment run on ${String(params.pay_on)}.` }),
     book_fx_forward: () => ({ reference: "SIM-FX-2026-0003", result: `Sandbox bank booked the forward: sell ${money("notional")} at ${String(params.rate)}, value date ${String(params.value_date)}.` }),
+    send_email_draft: () => ({ reference: `SIM-MAIL-2026-${String(21 + decisions.size).padStart(4, "0")}`, result: `Recorded in the sandbox. The e-mail to ${String(params.to)} was not sent: every action in this build is simulated.` }),
   };
   const outcome = (outcomes[rec.proposed_action?.kind ?? "none"] ?? (() => ({ reference: `SIM-${rec.id.toUpperCase()}`, result: "Recorded in the sandbox." })))();
   const approval: Approval = {
@@ -114,16 +150,30 @@ function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
     subject_id: rec.id,
     decision,
     decided_by: template.decided_by,
-    decided_at: template.decided_at,
+    decided_at: demoNow(),
     channel: body.channel ?? "dashboard",
     comment: body.comment ?? null,
     changes: body.changes ?? null,
     execution: decision === "rejected"
       ? { mode: rec.execution_mode, status: "not_applicable", executed_at: null, reference: null, result: "Rejected. Nothing was sent.", effects: [] }
-      : { mode: "simulated", status: "done", executed_at: template.execution.executed_at, reference: outcome.reference, result: outcome.result, effects: outcome.effects ?? [] },
+      : { mode: "simulated", status: "done", executed_at: demoNow(), reference: outcome.reference, result: outcome.result, effects: outcome.effects ?? [] },
   };
   decisions.set(rec.id, approval);
   return approval;
+}
+
+/** Sample answers for the questions the demo asks; anything else gets the forecast summary. */
+function mockAnswer(message: string, forecast: Forecast): Pick<ChatAnswer, "answer" | "evidence"> {
+  const reply = (answer: string, ...evidence: ChatAnswer["evidence"]) => ({ answer, evidence });
+  if (/\bjan\b/i.test(message)) return reply(CHAT_HISTORY[0].detail[1].content, { kind: "external", id: "per_jan", label: "Jan's costs", url: "/money/people" }, { kind: "match", id: "mat_412", label: "Owed to Jan", url: "/matches/mat_412" });
+  if (/hire|developer/i.test(message)) return reply(CHAT_HISTORY[0].detail[3].content, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" });
+  if (/cost/i.test(message)) return reply(CHAT_HISTORY[1].detail[1].content, { kind: "external", id: "2026-10", label: "October by type", url: "/money?month=2026-10" });
+  if (/owe/i.test(message)) return reply(CHAT_HISTORY[2].detail[1].content, { kind: "external", id: "clients", label: "Clients", url: "/money/clients" });
+  if (/bonus|afford/i.test(message)) return reply(CHAT_HISTORY[5].detail[1].content, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" });
+  return reply(
+    `Sample answer. The lowest point is ${formatMoney(forecast.min_balance.amount, { decimals: false })} on ${shortDate(forecast.min_balance.date)}${forecast.first_negative_date ? `; the balance first goes below zero on ${shortDate(forecast.first_negative_date)}` : ""}.`,
+    { kind: "forecast", id: forecast.id, label: "45-day forecast", url: "/" },
+  );
 }
 
 const byCompany = <T,>(items: T[], companyId: string | null): T[] =>
@@ -135,13 +185,32 @@ function find<T extends { id: string }>(items: T[], id: string): T {
   return hit;
 }
 
+const onlyBorsuk = (company: string | null, what: string) => {
+  if (company && company !== "co_borsuk") throw new MockNotFound(`No sample ${what} for ${company}`);
+};
+
 export async function mockRequest<T>(method: string, url: string, body?: unknown): Promise<T> {
   const parsed = new URL(url, "http://mock.local");
   const path = parsed.pathname.replace(/\/$/, "");
   const q = parsed.searchParams;
   const company = q.get("company_id");
   const seg = path.split("/").filter(Boolean);
-  const f = { ...fixtures, recommendations: fixtures.recommendations.map(withDecision), documents: fixtures.documents.map((d) => documentEdits.get(d.id) ?? d) };
+  const read = uploads.filter((u) => Date.now() >= u.readyAt);
+  const matchStatus = (m: Match): Match["status"] => (undoneMatches.has(m.id) ? "rejected" : confirmedMatches.has(m.id) ? "confirmed" : m.status);
+  const matches = [...fixtures.matches, ...read.flatMap((u) => (u.match ? [u.match] : []))].map((m) => ({ ...m, status: matchStatus(m) }));
+  const f = {
+    ...fixtures,
+    recommendations: allRecommendations().map(withDecision),
+    documents: [...fixtures.documents, ...read.map((u) => u.doc)].map((d) => documentEdits.get(d.id) ?? d),
+    counterparties: [...fixtures.counterparties, ...SAMPLE_COUNTERPARTIES],
+    rawItems: [...fixtures.rawItems, ...uploads.map((u) => u.raw)],
+    matches,
+    // A bank line follows its newest match: a file read for it makes it "suggested", a confirmed match makes it "matched".
+    transactions: [...fixtures.transactions, ...SAMPLE_TRANSACTIONS].map((t) => {
+      const m = matches.filter((x) => x.transaction_id === t.id && x.status !== "rejected").at(-1);
+      return m && t.match_status !== "matched" ? { ...t, match_status: m.status === "suggested" ? ("suggested" as const) : ("matched" as const) } : t;
+    }),
+  };
   const page = <I,>(items: I[]) => ({ items, next_cursor: null });
   let result: unknown;
 
@@ -156,6 +225,29 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   }
   else if (method === "GET" && path === "/sync-runs") result = { items: f.syncRuns.filter((r) => !q.get("source_id") || r.source_id === q.get("source_id")) };
   else if (method === "GET" && seg[0] === "raw-items" && seg.length === 2) result = find(f.rawItems, seg[1]);
+  else if (method === "POST" && path === "/uploads") {
+    const fields = (body ?? {}) as Record<string, string>;
+    const n = uploads.length + 1;
+    const t = f.transactions.find((x) => x.id === fields.transaction_id);
+    const raw: RawItem = {
+      id: `raw_upload_${n}`, source_id: "src_upload", sync_run_id: `run_upload_${n}`, kind: "upload", external_id: fields.file ?? `upload-${n}`,
+      idempotency_key: `upload:${n}`, fetched_at: demoNow(), received_at: demoNow(), content_type: "image/jpeg", metadata: { filename: fields.file ?? null, transaction_id: fields.transaction_id ?? null },
+      processing_status: "queued",
+    };
+    const sellerName = f.counterparties.find((c) => c.id === t?.counterparty_id)?.name ?? t?.counterparty_name_raw ?? "Seller (SAMPLE)";
+    const doc = readUpload(`doc_upload_${n}`, raw.id, t, sellerName);
+    const match: Match | null = t ? {
+      id: `mat_upload_${n}`, match_type: "document_transaction", document_id: doc.id, transaction_id: t.id, score: 0.95, paid_by: "company_account", payer: null, status: "suggested",
+      reasons: [
+        { rule: "amount_exact", weight: 0.5, detail: `${formatMoney(doc.totals.gross)} on the invoice and on the card line` },
+        { rule: "date_lag", weight: 0.2, detail: "Paid on the day of the invoice" },
+        { rule: "name_similarity", weight: 0.25, detail: `${t.counterparty_name_raw ?? "The card line"} is the seller on the invoice` },
+      ],
+      consequences: { vat_deductible: true, vat_amount: doc.totals.vat ?? null, vat_lost: null, reimbursement_owed: null, note: null },
+    } : null;
+    uploads.push({ raw, doc, match, readyAt: Date.now() + READ_MS });
+    result = raw;
+  }
   else if (method === "GET" && path === "/documents")
     result = page(byCompany(f.documents, company).filter((d) => (!q.get("status") || d.status === q.get("status")) && (!q.get("direction") || d.direction === q.get("direction"))));
   else if ((method === "GET" || method === "PATCH") && seg[0] === "documents" && seg.length === 2) {
@@ -177,15 +269,54 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   }
   else if (method === "GET" && seg[0] === "transactions" && seg.length === 2) result = find(f.transactions, seg[1]);
   else if (method === "GET" && path === "/counterparties") result = { items: byCompany(f.counterparties, company) };
-  else if (method === "GET" && path === "/matches")
-    result = { items: f.matches.map((m) => (undoneMatches.has(m.id) ? { ...m, status: "rejected" as const } : m)).filter((m) => !q.get("status") || m.status === q.get("status")) };
+  else if (method === "GET" && path === "/matches") result = { items: f.matches.filter((m) => !q.get("status") || m.status === q.get("status")) };
   else if (method === "GET" && path === "/inbox") {
     const items = byCompany(f.recommendations, company).filter((r) => r.status === "new" || r.status === "seen");
     result = { items, counts: { approval_required: items.filter((r) => r.control_level === "approval_required").length, recommendation: items.filter((r) => r.control_level === "recommendation").length, analysed_autonomously_today: ACTIVITY.length } };
   } else if (method === "GET" && path === "/ledger") result = page(byCompany(f.ledger, company));
-  else if (method === "GET" && path === "/ledger/summary" && company && company !== "co_borsuk") throw new MockNotFound(`No ledger summary fixture for ${company}`);
-  else if (method === "GET" && path === "/ledger/summary")
-    result = { rows: [{ key: "equipment", amount_base: { amount: "-1299.00", currency: "PLN" }, change_pct: null, entries: 1 }, { key: "reimbursements", amount_base: { amount: "-1299.00", currency: "PLN" }, change_pct: null, entries: 1 }], kpis: { reimbursements_owed: { amount: "5169.00", currency: "PLN" }, vat_lost_ytd: { amount: "242.90", currency: "PLN" }, documents_missing: 3, tax_due_next_30d: { amount: "25200.00", currency: "PLN" } } };
+  else if (method === "GET" && path === "/ledger/summary") {
+    onlyBorsuk(company, "ledger summary");
+    // A month is asked for with from/to; without them, the last full month.
+    result = { rows: SUMMARY_BY_MONTH[(q.get("from") ?? "2026-10").slice(0, 7)] ?? [], kpis: SUMMARY_KPIS };
+  }
+  else if (method === "GET" && path === "/balance/history") { onlyBorsuk(company, "balance history"); result = BALANCE_HISTORY; }
+  else if (method === "GET" && path === "/people/costs") {
+    onlyBorsuk(company, "people costs");
+    const month = q.get("month") ?? "2026-10";
+    if (month === "2026-10" || month === "2026-09") result = PEOPLE_COSTS;
+    else if (month === "2026-11") {
+      // November so far: only Piotr's invoice is paid; what the company owes people stays.
+      const items = PEOPLE_COSTS.items.map((p) => ({ ...p, parts: undefined, paid: { amount: p.person_id === "per_piotr" ? "10500.00" : "0.00", currency: "PLN" }, payments: p.person_id === "per_piotr" ? 1 : 0 }))
+        .filter((p) => p.paid.amount !== "0.00" || p.owed.amount !== "0.00");
+      result = { items, totals: { staff: { amount: "10500.00", currency: "PLN" }, social_security: { amount: "0.00", currency: "PLN" }, share_of_costs: 0.44 } };
+    } else result = { items: [], totals: { staff: { amount: "0.00", currency: "PLN" }, social_security: { amount: "0.00", currency: "PLN" }, share_of_costs: 0 } };
+  }
+  else if (method === "GET" && path === "/clients") { onlyBorsuk(company, "clients"); result = clientsFor(q.get("month") ?? "2026-10"); }
+  else if (method === "GET" && path === "/subscriptions") { onlyBorsuk(company, "subscriptions"); result = SUBSCRIPTIONS; }
+  else if (path === "/settings" && (method === "GET" || method === "PATCH")) {
+    onlyBorsuk(company, "settings");
+    if (method === "PATCH") {
+      const patch = (body ?? {}) as { company?: Partial<Settings["company"]>; alerts?: Partial<Settings["alerts"]> };
+      settings = { company: { ...settings.company, ...patch.company }, alerts: { ...settings.alerts, ...patch.alerts } };
+    }
+    result = settings;
+  }
+  else if (path === "/people" && method === "GET") { onlyBorsuk(company, "people"); result = { items: people }; }
+  else if (path === "/people" && method === "POST") {
+    onlyBorsuk(company, "people");
+    const added = { ...(body as Omit<Person, "id">), id: `per_new_${people.length + 1}` };
+    people = [...people, added];
+    result = added;
+  }
+  else if (path === "/rules" && method === "GET") { onlyBorsuk(company, "rules"); result = { items: rules }; }
+  else if (seg[0] === "rules" && seg.length === 2 && method === "DELETE") { find(rules, seg[1]); rules = rules.filter((r) => r.id !== seg[1]); result = undefined; }
+  else if (method === "GET" && path === "/chat/sessions")
+    result = { items: sessions.filter((s) => s.company_id === (company ?? "co_borsuk")).map(({ session_id, title, last_at, messages }) => ({ session_id, title, last_at, messages: messages.length })).sort((a, b) => b.last_at.localeCompare(a.last_at)) };
+  else if (method === "GET" && seg[0] === "chat" && seg[1] === "sessions" && seg.length === 3) {
+    const s = sessions.find((x) => x.session_id === seg[2]);
+    if (!s) throw new MockNotFound(`No chat ${seg[2]}`);
+    result = { session_id: s.session_id, messages: s.messages };
+  }
   else if (seg[0] === "forecast" && (method === "POST" || seg.length === 2)) {
     const forecast = (seg[1] && seg[1] !== "latest" && f.forecasts.find((x) => x.id === seg[1])) || byCompany(f.forecasts, company)[0];
     if (!forecast) throw new MockNotFound(`No forecast fixture for ${company ?? seg[1]}`);
@@ -193,27 +324,42 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/recommendations")
     result = { items: byCompany(f.recommendations, company).filter((r) => (!q.get("status") || r.status === q.get("status")) && (!q.get("agent") || r.agent === q.get("agent")) && (!q.get("control_level") || r.control_level === q.get("control_level"))) };
   else if (method === "GET" && seg[0] === "recommendations" && seg.length === 2) result = find(f.recommendations, seg[1]);
-  else if (method === "POST" && seg[0] === "recommendations" && seg[2] === "decision") result = mockDecide(find(fixtures.recommendations, seg[1]), body as DecisionBody | undefined);
+  else if (method === "POST" && seg[0] === "recommendations" && seg[2] === "decision") result = mockDecide(find(allRecommendations(), seg[1]), body as DecisionBody | undefined);
   else if (method === "POST" && seg[0] === "matches" && seg[2] === "decision") {
+    const match = find(f.matches, seg[1]);
     const decision = (body as DecisionBody | undefined)?.decision ?? "approved";
-    if (decision === "rejected") undoneMatches.add(find(f.matches, seg[1]).id);
-    result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision, changes: null, comment: null, execution: { mode: "none", status: "not_applicable", executed_at: null, reference: null, result: null, effects: [] } };
-  } else if (method === "GET" && path === "/approvals") result = { items: [...decisions.values()] };
+    if (decision === "rejected") undoneMatches.add(match.id);
+    else {
+      confirmedMatches.add(match.id);
+      const doc = f.documents.find((d) => d.id === match.document_id);
+      if (doc) documentEdits.set(doc.id, { ...doc, status: "approved" });
+    }
+    result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision, decided_at: demoNow(), changes: null, comment: null, execution: { mode: "none", status: "not_applicable", executed_at: null, reference: null, result: null, effects: [] } };
+  } else if (method === "GET" && path === "/approvals") result = { items: [...(company && company !== "co_borsuk" ? [] : SAMPLE_APPROVALS), ...decisions.values()] };
   else if (method === "GET" && path === "/activity") result = { items: (company && company !== "co_borsuk" ? [] : ACTIVITY).filter((a) => !(a.subject?.type === "match" && undoneMatches.has(a.subject.id))) };
   else if (method === "POST" && path === "/chat") {
-    const forecast = f.forecasts[0];
+    const ask = (body ?? {}) as { message?: string; company_id?: string; session_id?: string | null };
+    const message = ask.message ?? "";
+    const forecast = byCompany(f.forecasts, ask.company_id ?? null)[0] ?? f.forecasts[0];
+    const at = demoNow();
+    let session = sessions.find((s) => s.session_id === ask.session_id);
+    if (!session) {
+      session = { session_id: `chat_new_${sessions.length + 1}`, company_id: ask.company_id ?? "co_borsuk", title: message.length > 48 ? `${message.slice(0, 47)}…` : message, last_at: at, messages: [] };
+      sessions = [session, ...sessions];
+    }
+    const { answer, evidence } = mockAnswer(message, forecast);
+    session.messages.push({ role: "user", content: message, at }, { role: "assistant", content: answer, at });
+    session.last_at = at;
     result = {
-      session_id: "mock-session",
-      answer: `Sample answer. The lowest point is ${formatMoney(forecast.min_balance.amount, { decimals: false })} on ${shortDate(forecast.min_balance.date)}${forecast.first_negative_date ? `; the balance first goes below zero on ${shortDate(forecast.first_negative_date)}` : ""}.`,
-      evidence: [{ kind: "forecast", id: forecast.id, label: "45-day forecast", url: `/forecast/${forecast.id}` }],
-      table: null, tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
-    };
+      session_id: session.session_id, answer, evidence, table: null,
+      tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
+    } satisfies ChatAnswer;
   } else if (method === "GET" && path === "/fx/rates") result = f.documents.find((d) => d.totals.fx)?.totals.fx ?? null;
   else if (method === "GET" && path === "/fx/exposure") result = { items: company && company !== "co_borsuk" ? [] : FX_EXPOSURE };
   else throw new MockNotFound(`Mock mode has no handler for ${method} ${path}`);
 
   // Fixtures are shared module state: hand out copies so a page cannot mutate them.
-  return structuredClone(result) as T;
+  return (result === undefined ? undefined : structuredClone(result)) as T;
 }
 
 /** Mock event stream: replays contracts/fixtures/event.json once, one event every `intervalMs`. */

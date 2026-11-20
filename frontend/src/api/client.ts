@@ -1,10 +1,11 @@
 // Typed API client. Entity types are generated from contracts/schemas (types.gen.ts);
-// the response envelopes below follow contracts/openapi.yaml.
+// the response envelopes below follow contracts/openapi.yaml. The calls marked "promised" are the
+// endpoints role 1 is adding; until the live API has them they return null and the screen says so.
 import { API_BASE, API_MODE } from "../config";
 import { mockEventStream } from "./mock";
-import { http, type Query } from "./transport";
+import { http, httpForm, optional, type Query } from "./transport";
 import type {
-  Account, Approval, Counterparty, EvidenceLink, Forecast, FxConversion, LedgerEntry, Match, Money, OrdoDocument, OrdoEvent, Recommendation, Source, SyncRun, Transaction,
+  Account, Approval, Counterparty, EvidenceLink, Forecast, FxConversion, LedgerEntry, Match, Money, OrdoDocument, OrdoEvent, RawItem, Recommendation, Source, SyncRun, Transaction,
 } from "./types.gen";
 
 export type Page<T> = { items: T[]; next_cursor: string | null };
@@ -25,7 +26,7 @@ export type FxExposure = {
 export type ActivityItem = { at: string; agent: string; text: string; subject?: { type: string; id: string } | null; evidence: EvidenceLink[] };
 /** Partial Document: only totals, dates, seller, buyer and category_suggestion.category may be corrected.
  * Each of those is sent whole (the API validates the block it receives), with only the corrected value changed. */
-export type DocumentPatch = { issue_date?: string; totals?: OrdoDocument["totals"]; seller?: OrdoDocument["seller"]; buyer?: OrdoDocument["buyer"] };
+export type DocumentPatch = { issue_date?: string; totals?: OrdoDocument["totals"]; seller?: OrdoDocument["seller"]; buyer?: OrdoDocument["buyer"]; category_suggestion?: OrdoDocument["category_suggestion"] };
 export type DecisionRequest = { decision: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: "dashboard" | "chat" };
 export type ChatAnswer = {
   session_id: string;
@@ -38,6 +39,33 @@ export type ChatAnswer = {
   trace_id?: string | null;
 };
 
+// ---- Promised endpoints (shapes agreed with role 1; see the prompt in the design notes) ----
+export type BalanceHistory = { currency: string; points: { date: string; balance: string }[] };
+/** `parts` (optional): what the cost is made of, e.g. salary + social security. */
+export type PersonCost = { person_id: string; name: string; role: string; pay_type: string | null; paid: Money; payments: number; owed: Money; receipts_owed: number; parts?: { label: string; amount: Money }[] };
+export type PeopleCosts = { items: PersonCost[]; totals: { staff: Money; social_security: Money; share_of_costs: number } };
+export type OpenInvoice = { document_id: string; number: string | null; gross: Money; gross_base: Money; due_date: string | null; days_late: number };
+export type ClientRow = {
+  counterparty_id: string; name: string; currency: string; paid_in_month: Money; open_invoices: OpenInvoice[]; open_total_base: Money;
+  typical_payment_delay_days: number | null; share_of_income: number;
+};
+export type ClientsResponse = { items: ClientRow[]; totals: { paid_in_month: Money; open_base: Money; late_base: Money } };
+/** Optional extras: `previous_monthly` (the price before it went up), `duplicate_cost` (what one of the double payments costs). */
+export type Subscription = {
+  counterparty_id: string; name: string; category: string; monthly: Money; original: Money | null;
+  paid_by: { kind: "account" | "card" | "person"; label: string }[]; flags: string[]; series_ids: string[];
+  previous_monthly?: Money | null; duplicate_cost?: Money | null;
+};
+export type SubscriptionsResponse = { items: Subscription[]; monthly_total: Money };
+export type Settings = {
+  company: { id: string; name: string; tax_id: string | null; base_currency: string; vat_period: "monthly" | "quarterly"; accountant_email: string | null };
+  alerts: { safety_buffer: Money | null; late_client_days: number; weekly_summary: boolean };
+};
+export type Person = { id: string; name: string; email: string; role: string; pay_type: string | null; card_last4: string[]; statement_names: string[]; tax_id: string | null; iban: string | null };
+export type Rule = { id: string; raw: string; counterparty_id: string; counterparty_name: string; category: string | null; learned_at: string | null };
+export type ChatSession = { session_id: string; title: string; last_at: string; messages: number };
+export type ChatSessionDetail = { session_id: string; messages: { role: "user" | "assistant"; content: string; at: string }[] };
+
 const co = (company_id?: string): Query => ({ company_id });
 
 export const api = {
@@ -46,6 +74,7 @@ export const api = {
   sources: (companyId?: string) => http<{ items: Source[] }>("GET", "/sources", { query: co(companyId) }),
   syncNow: (sourceId: string) => http<SyncRun>("POST", `/sources/${sourceId}/sync`),
   syncRuns: (sourceId?: string) => http<{ items: SyncRun[] }>("GET", "/sync-runs", { query: { source_id: sourceId } }),
+  rawItem: (id: string) => http<RawItem>("GET", `/raw-items/${id}`),
   documents: (companyId?: string, filter: { status?: string; direction?: string } = {}) => http<Page<OrdoDocument>>("GET", "/documents", { query: { ...co(companyId), ...filter } }),
   document: (id: string) => http<DocumentDetail>("GET", `/documents/${id}`),
   patchDocument: (id: string, body: DocumentPatch) => http<OrdoDocument>("PATCH", `/documents/${id}`, { body }),
@@ -55,7 +84,8 @@ export const api = {
   matches: (companyId?: string, status?: string) => http<{ items: Match[] }>("GET", "/matches", { query: { ...co(companyId), status } }),
   inbox: (companyId?: string) => http<InboxResponse>("GET", "/inbox", { query: co(companyId) }),
   ledger: (companyId?: string) => http<Page<LedgerEntry>>("GET", "/ledger", { query: co(companyId) }),
-  ledgerSummary: (companyId?: string) => http<LedgerSummary>("GET", "/ledger/summary", { query: co(companyId) }),
+  ledgerSummary: (companyId?: string, opts: { groupBy?: string; from?: string; to?: string } = {}) =>
+    http<LedgerSummary>("GET", "/ledger/summary", { query: { ...co(companyId), group_by: opts.groupBy, from: opts.from, to: opts.to } }),
   forecast: (companyId?: string, horizonDays = 45) => http<Forecast>("GET", "/forecast/latest", { query: { ...co(companyId), horizon_days: horizonDays } }),
   recommendations: (companyId?: string) => http<{ items: Recommendation[] }>("GET", "/recommendations", { query: co(companyId) }),
   recommendation: (id: string) => http<Recommendation>("GET", `/recommendations/${id}`),
@@ -66,10 +96,35 @@ export const api = {
   chat: (message: string, companyId?: string, sessionId?: string | null) => http<ChatAnswer>("POST", "/chat", { body: { message, company_id: companyId, session_id: sessionId ?? null } }),
   fxExposure: (companyId?: string) => http<{ items: FxExposure[] }>("GET", "/fx/exposure", { query: co(companyId) }),
   fxRate: (currency: string, date: string) => http<FxConversion | null>("GET", "/fx/rates", { query: { currency, date } }),
+  /** A receipt or invoice the owner adds by hand. `transactionId` tells Ordo which payment it belongs to. */
+  upload: (file: File, opts: { companyId?: string; submittedBy?: string; transactionId?: string } = {}) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (opts.submittedBy) form.append("submitted_by", opts.submittedBy);
+    if (opts.transactionId) form.append("transaction_id", opts.transactionId);
+    return httpForm<RawItem>("/uploads", form, co(opts.companyId));
+  },
+
+  // Promised (null until the live API serves them)
+  balanceHistory: (companyId?: string) => optional(http<BalanceHistory>("GET", "/balance/history", { query: co(companyId) })),
+  peopleCosts: (companyId: string | undefined, month: string) => optional(http<PeopleCosts>("GET", "/people/costs", { query: { ...co(companyId), month } })),
+  clients: (companyId: string | undefined, month: string) => optional(http<ClientsResponse>("GET", "/clients", { query: { ...co(companyId), month } })),
+  subscriptions: (companyId?: string) => optional(http<SubscriptionsResponse>("GET", "/subscriptions", { query: co(companyId) })),
+  settings: (companyId?: string) => optional(http<Settings>("GET", "/settings", { query: co(companyId) })),
+  patchSettings: (companyId: string | undefined, body: { company?: Partial<Settings["company"]>; alerts?: Partial<Settings["alerts"]> }) =>
+    optional(http<Settings>("PATCH", "/settings", { query: co(companyId), body })),
+  people: (companyId?: string) => optional(http<{ items: Person[] }>("GET", "/people", { query: co(companyId) })),
+  addPerson: (companyId: string | undefined, body: Omit<Person, "id">) => optional(http<Person>("POST", "/people", { query: co(companyId), body })),
+  rules: (companyId?: string) => optional(http<{ items: Rule[] }>("GET", "/rules", { query: co(companyId) })),
+  deleteRule: (id: string, companyId?: string) => optional(http<void>("DELETE", `/rules/${id}`, { query: co(companyId) })),
+  chatSessions: (companyId?: string) => optional(http<{ items: ChatSession[] }>("GET", "/chat/sessions", { query: co(companyId) })),
+  chatSession: (id: string, companyId?: string) => optional(http<ChatSessionDetail>("GET", `/chat/sessions/${id}`, { query: co(companyId) })),
 };
 
 /** Where the original file of a raw item (photo, PDF) is served. Null in mock mode: fixtures carry no files. */
 export const rawContentUrl = (rawItemId: string): string | null => (API_MODE === "mock" ? null : `${API_BASE}/raw-items/${rawItemId}/content`);
+/** The CSV export of everything (live only). */
+export const exportUrl = (companyId: string): string | null => (API_MODE === "mock" ? null : `${API_BASE}/ledger/export?company_id=${encodeURIComponent(companyId)}`);
 
 /** Every event type of the contract. A Record so the compiler complains when the contract gains a type. */
 export const EVENT_TYPES: Record<OrdoEvent["type"], true> = {
@@ -78,7 +133,7 @@ export const EVENT_TYPES: Record<OrdoEvent["type"], true> = {
   "forecast.updated": true, "recommendation.created": true, "recommendation.status_changed": true, "approval.recorded": true, "execution.simulated": true,
 };
 
-/** Live updates (Server-Sent Events). Returns an unsubscribe function. Used by the toasts ticket. */
+/** Live updates (Server-Sent Events). Returns an unsubscribe function. */
 export function subscribeEvents(onEvent: (e: OrdoEvent) => void, companyId?: string): () => void {
   if (API_MODE === "mock") return mockEventStream(onEvent);
   const source = new EventSource(`${API_BASE}/events/stream${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`);
