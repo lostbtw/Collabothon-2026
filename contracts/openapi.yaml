@@ -429,3 +429,4 @@ components:
         created_recommendation_id: {type: [string, 'null'], description: "Chat can only PROPOSE actions; they land in the inbox as recommendations"}
         guardrail: {type: [object, 'null'], properties: {blocked: {type: boolean}, reason: {type: string}}}
         trace_id: {type: [string, 'null']}
+        suggested_questions: {type: array, items: {type: string}, description: "Questions for the suggested-question buttons"}
