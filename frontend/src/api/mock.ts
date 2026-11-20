@@ -45,11 +45,18 @@ const COMPANIES = [
 
 // Not in the fixtures yet: the "What I did on my own" feed. Numbers follow the demo script in the role 6 spec.
 const ACTIVITY = [
-  { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read a receipt forwarded by Jan and worked out that he paid privately", evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt photo, ElektroMarkt", url: "/documents/doc_rcpt412" }] },
-  { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/sources" }] },
-  { at: "2026-11-21T09:58:00Z", agent: "ingestion", text: "Merged 61 duplicates (the same purchase arriving as e-invoice, PDF and photo)", evidence: [{ kind: "document", id: "doc_pixel11", label: "Example: PixelBoard invoice", url: "/documents/doc_pixel11" }] },
-  { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments to documents, including a 45 USD invoice to a 180.62 PLN card line", evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
+  { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read Jan's receipt and worked out that he paid privately", subject: { type: "document", id: "doc_rcpt412" }, evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt", url: "/documents/doc_rcpt412" }] },
+  { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", subject: null, evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/sources" }] },
+  { at: "2026-11-21T09:58:00Z", agent: "ingestion", text: "Merged 61 duplicates, such as one PixelBoard invoice that arrived three times", subject: { type: "document", id: "doc_pixel11" }, evidence: [{ kind: "document", id: "doc_pixel11", label: "PixelBoard invoice", url: "/documents/doc_pixel11" }] },
+  { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments, including a 45.00 USD invoice to a 180.62 PLN card line", subject: { type: "match", id: "mat_pixel11" }, evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
 ];
+
+// Not in the fixtures either: the copies of the PixelBoard invoice that were merged into one record.
+// The kept record came by e-mail; the same invoice also arrived as an e-invoice and as a photo.
+const COPIES: OrdoDocument[] = (["ksef", "photo"] as const).map((channel) => {
+  const original = (documentsJson as unknown as OrdoDocument[]).find((d) => d.id === "doc_pixel11")!;
+  return { ...original, id: `doc_pixel11_${channel}`, channel, duplicate_of: original.id, status: "duplicate" };
+});
 
 // Decisions made in this tab. The fixtures never change; this sits on top of them so that an approved
 // card leaves the inbox and shows up as decided, the way the real API behaves.
@@ -150,7 +157,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
       const edited = mergeDeep(document, body);
       documentEdits.set(document.id, edited);
       result = edited;
-    } else result = { document, duplicates: f.documents.filter((d) => d.duplicate_of === document.id), matches: f.matches.filter((m) => m.document_id === document.id) };
+    } else result = { document, duplicates: [...f.documents, ...COPIES].filter((d) => d.duplicate_of === document.id), matches: f.matches.filter((m) => m.document_id === document.id) };
   } else if (method === "GET" && path === "/accounts") {
     const items = byCompany(f.accounts, company);
     const forecast = byCompany(f.forecasts, company)[0];
@@ -158,7 +165,8 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/transactions") result = page(f.transactions.filter((t) => !q.get("account_id") || t.account_id === q.get("account_id")));
   else if (method === "GET" && seg[0] === "transactions" && seg.length === 2) result = find(f.transactions, seg[1]);
   else if (method === "GET" && path === "/counterparties") result = { items: byCompany(f.counterparties, company) };
-  else if (method === "GET" && path === "/matches") result = { items: f.matches.filter((m) => !q.get("status") || m.status === q.get("status")) };
+  else if (method === "GET" && path === "/matches")
+    result = { items: f.matches.map((m) => (undoneMatches.has(m.id) ? { ...m, status: "rejected" as const } : m)).filter((m) => !q.get("status") || m.status === q.get("status")) };
   else if (method === "GET" && path === "/inbox") {
     const items = byCompany(f.recommendations, company).filter((r) => r.status === "new" || r.status === "seen");
     result = { items, counts: { approval_required: items.filter((r) => r.control_level === "approval_required").length, recommendation: items.filter((r) => r.control_level === "recommendation").length, analysed_autonomously_today: ACTIVITY.length } };
@@ -174,9 +182,10 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   else if (method === "POST" && seg[0] === "recommendations" && seg[2] === "decision") result = mockDecide(find(fixtures.recommendations, seg[1]), body as DecisionBody | undefined);
   else if (method === "POST" && seg[0] === "matches" && seg[2] === "decision") {
     const decision = (body as DecisionBody | undefined)?.decision ?? "approved";
-    result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision };
+    if (decision === "rejected") undoneMatches.add(find(f.matches, seg[1]).id);
+    result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision, changes: null, comment: null, execution: { mode: "none", status: "not_applicable", executed_at: null, reference: null, result: null, effects: [] } };
   } else if (method === "GET" && path === "/approvals") result = { items: [...decisions.values()] };
-  else if (method === "GET" && path === "/activity") result = { items: ACTIVITY };
+  else if (method === "GET" && path === "/activity") result = { items: ACTIVITY.filter((a) => !(a.subject?.type === "match" && undoneMatches.has(a.subject.id))) };
   else if (method === "POST" && path === "/chat") {
     const forecast = f.forecasts[0];
     result = {

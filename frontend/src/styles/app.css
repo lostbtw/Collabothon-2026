@@ -186,6 +186,14 @@ button.linklike { height: auto; padding: 0; margin-top: 4px; border: 0; border-r
 .chart-low-label { fill: var(--text-primary); font-size: 13px; font-weight: 500; paint-order: stroke; stroke: var(--bg-surface); stroke-width: 4px; }
 .chart-tip { position: absolute; top: 0; transform: translateX(-50%); padding: 6px 10px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); white-space: nowrap; pointer-events: none; }
 
+/* Activity */
+.feed { padding: 4px 20px; }
+.feed-line { padding: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.feed-line + .feed-line { border-top: 1px solid var(--border-hairline); }
+.feed-main { display: flex; align-items: center; gap: 12px; }
+.feed-time { width: 44px; flex: none; }
+.feed-detail { margin-left: 56px; }
+
 /* Sources */
 tr.source td { vertical-align: middle; }
 
