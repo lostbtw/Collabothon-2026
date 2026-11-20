@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordo-extractor
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-extractor
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"extractor\")].image"}]'
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ordo-extractor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: ordo-extractor
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      serviceAccountName: cfo-app
+      containers:
+        - name: extractor
+          image: ordo-backend:latest
+          command: ["python", "-m", "backend.pipeline.extract"]
+          envFrom:
+            - configMapRef:
+                name: ordo-config
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+            - name: LLM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-token
+                  key: token
+            - name: ORDO_DOCLING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docling-api-key
+                  key: DOCLING_SERVE_API_KEY
+          volumeMounts:
+            - name: raw
+              mountPath: /data/raw
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: raw
+          persistentVolumeClaim:
+            claimName: ordo-raw
