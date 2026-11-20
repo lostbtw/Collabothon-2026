@@ -29,6 +29,7 @@ KINDS = ["supplier", "customer", "employee", "owner", "tax_authority", "social_s
 
 # first match wins; checked against "name + description", lower case
 CATEGORY_RULES = [
+    ("reimbursements", ("zwrot koszt", "zwrot wydatk", "reimbursement", "erstattung")),
     ("salaries", ("salary", "wynagrodzenie", "gehalt", "lohn ")),
     ("social_security", ("zus", "krankenkasse", "social security", "sozialversicherung")),
     ("taxes", ("tax office", "tax prepayment", "urząd skarbowy", "urzad skarbowy", "finanzamt", "stadtkasse",

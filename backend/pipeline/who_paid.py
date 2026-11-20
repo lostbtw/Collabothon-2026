@@ -43,8 +43,9 @@ def _nip(tax_id) -> str:
 def _person_ref(person: dict | None) -> dict | None:
     if not person:
         return None
+    role = person.get("role", "unknown")
     return {"person_id": person.get("person_id"), "name": person.get("name"), "email": person.get("email"),
-            "role": person.get("role", "unknown")}
+            "role": role if role in ("owner", "employee", "accountant", "system") else "unknown"}
 
 
 def _cards(accounts: list[dict], kind: str) -> set[str]:
@@ -84,8 +85,11 @@ def classify_payer(document: dict, transaction: dict | None, accounts: list[dict
         return "owner_private", _person_ref(owner_of(people))
 
     sender = find_person(people, sender_email or (document.get("submitted_by") or {}).get("email"))
-    if sender and sender.get("role") == "employee":
+    if sender and sender.get("role") in ("employee", "contractor"):  # B2B contractors are reimbursed the same way
         return "employee_private", _person_ref(sender)
+    payment = document.get("payment") or {}
+    if payment.get("method") == "cash" and payment.get("paid"):
+        return "company_account", None  # paid from the company's cash box: no bank line will come (M8)
     return "unknown", None
 
 
@@ -109,6 +113,13 @@ def _gross_in_base(document: dict) -> dict:
     return totals.get("gross_base") or totals["gross"]
 
 
+def _receipt_over_limit(document: dict, gross_base: dict) -> bool:
+    """PL-VAT-02 covers receipts up to 450 PLN only: above that a receipt with the buyer's NIP is not an invoice."""
+    return (document["doc_type"] in ("receipt", "simplified_invoice")
+            and (gross_base["currency"] != BASE_CURRENCY
+                 or to_decimal(gross_base["amount"]) > SIMPLIFIED_INVOICE_LIMIT))
+
+
 def looks_private(document: dict) -> bool:
     suggestion = document.get("category_suggestion") or {}
     if suggestion.get("category") == "owner_private":
@@ -119,6 +130,11 @@ def looks_private(document: dict) -> bool:
 
 def consequences(document: dict, paid_by: str, payer: dict | None, company: dict) -> dict:
     """`Match.consequences` for one Document, from the spec's decision table."""
+    if document.get("direction") == "sale":
+        # Our own sales invoice: the client pays it. Input-VAT deduction and reimbursements do not apply
+        # (vat_deductible None also keeps role 5 from asking for "an invoice to the company").
+        return {"reimbursement_owed": None, "reimbursement_to": None, "vat_deductible": None, "vat_amount": None,
+                "vat_lost": None, "rule_ids": [], "note": None}
     rule_ids: list[str] = []
     notes: list[str] = []
     kind = "Receipt" if document["doc_type"] in ("receipt", "simplified_invoice") else "Invoice"
@@ -132,15 +148,17 @@ def consequences(document: dict, paid_by: str, payer: dict | None, company: dict
         vat_deductible = True
         rule_ids.append(PL_VAT_03)
         notes.append("Import of services: reverse charge, self-assessed VAT is neutral.")
-    elif buyer_is_company(document, company):
+    elif buyer_is_company(document, company) and not _receipt_over_limit(document, gross_base):
         vat_deductible = True
-        simplified = (document["doc_type"] in ("receipt", "simplified_invoice")
-                      and gross_base["currency"] == BASE_CURRENCY
-                      and to_decimal(gross_base["amount"]) <= SIMPLIFIED_INVOICE_LIMIT)
-        if simplified:
+        if document["doc_type"] in ("receipt", "simplified_invoice"):
             rule_ids.append(PL_VAT_02)
             notes.append("Receipt up to 450 PLN with the company tax id counts as a simplified invoice, "
                          "so its VAT is deductible.")
+    elif has_vat and buyer_is_company(document, company):  # a receipt over 450 PLN is never an invoice
+        vat_deductible = False
+        rule_ids.append(PL_VAT_01)
+        notes.append(f"A receipt over 450 PLN is not an invoice, even with the company tax id, so the company "
+                     f"cannot deduct the {format(vat, ',.2f')} {BASE_CURRENCY} VAT. Ask for a VAT invoice. {ACCOUNTANT}")
     elif has_vat:
         vat_deductible = False
         rule_ids.append(PL_VAT_01)

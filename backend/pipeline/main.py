@@ -46,7 +46,7 @@ def make_context(conn: psycopg.Connection) -> Context:
                union all
                select p.id, p.name, a.address, p.role from person_addresses a join people p on p.id = a.person_id
                where p.company_id = %s""", (company_id, company_id)).fetchall()
-        return [{"person_id": id_, "name": name, "email": email, "role": role if role != "contractor" else "unknown"}
+        return [{"person_id": id_, "name": name, "email": email, "role": role}  # who-paid treats contractors as staff
                 for id_, name, email, role in rows]
 
     def _raw_bytes(raw: dict) -> bytes | None:

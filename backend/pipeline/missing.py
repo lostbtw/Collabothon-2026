@@ -33,8 +33,8 @@ def line_status(txn: dict, as_of: str | None, lookback_days: int = LOOKBACK_DAYS
     text = f"{txn.get('counterparty_name_raw') or ''} {txn.get('description') or ''}"
     category = txn.get("category") or categorise(text, counterparty=None, incoming=not outgoing)[0]
     if not outgoing:
-        # card payouts and settlements are revenue without a document; other money in waits for a sales invoice
-        return "no_document_needed" if txn.get("transaction_type") == "card_settlement" else None
+        # card payouts and transfers between own accounts need no document; other money in waits for a sales invoice
+        return "no_document_needed" if txn.get("transaction_type") in ("card_settlement", "internal") else None
     if txn.get("transaction_type") in NO_DOCUMENT_TYPES or category in NO_DOCUMENT_CATEGORIES:
         return "no_document_needed"
     today = _day(as_of) or date.today()
