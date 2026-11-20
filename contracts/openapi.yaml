@@ -1,0 +1,401 @@
+openapi: 3.1.0
+info:
+  title: Ordo backend API (Autonomous CFO, Collabothon 2026)
+  version: 0.1.0
+  description: |
+    One API used by the frontend, the chat agent (as tools / MCP), and the simulators.
+    Entity shapes live in ./schemas/*.schema.json (JSON Schema 2020-12) and are referenced from here.
+    Conventions:
+      * All ids are opaque strings with a prefix (doc_, txn_, rec_ ...).
+      * Money = {amount: "decimal string", currency: "ISO"}; negative = money out.
+      * Lists return {items: [...], next_cursor: string|null}. Pass ?cursor= to continue.
+      * Single-tenant demo: company is chosen with ?company_id= (default: the first company). No auth in the hackathon build.
+      * Every write that represents an owner decision creates an Approval record (audit trail).
+servers:
+  - url: /api/v1
+tags:
+  - {name: sources, description: "Connectors and sync status (role 2)"}
+  - {name: documents, description: "Extracted documents and the approval inbox (role 3)"}
+  - {name: bank, description: "Accounts and bank lines (roles 2 and 3)"}
+  - {name: ledger, description: "Owner-approved ledger (role 4)"}
+  - {name: forecast, description: "Liquidity forecast (role 4)"}
+  - {name: recommendations, description: "Agent output and approvals (role 5)"}
+  - {name: chat, description: "Embedded chat (role 5)"}
+  - {name: stream, description: "Live UI updates"}
+paths:
+  /health:
+    get:
+      summary: Liveness + which model endpoint is in use
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, enum: [ok]}
+                  llm: {type: object, properties: {base_url: {type: string}, model: {type: string}, reachable: {type: boolean}}}
+                  demo_clock: {type: string, format: date-time, description: "Simulated 'now' used by generator and forecast"}
+  /companies:
+    get:
+      summary: Demo companies (Borsuk Labs = messy data; Pizzeria Amalfi = organisers' data)
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {id: {type: string}, name: {type: string}, base_currency: {type: string}, country: {type: string}}}}}}}}}
+  /sources:
+    get:
+      tags: [sources]
+      summary: All connected sources with last-synced status
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/SourceList'}}}}
+  /sources/{id}/sync:
+    post:
+      tags: [sources]
+      summary: Trigger a sync now (manual trigger of the same code path the scheduler runs)
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '202': {description: Started, content: {application/json: {schema: {$ref: './schemas/sync_run.schema.json'}}}}
+        '409': {description: A run is already in progress}
+  /sync-runs:
+    get:
+      tags: [sources]
+      summary: History of connector runs (newest first)
+      parameters:
+        - {name: source_id, in: query, schema: {type: string}}
+        - {name: limit, in: query, schema: {type: integer, default: 20}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/sync_run.schema.json'}}}}}}}
+  /raw-items/{id}:
+    get:
+      tags: [sources]
+      summary: Raw item metadata (evidence trail)
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/raw_item.schema.json'}}}}
+  /raw-items/{id}/content:
+    get:
+      tags: [sources]
+      summary: Original bytes (image, PDF, XML, .eml) for the document viewer
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '200': {description: Binary content with the stored content type}
+  /uploads:
+    post:
+      tags: [sources]
+      summary: FALLBACK ONLY - manual file upload; creates a RawItem with kind=upload and runs the normal pipeline
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: {type: object, properties: {file: {type: string, format: binary}, submitted_by: {type: string}}}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: './schemas/raw_item.schema.json'}}}}
+  /documents:
+    get:
+      tags: [documents]
+      summary: List documents
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: status, in: query, schema: {type: string, enum: [extracted, needs_review, approved, rejected, duplicate]}}
+        - {name: flag, in: query, schema: {type: string}}
+        - {name: direction, in: query, schema: {type: string, enum: [purchase, sale]}}
+        - {name: q, in: query, schema: {type: string}, description: "Free text over seller and number"}
+        - {$ref: '#/components/parameters/cursor'}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/document.schema.json'}}, next_cursor: {type: [string, 'null']}}}}}}
+  /documents/{id}:
+    get:
+      tags: [documents]
+      summary: One document incl. extraction confidence, flags, duplicates and its matches
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  document: {$ref: './schemas/document.schema.json'}
+                  duplicates: {type: array, items: {$ref: './schemas/document.schema.json'}}
+                  matches: {type: array, items: {$ref: './schemas/match.schema.json'}}
+    patch:
+      tags: [documents]
+      summary: Owner corrects extracted fields (stored as an Approval with changes; re-runs matching)
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody:
+        content: {application/json: {schema: {type: object, description: "Partial Document: only totals, dates, seller, buyer and category_suggestion.category"}}}
+      responses:
+        '200': {description: Updated, content: {application/json: {schema: {$ref: './schemas/document.schema.json'}}}}
+  /accounts:
+    get:
+      tags: [bank]
+      summary: Accounts and cards with current balances
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/account.schema.json'}}, total_liquidity_base: {$ref: './schemas/common.schema.json#/$defs/Money'}}}}}}
+  /transactions:
+    get:
+      tags: [bank]
+      summary: Bank lines
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: account_id, in: query, schema: {type: string}}
+        - {name: from, in: query, schema: {type: string, format: date}}
+        - {name: to, in: query, schema: {type: string, format: date}}
+        - {name: match_status, in: query, schema: {type: string, enum: [unmatched, suggested, matched, no_document_needed, missing_document]}}
+        - {name: series, in: query, schema: {type: string}, description: recurring_series_id}
+        - {$ref: '#/components/parameters/cursor'}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/transaction.schema.json'}}, next_cursor: {type: [string, 'null']}}}}}}
+  /transactions/{id}:
+    get:
+      tags: [bank]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/transaction.schema.json'}}}}
+  /counterparties:
+    get:
+      tags: [bank]
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/counterparty.schema.json'}}}}}}}
+  /matches:
+    get:
+      tags: [documents]
+      summary: Match proposals
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: status, in: query, schema: {type: string, enum: [suggested, auto_confirmed, confirmed, rejected]}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/match.schema.json'}}}}}}}
+  /matches/{id}/decision:
+    post:
+      tags: [documents]
+      summary: Owner confirms or rejects a match (creates Approval; on confirm proposes/approves ledger entries)
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Decision'}}}}
+      responses:
+        '200': {description: Decision recorded, content: {application/json: {schema: {$ref: './schemas/approval.schema.json'}}}}
+  /inbox:
+    get:
+      tags: [recommendations]
+      summary: The owner's approval queue - everything that waits for a decision, most urgent first
+      description: Convenience view = recommendations with status new/seen and control_level approval_required, plus counts for the dashboard badge.
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: './schemas/recommendation.schema.json'}}
+                  counts: {type: object, properties: {approval_required: {type: integer}, recommendation: {type: integer}, analysed_autonomously_today: {type: integer}}}
+  /ledger:
+    get:
+      tags: [ledger]
+      summary: Ledger entries
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: from, in: query, schema: {type: string, format: date}}
+        - {name: to, in: query, schema: {type: string, format: date}}
+        - {name: category, in: query, schema: {type: string}}
+        - {name: status, in: query, schema: {type: string, enum: [proposed, approved, void]}}
+        - {name: paid_by, in: query, schema: {type: string}}
+        - {$ref: '#/components/parameters/cursor'}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/ledger_entry.schema.json'}}, next_cursor: {type: [string, 'null']}}}}}}
+  /ledger/summary:
+    get:
+      tags: [ledger]
+      summary: Aggregates for dashboard tiles and month-over-month insights (pure SQL, no LLM)
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: group_by, in: query, schema: {type: string, enum: [category, month, cost_behaviour, paid_by, counterparty]}}
+        - {name: from, in: query, schema: {type: string, format: date}}
+        - {name: to, in: query, schema: {type: string, format: date}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rows: {type: array, items: {type: object, properties: {key: {type: string}, amount_base: {$ref: './schemas/common.schema.json#/$defs/Money'}, previous_period: {$ref: './schemas/common.schema.json#/$defs/Money'}, change_pct: {type: [number, 'null']}, entries: {type: integer}}}}
+                  kpis: {type: object, properties: {reimbursements_owed: {$ref: './schemas/common.schema.json#/$defs/Money'}, vat_lost_ytd: {$ref: './schemas/common.schema.json#/$defs/Money'}, documents_missing: {type: integer}, tax_due_next_30d: {$ref: './schemas/common.schema.json#/$defs/Money'}}}
+  /ledger/export:
+    get:
+      tags: [ledger]
+      summary: Export everything as CSV (zip) - "what if the platform is down"
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: application/zip}
+  /forecast/latest:
+    get:
+      tags: [forecast]
+      summary: Latest forecast for the company
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: horizon_days, in: query, schema: {type: integer, default: 45}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/forecast.schema.json'}}}}
+  /forecast/{id}:
+    get:
+      tags: [forecast]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/forecast.schema.json'}}}}
+  /forecast/recompute:
+    post:
+      tags: [forecast]
+      summary: Recompute now (also runs automatically after ledger/transaction changes)
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/forecast.schema.json'}}}}
+  /forecast/events:
+    post:
+      tags: [forecast]
+      summary: Owner tells the system about a future event ("we are closed 1-30 June", "client X will pay on 15 Dec")
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label, date_from, date_to, effect]
+              properties:
+                label: {type: string}
+                date_from: {type: string, format: date}
+                date_to: {type: string, format: date}
+                effect: {type: string, enum: [no_variable_flows, no_revenue, extra_inflow, extra_outflow]}
+                amount: {$ref: './schemas/common.schema.json#/$defs/Money'}
+                source: {type: string, enum: [owner_chat, owner_form]}
+      responses:
+        '201': {description: Event stored and forecast recomputed, content: {application/json: {schema: {$ref: './schemas/forecast.schema.json'}}}}
+  /forecast/scenario:
+    post:
+      tags: [forecast]
+      summary: What-if - recompute with one hypothetical action or delay, without saving it as the main forecast
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                credit_line: {type: object, properties: {limit: {$ref: './schemas/common.schema.json#/$defs/Money'}, from: {type: string, format: date}}}
+                shift_receivable: {type: object, properties: {document_id: {type: string}, new_date: {type: string, format: date}}}
+                shift_payable: {type: object, properties: {component_id: {type: string}, days: {type: integer}}}
+      responses:
+        '200': {description: Scenario forecast (scenario_of set), content: {application/json: {schema: {$ref: './schemas/forecast.schema.json'}}}}
+  /recommendations:
+    get:
+      tags: [recommendations]
+      parameters:
+        - {$ref: '#/components/parameters/company'}
+        - {name: status, in: query, schema: {type: string}}
+        - {name: agent, in: query, schema: {type: string, enum: [ingestion, liquidity, tax, fx, chat]}}
+        - {name: control_level, in: query, schema: {type: string, enum: [analysed_autonomously, recommendation, approval_required]}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/recommendation.schema.json'}}}}}}}
+  /recommendations/{id}:
+    get:
+      tags: [recommendations]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/recommendation.schema.json'}}}}
+  /recommendations/{id}/decision:
+    post:
+      tags: [recommendations]
+      summary: Owner approves / rejects. On approve the action runs in SIMULATED mode and the result is returned.
+      description: |
+        State machine: new -> seen -> approved -> executed_simulated | rejected | expired | superseded.
+        Server rejects (409) a decision on a recommendation whose control_level is not approval_required,
+        and any attempt to execute with execution_mode=permitted (not enabled in this build).
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Decision'}}}}
+      responses:
+        '200': {description: Decision recorded (and simulated execution result), content: {application/json: {schema: {$ref: './schemas/approval.schema.json'}}}}
+        '409': {description: Not decidable in current state}
+  /approvals:
+    get:
+      tags: [recommendations]
+      summary: Audit trail of all owner decisions
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: './schemas/approval.schema.json'}}}}}}}
+  /activity:
+    get:
+      tags: [recommendations]
+      summary: '"What the agents did on their own" feed (control_level = analysed_autonomously), built from events'
+      parameters: [{$ref: '#/components/parameters/company'}, {name: since, in: query, schema: {type: string, format: date-time}}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {at: {type: string, format: date-time}, agent: {type: string}, text: {type: string}, evidence: {type: array, items: {$ref: './schemas/common.schema.json#/$defs/EvidenceLink'}}}}}}}}}}
+  /chat:
+    post:
+      tags: [chat]
+      summary: Ask a question in natural language. The answer always carries evidence (rows, SQL, forecast components).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                session_id: {type: [string, 'null']}
+                company_id: {type: string}
+                message: {type: string}
+                language: {type: string, enum: [en, pl, de], default: en}
+      responses:
+        '200':
+          description: Answer
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ChatAnswer'}
+  /fx/rates:
+    get:
+      summary: Exchange rate lookup used by engine and UI tooltips
+      parameters:
+        - {name: currency, in: query, required: true, schema: {type: string}}
+        - {name: date, in: query, required: true, schema: {type: string, format: date}}
+        - {name: rule, in: query, schema: {type: string, enum: [pl_tax_prev_business_day, booking_day], default: pl_tax_prev_business_day}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/common.schema.json#/$defs/FxConversion'}}}}
+  /events/stream:
+    get:
+      tags: [stream]
+      summary: Server-Sent Events. Each message's data is an Event envelope (schemas/event.schema.json).
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: text/event-stream}
+components:
+  parameters:
+    id: {name: id, in: path, required: true, schema: {type: string}}
+    company: {name: company_id, in: query, schema: {type: string}}
+    cursor: {name: cursor, in: query, schema: {type: string}}
+  schemas:
+    SourceList:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: './schemas/source.schema.json'}}
+    Decision:
+      type: object
+      required: [decision]
+      properties:
+        decision: {type: string, enum: [approved, rejected, approved_with_changes]}
+        comment: {type: [string, 'null']}
+        changes: {type: [object, 'null'], description: "Field overrides keyed by dotted path, for example proposed_action.params.limit set to a Money object"}
+        channel: {type: string, enum: [dashboard, chat], default: dashboard}
+    ChatAnswer:
+      type: object
+      required: [session_id, answer, evidence]
+      properties:
+        session_id: {type: string}
+        answer: {type: string, description: "Plain-language answer. Numbers are copied from tool results and never generated."}
+        evidence: {type: array, items: {$ref: './schemas/common.schema.json#/$defs/EvidenceLink'}}
+        table: {type: [object, 'null'], properties: {columns: {type: array, items: {type: string}}, rows: {type: array, items: {type: array}}, sql: {type: string}}}
+        tool_calls: {type: array, items: {type: object, properties: {tool: {type: string}, arguments: {type: object}, duration_ms: {type: integer}}}}
+        created_recommendation_id: {type: [string, 'null'], description: "Chat can only PROPOSE actions; they land in the inbox as recommendations"}
+        guardrail: {type: [object, 'null'], properties: {blocked: {type: boolean}, reason: {type: string}}}
+        trace_id: {type: [string, 'null']}

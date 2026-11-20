@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/ledger_entry.schema.json",
+  "title": "LedgerEntry",
+  "type": "object",
+  "required": [
+    "id",
+    "company_id",
+    "date",
+    "type",
+    "category",
+    "amount",
+    "amount_base",
+    "status",
+    "explanation"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'led_'",
+      "pattern": "^led_[A-Za-z0-9_]+$"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "cash_date": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "expense",
+        "income",
+        "reimbursement_liability",
+        "reimbursement_payout",
+        "owner_private_use",
+        "tax_payment",
+        "social_security",
+        "salary",
+        "transfer",
+        "fx_difference",
+        "financing"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "description": "One of the fixed category list in docs/02_DATA_AND_SYNC.md"
+    },
+    "cost_behaviour": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "fixed",
+            "variable",
+            "subscription",
+            "one_off"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "amount": {
+      "$ref": "common.schema.json#/$defs/Money"
+    },
+    "amount_base": {
+      "$ref": "common.schema.json#/$defs/Money"
+    },
+    "fx": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/FxConversion"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "vat": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "amount",
+            "deductible"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "common.schema.json#/$defs/Money"
+            },
+            "deductible": {
+              "type": "boolean"
+            },
+            "reason": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "counterparty_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'cp_'",
+          "pattern": "^cp_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "document_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'doc_'",
+          "pattern": "^doc_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "transaction_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'txn_'",
+          "pattern": "^txn_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "match_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'mat_'",
+          "pattern": "^mat_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "paid_by": {
+      "type": "string",
+      "enum": [
+        "company_account",
+        "owner_private",
+        "employee_private",
+        "unknown",
+        "not_applicable"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "approved",
+        "void"
+      ]
+    },
+    "approval_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'apr_'",
+          "pattern": "^apr_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_by": {
+      "type": "string",
+      "description": "'rule:<id>' or 'agent:<name>'"
+    },
+    "explanation": {
+      "type": "string",
+      "description": "One plain sentence: why this entry exists"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/EvidenceLink"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "description": "One line of the owner-approved ledger. Nothing is 'approved' without an Approval (or an explicit auto-approve rule the owner switched on)."
+}

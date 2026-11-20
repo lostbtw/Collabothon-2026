@@ -1,0 +1,40 @@
+[
+  {
+    "id": "run_000981",
+    "source_id": "src_mail",
+    "connector": "imap_mailbox",
+    "trigger": "schedule",
+    "started_at": "2026-11-21T10:14:38Z",
+    "finished_at": "2026-11-21T10:14:40Z",
+    "status": "success",
+    "cursor_before": "UIDVALIDITY=7;UID=411",
+    "cursor_after": "UIDVALIDITY=7;UID=412",
+    "items_fetched": 2,
+    "items_new": 2,
+    "items_duplicate": 0,
+    "error": null,
+    "attempt": 1,
+    "duration_ms": 1840
+  },
+  {
+    "id": "run_000979",
+    "source_id": "src_ksef",
+    "connector": "ksef",
+    "trigger": "schedule",
+    "started_at": "2026-11-21T10:10:00Z",
+    "finished_at": "2026-11-21T10:10:01Z",
+    "status": "failed",
+    "cursor_before": "2026-11-21T09:54:58Z",
+    "cursor_after": "2026-11-21T09:54:58Z",
+    "items_fetched": 0,
+    "items_new": 0,
+    "items_duplicate": 0,
+    "error": {
+      "code": "HTTP_429",
+      "message": "Rate limited",
+      "retryable": true
+    },
+    "attempt": 2,
+    "duration_ms": 640
+  }
+]

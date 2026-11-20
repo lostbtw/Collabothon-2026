@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/forecast.schema.json",
+  "title": "Forecast",
+  "type": "object",
+  "required": [
+    "id",
+    "company_id",
+    "generated_at",
+    "as_of_date",
+    "horizon_days",
+    "base_currency",
+    "opening_balance",
+    "method",
+    "points",
+    "components",
+    "min_balance",
+    "alerts",
+    "assumptions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'fc_'",
+      "pattern": "^fc_[A-Za-z0-9_]+$"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "as_of_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "horizon_days": {
+      "type": "integer"
+    },
+    "base_currency": {
+      "type": "string"
+    },
+    "opening_balance": {
+      "$ref": "common.schema.json#/$defs/Money"
+    },
+    "safety_buffer": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "method": {
+      "type": "string",
+      "description": "e.g. 'recurring-schedule + weekday-average v1'"
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "date",
+          "balance"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "inflow": {
+            "type": "string"
+          },
+          "outflow": {
+            "type": "string"
+          },
+          "low": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "high": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "amount_base",
+          "confidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "opening_balance",
+              "fixed_recurring",
+              "variable_average",
+              "known_receivable",
+              "known_payable",
+              "tax",
+              "social_security",
+              "salary",
+              "reimbursement",
+              "owner_event",
+              "scenario_action"
+            ]
+          },
+          "amount_base": {
+            "$ref": "common.schema.json#/$defs/Money"
+          },
+          "schedule": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Human text: 'monthly on day 28', 'avg per weekday (last 8 weeks)', 'due 2026-12-21'"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "0..1"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/EvidenceLink"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "min_balance": {
+      "type": "object",
+      "required": [
+        "date",
+        "amount"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "amount": {
+          "$ref": "common.schema.json#/$defs/Money"
+        }
+      },
+      "additionalProperties": false
+    },
+    "first_negative_date": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "date_from",
+          "max_shortfall"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "cash_gap",
+              "below_buffer",
+              "large_tax_due",
+              "receivable_overdue",
+              "fx_exposure"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ]
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "date_to": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_shortfall": {
+            "$ref": "common.schema.json#/$defs/Money"
+          },
+          "days_ahead": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "date_from",
+          "date_to",
+          "effect"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date"
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "no_variable_flows",
+              "no_revenue",
+              "extra_inflow",
+              "extra_outflow"
+            ]
+          },
+          "amount": {
+            "oneOf": [
+              {
+                "$ref": "common.schema.json#/$defs/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "owner_chat",
+              "owner_form",
+              "calendar",
+              "detected"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scenario_of": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'fc_'",
+          "pattern": "^fc_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "inputs_hash": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "A cash forecast: daily projected balance across all accounts with include_in_liquidity=true, plus the components it is built from."
+}

@@ -1,0 +1,50 @@
+seed 7: 60 purchases, 87 documents (25 KSeF XML, 49 e-mail, 13 photo), 53 bank lines
+dedup: 87 documents -> 58 clusters (true distinct purchases with a document: 58); pure clusters: 58/58
+doc<->bank matching: 43 correct, 0 wrong, 0 missed  => precision 100%, recall 100%
+who-paid classification: 57/58 correct (98%)
+employee-paid detection: 14/15 found, 0 false alarms
+VAT not deductible flagged: 1,264.87 PLN-equivalent units (ground truth 1,264.87)
+bank lines without document (-> 'missing document' queue): 3 (ground truth 2)
+example explanation: event 19 -> bank B14 confidence 0.72: FX amount within bank spread of NBP (183.34); date lag 0d; name similarity 0.57
+elapsed: 0.07s
+
+seed 1: 60 purchases, 92 documents (22 KSeF XML, 54 e-mail, 16 photo), 44 bank lines
+dedup: 92 documents -> 58 clusters (true distinct purchases with a document: 58); pure clusters: 58/58
+doc<->bank matching: 34 correct, 0 wrong, 0 missed  => precision 100%, recall 100%
+who-paid classification: 58/58 correct (100%)
+employee-paid detection: 24/24 found, 0 false alarms
+VAT not deductible flagged: 1,997.31 PLN-equivalent units (ground truth 1,997.31)
+bank lines without document (-> 'missing document' queue): 4 (ground truth 2)
+example explanation: event 11 -> bank B4 confidence 0.85: FX amount within bank spread of NBP (289.34); date lag 0d; name similarity 1.00
+elapsed: 0.07s
+
+seed 2: 60 purchases, 87 documents (18 KSeF XML, 55 e-mail, 14 photo), 45 bank lines
+dedup: 87 documents -> 59 clusters (true distinct purchases with a document: 59); pure clusters: 59/59
+doc<->bank matching: 36 correct, 0 wrong, 0 missed  => precision 100%, recall 100%
+who-paid classification: 59/59 correct (100%)
+employee-paid detection: 23/23 found, 0 false alarms
+VAT not deductible flagged: 2,913.31 PLN-equivalent units (ground truth 2,913.31)
+bank lines without document (-> 'missing document' queue): 2 (ground truth 1)
+example explanation: event 11 -> bank B4 confidence 0.77: FX amount within bank spread of NBP (248.81); date lag 2d; name similarity 0.88
+elapsed: 0.07s
+
+seed 3: 60 purchases, 89 documents (26 KSeF XML, 52 e-mail, 11 photo), 53 bank lines
+dedup: 89 documents -> 58 clusters (true distinct purchases with a document: 58); pure clusters: 58/58
+doc<->bank matching: 43 correct, 0 wrong, 0 missed  => precision 100%, recall 100%
+who-paid classification: 56/58 correct (97%)
+employee-paid detection: 13/15 found, 0 false alarms
+VAT not deductible flagged: 1,916.23 PLN-equivalent units (ground truth 1,916.23)
+bank lines without document (-> 'missing document' queue): 6 (ground truth 2)
+example explanation: event 49 -> bank B37 confidence 0.7: FX amount within bank spread of NBP (202.42); date lag 1d; name similarity 0.57
+elapsed: 0.07s
+
+seed 4: 60 purchases, 94 documents (31 KSeF XML, 49 e-mail, 14 photo), 59 bank lines
+dedup: 94 documents -> 57 clusters (true distinct purchases with a document: 57); pure clusters: 57/57
+doc<->bank matching: 48 correct, 0 wrong, 0 missed  => precision 100%, recall 100%
+who-paid classification: 57/57 correct (100%)
+employee-paid detection: 9/9 found, 0 false alarms
+VAT not deductible flagged: 1,011.27 PLN-equivalent units (ground truth 1,011.27)
+bank lines without document (-> 'missing document' queue): 4 (ground truth 3)
+example explanation: event 43 -> bank B35 confidence 0.72: FX amount within bank spread of NBP (196.24); date lag 0d; name similarity 0.57
+elapsed: 0.07s
+

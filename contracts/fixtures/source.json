@@ -1,0 +1,66 @@
+[
+  {
+    "id": "src_mail",
+    "company_id": "co_borsuk",
+    "connector": "imap_mailbox",
+    "display_name": "invoices@ mailbox",
+    "status": "connected",
+    "mode": "polling",
+    "poll_interval_seconds": 20,
+    "last_synced_at": "2026-11-21T10:14:40Z",
+    "last_success_at": "2026-11-21T10:14:40Z",
+    "next_run_at": "2026-11-21T10:15:00Z",
+    "last_error": null,
+    "cursor": "UIDVALIDITY=7;UID=412",
+    "config_public": {
+      "mailbox": "invoices.borsuk.sample@example.test",
+      "folder": "INBOX"
+    },
+    "items_total": 96,
+    "is_sandbox": true
+  },
+  {
+    "id": "src_bank_pln",
+    "company_id": "co_borsuk",
+    "connector": "bank_psd2",
+    "display_name": "Sandbox Bank - company PLN account",
+    "status": "connected",
+    "mode": "polling",
+    "poll_interval_seconds": 60,
+    "last_synced_at": "2026-11-21T10:14:02Z",
+    "last_success_at": "2026-11-21T10:14:02Z",
+    "next_run_at": "2026-11-21T10:15:02Z",
+    "last_error": null,
+    "cursor": "2026-11-21|E000000731",
+    "config_public": {
+      "iban_masked": "PL** **** **** **** **** 0417",
+      "api": "Berlin Group NextGenPSD2 style /v1/accounts/{id}/transactions"
+    },
+    "items_total": 731,
+    "is_sandbox": true
+  },
+  {
+    "id": "src_ksef",
+    "company_id": "co_borsuk",
+    "connector": "ksef",
+    "display_name": "KSeF (test environment)",
+    "status": "degraded",
+    "mode": "polling",
+    "poll_interval_seconds": 300,
+    "last_synced_at": "2026-11-21T10:10:00Z",
+    "last_success_at": "2026-11-21T09:55:00Z",
+    "next_run_at": "2026-11-21T10:15:00Z",
+    "last_error": {
+      "code": "HTTP_429",
+      "message": "Rate limited by KSeF test API, backing off",
+      "retryable": true
+    },
+    "cursor": "2026-11-21T09:54:58Z",
+    "config_public": {
+      "nip": "9990000014",
+      "environment": "test"
+    },
+    "items_total": 41,
+    "is_sandbox": true
+  }
+]

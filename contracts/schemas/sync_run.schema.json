@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/sync_run.schema.json",
+  "title": "SyncRun",
+  "type": "object",
+  "required": [
+    "id",
+    "source_id",
+    "connector",
+    "trigger",
+    "started_at",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'run_'",
+      "pattern": "^run_[A-Za-z0-9_]+$"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'src_'",
+      "pattern": "^src_[A-Za-z0-9_]+$"
+    },
+    "connector": {
+      "$ref": "common.schema.json#/$defs/Connector"
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "schedule",
+        "webhook",
+        "manual",
+        "startup"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "success",
+        "partial",
+        "failed"
+      ]
+    },
+    "cursor_before": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cursor_after": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "items_fetched": {
+      "type": "integer"
+    },
+    "items_new": {
+      "type": "integer"
+    },
+    "items_duplicate": {
+      "type": "integer"
+    },
+    "error": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/ErrorInfo"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attempt": {
+      "type": "integer"
+    },
+    "duration_ms": {
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "One execution of a connector. Written at start, updated at end."
+}

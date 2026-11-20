@@ -1,0 +1,38 @@
+[
+  {
+    "id": "apr_0007",
+    "subject_type": "recommendation",
+    "subject_id": "rec_cl01",
+    "decision": "approved_with_changes",
+    "decided_by": {
+      "person_id": "per_tomek",
+      "name": "Tomasz Borsuk (SAMPLE)",
+      "email": "owner@borsuk-labs.sample",
+      "role": "owner"
+    },
+    "decided_at": "2026-11-21T10:19:30Z",
+    "channel": "dashboard",
+    "comment": "25k is enough",
+    "changes": {
+      "proposed_action.params.limit": {
+        "amount": "25000.00",
+        "currency": "PLN"
+      }
+    },
+    "execution": {
+      "mode": "simulated",
+      "status": "done",
+      "executed_at": "2026-11-21T10:19:31Z",
+      "reference": "SIM-CL-2026-0007",
+      "result": "Sandbox bank accepted the application: limit 25,000 PLN, available from 2026-11-27.",
+      "effects": [
+        {
+          "kind": "forecast",
+          "id": "fc_20261121c",
+          "label": "Forecast with the credit line",
+          "url": "/forecast/fc_20261121c"
+        }
+      ]
+    }
+  }
+]

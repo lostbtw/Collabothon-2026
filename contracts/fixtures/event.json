@@ -1,0 +1,88 @@
+[
+  {
+    "id": "evt_9001",
+    "type": "raw_item.received",
+    "occurred_at": "2026-11-21T10:14:39Z",
+    "company_id": "co_borsuk",
+    "correlation_id": "raw_mail412",
+    "causation_id": null,
+    "producer": "connector-mail",
+    "payload": {
+      "raw_item_id": "raw_mail412a1",
+      "kind": "email_attachment",
+      "source_id": "src_mail"
+    }
+  },
+  {
+    "id": "evt_9002",
+    "type": "document.extracted",
+    "occurred_at": "2026-11-21T10:14:52Z",
+    "company_id": "co_borsuk",
+    "correlation_id": "raw_mail412",
+    "causation_id": "evt_9001",
+    "producer": "extractor",
+    "payload": {
+      "document_id": "doc_rcpt412",
+      "status": "needs_review",
+      "gross": {
+        "amount": "1299.00",
+        "currency": "PLN"
+      },
+      "seller": "ElektroMarkt Polska S.A. (SAMPLE)",
+      "flags": [
+        "buyer_not_company",
+        "vat_not_deductible"
+      ]
+    }
+  },
+  {
+    "id": "evt_9003",
+    "type": "match.suggested",
+    "occurred_at": "2026-11-21T10:14:55Z",
+    "company_id": "co_borsuk",
+    "correlation_id": "raw_mail412",
+    "causation_id": "evt_9002",
+    "producer": "matcher",
+    "payload": {
+      "match_id": "mat_412",
+      "document_id": "doc_rcpt412",
+      "paid_by": "employee_private",
+      "score": 0.86
+    }
+  },
+  {
+    "id": "evt_9004",
+    "type": "recommendation.created",
+    "occurred_at": "2026-11-21T10:14:56Z",
+    "company_id": "co_borsuk",
+    "correlation_id": "raw_mail412",
+    "causation_id": "evt_9003",
+    "producer": "matcher",
+    "payload": {
+      "recommendation_id": "rec_412",
+      "type": "reimburse_employee",
+      "control_level": "approval_required"
+    }
+  },
+  {
+    "id": "evt_9005",
+    "type": "forecast.updated",
+    "occurred_at": "2026-11-21T10:15:03Z",
+    "company_id": "co_borsuk",
+    "correlation_id": "raw_mail412",
+    "causation_id": "evt_9003",
+    "producer": "finance-engine",
+    "payload": {
+      "forecast_id": "fc_20261121a",
+      "min_balance": {
+        "amount": "-7870.00",
+        "currency": "PLN"
+      },
+      "min_balance_previous": {
+        "amount": "-6571.00",
+        "currency": "PLN"
+      },
+      "first_negative_date": "2026-11-30"
+    }
+  }
+]

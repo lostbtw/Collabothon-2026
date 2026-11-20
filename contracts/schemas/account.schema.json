@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/account.schema.json",
+  "title": "Account",
+  "type": "object",
+  "required": [
+    "id",
+    "company_id",
+    "kind",
+    "name",
+    "currency",
+    "include_in_liquidity"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'acc_'",
+      "pattern": "^acc_[A-Za-z0-9_]+$"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "company_bank",
+        "company_card",
+        "owner_private",
+        "employee_out_of_pocket"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "iban_masked": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "card_last4": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{4}$"
+      }
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "source_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'src_'",
+          "pattern": "^src_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "balance": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "balance_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "opening_balance": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "include_in_liquidity": {
+      "type": "boolean",
+      "description": "false for the owner's private card: we read it to find company costs, but it is not company cash"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A money account or card the company's cash can sit in or leave from."
+}

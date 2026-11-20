@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/transaction.schema.json",
+  "title": "Transaction",
+  "type": "object",
+  "required": [
+    "id",
+    "account_id",
+    "raw_item_id",
+    "external_id",
+    "booking_date",
+    "amount",
+    "amount_base",
+    "description",
+    "status",
+    "match_status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'txn_'",
+      "pattern": "^txn_[A-Za-z0-9_]+$"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'acc_'",
+      "pattern": "^acc_[A-Za-z0-9_]+$"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'src_'",
+      "pattern": "^src_[A-Za-z0-9_]+$"
+    },
+    "raw_item_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'raw_'",
+      "pattern": "^raw_[A-Za-z0-9_]+$"
+    },
+    "external_id": {
+      "type": "string"
+    },
+    "booking_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "value_date": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "amount": {
+      "$ref": "common.schema.json#/$defs/Money"
+    },
+    "amount_base": {
+      "$ref": "common.schema.json#/$defs/Money"
+    },
+    "fx": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/FxConversion"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "original_amount": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "counterparty_name_raw": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "counterparty_account": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "counterparty_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'cp_'",
+          "pattern": "^cp_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "card_payment",
+        "transfer_out",
+        "transfer_in",
+        "direct_debit",
+        "card_settlement",
+        "salary",
+        "tax",
+        "social_security",
+        "fee",
+        "fx",
+        "internal",
+        "other"
+      ]
+    },
+    "card_last4": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "balance_after": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "booked",
+        "pending"
+      ]
+    },
+    "category": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recurring_series_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'ser_'",
+          "pattern": "^ser_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "match_status": {
+      "type": "string",
+      "enum": [
+        "unmatched",
+        "suggested",
+        "matched",
+        "no_document_needed",
+        "missing_document"
+      ]
+    },
+    "data_quality": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "currency_mismatch_fixed",
+          "rate_from_reference_text",
+          "counterparty_unresolved",
+          "duplicate_suspected"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "description": "One bank or card line, normalised. Amount sign: negative = money out."
+}

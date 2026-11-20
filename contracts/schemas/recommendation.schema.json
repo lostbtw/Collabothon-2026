@@ -1,0 +1,381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/recommendation.schema.json",
+  "title": "Recommendation",
+  "type": "object",
+  "required": [
+    "id",
+    "company_id",
+    "agent",
+    "type",
+    "title",
+    "summary",
+    "control_level",
+    "execution_mode",
+    "status",
+    "severity",
+    "created_at",
+    "explanation",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'rec_'",
+      "pattern": "^rec_[A-Za-z0-9_]+$"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "agent": {
+      "type": "string",
+      "enum": [
+        "ingestion",
+        "liquidity",
+        "tax",
+        "fx",
+        "chat"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "credit_line",
+        "payment_deferral",
+        "chase_receivable",
+        "tax_reserve",
+        "fx_hedge",
+        "reimburse_employee",
+        "request_company_invoice",
+        "book_entry",
+        "confirm_match",
+        "mark_private",
+        "missing_document",
+        "info"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Max ~60 chars, plain language"
+    },
+    "summary": {
+      "type": "string",
+      "description": "2-3 plain sentences a non-finance owner understands"
+    },
+    "control_level": {
+      "$ref": "common.schema.json#/$defs/ControlLevel"
+    },
+    "execution_mode": {
+      "$ref": "common.schema.json#/$defs/ExecutionMode"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "seen",
+        "approved",
+        "rejected",
+        "executed_simulated",
+        "expired",
+        "superseded"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "explanation": {
+      "type": "object",
+      "required": [
+        "why",
+        "confidence"
+      ],
+      "properties": {
+        "why": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "One reason per item, each backed by evidence"
+          }
+        },
+        "calculation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label",
+              "value"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "formula": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "pros": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cons": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cost": {
+                "oneOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/Money"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0..1"
+        },
+        "generated_by": {
+          "type": "object",
+          "required": [
+            "numbers",
+            "wording"
+          ],
+          "properties": {
+            "numbers": {
+              "type": "string",
+              "description": "always 'finance-engine' (deterministic code)"
+            },
+            "wording": {
+              "type": "string",
+              "description": "model id that wrote the text, or 'template'"
+            },
+            "trace_id": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/EvidenceLink"
+      },
+      "minItems": 1
+    },
+    "proposed_action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "params"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "apply_credit_line",
+                "schedule_transfer",
+                "create_payment_draft",
+                "book_ledger_entries",
+                "send_email_draft",
+                "book_fx_forward",
+                "move_to_tax_pocket",
+                "none"
+              ]
+            },
+            "params": {
+              "type": "object"
+            },
+            "preview": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "What will happen, in one sentence, incl. the word SIMULATED when execution_mode=simulated"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "impact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "cash_effect": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/Money"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cost": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/Money"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "min_balance_before": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/Money"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "min_balance_after": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/Money"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scenario_forecast_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "Opaque id, prefix 'fc_'",
+                  "pattern": "^fc_[A-Za-z0-9_]+$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subject": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/EvidenceLink"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approval_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'apr_'",
+          "pattern": "^apr_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Anything an agent wants the owner to know or decide. The card the UI renders. Always carries control level, execution mode, explanation and evidence."
+}

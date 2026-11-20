@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/common.schema.json",
+  "title": "Common definitions",
+  "$defs": {
+    "Money": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "type": "string",
+          "description": "Decimal as string, dot separator, sign = direction (negative = money out)",
+          "pattern": "^-?\\d+(\\.\\d{1,2})?$"
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FxConversion": {
+      "type": "object",
+      "required": [
+        "rate",
+        "rate_date",
+        "source"
+      ],
+      "properties": {
+        "rate": {
+          "type": "string",
+          "description": "Units of base currency per 1 unit of foreign currency",
+          "pattern": "^\\d+(\\.\\d+)?$"
+        },
+        "rate_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "source": {
+          "type": "string",
+          "description": "e.g. 'NBP table A 221/A/NBP/2026', 'ECB', 'bank reference text'"
+        },
+        "rule": {
+          "type": "string",
+          "enum": [
+            "pl_tax_prev_business_day",
+            "booking_day",
+            "statement_reference",
+            "bank_actual"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceLink": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "label"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "transaction",
+            "document",
+            "raw_item",
+            "ledger_entry",
+            "match",
+            "forecast",
+            "forecast_component",
+            "recommendation",
+            "rule",
+            "fx_rate",
+            "sql",
+            "external"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Short human text shown in the UI"
+        },
+        "url": {
+          "type": "string",
+          "description": "UI deep link, e.g. /documents/doc_123"
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Optional quoted value, e.g. the amount or the SQL text"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Every number shown to the owner must be traceable through one of these."
+    },
+    "ControlLevel": {
+      "type": "string",
+      "enum": [
+        "analysed_autonomously",
+        "recommendation",
+        "approval_required"
+      ],
+      "description": "analysed_autonomously = agent did it alone (read-only analysis, no effect outside the app); recommendation = advice only, nothing to execute; approval_required = an action is prepared and runs only after the owner approves"
+    },
+    "ExecutionMode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "simulated",
+        "permitted"
+      ],
+      "description": "none = nothing to execute; simulated = executed against a sandbox/simulator only (ALL actions in the hackathon build); permitted = would really execute in production"
+    },
+    "ErrorInfo": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PersonRef": {
+      "type": "object",
+      "required": [
+        "role"
+      ],
+      "properties": {
+        "person_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Opaque id, prefix 'per_'",
+              "pattern": "^per_[A-Za-z0-9_]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "employee",
+            "accountant",
+            "system",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Connector": {
+      "type": "string",
+      "enum": [
+        "imap_mailbox",
+        "telegram_bot",
+        "bank_psd2",
+        "ksef",
+        "accounting_api",
+        "fx_rates",
+        "upload"
+      ]
+    }
+  }
+}

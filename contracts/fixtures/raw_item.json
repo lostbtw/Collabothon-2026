@@ -1,0 +1,75 @@
+[
+  {
+    "id": "raw_mail412",
+    "source_id": "src_mail",
+    "sync_run_id": "run_000981",
+    "kind": "email",
+    "external_id": "<CAF-sample-412@mail.example.test>",
+    "idempotency_key": "e8db545e192c2d7dd7d03d6c38a9bc86c5345a1df33e34d3fbf457f6d9e9b9af",
+    "parent_raw_item_id": null,
+    "received_at": "2026-11-21T10:14:21Z",
+    "fetched_at": "2026-11-21T10:14:39Z",
+    "content_type": "message/rfc822",
+    "storage_uri": "pvc://raw/co_borsuk/mail/412.eml",
+    "sha256": "9d1a3d5ec429ca112fa78a6b9d33b51701bbabb604237e31c409b1b2bd732a23",
+    "size_bytes": 1843201,
+    "metadata": {
+      "from": "jan@borsuk-labs.sample",
+      "subject": "Fwd: monitor do biura",
+      "attachments": 1
+    },
+    "payload": null,
+    "processing_status": "processed",
+    "error": null
+  },
+  {
+    "id": "raw_mail412a1",
+    "source_id": "src_mail",
+    "sync_run_id": "run_000981",
+    "kind": "email_attachment",
+    "external_id": "<CAF-sample-412@mail.example.test>#1",
+    "idempotency_key": "c20249f9f8a037151f81dfc57d280b387959199688df9b547868c11323889d47",
+    "parent_raw_item_id": "raw_mail412",
+    "received_at": "2026-11-21T10:14:21Z",
+    "fetched_at": "2026-11-21T10:14:39Z",
+    "content_type": "image/jpeg",
+    "storage_uri": "pvc://raw/co_borsuk/mail/412-1.jpg",
+    "sha256": "7a38691a5ce9c8f210ca3cca787146602e9776e5c51fdc0154d41cf0a873cea7",
+    "size_bytes": 1790112,
+    "metadata": {
+      "filename": "IMG_2041.jpg",
+      "forwarded_by": "jan@borsuk-labs.sample"
+    },
+    "payload": null,
+    "processing_status": "processed",
+    "error": null
+  },
+  {
+    "id": "raw_bank731",
+    "source_id": "src_bank_pln",
+    "sync_run_id": "run_000980",
+    "kind": "bank_transaction",
+    "external_id": "E000000731",
+    "idempotency_key": "4e6d9539dc51a6c4243c06fd9527c8353f06f59fcc37b557d0d7b77d889d9151",
+    "parent_raw_item_id": null,
+    "received_at": null,
+    "fetched_at": "2026-11-21T10:14:02Z",
+    "content_type": "application/json",
+    "storage_uri": null,
+    "sha256": null,
+    "size_bytes": null,
+    "metadata": {},
+    "payload": {
+      "entryReference": "E000000731",
+      "bookingDate": "2026-11-20",
+      "transactionAmount": {
+        "amount": "-180.62",
+        "currency": "PLN"
+      },
+      "creditorName": "PIXELBOARD.COM* SAN FRANCISCO",
+      "remittanceInformationUnstructured": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417"
+    },
+    "processing_status": "processed",
+    "error": null
+  }
+]

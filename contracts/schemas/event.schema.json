@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/event.schema.json",
+  "title": "Event envelope",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "occurred_at",
+    "company_id",
+    "payload"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'evt_'",
+      "pattern": "^evt_[A-Za-z0-9_]+$"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "sync.run.started",
+        "sync.run.finished",
+        "raw_item.received",
+        "document.extracted",
+        "document.duplicate_detected",
+        "transaction.ingested",
+        "match.suggested",
+        "match.decided",
+        "ledger.entry.proposed",
+        "ledger.entry.approved",
+        "forecast.updated",
+        "recommendation.created",
+        "recommendation.status_changed",
+        "approval.recorded",
+        "execution.simulated"
+      ]
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "correlation_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Same for everything caused by one raw item; lets the UI animate one receipt through the pipeline"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "causation_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'evt_'",
+          "pattern": "^evt_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "producer": {
+      "type": "string",
+      "description": "service name"
+    },
+    "payload": {
+      "type": "object",
+      "description": "See contracts/events.md: per type, the payload is {<entity>_id, ...small summary}. Consumers fetch the full entity over REST."
+    }
+  },
+  "additionalProperties": false,
+  "description": "Envelope for every message on the internal queue (Postgres table `outbox` + LISTEN/NOTIFY) and on the UI stream (SSE /api/v1/events/stream)."
+}

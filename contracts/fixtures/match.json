@@ -1,0 +1,116 @@
+[
+  {
+    "id": "mat_412",
+    "match_type": "document_no_transaction",
+    "document_id": "doc_rcpt412",
+    "transaction_id": null,
+    "other_document_id": null,
+    "score": 0.86,
+    "reasons": [
+      {
+        "rule": "sender_is_employee",
+        "weight": 0.5,
+        "detail": "Forwarded to invoices@ by jan@borsuk-labs.sample (employee)"
+      },
+      {
+        "rule": "no_bank_line_on_connected_accounts",
+        "weight": 0.3,
+        "detail": "No outgoing 1,299.00 PLN between 2026-11-19 and 2026-11-21 on 3 connected accounts"
+      },
+      {
+        "rule": "card_last4",
+        "weight": 0.06,
+        "detail": "Card *7730 on the receipt is not a company card (*4417) nor the owner's card (*9021)"
+      }
+    ],
+    "paid_by": "employee_private",
+    "payer": {
+      "person_id": "per_jan",
+      "name": "Jan Kowalski (SAMPLE)",
+      "email": "jan@borsuk-labs.sample",
+      "role": "employee"
+    },
+    "consequences": {
+      "reimbursement_owed": {
+        "amount": "1299.00",
+        "currency": "PLN"
+      },
+      "reimbursement_to": {
+        "person_id": "per_jan",
+        "name": "Jan Kowalski (SAMPLE)",
+        "email": "jan@borsuk-labs.sample",
+        "role": "employee"
+      },
+      "vat_deductible": false,
+      "vat_amount": {
+        "amount": "242.90",
+        "currency": "PLN"
+      },
+      "vat_lost": {
+        "amount": "242.90",
+        "currency": "PLN"
+      },
+      "rule_ids": [
+        "PL-VAT-01",
+        "PL-REIMB-01"
+      ],
+      "note": "Receipt has no company tax id, so the company cannot deduct the 242.90 PLN VAT. Reimbursing the documented cost is not salary."
+    },
+    "status": "suggested",
+    "decided_by": null,
+    "decided_at": null,
+    "created_at": "2026-11-21T10:14:55Z"
+  },
+  {
+    "id": "mat_pixel11",
+    "match_type": "document_transaction",
+    "document_id": "doc_pixel11",
+    "transaction_id": "txn_731",
+    "other_document_id": null,
+    "score": 0.91,
+    "reasons": [
+      {
+        "rule": "amount_fx_within_spread",
+        "weight": 0.35,
+        "detail": "45.00 USD x NBP 3.9099 = 175.95 PLN; bank charged 180.62 PLN (+2.7%, inside the 0..4.5% card spread band)"
+      },
+      {
+        "rule": "date_lag",
+        "weight": 0.18,
+        "detail": "Booked 1 day after invoice date"
+      },
+      {
+        "rule": "name_similarity",
+        "weight": 0.26,
+        "detail": "'PixelBoard Inc.' ~ 'PIXELBOARD.COM* SAN FRANCISCO' (0.87)"
+      },
+      {
+        "rule": "card_last4",
+        "weight": 0.12,
+        "detail": "Company card *4417"
+      }
+    ],
+    "paid_by": "company_account",
+    "payer": null,
+    "consequences": {
+      "reimbursement_owed": null,
+      "reimbursement_to": null,
+      "vat_deductible": true,
+      "vat_amount": null,
+      "vat_lost": null,
+      "rule_ids": [
+        "PL-VAT-03"
+      ],
+      "note": "Import of services: reverse charge, self-assessed VAT is neutral."
+    },
+    "status": "auto_confirmed",
+    "decided_by": {
+      "role": "system",
+      "person_id": null,
+      "name": "rule: auto-confirm >= 0.90 for known recurring series",
+      "email": null
+    },
+    "decided_at": "2026-11-20T06:00:12Z",
+    "created_at": "2026-11-20T06:00:12Z"
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "acc_pln",
+    "company_id": "co_borsuk",
+    "kind": "company_bank",
+    "name": "Company account PLN",
+    "iban_masked": "PL** **** 0417",
+    "card_last4": [
+      "4417"
+    ],
+    "currency": "PLN",
+    "source_id": "src_bank_pln",
+    "balance": {
+      "amount": "24730.15",
+      "currency": "PLN"
+    },
+    "balance_at": "2026-11-21T10:14:02Z",
+    "opening_balance": {
+      "amount": "31200.00",
+      "currency": "PLN"
+    },
+    "include_in_liquidity": true
+  },
+  {
+    "id": "acc_owner",
+    "company_id": "co_borsuk",
+    "kind": "owner_private",
+    "name": "Owner's private card",
+    "iban_masked": null,
+    "card_last4": [
+      "9021"
+    ],
+    "currency": "PLN",
+    "source_id": "src_bank_owner",
+    "balance": null,
+    "balance_at": null,
+    "opening_balance": null,
+    "include_in_liquidity": false
+  }
+]

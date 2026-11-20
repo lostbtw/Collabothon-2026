@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/raw_item.schema.json",
+  "title": "RawItem",
+  "type": "object",
+  "required": [
+    "id",
+    "source_id",
+    "sync_run_id",
+    "kind",
+    "external_id",
+    "idempotency_key",
+    "fetched_at",
+    "processing_status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'raw_'",
+      "pattern": "^raw_[A-Za-z0-9_]+$"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'src_'",
+      "pattern": "^src_[A-Za-z0-9_]+$"
+    },
+    "sync_run_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'run_'",
+      "pattern": "^run_[A-Za-z0-9_]+$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "email",
+        "email_attachment",
+        "chat_photo",
+        "bank_transaction",
+        "ksef_invoice_xml",
+        "accounting_invoice",
+        "fx_rate_table",
+        "upload"
+      ]
+    },
+    "external_id": {
+      "type": "string",
+      "description": "Id in the source system: IMAP Message-ID, bank entryReference/transactionId, KSeF number, accounting invoice id"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Unique. sha256(connector + ':' + account/mailbox + ':' + external_id); for files additionally the content sha256 is checked",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "parent_raw_item_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'raw_'",
+          "pattern": "^raw_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "received_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fetched_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "content_type": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "storage_uri": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Where the bytes are, e.g. pvc://raw/<company>/<file> on the shared volume"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sha256": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "size_bytes": {
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Connector-specific: from, to, subject, filename, forwarded_by, telegram chat id..."
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Inline JSON payload for small structured items (bank line, API invoice)"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "processing",
+        "processed",
+        "ignored",
+        "failed"
+      ]
+    },
+    "error": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/ErrorInfo"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable copy of something fetched from a source, before any interpretation. Idempotency lives here."
+}

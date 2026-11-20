@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/match.schema.json",
+  "title": "Match",
+  "type": "object",
+  "required": [
+    "id",
+    "match_type",
+    "document_id",
+    "score",
+    "reasons",
+    "paid_by",
+    "consequences",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'mat_'",
+      "pattern": "^mat_[A-Za-z0-9_]+$"
+    },
+    "match_type": {
+      "type": "string",
+      "enum": [
+        "document_transaction",
+        "duplicate_document",
+        "sales_invoice_payment",
+        "reimbursement_payout",
+        "document_no_transaction"
+      ]
+    },
+    "document_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'doc_'",
+      "pattern": "^doc_[A-Za-z0-9_]+$"
+    },
+    "transaction_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'txn_'",
+          "pattern": "^txn_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "other_document_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'doc_'",
+          "pattern": "^doc_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "0..1"
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule",
+          "weight",
+          "detail"
+        ],
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": [
+              "amount_exact",
+              "amount_near",
+              "amount_fx_within_spread",
+              "date_lag",
+              "invoice_number_in_title",
+              "name_similarity",
+              "card_last4",
+              "tax_id_equal",
+              "iban_equal",
+              "sender_is_employee",
+              "no_bank_line_on_connected_accounts"
+            ]
+          },
+          "weight": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "paid_by": {
+      "type": "string",
+      "enum": [
+        "company_account",
+        "owner_private",
+        "employee_private",
+        "unknown"
+      ]
+    },
+    "payer": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/PersonRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "consequences": {
+      "type": "object",
+      "required": [
+        "vat_deductible"
+      ],
+      "properties": {
+        "reimbursement_owed": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reimbursement_to": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/PersonRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vat_deductible": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vat_amount": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vat_lost": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Ids from docs/domain rules table, e.g. PL-VAT-01"
+          }
+        },
+        "note": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "suggested",
+        "auto_confirmed",
+        "confirmed",
+        "rejected"
+      ]
+    },
+    "decided_by": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/PersonRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decided_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A proposed or confirmed link between a document and a bank line (or two duplicate documents), with who paid and what follows from it."
+}

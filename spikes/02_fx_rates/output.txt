@@ -1,0 +1,19 @@
+== NBP single day (business day) ==
+200 [{'no': '224/A/NBP/2026', 'effectiveDate': '2026-11-18', 'mid': 4.4089}] 0.33s
+== NBP on a Sunday (expect 404 -> must walk back) ==
+404 None 0.23s
+== Tax rule helper: rate of last business day BEFORE the transaction date ==
+tx 2026-11-16 (Mon) EUR: use 4.407 from 2026-11-13 table 221/A/NBP/2026  (0.27s)
+tx 2026-11-12 (Thu) USD: use 3.9099 from 2026-11-10 table 219/A/NBP/2026  (0.30s)
+tx 2025-06-16 (Mon) CHF: use 4.5604 from 2025-06-13 table 114/A/NBP/2025  (0.23s)
+tx 2026-01-02 (Fri) EUR: use 4.2267 from 2025-12-31 table 251/A/NBP/2025  (0.27s)
+== NBP whole table A for latest day (all currencies in one call) ==
+200 226/A/NBP/2026 2026-11-20 32 currencies 0.23s
+== ECB reference rates (frankfurter) EUR->CHF,PLN,USD latest and time series ==
+200 {'amount': 1.0, 'base': 'EUR', 'date': '2026-11-19', 'rates': {'CHF': 0.9262, 'PLN': 4.417, 'USD': 1.0992}} 0.26s
+200 22 days 2025-05-30 {'EUR': 1.0705} .. 2025-06-30 {'EUR': 1.0699} 0.34s
+== ECB official SDMX API (data-api.ecb.europa.eu) CHF daily, June 2025 ==
+200 [('2025-06-13', '0.9359'), ('2025-06-16', '0.9393'), ('2025-06-17', '0.9406')] 14.00s
+real 16.77
+user 0.30
+sys 0.06

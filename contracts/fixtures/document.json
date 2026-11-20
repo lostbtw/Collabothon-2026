@@ -1,0 +1,202 @@
+[
+  {
+    "id": "doc_rcpt412",
+    "company_id": "co_borsuk",
+    "raw_item_ids": [
+      "raw_mail412a1"
+    ],
+    "duplicate_of": null,
+    "doc_type": "receipt",
+    "direction": "purchase",
+    "channel": "photo",
+    "number": "PARAGON 004512/11/2026",
+    "issue_date": "2026-11-20",
+    "sale_date": "2026-11-20",
+    "due_date": null,
+    "seller": {
+      "counterparty_id": "cp_elektromarkt",
+      "name": "ElektroMarkt Polska S.A. (SAMPLE)",
+      "tax_id": "9990000043",
+      "country": "PL",
+      "address": null
+    },
+    "buyer": {
+      "counterparty_id": null,
+      "name": "(none printed)",
+      "tax_id": null,
+      "country": null,
+      "address": null,
+      "is_company": false
+    },
+    "totals": {
+      "net": {
+        "amount": "1056.10",
+        "currency": "PLN"
+      },
+      "vat": {
+        "amount": "242.90",
+        "currency": "PLN"
+      },
+      "gross": {
+        "amount": "1299.00",
+        "currency": "PLN"
+      },
+      "gross_base": {
+        "amount": "1299.00",
+        "currency": "PLN"
+      },
+      "fx": null
+    },
+    "vat_lines": [
+      {
+        "rate": "23",
+        "net": "1056.10",
+        "vat": "242.90"
+      }
+    ],
+    "lines": [
+      {
+        "description": "Monitor 27 cali QHD (SAMPLE)",
+        "quantity": 1,
+        "unit_price": "1299.00",
+        "net": "1056.10",
+        "vat_rate": "23"
+      }
+    ],
+    "payment": {
+      "method": "card",
+      "card_last4": "7730",
+      "paid": true,
+      "paid_date": "2026-11-20",
+      "bank_account": null
+    },
+    "submitted_by": {
+      "person_id": "per_jan",
+      "name": "Jan Kowalski (SAMPLE)",
+      "email": "jan@borsuk-labs.sample",
+      "role": "employee"
+    },
+    "extraction": {
+      "method": "llm_vision",
+      "model": "<served-vision-model>",
+      "confidence": 0.93,
+      "field_confidence": {
+        "gross": 0.99,
+        "seller_tax_id": 0.97,
+        "issue_date": 0.95,
+        "buyer_tax_id": 0.9
+      },
+      "warnings": [
+        "No buyer tax id found on the receipt"
+      ],
+      "trace_id": "tr-5f1c2a"
+    },
+    "category_suggestion": {
+      "category": "equipment",
+      "confidence": 0.88,
+      "method": "llm"
+    },
+    "status": "needs_review",
+    "flags": [
+      "buyer_not_company",
+      "vat_not_deductible"
+    ],
+    "created_at": "2026-11-21T10:14:52Z"
+  },
+  {
+    "id": "doc_pixel11",
+    "company_id": "co_borsuk",
+    "raw_item_ids": [
+      "raw_mail405a1"
+    ],
+    "duplicate_of": null,
+    "doc_type": "invoice",
+    "direction": "purchase",
+    "channel": "email",
+    "number": "INV-PB-88213",
+    "issue_date": "2026-11-19",
+    "sale_date": "2026-11-19",
+    "due_date": null,
+    "seller": {
+      "counterparty_id": "cp_pixelboard",
+      "name": "PixelBoard Inc. (SAMPLE)",
+      "tax_id": null,
+      "country": "US",
+      "address": null
+    },
+    "buyer": {
+      "counterparty_id": null,
+      "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+      "tax_id": "PL9990000014",
+      "country": "PL",
+      "address": null,
+      "is_company": true
+    },
+    "totals": {
+      "net": {
+        "amount": "45.00",
+        "currency": "USD"
+      },
+      "vat": {
+        "amount": "0.00",
+        "currency": "USD"
+      },
+      "gross": {
+        "amount": "45.00",
+        "currency": "USD"
+      },
+      "gross_base": {
+        "amount": "175.95",
+        "currency": "PLN"
+      },
+      "fx": {
+        "rate": "3.9099",
+        "rate_date": "2026-11-18",
+        "source": "NBP table A (illustrative)",
+        "rule": "pl_tax_prev_business_day"
+      }
+    },
+    "vat_lines": [],
+    "lines": [
+      {
+        "description": "Team plan, 3 editors, Nov 2026",
+        "quantity": 3,
+        "unit_price": "15.00",
+        "net": "45.00",
+        "vat_rate": "np"
+      }
+    ],
+    "payment": {
+      "method": "card",
+      "card_last4": "4417",
+      "paid": true,
+      "paid_date": "2026-11-19",
+      "bank_account": null
+    },
+    "submitted_by": {
+      "person_id": null,
+      "name": null,
+      "email": "billing@pixelboard.sample",
+      "role": "system"
+    },
+    "extraction": {
+      "method": "docling_llm",
+      "model": "<served-text-model>",
+      "confidence": 0.97,
+      "field_confidence": {},
+      "warnings": [],
+      "trace_id": "tr-5f1b90"
+    },
+    "category_suggestion": {
+      "category": "software_subscriptions",
+      "confidence": 0.99,
+      "method": "history"
+    },
+    "status": "approved",
+    "flags": [
+      "foreign_currency",
+      "reverse_charge"
+    ],
+    "created_at": "2026-11-19T08:02:11Z"
+  }
+]

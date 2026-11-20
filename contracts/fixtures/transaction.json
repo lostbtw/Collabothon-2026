@@ -1,0 +1,86 @@
+[
+  {
+    "id": "txn_731",
+    "account_id": "acc_pln",
+    "source_id": "src_bank_pln",
+    "raw_item_id": "raw_bank731",
+    "external_id": "E000000731",
+    "booking_date": "2026-11-20",
+    "value_date": "2026-11-19",
+    "amount": {
+      "amount": "-180.62",
+      "currency": "PLN"
+    },
+    "amount_base": {
+      "amount": "-180.62",
+      "currency": "PLN"
+    },
+    "fx": {
+      "rate": "4.0138",
+      "rate_date": "2026-11-19",
+      "source": "bank card rate (implied: 180.62 / 45.00)",
+      "rule": "bank_actual"
+    },
+    "original_amount": {
+      "amount": "-45.00",
+      "currency": "USD"
+    },
+    "counterparty_name_raw": "PIXELBOARD.COM* SAN FRANCISCO",
+    "counterparty_account": null,
+    "counterparty_id": "cp_pixelboard",
+    "description": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
+    "transaction_type": "card_payment",
+    "card_last4": "4417",
+    "balance_after": {
+      "amount": "24730.15",
+      "currency": "PLN"
+    },
+    "status": "booked",
+    "category": "software_subscriptions",
+    "recurring_series_id": "ser_pixelboard",
+    "match_status": "matched",
+    "data_quality": []
+  },
+  {
+    "id": "txn_pz0615",
+    "account_id": "acc_pizzeria",
+    "source_id": "src_bank_pizzeria",
+    "raw_item_id": "raw_pz0615",
+    "external_id": "2025-06-15#0003",
+    "booking_date": "2025-06-15",
+    "value_date": "2025-06-15",
+    "amount": {
+      "amount": "-4166.67",
+      "currency": "CHF"
+    },
+    "amount_base": {
+      "amount": "-4375.00",
+      "currency": "EUR"
+    },
+    "fx": {
+      "rate": "1.050",
+      "rate_date": "2025-06-15",
+      "source": "payment reference text '(4166.67 CHF @ 1.050 EUR/CHF)'",
+      "rule": "statement_reference"
+    },
+    "original_amount": {
+      "amount": "-4166.67",
+      "currency": "CHF"
+    },
+    "counterparty_name_raw": "Luigi Amalfi (Luigi's Ristorante Zurich)",
+    "counterparty_account": "CH9300700110001234567",
+    "counterparty_id": "cp_luigi",
+    "description": "Silent Partnership Capital Tranche 06/12 (4166.67 CHF @ 1.050 EUR/CHF) - Luigi's Ristorante",
+    "transaction_type": "transfer_out",
+    "card_last4": null,
+    "balance_after": null,
+    "status": "booked",
+    "category": "investment_outflow",
+    "recurring_series_id": "ser_luigi",
+    "match_status": "no_document_needed",
+    "data_quality": [
+      "currency_mismatch_fixed",
+      "rate_from_reference_text"
+    ]
+  }
+]

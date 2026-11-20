@@ -1,0 +1,232 @@
+[
+  {
+    "id": "rec_cl01",
+    "company_id": "co_borsuk",
+    "agent": "liquidity",
+    "type": "credit_line",
+    "title": "Open a 30,000 PLN credit line before 30 November",
+    "summary": "On 30 November salaries go out before your biggest client has paid. Without action the accounts will be about 7,900 PLN short for a week - or about 28,000 PLN short if Nordwind pays three weeks later. A 30,000 PLN revolving line covers both cases.",
+    "control_level": "approval_required",
+    "execution_mode": "simulated",
+    "status": "new",
+    "severity": "critical",
+    "created_at": "2026-11-21T10:15:04Z",
+    "valid_until": "2026-11-27T23:59:59Z",
+    "explanation": {
+      "why": [
+        "Salaries and contractor invoices of 58,000 PLN leave on 30 Nov",
+        "Nordwind's 18,400 EUR invoice is 7 days overdue; this client pays 23 days late on average",
+        "You owe employees 5,169 PLN for purchases made with their own cards - this is not visible on the bank account"
+      ],
+      "calculation": [
+        {
+          "label": "Lowest projected balance",
+          "value": "-7,870 PLN on 5 Dec",
+          "formula": "38,400 - 14,300 VAT + 36,900 Meblostyl - 58,000 pay run - 5,169 reimbursements - 5,701 other fixed costs"
+        },
+        {
+          "label": "Stress case (Nordwind pays 21 Dec)",
+          "value": "-28,170 PLN on 21 Dec",
+          "formula": "base case - ZUS 9,400 - CIT/PIT advances 10,900"
+        },
+        {
+          "label": "Proposed limit",
+          "value": "30,000 PLN",
+          "formula": "stress shortfall 28,170 rounded up to the next 5,000"
+        },
+        {
+          "label": "Estimated cost",
+          "value": "about 17 PLN interest + 300 PLN fee",
+          "formula": "7,870 PLN x 7 days x 11.5% / 365, fee 1% of limit (illustrative price list of the simulated bank)"
+        }
+      ],
+      "alternatives": [
+        {
+          "label": "Send Nordwind a payment reminder today",
+          "pros": "Free; may remove the gap entirely",
+          "cons": "Outcome uncertain",
+          "cost": {
+            "amount": "0.00",
+            "currency": "PLN"
+          }
+        },
+        {
+          "label": "Pay contractors 7 days later",
+          "pros": "No bank cost",
+          "cons": "Breaks agreed payment dates",
+          "cost": {
+            "amount": "0.00",
+            "currency": "PLN"
+          }
+        },
+        {
+          "label": "Do nothing",
+          "pros": null,
+          "cons": "Unarranged overdraft or failed salary transfers",
+          "cost": null
+        }
+      ],
+      "assumptions": [
+        "Interest rate and fee come from the simulated bank's price list, not a real offer"
+      ],
+      "confidence": 0.78,
+      "generated_by": {
+        "numbers": "finance-engine",
+        "wording": "<served-text-model>",
+        "trace_id": "tr-5f1c41"
+      }
+    },
+    "evidence": [
+      {
+        "kind": "forecast",
+        "id": "fc_20261121a",
+        "label": "45-day forecast of 21 Nov",
+        "url": "/forecast/fc_20261121a"
+      },
+      {
+        "kind": "document",
+        "id": "doc_fv1007",
+        "label": "Unpaid invoice FV/10/07 Nordwind",
+        "url": "/documents/doc_fv1007"
+      },
+      {
+        "kind": "match",
+        "id": "mat_412",
+        "label": "Reimbursement owed to Jan",
+        "url": "/matches/mat_412"
+      }
+    ],
+    "proposed_action": {
+      "kind": "apply_credit_line",
+      "params": {
+        "limit": {
+          "amount": "30000.00",
+          "currency": "PLN"
+        },
+        "tenor_days": 60,
+        "bank": "Sandbox Bank",
+        "account_id": "acc_pln"
+      },
+      "preview": "SIMULATED: sends a credit-line application for 30,000 PLN / 60 days to the sandbox bank. No real bank is contacted."
+    },
+    "impact": {
+      "cash_effect": {
+        "amount": "30000.00",
+        "currency": "PLN"
+      },
+      "cost": {
+        "amount": "317.00",
+        "currency": "PLN"
+      },
+      "min_balance_before": {
+        "amount": "-7870.00",
+        "currency": "PLN"
+      },
+      "min_balance_after": {
+        "amount": "22130.00",
+        "currency": "PLN"
+      },
+      "scenario_forecast_id": "fc_20261121b"
+    },
+    "subject": null,
+    "approval_id": null
+  },
+  {
+    "id": "rec_412",
+    "company_id": "co_borsuk",
+    "agent": "ingestion",
+    "type": "reimburse_employee",
+    "title": "Pay Jan back 1,299.00 PLN for the monitor",
+    "summary": "Jan paid for a monitor with his own card and sent the receipt. The receipt has no company tax number, so 242.90 PLN of VAT cannot be recovered. Paying Jan back as a reimbursement (not as extra hours) avoids income tax and social security on it.",
+    "control_level": "approval_required",
+    "execution_mode": "simulated",
+    "status": "new",
+    "severity": "info",
+    "created_at": "2026-11-21T10:14:56Z",
+    "valid_until": null,
+    "explanation": {
+      "why": [
+        "The receipt was forwarded by an employee",
+        "No matching payment exists on any company account or on your private card",
+        "The receipt shows no buyer tax id"
+      ],
+      "calculation": [
+        {
+          "label": "Reimbursement",
+          "value": "1,299.00 PLN",
+          "formula": "gross amount on the receipt"
+        },
+        {
+          "label": "VAT not recoverable",
+          "value": "242.90 PLN",
+          "formula": "1,299.00 x 23 / 123"
+        }
+      ],
+      "alternatives": [],
+      "assumptions": [],
+      "confidence": 0.86,
+      "generated_by": {
+        "numbers": "finance-engine",
+        "wording": "template",
+        "trace_id": null
+      }
+    },
+    "evidence": [
+      {
+        "kind": "document",
+        "id": "doc_rcpt412",
+        "label": "Receipt photo",
+        "url": "/documents/doc_rcpt412"
+      },
+      {
+        "kind": "match",
+        "id": "mat_412",
+        "label": "Why we think Jan paid privately",
+        "url": "/matches/mat_412"
+      },
+      {
+        "kind": "rule",
+        "id": "PL-VAT-01",
+        "label": "VAT deduction needs an invoice issued to the company"
+      }
+    ],
+    "proposed_action": {
+      "kind": "create_payment_draft",
+      "params": {
+        "to": "per_jan",
+        "amount": {
+          "amount": "1299.00",
+          "currency": "PLN"
+        },
+        "title": "Zwrot kosztow - monitor 20.11.2026",
+        "pay_on": "2026-11-30"
+      },
+      "preview": "SIMULATED: books the cost, records 1,299.00 PLN owed to Jan and adds a transfer draft to the 30 Nov payment run in the sandbox bank."
+    },
+    "impact": {
+      "cash_effect": {
+        "amount": "-1299.00",
+        "currency": "PLN"
+      },
+      "cost": {
+        "amount": "242.90",
+        "currency": "PLN"
+      },
+      "min_balance_before": {
+        "amount": "-6571.00",
+        "currency": "PLN"
+      },
+      "min_balance_after": {
+        "amount": "-7870.00",
+        "currency": "PLN"
+      },
+      "scenario_forecast_id": null
+    },
+    "subject": {
+      "kind": "document",
+      "id": "doc_rcpt412",
+      "label": "Receipt photo"
+    },
+    "approval_id": null
+  }
+]

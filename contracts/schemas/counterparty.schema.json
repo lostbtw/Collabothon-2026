@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/counterparty.schema.json",
+  "title": "Counterparty",
+  "type": "object",
+  "required": [
+    "id",
+    "company_id",
+    "name",
+    "kind"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'cp_'",
+      "pattern": "^cp_[A-Za-z0-9_]+$"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "Raw spellings seen on bank lines and documents"
+      }
+    },
+    "tax_id": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "country": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ibans": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "supplier",
+        "customer",
+        "employee",
+        "owner",
+        "tax_authority",
+        "social_security",
+        "bank",
+        "payment_processor",
+        "other"
+      ]
+    },
+    "default_category": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "is_recurring": {
+      "type": "boolean"
+    },
+    "typical_payment_delay_days": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "person_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque id, prefix 'per_'",
+          "pattern": "^per_[A-Za-z0-9_]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "A resolved business partner; many raw spellings map to one counterparty."
+}

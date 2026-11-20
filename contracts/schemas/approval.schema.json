@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/approval.schema.json",
+  "title": "Approval",
+  "type": "object",
+  "required": [
+    "id",
+    "subject_type",
+    "subject_id",
+    "decision",
+    "decided_by",
+    "decided_at",
+    "channel",
+    "execution"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'apr_'",
+      "pattern": "^apr_[A-Za-z0-9_]+$"
+    },
+    "subject_type": {
+      "type": "string",
+      "enum": [
+        "recommendation",
+        "match",
+        "ledger_entry",
+        "document"
+      ]
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "rejected",
+        "approved_with_changes"
+      ]
+    },
+    "decided_by": {
+      "$ref": "common.schema.json#/$defs/PersonRef"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "dashboard",
+        "chat"
+      ]
+    },
+    "comment": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "changes": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Field overrides the owner made before approving (e.g. lower credit amount, different category)"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "mode",
+        "status"
+      ],
+      "properties": {
+        "mode": {
+          "$ref": "common.schema.json#/$defs/ExecutionMode"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_applicable",
+            "pending",
+            "done",
+            "failed"
+          ]
+        },
+        "executed_at": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference": {
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Simulator reference, e.g. SIM-CL-2026-0007"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/EvidenceLink"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "description": "The owner's decision on a recommendation or match, and what was (simulated to be) executed. Append-only audit record."
+}

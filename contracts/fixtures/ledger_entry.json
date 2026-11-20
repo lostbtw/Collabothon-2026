@@ -1,0 +1,81 @@
+[
+  {
+    "id": "led_412a",
+    "company_id": "co_borsuk",
+    "date": "2026-11-20",
+    "cash_date": "2026-11-30",
+    "type": "expense",
+    "category": "equipment",
+    "cost_behaviour": "one_off",
+    "amount": {
+      "amount": "-1299.00",
+      "currency": "PLN"
+    },
+    "amount_base": {
+      "amount": "-1299.00",
+      "currency": "PLN"
+    },
+    "fx": null,
+    "vat": {
+      "amount": {
+        "amount": "242.90",
+        "currency": "PLN"
+      },
+      "deductible": false,
+      "reason": "Receipt without company tax id"
+    },
+    "counterparty_id": "cp_elektromarkt",
+    "document_id": "doc_rcpt412",
+    "transaction_id": null,
+    "match_id": "mat_412",
+    "paid_by": "employee_private",
+    "status": "proposed",
+    "approval_id": null,
+    "created_by": "rule:employee_paid_v1",
+    "explanation": "Monitor bought by Jan with his own card for the company; cost booked gross because VAT cannot be deducted.",
+    "evidence": [
+      {
+        "kind": "document",
+        "id": "doc_rcpt412",
+        "label": "Receipt photo, ElektroMarkt, 1,299.00 PLN",
+        "url": "/documents/doc_rcpt412"
+      }
+    ]
+  },
+  {
+    "id": "led_412b",
+    "company_id": "co_borsuk",
+    "date": "2026-11-20",
+    "cash_date": "2026-11-30",
+    "type": "reimbursement_liability",
+    "category": "reimbursements",
+    "cost_behaviour": null,
+    "amount": {
+      "amount": "-1299.00",
+      "currency": "PLN"
+    },
+    "amount_base": {
+      "amount": "-1299.00",
+      "currency": "PLN"
+    },
+    "fx": null,
+    "vat": null,
+    "counterparty_id": "cp_jan",
+    "document_id": "doc_rcpt412",
+    "transaction_id": null,
+    "match_id": "mat_412",
+    "paid_by": "not_applicable",
+    "status": "proposed",
+    "approval_id": null,
+    "created_by": "rule:employee_paid_v1",
+    "explanation": "The company owes Jan 1,299.00 PLN; planned payout with the next payment run on 30 Nov.",
+    "evidence": [
+      {
+        "kind": "match",
+        "id": "mat_412",
+        "label": "Paid privately by Jan (no bank line on company accounts)",
+        "url": "/matches/mat_412"
+      }
+    ]
+  }
+]

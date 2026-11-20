@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordo.sample/contracts/schemas/source.schema.json",
+  "title": "Source",
+  "type": "object",
+  "required": [
+    "id",
+    "company_id",
+    "connector",
+    "display_name",
+    "status",
+    "poll_interval_seconds"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'src_'",
+      "pattern": "^src_[A-Za-z0-9_]+$"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Opaque id, prefix 'co_'",
+      "pattern": "^co_[A-Za-z0-9_]+$"
+    },
+    "connector": {
+      "$ref": "common.schema.json#/$defs/Connector"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "syncing",
+        "degraded",
+        "error",
+        "paused"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "polling",
+        "webhook",
+        "long_polling",
+        "manual"
+      ]
+    },
+    "poll_interval_seconds": {
+      "type": "integer"
+    },
+    "last_synced_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_success_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "next_run_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_error": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/ErrorInfo"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cursor": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Opaque incremental cursor, connector-specific (IMAP UID, bookingDate+entryReference, KSeF timestamp...)"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "config_public": {
+      "type": "object",
+      "description": "Non-secret config for display (mailbox address, masked IBAN, API host). Secrets live in OpenShift Secrets, never here."
+    },
+    "items_total": {
+      "type": "integer"
+    },
+    "is_sandbox": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A connected data source (one connector instance). Drives the 'Sources' page with last-synced status."
+}

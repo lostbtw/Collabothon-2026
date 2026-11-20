@@ -1,0 +1,141 @@
+{
+  "role": 3,
+  "name": "Matching and document test set",
+  "owner": "",
+  "now": "",
+  "updated_at": "",
+  "tasks": [
+    {
+      "id": "3.1",
+      "title": "Normaliser: bank JSON -> Transaction (incl. CHF fix), FA(3) XML -> Document, inFakt JSON -> Document",
+      "priority": "must",
+      "est_h": 3,
+      "needs": [
+        "5.1",
+        "2.5"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": "",
+      "mock": "work on contracts/fixtures/raw_item.json and the pizzeria CSV directly"
+    },
+    {
+      "id": "3.2",
+      "title": "Dedup rules D1-D3 and golden record",
+      "priority": "must",
+      "est_h": 2,
+      "needs": [
+        "3.1"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "3.3",
+      "title": "Match scoring + greedy assignment + reasons (port spike 04)",
+      "priority": "must",
+      "est_h": 4,
+      "needs": [
+        "3.1"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "3.7",
+      "title": "Document test set: templates, ~40 November documents, FA(3) XML, 12 printed SAMPLE receipts photographed",
+      "priority": "must",
+      "est_h": 4,
+      "needs": [
+        "4.1"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": "",
+      "mock": "build the 2 templates and print 3 receipts with hand-picked values before the scenario lands"
+    },
+    {
+      "id": "3.4",
+      "title": "Who-paid decision table, consequences (VAT, reimbursement), ledger entry proposals",
+      "priority": "must",
+      "est_h": 3,
+      "needs": [
+        "3.3",
+        "1.4"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": "",
+      "mock": "use contracts/fixtures/document.json until real extraction (1.4) lands"
+    },
+    {
+      "id": "3.5",
+      "title": "Counterparty resolution with alias learning",
+      "priority": "must",
+      "est_h": 2,
+      "needs": [
+        "3.1"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "3.6",
+      "title": "Endpoints: /documents, /documents/{id}, PATCH, /matches, /matches/{id}/decision",
+      "priority": "must",
+      "est_h": 3,
+      "needs": [
+        "3.3",
+        "5.2"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "3.8",
+      "title": "Missing-document and document-without-payment detection",
+      "priority": "should",
+      "est_h": 1,
+      "needs": [
+        "3.3"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "3.9",
+      "title": "Private-use flag",
+      "priority": "nice",
+      "est_h": 1,
+      "needs": [
+        "3.4"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    }
+  ]
+}

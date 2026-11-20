@@ -1,0 +1,244 @@
+[
+  {
+    "id": "fc_20261121a",
+    "company_id": "co_borsuk",
+    "generated_at": "2026-11-21T10:15:03Z",
+    "as_of_date": "2026-11-21",
+    "horizon_days": 45,
+    "base_currency": "PLN",
+    "opening_balance": {
+      "amount": "38400.00",
+      "currency": "PLN"
+    },
+    "safety_buffer": {
+      "amount": "10000.00",
+      "currency": "PLN"
+    },
+    "method": "recurring-schedule + weekday-average v1",
+    "points": [
+      {
+        "date": "2026-11-21",
+        "balance": "38400.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-11-25",
+        "balance": "24100.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-11-27",
+        "balance": "61000.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-11-30",
+        "balance": "-2169.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-12-01",
+        "balance": "-4629.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-12-05",
+        "balance": "-7870.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-12-07",
+        "balance": "73230.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-12-15",
+        "balance": "63830.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      },
+      {
+        "date": "2026-12-21",
+        "balance": "52930.00",
+        "inflow": "0.00",
+        "outflow": "0.00",
+        "low": null,
+        "high": null
+      }
+    ],
+    "components": [
+      {
+        "id": "c_open",
+        "label": "Cash today on 2 company accounts (PLN + EUR at NBP rate)",
+        "kind": "opening_balance",
+        "amount_base": {
+          "amount": "38400.00",
+          "currency": "PLN"
+        },
+        "schedule": null,
+        "dates": [
+          "2026-11-21"
+        ],
+        "confidence": 1.0,
+        "evidence": [
+          {
+            "kind": "transaction",
+            "id": "txn_731",
+            "label": "Latest booked line, PLN account",
+            "url": "/accounts/acc_pln"
+          }
+        ]
+      },
+      {
+        "id": "c_vat",
+        "label": "VAT for October (JPK_V7), from approved ledger",
+        "kind": "tax",
+        "amount_base": {
+          "amount": "-14300.00",
+          "currency": "PLN"
+        },
+        "schedule": "due 2026-11-25",
+        "dates": [
+          "2026-11-25"
+        ],
+        "confidence": 0.9,
+        "evidence": [
+          {
+            "kind": "rule",
+            "id": "PL-CAL-01",
+            "label": "VAT is due on the 25th of the following month"
+          },
+          {
+            "kind": "sql",
+            "id": "q_vat_oct",
+            "label": "Output VAT 31,740 - deductible input VAT 17,440",
+            "excerpt": "select sum(vat) ..."
+          }
+        ]
+      },
+      {
+        "id": "c_sal",
+        "label": "Salaries and contractor invoices",
+        "kind": "salary",
+        "amount_base": {
+          "amount": "-58000.00",
+          "currency": "PLN"
+        },
+        "schedule": "monthly on the last business day (seen 10x)",
+        "dates": [
+          "2026-11-30"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          {
+            "kind": "transaction",
+            "id": "txn_sal_10",
+            "label": "October payment run, 57,940 PLN",
+            "url": "/transactions?series=ser_salaries"
+          }
+        ]
+      },
+      {
+        "id": "c_nordwind",
+        "label": "Invoice FV/10/07 Nordwind Logistik, 18,400 EUR - due 14 Nov, not paid",
+        "kind": "known_receivable",
+        "amount_base": {
+          "amount": "81100.00",
+          "currency": "PLN"
+        },
+        "schedule": "expected 2026-12-07 = due date + this client's average delay of 23 days",
+        "dates": [
+          "2026-12-07"
+        ],
+        "confidence": 0.6,
+        "evidence": [
+          {
+            "kind": "document",
+            "id": "doc_fv1007",
+            "label": "Sales invoice from accounting system",
+            "url": "/documents/doc_fv1007"
+          },
+          {
+            "kind": "sql",
+            "id": "q_delay_nordwind",
+            "label": "Average payment delay over 6 invoices: 23 days"
+          }
+        ]
+      },
+      {
+        "id": "c_reimb",
+        "label": "Reimbursements owed to employees (10 receipts)",
+        "kind": "reimbursement",
+        "amount_base": {
+          "amount": "-5169.00",
+          "currency": "PLN"
+        },
+        "schedule": "with the payment run on 2026-11-30",
+        "dates": [
+          "2026-11-30"
+        ],
+        "confidence": 0.8,
+        "evidence": [
+          {
+            "kind": "match",
+            "id": "mat_412",
+            "label": "Newest: monitor paid by Jan, 1,299.00 PLN",
+            "url": "/matches/mat_412"
+          }
+        ]
+      }
+    ],
+    "min_balance": {
+      "date": "2026-12-05",
+      "amount": {
+        "amount": "-7870.00",
+        "currency": "PLN"
+      }
+    },
+    "first_negative_date": "2026-11-30",
+    "alerts": [
+      {
+        "type": "cash_gap",
+        "severity": "critical",
+        "date_from": "2026-11-30",
+        "date_to": "2026-12-07",
+        "max_shortfall": {
+          "amount": "7870.00",
+          "currency": "PLN"
+        },
+        "days_ahead": 9
+      }
+    ],
+    "events": [],
+    "assumptions": [
+      "Meblostyl pays 36,900 PLN on 27 Nov (always paid within 2 days of due date)",
+      "Nordwind pays 23 days late, as on average before; if it pays on 21 Dec instead, the gap grows to about 28,000 PLN",
+      "EUR balance converted at the latest NBP mid rate"
+    ],
+    "scenario_of": null,
+    "inputs_hash": "cb107ef919596a96"
+  }
+]

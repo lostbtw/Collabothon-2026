@@ -1,0 +1,164 @@
+{
+  "role": 4,
+  "name": "Finance engine, rules, scenario, pitch",
+  "owner": "",
+  "now": "",
+  "updated_at": "",
+  "tasks": [
+    {
+      "id": "4.1",
+      "title": "Scenario definition (recurring series, November purchases, clients, liquidity story) + ground_truth.json",
+      "priority": "must",
+      "est_h": 3,
+      "needs": [],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.2",
+      "title": "Forecast engine (port spike 03): fixed series, weekday averages, receivables with delay, payables, reimbursements, owner events",
+      "priority": "must",
+      "est_h": 6,
+      "needs": [
+        "3.4"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": "",
+      "mock": "build and test on the pizzeria CSV and on scenario bank lines; ledger-based inputs when 3.4 lands"
+    },
+    {
+      "id": "4.3",
+      "title": "Alerts, credit-line sizing, scenario endpoint, stress case",
+      "priority": "must",
+      "est_h": 4,
+      "needs": [
+        "4.2"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.4",
+      "title": "Regression tests: pizzeria 33,266.35 / -22,097.60 on 2025-07-03; scenario low -7,870 on 5 Dec",
+      "priority": "must",
+      "est_h": 1,
+      "needs": [
+        "4.2",
+        "4.1"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.5",
+      "title": "Endpoints /ledger, /ledger/summary, /forecast/*",
+      "priority": "must",
+      "est_h": 2,
+      "needs": [
+        "4.2",
+        "5.2"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.6a",
+      "title": "'VAT lost this year' figure in /ledger/summary",
+      "priority": "must",
+      "est_h": 0.5,
+      "needs": [
+        "3.4"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": "",
+      "mock": "compute from contracts/fixtures/ledger_entry.json shape until 3.4 lands"
+    },
+    {
+      "id": "4.7",
+      "title": "1-minute pitch + Q&A for the Saturday feedback session; attend it",
+      "priority": "must",
+      "est_h": 2,
+      "needs": [],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.8",
+      "title": "Final pitch script, rehearsals, questions to organisers",
+      "priority": "must",
+      "est_h": 3,
+      "needs": [
+        "4.7"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": "",
+      "after_freeze": true
+    },
+    {
+      "id": "4.6",
+      "title": "Tax calendar + VAT position + tax-reserve recommendation data",
+      "priority": "should",
+      "est_h": 2.5,
+      "needs": [
+        "4.2"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.9",
+      "title": "FX exposure list + simulated forward on the pizzeria CHF tranches",
+      "priority": "nice",
+      "est_h": 3,
+      "needs": [
+        "4.2"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    },
+    {
+      "id": "4.10",
+      "title": "Month-over-month insight sentence",
+      "priority": "nice",
+      "est_h": 1,
+      "needs": [
+        "4.5"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
+    }
+  ]
+}
