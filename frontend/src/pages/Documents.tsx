@@ -14,6 +14,8 @@ import { buildPatch, fields, flagNotes, whoPaid, words, type FieldKey } from "./
 
 const STATUS_CHIP: Record<OrdoDocument["status"], string> = { extracted: "neutral", needs_review: "warning", approved: "positive", rejected: "neutral", duplicate: "neutral" };
 
+const PAGE = 50;
+
 export function Documents() {
   const { companyId } = useCompany();
   const state = useApi(() => api.documents(companyId), [companyId]);
@@ -21,25 +23,38 @@ export function Documents() {
     <>
       <h1>Documents</h1>
       <PageState state={state} empty={(d) => d.items.length === 0}>
-        {(page) => (
-          <div className="card table-card">
-            <table>
-              <thead><tr><th>From</th><th>Type</th><th>Date</th><th>Status</th><th className="right">Total</th></tr></thead>
-              <tbody>
-                {page.items.map((d) => (
-                  <tr key={d.id}>
-                    <td><Link to={`/documents/${d.id}`}>{d.seller.name}</Link></td>
-                    <td className="tertiary">{words(d.doc_type)}</td>
-                    <td className="tertiary">{d.issue_date ? shortDate(d.issue_date) : "—"}</td>
-                    <td><span className={`chip ${STATUS_CHIP[d.status]}`}>{words(d.status)}</span></td>
-                    <td className="right">{formatMoney(d.totals.gross)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {(page) => <DocumentsView items={page.items} />}
       </PageState>
+    </>
+  );
+}
+
+/** Newest first, 50 at a time. A sale is listed under the customer, a purchase under the seller. */
+export function DocumentsView({ items }: { items: OrdoDocument[] }) {
+  const [shown, setShown] = useState(PAGE);
+  const sorted = [...items].sort((a, b) => (b.issue_date ?? "").localeCompare(a.issue_date ?? "") || b.id.localeCompare(a.id));
+  return (
+    <>
+      <div className="card table-card">
+        <table>
+          <thead><tr><th>Date</th><th>With</th><th>Kind</th><th>Status</th><th className="right">Total</th></tr></thead>
+          <tbody>
+            {sorted.slice(0, shown).map((d) => (
+              <tr key={d.id}>
+                <td className="tertiary">{d.issue_date ? shortDate(d.issue_date) : "—"}</td>
+                <td><Link to={`/documents/${d.id}`}>{(d.direction === "sale" ? d.buyer.name : d.seller.name) || d.number || d.id}</Link></td>
+                <td className="tertiary">{d.direction === "sale" ? "Sale" : "Purchase"} · {words(d.doc_type)}</td>
+                <td><span className={`chip ${STATUS_CHIP[d.status]}`}>{words(d.status)}</span></td>
+                <td className={`right${d.direction === "sale" ? " positive" : ""}`}>{formatMoney(d.totals.gross)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="hstack">
+        <span className="muted">Showing {Math.min(shown, sorted.length)} of {sorted.length}</span>
+        {shown < sorted.length && <button type="button" className="outline" onClick={() => setShown(shown + PAGE)}>Show {Math.min(PAGE, sorted.length - shown)} more</button>}
+      </div>
     </>
   );
 }

@@ -165,6 +165,24 @@ button.linklike { height: auto; padding: 0; margin-top: 4px; border: 0; border-r
 .field:focus-within { border-color: var(--accent); }
 .field input[type="text"] { flex: none; width: 96px; height: auto; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; }
 /* Home */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.tile { display: flex; flex-direction: column; gap: 4px; color: inherit; }
+.tile-value { font-size: 24px; line-height: 32px; letter-spacing: -0.01em; }
+.weather.storm .tile-value { color: var(--danger); }
+.weather.cloudy .tile-value { color: var(--warning); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.widget { display: flex; flex-direction: column; gap: 8px; }
+.wrow { display: flex; align-items: center; gap: 12px; padding: 9px 8px; margin: 0 -8px; }
+.wrow + .wrow { border-top: 1px solid var(--border-hairline); }
+.wrow .when { width: 52px; flex: none; }
+.wrow .amount { white-space: nowrap; }
+.wrow.cost .grow { display: flex; flex-direction: column; gap: 6px; }
+.bar { display: block; height: 4px; border-radius: 2px; background: var(--accent); opacity: 0.55; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); cursor: pointer; }
+.toggle input { accent-color: var(--accent); margin: 0; }
+.chart-buffer { stroke: var(--warning); stroke-width: 1; stroke-dasharray: 4 4; }
+.chart-event { fill: var(--bg-surface); stroke: var(--text-tertiary); stroke-width: 2; }
+.chart-event.in { stroke: var(--positive); }
 .weather.storm .display, .weather.storm > .hstack:first-child svg { color: var(--danger); }
 .weather.cloudy .display, .weather.cloudy > .hstack:first-child svg { color: var(--warning); }
 .rowlink { color: inherit; border-radius: var(--radius-sm); }
@@ -177,6 +195,9 @@ button.linklike { height: auto; padding: 0; margin-top: 4px; border: 0; border-r
 .chart-grid { stroke: var(--border-hairline); stroke-width: 1; }
 .chart-zero { stroke: var(--border-strong); stroke-width: 1; }
 .chart-tick { fill: var(--text-muted); font-size: 12px; }
+.chart-day { fill: var(--text-muted); font-size: 11px; }
+.chart-day.on { fill: var(--text-primary); font-weight: 500; }
+.chart-month { fill: var(--text-tertiary); font-size: 12px; font-weight: 500; }
 .chart-band { fill: var(--accent); opacity: 0.1; }
 .chart-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
 .chart-cross { stroke: var(--border-strong); stroke-width: 1; }
@@ -185,7 +206,7 @@ button.linklike { height: auto; padding: 0; margin-top: 4px; border: 0; border-r
 .chart-low.flash { animation: low-flash 1.2s ease-out 3; transform-box: fill-box; transform-origin: center; }
 @keyframes low-flash { 0% { transform: scale(1); } 40% { transform: scale(2.4); } 100% { transform: scale(1); } }
 .chart-low-label { fill: var(--text-primary); font-size: 13px; font-weight: 500; paint-order: stroke; stroke: var(--bg-surface); stroke-width: 4px; }
-.chart-tip { position: absolute; top: 0; transform: translateX(-50%); padding: 6px 10px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); white-space: nowrap; pointer-events: none; }
+.chart-tip { position: absolute; top: 0; transform: translateX(-50%); max-width: 300px; padding: 6px 10px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); pointer-events: none; }
 
 /* Live toasts */
 .toasts { position: fixed; right: 20px; bottom: 20px; z-index: 20; display: flex; flex-direction: column; gap: 8px; }
@@ -247,6 +268,7 @@ tr.source td { vertical-align: middle; }
 .field-row input[type="text"] { width: 100%; border-radius: var(--radius-sm); }
 .check { justify-self: start; padding: 2px 8px; border-radius: 6px; background: var(--bg-warning-tint); color: var(--warning); }
 @media (max-width: 1100px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
   .doc-cols { grid-template-columns: minmax(0, 1fr); }
   .inbox-cols { grid-template-columns: minmax(0, 1fr); }
 }

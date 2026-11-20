@@ -14,8 +14,13 @@ export type DocumentDetail = { document: OrdoDocument; duplicates: OrdoDocument[
 export type AccountsResponse = { items: Account[]; total_liquidity_base: Money | null };
 export type InboxResponse = { items: Recommendation[]; counts: { approval_required: number; recommendation: number; analysed_autonomously_today: number } };
 export type LedgerSummary = {
-  rows: { key: string; amount_base: Money; previous_period: Money; change_pct: number | null; entries: number }[];
-  kpis: { reimbursements_owed: Money; vat_lost_ytd: Money; documents_missing: number; tax_due_next_30d: Money };
+  rows: { key: string; amount_base: Money; previous_period?: Money | null; change_pct: number | null; entries: number }[];
+  kpis: { reimbursements_owed: Money; vat_lost_ytd: Money; documents_missing: number; tax_due_next_30d?: Money | null };
+};
+/** One foreign-currency invoice and what a bad exchange rate could cost on it (FX Shield). */
+export type FxExposure = {
+  document_id: string | null; direction?: string; amount: Money; value_today_base?: Money; expected_cash_date?: string; horizon_days?: number;
+  expected_shortfall?: Money | null; deal_profit?: Money | null; verdict: string; recommendation_id?: string | null;
 };
 export type ActivityItem = { at: string; agent: string; text: string; subject?: { type: string; id: string } | null; evidence: EvidenceLink[] };
 /** Partial Document: only totals, dates, seller, buyer and category_suggestion.category may be corrected.
@@ -59,6 +64,7 @@ export const api = {
   approvals: (companyId?: string) => http<{ items: Approval[] }>("GET", "/approvals", { query: co(companyId) }),
   activity: (companyId?: string) => http<{ items: ActivityItem[] }>("GET", "/activity", { query: co(companyId) }),
   chat: (message: string, companyId?: string, sessionId?: string | null) => http<ChatAnswer>("POST", "/chat", { body: { message, company_id: companyId, session_id: sessionId ?? null } }),
+  fxExposure: (companyId?: string) => http<{ items: FxExposure[] }>("GET", "/fx/exposure", { query: co(companyId) }),
   fxRate: (currency: string, date: string) => http<FxConversion | null>("GET", "/fx/rates", { query: { currency, date } }),
 };
 

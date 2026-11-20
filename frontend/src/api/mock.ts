@@ -52,6 +52,12 @@ const ACTIVITY = [
   { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments, including a 45.00 USD invoice to a 180.62 PLN card line", subject: { type: "match", id: "mat_pixel11" }, evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
 ];
 
+// Not in the fixtures: FX Shield's exposure list. Same numbers as rec_fx01 / rec_fx02 and as the API's stand-in.
+const FX_EXPOSURE = [
+  { document_id: "doc_fvlake01", direction: "receivable", amount: { amount: "40000.00", currency: "USD" }, value_today_base: { amount: "162452.00", currency: "PLN" }, expected_cash_date: "2027-01-05", horizon_days: 45, expected_shortfall: { amount: "-6595.00", currency: "PLN" }, deal_profit: { amount: "8000.00", currency: "PLN" }, verdict: "hedge_proposed", recommendation_id: "rec_fx01" },
+  { document_id: "doc_fv1007", direction: "receivable", amount: { amount: "18400.00", currency: "EUR" }, value_today_base: { amount: "81989.00", currency: "PLN" }, horizon_days: 45, expected_shortfall: { amount: "-1426.00", currency: "PLN" }, verdict: "not_worth_it", recommendation_id: "rec_fx02" },
+];
+
 // Not in the fixtures either: the copies of the PixelBoard invoice that were merged into one record.
 // The kept record came by e-mail; the same invoice also arrived as an e-invoice and as a photo.
 const COPIES: OrdoDocument[] = (["ksef", "photo"] as const).map((channel) => {
@@ -179,7 +185,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/ledger") result = page(byCompany(f.ledger, company));
   else if (method === "GET" && path === "/ledger/summary" && company && company !== "co_borsuk") throw new MockNotFound(`No ledger summary fixture for ${company}`);
   else if (method === "GET" && path === "/ledger/summary")
-    result = { rows: [], kpis: { reimbursements_owed: { amount: "5169.00", currency: "PLN" }, vat_lost_ytd: { amount: "242.90", currency: "PLN" }, documents_missing: 3, tax_due_next_30d: { amount: "25200.00", currency: "PLN" } } };
+    result = { rows: [{ key: "equipment", amount_base: { amount: "-1299.00", currency: "PLN" }, change_pct: null, entries: 1 }, { key: "reimbursements", amount_base: { amount: "-1299.00", currency: "PLN" }, change_pct: null, entries: 1 }], kpis: { reimbursements_owed: { amount: "5169.00", currency: "PLN" }, vat_lost_ytd: { amount: "242.90", currency: "PLN" }, documents_missing: 3, tax_due_next_30d: { amount: "25200.00", currency: "PLN" } } };
   else if (seg[0] === "forecast" && (method === "POST" || seg.length === 2)) {
     const forecast = (seg[1] && seg[1] !== "latest" && f.forecasts.find((x) => x.id === seg[1])) || byCompany(f.forecasts, company)[0];
     if (!forecast) throw new MockNotFound(`No forecast fixture for ${company ?? seg[1]}`);
@@ -203,8 +209,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
       table: null, tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
     };
   } else if (method === "GET" && path === "/fx/rates") result = f.documents.find((d) => d.totals.fx)?.totals.fx ?? null;
-  else if (method === "GET" && path === "/fx/exposure")
-    result = { items: f.recommendations.filter((r) => r.agent === "fx").map((r) => ({ document_id: r.subject?.id ?? null, verdict: r.type === "fx_hedge" ? "hedge_proposed" : "not_worth_it", recommendation_id: r.id })) };
+  else if (method === "GET" && path === "/fx/exposure") result = { items: company && company !== "co_borsuk" ? [] : FX_EXPOSURE };
   else throw new MockNotFound(`Mock mode has no handler for ${method} ${path}`);
 
   // Fixtures are shared module state: hand out copies so a page cannot mutate them.
