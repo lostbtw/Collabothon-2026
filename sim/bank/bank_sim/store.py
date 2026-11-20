@@ -64,6 +64,19 @@ class Account:
     cash_account_type: str = "CACC"
     opening_balance: Decimal | None = Decimal("0.00")  # None = no balance reported (private card)
     lines: list[Line] = field(default_factory=list)
+    # Known balance after all loaded lines (role 4's scenario gives closing balances, not opening ones).
+    # When set, loading lines derives the opening balance from it, so the two can never disagree.
+    closing_target: Decimal | None = None
+
+    def __post_init__(self) -> None:
+        if self.closing_target is not None and not self.lines:
+            self.opening_balance = self.closing_target
+
+    def set_lines(self, lines: list[Line]) -> None:
+        self.lines = lines
+        if self.closing_target is not None:
+            self.opening_balance = self.closing_target - sum(
+                (in_currency(ln, self.currency) for ln in lines), Decimal(0))
 
     def next_reference(self) -> str:
         return f"E{len(self.lines) + 1:09d}"
@@ -75,14 +88,23 @@ class Account:
         }
 
 
+def in_currency(line: Line, currency: str) -> Decimal:
+    """A line's amount in the account currency (the pizzeria's CHF lines at the booking rate)."""
+    if line.currency == currency:
+        return line.amount
+    return line.amount * BOOKING_RATES.get((line.currency, currency), Decimal(1))
+
+
 def seed_accounts() -> dict[str, Account]:
-    """Invented accounts (IBANs are fake, prefix 9990). Ids and opening balances follow contracts/fixtures/account.json."""
+    """Invented accounts. Borsuk Labs: IBANs and closing balances (as of 21 Nov 2026) from role 4's scenario,
+    sim/scenario/world.py, whose bank CSVs are sim/scenario/out/bank_acc_<id>.csv. Ids follow
+    contracts/fixtures/account.json. The IBANs' check digits 00 make them invalid on purpose."""
     accounts = [
-        Account("acc_pln", "PL99 9990 0000 0000 0000 0000 0417", "PLN", "Company account PLN (SAMPLE)",
-                "Borsuk Labs sp. z o.o. (SAMPLE)", opening_balance=Decimal("31200.00")),
-        Account("acc_eur", "PL99 9990 0000 0000 0000 0000 0425", "EUR", "Company account EUR (SAMPLE)",
-                "Borsuk Labs sp. z o.o. (SAMPLE)", opening_balance=Decimal("2400.00")),
-        Account("acc_owner", "PL99 9990 0000 0000 0000 0000 9021", "PLN", "Owner's private card (SAMPLE)",
+        Account("acc_pln", "PL00999900000000000000010001", "PLN", "Company account PLN (SAMPLE)",
+                "BORSUK LABS SP Z O O (SAMPLE)", closing_target=Decimal("24730.15")),
+        Account("acc_eur", "PL00999900000000000000010002", "EUR", "Company account EUR (SAMPLE)",
+                "BORSUK LABS SP Z O O (SAMPLE)", closing_target=Decimal("3100.00")),
+        Account("acc_owner", "PL00999900000000000000090021", "PLN", "Owner's private card (SAMPLE)",
                 "Tomasz Borsuk (SAMPLE)", cash_account_type="CARD", opening_balance=None),
         Account("acc_pizzeria", "DE00 0000 0000 0000 0000 00", "EUR", "Pizzeria Amalfi business account (SAMPLE)",
                 "Lucia Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),  # same as backend/db/seed_data/people.json
@@ -120,12 +142,8 @@ class Store:
     def closing_balance(self, account: Account) -> Decimal | None:
         if account.opening_balance is None:
             return None
-        total = account.opening_balance
-        for ln in self.visible(account):
-            if ln.currency == account.currency:
-                total += ln.amount
-            else:
-                total += ln.amount * BOOKING_RATES.get((ln.currency, account.currency), Decimal(1))
+        total = account.opening_balance + sum(
+            (in_currency(ln, account.currency) for ln in self.visible(account)), Decimal(0))
         return total.quantize(CENT, rounding=ROUND_HALF_UP)
 
     def reference_date(self, account: Account) -> date | None:
