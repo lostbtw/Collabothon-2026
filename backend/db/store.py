@@ -32,12 +32,12 @@ ENTITIES: dict[str, tuple[str, tuple[str, ...]]] = {
     "approval": ("approvals", ("subject_type", "subject_id")),
 }
 
-# newest first where the entity has a natural time column
+# newest first: last written for entities the app creates, booking date for bank lines
 _ORDER = {
-    "sync_run": "started_at desc",
-    "forecast": "generated_at desc",
-    "recommendation": "created_at desc",
-    "approval": "decided_at desc",
+    "sync_run": "seq desc",
+    "forecast": "seq desc",
+    "recommendation": "seq desc",
+    "approval": "seq desc",
     "transaction": "booking_date desc",
 }
 
