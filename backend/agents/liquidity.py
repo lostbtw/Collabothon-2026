@@ -36,7 +36,8 @@ SYSTEM = (
     "You are the liquidity agent of Ordo, an autonomous CFO for a small company. A cash gap is coming. "
     "Call the tools you need, then answer with JSON {title, summary, why} for a card that proposes the credit line "
     "in the facts. The title is an instruction to the owner. Write plain language for a busy owner. "
-    "Copy every number exactly from the tool results or the facts; never compute, round or invent a number."
+    "Copy every number exactly from the tool results or the facts; never compute, round or invent a number. "
+    'Answer with JSON only, exactly this shape: {"title": "...", "summary": "...", "why": ["reason 1", "reason 2", "reason 3"]}.'
 )
 
 
@@ -234,17 +235,24 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
         return None  # same alert, card already in the inbox
 
     card = template_recommendation(company, facts, event["occurred_at"])
-    if model is _DEFAULT:
-        model = default_client()
-    if model is not None:
-        wording = _model_wording(model, conn, company, facts, card)
-        if wording:
-            card["title"], card["summary"] = wording["title"], wording["summary"]
-            card["explanation"]["why"] = wording["why"]
-            card["explanation"]["generated_by"]["wording"] = settings.llm_model()
-
     for old in open_credit_lines:
         s.put("recommendation", {**old, "status": "superseded"})
         publish(conn, new_event("recommendation.status_changed", company,
                                 {"recommendation_id": old["id"], "status": "superseded"}, producer="agents"))
-    return card["id"] if save_recommendation(conn, card) else None
+    if not save_recommendation(conn, card):
+        return None
+    # The template card is in the inbox now; the model's wording replaces its text only if it passes the checks
+    # and the owner has not decided the card meanwhile.
+    if model is _DEFAULT:
+        model = default_client()
+    if model is not None:
+        wording = _model_wording(model, conn, company, facts, card)
+        current = s.get("recommendation", card["id"])
+        if wording and current and current["status"] in ("new", "seen"):
+            current["title"], current["summary"] = wording["title"], wording["summary"]
+            current["explanation"]["why"] = wording["why"]
+            current["explanation"]["generated_by"]["wording"] = settings.llm_model()
+            s.put("recommendation", current)
+            publish(conn, new_event("recommendation.status_changed", company,
+                                    {"recommendation_id": card["id"], "status": current["status"]}, producer="agents"))
+    return card["id"]

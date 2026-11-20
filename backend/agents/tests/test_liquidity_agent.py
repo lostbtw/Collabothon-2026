@@ -161,3 +161,32 @@ def test_a_forecast_without_alerts_gives_no_card(db, world):
     on_forecast_updated(db, updated("fc_calm"), model=None)
 
     assert cards(world) == []
+
+
+def test_a_model_answer_in_the_wrong_shape_gets_one_corrective_retry(db, world):
+    model = FakeModel(
+        turn(tool_calls=[tool_call("get_forecast", {})]),
+        turn(content=json.dumps({"title": "Open a 30,000 PLN credit line before 30 November",
+                                 "summary": "Salaries of 58,000 PLN leave on 30 Nov.", "why": "one string, not a list"})),
+        final("Open a 30,000 PLN credit line before 30 November", "Salaries of 58,000 PLN leave on 30 Nov.",
+              ["Salaries of 58,000 PLN leave on 30 Nov", "Nordwind pays late"]),
+    )
+
+    on_forecast_updated(db, updated("fc_20261121a"), model=model)
+
+    [card] = cards(world)
+    assert card["explanation"]["why"] == ["Salaries of 58,000 PLN leave on 30 Nov", "Nordwind pays late"]
+    assert "why" in model.requests[-1]["messages"][-1]["content"]  # the retry names the problem
+
+
+def test_the_template_card_is_stored_before_the_model_is_asked(db, world):
+    seen_while_model_runs = []
+
+    class SlowModel(FakeModel):
+        def _create(self, **request):
+            seen_while_model_runs.append([c["id"] for c in cards(world)])
+            return super()._create(**request)
+
+    on_forecast_updated(db, updated("fc_20261121a"), model=SlowModel(final("x" * 10, "y" * 20, ["a", "b"])))
+
+    assert seen_while_model_runs[0] == ["rec_cl_fc_20261121a"]

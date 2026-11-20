@@ -36,3 +36,18 @@ def test_a_failing_event_is_retried_then_marked_dead(db):
         process_pending(db, retry_after_seconds=0)
 
     assert delivery_status(db, event["id"]) == ("dead", 3)
+
+
+def test_a_suggested_match_is_handled_before_an_earlier_forecast_update(db, monkeypatch):
+    from backend.agents import main as worker
+
+    seed(db)
+    handled = []
+    monkeypatch.setattr(worker, "HANDLERS", {"forecast.updated": [lambda c, e: handled.append(e["type"])],
+                                             "match.suggested": [lambda c, e: handled.append(e["type"])]})
+    publish(db, new_event("forecast.updated", "co_borsuk", {"forecast_id": "fc_x"}, producer="finance"))
+    publish(db, new_event("match.suggested", "co_borsuk", {"match_id": "mat_x"}, producer="matcher"))
+
+    process_pending(db)
+
+    assert handled == ["match.suggested", "forecast.updated"]
