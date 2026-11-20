@@ -136,7 +136,7 @@
     "id": "si_reimb_rcpt401",
     "date": "2026-11-30",
     "kind": "reimbursement",
-    "description": "Team lunch, Bistro Piotrkowska 90 (SAMPLE), bought 2026-11-04",
+    "description": "Team lunch, Bistro Piotrkowska 90 s.c. (SAMPLE), bought 2026-11-04",
     "counterparty": "Marta Zielinska (SAMPLE)",
     "amount": {
       "amount": "-486.00",
@@ -272,7 +272,7 @@
     "id": "si_reimb_rcpt409",
     "date": "2026-11-30",
     "kind": "reimbursement",
-    "description": "Client dinner, Sushi Kamien (SAMPLE), bought 2026-11-18",
+    "description": "Client dinner, Sushi Kamień sp. z o.o. (SAMPLE), bought 2026-11-18",
     "counterparty": "Piotr Lis (SAMPLE)",
     "amount": {
       "amount": "-701.00",

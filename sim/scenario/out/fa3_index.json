@@ -25,6 +25,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_eur",
+      "entry_reference": "E000000011",
       "booking_date": "2026-02-04",
       "reference": "INV 2025/12/044 BORSUK LABS",
       "amount": {
@@ -60,6 +61,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000025",
       "booking_date": "2026-01-15",
       "reference": "ZAPLATA ZA FV 2025/12/043",
       "amount": {
@@ -95,6 +97,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000050",
       "booking_date": "2026-01-27",
       "reference": "FV 2025/12/042",
       "amount": {
@@ -130,6 +133,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000008",
       "booking_date": "2026-01-05",
       "reference": "FV 2025/12/041",
       "amount": {
@@ -165,6 +169,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000001",
       "booking_date": "2026-01-02",
       "reference": "CZYNSZ 01/2026 BIURO 4B FV CW/01/2026/007",
       "amount": {
@@ -200,6 +205,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000003",
       "booking_date": "2026-01-02",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -235,6 +241,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000004",
       "booking_date": "2026-01-02",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -270,6 +277,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000005",
       "booking_date": "2026-01-02",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -305,6 +313,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000015",
       "booking_date": "2026-01-12",
       "reference": "FV 101/01/2026 OBSLUGA KSIEGOWA 01/2026",
       "amount": {
@@ -340,6 +349,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000009",
       "booking_date": "2026-01-05",
       "reference": "BIUROSFERA.PL ZAM 62268 KARTA *4417",
       "amount": {
@@ -375,6 +385,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000010",
       "booking_date": "2026-01-05",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -410,6 +421,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000012",
       "booking_date": "2026-01-07",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -445,6 +457,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000013",
       "booking_date": "2026-01-07",
       "reference": "KURIERON*NADANIE 73191 KARTA *4417",
       "amount": {
@@ -480,6 +493,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000019",
       "booking_date": "2026-01-12",
       "reference": "SKLEPIK.PL*ZAM 75329 KARTA *4417",
       "amount": {
@@ -515,6 +529,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000017",
       "booking_date": "2026-01-12",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -550,6 +565,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000018",
       "booking_date": "2026-01-12",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -585,6 +601,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000016",
       "booking_date": "2026-01-12",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -620,6 +637,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000021",
       "booking_date": "2026-01-13",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -655,6 +673,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000023",
       "booking_date": "2026-01-14",
       "reference": "DEVCAMP.PL*BILETY KARTA *4417",
       "amount": {
@@ -690,6 +709,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000026",
       "booking_date": "2026-01-15",
       "reference": "BIUROSFERA.PL ZAM 36546 KARTA *4417",
       "amount": {
@@ -725,6 +745,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000028",
       "booking_date": "2026-01-16",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -760,6 +781,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000027",
       "booking_date": "2026-01-16",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -795,6 +817,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000037",
       "booking_date": "2026-01-19",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -830,6 +853,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000039",
       "booking_date": "2026-01-19",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -865,6 +889,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000034",
       "booking_date": "2026-01-19",
       "reference": "SKLEPIK.PL*ZAM 81517 KARTA *4417",
       "amount": {
@@ -900,6 +925,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000031",
       "booking_date": "2026-01-19",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -935,6 +961,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000032",
       "booking_date": "2026-01-19",
       "reference": "BIUROSFERA.PL ZAM 88664 KARTA *4417",
       "amount": {
@@ -970,6 +997,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000036",
       "booking_date": "2026-01-19",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -1005,6 +1033,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000030",
       "booking_date": "2026-01-19",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -1040,6 +1069,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000033",
       "booking_date": "2026-01-19",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -1075,6 +1105,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000035",
       "booking_date": "2026-01-19",
       "reference": "SKLEPIK.PL*ZAM 72769 KARTA *4417",
       "amount": {
@@ -1110,6 +1141,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000038",
       "booking_date": "2026-01-19",
       "reference": "BIUROSFERA.PL ZAM 97018 KARTA *4417",
       "amount": {
@@ -1145,6 +1177,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000044",
       "booking_date": "2026-01-20",
       "reference": "BIUROSFERA.PL ZAM 72808 KARTA *4417",
       "amount": {
@@ -1180,6 +1213,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000043",
       "booking_date": "2026-01-20",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -1215,6 +1249,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000045",
       "booking_date": "2026-01-22",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -1250,6 +1285,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000046",
       "booking_date": "2026-01-23",
       "reference": "BIUROSFERA.PL ZAM 50321 KARTA *4417",
       "amount": {
@@ -1285,6 +1321,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000048",
       "booking_date": "2026-01-26",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -1320,6 +1357,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000049",
       "booking_date": "2026-01-26",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -1355,6 +1393,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000056",
       "booking_date": "2026-01-30",
       "reference": "FV 1/01/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -1390,6 +1429,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000058",
       "booking_date": "2026-01-30",
       "reference": "FV 1/01/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -1425,6 +1465,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000059",
       "booking_date": "2026-01-30",
       "reference": "FV 1/01/2026 TESTY QA",
       "amount": {
@@ -1460,6 +1501,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000057",
       "booking_date": "2026-01-30",
       "reference": "FV 1/01/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -1495,6 +1537,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000051",
       "booking_date": "2026-01-27",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -1530,6 +1573,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000052",
       "booking_date": "2026-01-27",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -1565,6 +1609,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000053",
       "booking_date": "2026-01-28",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -1600,6 +1645,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000065",
       "booking_date": "2026-01-30",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -1635,6 +1681,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000066",
       "booking_date": "2026-01-30",
       "reference": "SKLEPIK.PL*ZAM 88285 KARTA *4417",
       "amount": {
@@ -1670,6 +1717,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000067",
       "booking_date": "2026-02-02",
       "reference": "BIUROSFERA.PL ZAM 78767 KARTA *4417",
       "amount": {
@@ -1705,6 +1753,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000068",
       "booking_date": "2026-02-02",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -1740,6 +1789,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000069",
       "booking_date": "2026-02-02",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -1775,6 +1825,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000111",
       "booking_date": "2026-02-18",
       "reference": "ZAPLATA ZA FV 2026/01/043",
       "amount": {
@@ -1810,6 +1861,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000141",
       "booking_date": "2026-02-27",
       "reference": "FV 2026/01/042",
       "amount": {
@@ -1845,6 +1897,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000086",
       "booking_date": "2026-02-09",
       "reference": "FV 2026/01/041",
       "amount": {
@@ -1880,6 +1933,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000072",
       "booking_date": "2026-02-02",
       "reference": "BIUROSFERA.PL ZAM 46887 KARTA *4417",
       "amount": {
@@ -1915,6 +1969,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000070",
       "booking_date": "2026-02-02",
       "reference": "CZYNSZ 02/2026 BIURO 4B FV CW/02/2026/008",
       "amount": {
@@ -1950,6 +2005,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000076",
       "booking_date": "2026-02-03",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -1985,6 +2041,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000074",
       "booking_date": "2026-02-03",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -2020,6 +2077,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000075",
       "booking_date": "2026-02-03",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -2055,6 +2113,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000088",
       "booking_date": "2026-02-10",
       "reference": "FV 102/02/2026 OBSLUGA KSIEGOWA 02/2026",
       "amount": {
@@ -2090,6 +2149,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000080",
       "booking_date": "2026-02-05",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -2125,6 +2185,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000081",
       "booking_date": "2026-02-05",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -2160,6 +2221,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000079",
       "booking_date": "2026-02-05",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -2195,6 +2257,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000078",
       "booking_date": "2026-02-05",
       "reference": "KURIERON*NADANIE 79107 KARTA *4417",
       "amount": {
@@ -2230,6 +2293,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000084",
       "booking_date": "2026-02-06",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -2265,6 +2329,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000087",
       "booking_date": "2026-02-09",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -2300,6 +2365,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000090",
       "booking_date": "2026-02-10",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -2335,6 +2401,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000089",
       "booking_date": "2026-02-10",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -2370,6 +2437,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000091",
       "booking_date": "2026-02-10",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -2405,6 +2473,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000093",
       "booking_date": "2026-02-11",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -2440,6 +2509,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000094",
       "booking_date": "2026-02-11",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -2475,6 +2545,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000092",
       "booking_date": "2026-02-11",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -2510,6 +2581,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000098",
       "booking_date": "2026-02-12",
       "reference": "BIUROSFERA.PL ZAM 86756 KARTA *4417",
       "amount": {
@@ -2545,6 +2617,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000095",
       "booking_date": "2026-02-12",
       "reference": "DEVCAMP.PL*BILETY KARTA *4417",
       "amount": {
@@ -2609,6 +2682,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000097",
       "booking_date": "2026-02-12",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -2644,6 +2718,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000096",
       "booking_date": "2026-02-12",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -2679,6 +2754,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000099",
       "booking_date": "2026-02-12",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -2714,6 +2790,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000102",
       "booking_date": "2026-02-13",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -2749,6 +2826,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000101",
       "booking_date": "2026-02-13",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -2784,6 +2862,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000103",
       "booking_date": "2026-02-13",
       "reference": "SKLEPIK.PL*ZAM 75701 KARTA *4417",
       "amount": {
@@ -2819,6 +2898,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_eur",
+      "entry_reference": "E000000029",
       "booking_date": "2026-04-08",
       "reference": "INV 2026/02/044 BORSUK LABS",
       "amount": {
@@ -2854,6 +2934,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000109",
       "booking_date": "2026-02-16",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -2889,6 +2970,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000108",
       "booking_date": "2026-02-16",
       "reference": "KURIERON*NADANIE 98594 KARTA *4417",
       "amount": {
@@ -2924,6 +3006,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000107",
       "booking_date": "2026-02-16",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -2959,6 +3042,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000106",
       "booking_date": "2026-02-16",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -2994,6 +3078,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000112",
       "booking_date": "2026-02-19",
       "reference": "BIUROSFERA.PL ZAM 97870 KARTA *4417",
       "amount": {
@@ -3029,6 +3114,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000114",
       "booking_date": "2026-02-19",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -3064,6 +3150,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000113",
       "booking_date": "2026-02-19",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -3099,6 +3186,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000115",
       "booking_date": "2026-02-19",
       "reference": "SKLEPIK.PL*ZAM 27382 KARTA *4417",
       "amount": {
@@ -3134,6 +3222,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000116",
       "booking_date": "2026-02-19",
       "reference": "SKLEPIK.PL*ZAM 85560 KARTA *4417",
       "amount": {
@@ -3169,6 +3258,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000120",
       "booking_date": "2026-02-20",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -3204,6 +3294,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000124",
       "booking_date": "2026-02-23",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -3239,6 +3330,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000123",
       "booking_date": "2026-02-23",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -3274,6 +3366,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000121",
       "booking_date": "2026-02-23",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -3309,6 +3402,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000122",
       "booking_date": "2026-02-23",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -3344,6 +3438,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000125",
       "booking_date": "2026-02-23",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -3379,6 +3474,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000126",
       "booking_date": "2026-02-24",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -3414,6 +3510,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000128",
       "booking_date": "2026-02-25",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -3449,6 +3546,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000129",
       "booking_date": "2026-02-25",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -3484,6 +3582,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000132",
       "booking_date": "2026-02-27",
       "reference": "FV 2/02/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -3519,6 +3618,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000134",
       "booking_date": "2026-02-27",
       "reference": "FV 2/02/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -3554,6 +3654,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000135",
       "booking_date": "2026-02-27",
       "reference": "FV 2/02/2026 TESTY QA",
       "amount": {
@@ -3589,6 +3690,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000133",
       "booking_date": "2026-02-27",
       "reference": "FV 2/02/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -3624,6 +3726,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000173",
       "booking_date": "2026-03-16",
       "reference": "ZAPLATA ZA FV 2026/02/043",
       "amount": {
@@ -3659,6 +3762,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000200",
       "booking_date": "2026-03-27",
       "reference": "FV 2026/02/042",
       "amount": {
@@ -3694,6 +3798,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000154",
       "booking_date": "2026-03-09",
       "reference": "FV 2026/02/041",
       "amount": {
@@ -3729,6 +3834,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000142",
       "booking_date": "2026-03-02",
       "reference": "CZYNSZ 03/2026 BIURO 4B FV CW/03/2026/009",
       "amount": {
@@ -3764,6 +3870,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000144",
       "booking_date": "2026-03-02",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -3799,6 +3906,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000160",
       "booking_date": "2026-03-10",
       "reference": "FV 103/03/2026 OBSLUGA KSIEGOWA 03/2026",
       "amount": {
@@ -3834,6 +3942,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000148",
       "booking_date": "2026-03-04",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -3869,6 +3978,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000146",
       "booking_date": "2026-03-04",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -3904,6 +4014,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000147",
       "booking_date": "2026-03-04",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -3939,6 +4050,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000151",
       "booking_date": "2026-03-06",
       "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
       "amount": {
@@ -3974,6 +4086,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000152",
       "booking_date": "2026-03-06",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -4009,6 +4122,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000155",
       "booking_date": "2026-03-09",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -4044,6 +4158,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000159",
       "booking_date": "2026-03-09",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -4079,6 +4194,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000158",
       "booking_date": "2026-03-09",
       "reference": "KURIERON*NADANIE 55684 KARTA *4417",
       "amount": {
@@ -4114,6 +4230,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000156",
       "booking_date": "2026-03-09",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -4149,6 +4266,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000157",
       "booking_date": "2026-03-09",
       "reference": "SKLEPIK.PL*ZAM 32064 KARTA *4417",
       "amount": {
@@ -4184,6 +4302,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000162",
       "booking_date": "2026-03-10",
       "reference": "KURIERON*NADANIE 29052 KARTA *4417",
       "amount": {
@@ -4219,6 +4338,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000161",
       "booking_date": "2026-03-10",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -4254,6 +4374,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000164",
       "booking_date": "2026-03-11",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -4289,6 +4410,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000165",
       "booking_date": "2026-03-11",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -4324,6 +4446,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000163",
       "booking_date": "2026-03-11",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -4359,6 +4482,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000166",
       "booking_date": "2026-03-12",
       "reference": "BIUROSFERA.PL ZAM 33166 KARTA *4417",
       "amount": {
@@ -4394,6 +4518,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000167",
       "booking_date": "2026-03-12",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -4429,6 +4554,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000169",
       "booking_date": "2026-03-13",
       "reference": "BIUROSFERA.PL ZAM 80434 KARTA *4417",
       "amount": {
@@ -4464,6 +4590,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000170",
       "booking_date": "2026-03-13",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -4499,6 +4626,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000175",
       "booking_date": "2026-03-16",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -4534,6 +4662,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000177",
       "booking_date": "2026-03-16",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -4569,6 +4698,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000179",
       "booking_date": "2026-03-16",
       "reference": "SKLEPIK.PL*ZAM 62356 KARTA *4417",
       "amount": {
@@ -4604,6 +4734,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000178",
       "booking_date": "2026-03-16",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -4639,6 +4770,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000176",
       "booking_date": "2026-03-16",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -4674,6 +4806,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000180",
       "booking_date": "2026-03-17",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -4709,6 +4842,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000181",
       "booking_date": "2026-03-17",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -4744,6 +4878,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000183",
       "booking_date": "2026-03-18",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -4779,6 +4914,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000188",
       "booking_date": "2026-03-19",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -4843,6 +4979,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000184",
       "booking_date": "2026-03-19",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -4878,6 +5015,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000186",
       "booking_date": "2026-03-19",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -4913,6 +5051,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000185",
       "booking_date": "2026-03-19",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -4948,6 +5087,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000187",
       "booking_date": "2026-03-19",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -4983,6 +5123,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000192",
       "booking_date": "2026-03-20",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -5018,6 +5159,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000194",
       "booking_date": "2026-03-23",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -5053,6 +5195,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000193",
       "booking_date": "2026-03-23",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -5088,6 +5231,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000195",
       "booking_date": "2026-03-23",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -5123,6 +5267,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000196",
       "booking_date": "2026-03-23",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -5158,6 +5303,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000197",
       "booking_date": "2026-03-23",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -5193,6 +5339,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000199",
       "booking_date": "2026-03-25",
       "reference": "KURIERON*NADANIE 84261 KARTA *4417",
       "amount": {
@@ -5228,6 +5375,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000203",
       "booking_date": "2026-03-31",
       "reference": "FV 3/03/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -5263,6 +5411,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000205",
       "booking_date": "2026-03-31",
       "reference": "FV 3/03/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -5298,6 +5447,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000206",
       "booking_date": "2026-03-31",
       "reference": "FV 3/03/2026 TESTY QA",
       "amount": {
@@ -5333,6 +5483,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000204",
       "booking_date": "2026-03-31",
       "reference": "FV 3/03/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -5368,6 +5519,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000242",
       "booking_date": "2026-04-17",
       "reference": "ZAPLATA ZA FV 2026/03/043",
       "amount": {
@@ -5403,6 +5555,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000260",
       "booking_date": "2026-04-27",
       "reference": "FV 2026/03/042",
       "amount": {
@@ -5438,6 +5591,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000229",
       "booking_date": "2026-04-09",
       "reference": "FV 2026/03/041",
       "amount": {
@@ -5473,6 +5627,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000211",
       "booking_date": "2026-04-01",
       "reference": "CZYNSZ 04/2026 BIURO 4B FV CW/04/2026/010",
       "amount": {
@@ -5508,6 +5663,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000213",
       "booking_date": "2026-04-02",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -5543,6 +5699,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000215",
       "booking_date": "2026-04-03",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -5578,6 +5735,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000218",
       "booking_date": "2026-04-07",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -5613,6 +5771,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000231",
       "booking_date": "2026-04-10",
       "reference": "FV 104/04/2026 OBSLUGA KSIEGOWA 04/2026",
       "amount": {
@@ -5648,6 +5807,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000227",
       "booking_date": "2026-04-07",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -5683,6 +5843,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000220",
       "booking_date": "2026-04-07",
       "reference": "SKLEPIK.PL*ZAM 89869 KARTA *4417",
       "amount": {
@@ -5718,6 +5879,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000223",
       "booking_date": "2026-04-07",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -5753,6 +5915,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000226",
       "booking_date": "2026-04-07",
       "reference": "BIUROSFERA.PL ZAM 52533 KARTA *4417",
       "amount": {
@@ -5788,6 +5951,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000222",
       "booking_date": "2026-04-07",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -5823,6 +5987,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000221",
       "booking_date": "2026-04-07",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -5858,6 +6023,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000219",
       "booking_date": "2026-04-07",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -5893,6 +6059,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000225",
       "booking_date": "2026-04-07",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -5928,6 +6095,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000224",
       "booking_date": "2026-04-07",
       "reference": "KURIERON*NADANIE 34454 KARTA *4417",
       "amount": {
@@ -5963,6 +6131,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000232",
       "booking_date": "2026-04-10",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -5998,6 +6167,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000237",
       "booking_date": "2026-04-13",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -6033,6 +6203,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000234",
       "booking_date": "2026-04-13",
       "reference": "KURIERON*NADANIE 96580 KARTA *4417",
       "amount": {
@@ -6068,6 +6239,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000235",
       "booking_date": "2026-04-13",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -6103,6 +6275,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000236",
       "booking_date": "2026-04-13",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -6138,6 +6311,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_eur",
+      "entry_reference": "E000000047",
       "booking_date": "2026-06-05",
       "reference": "INV 2026/04/044 BORSUK LABS",
       "amount": {
@@ -6173,6 +6347,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000241",
       "booking_date": "2026-04-16",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -6208,6 +6383,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000240",
       "booking_date": "2026-04-16",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -6243,6 +6419,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000243",
       "booking_date": "2026-04-17",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -6278,6 +6455,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000254",
       "booking_date": "2026-04-20",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -6313,6 +6491,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000250",
       "booking_date": "2026-04-20",
       "reference": "BIUROSFERA.PL ZAM 79019 KARTA *4417",
       "amount": {
@@ -6348,6 +6527,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000248",
       "booking_date": "2026-04-20",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -6383,6 +6563,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000249",
       "booking_date": "2026-04-20",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -6418,6 +6599,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000251",
       "booking_date": "2026-04-20",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -6453,6 +6635,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000252",
       "booking_date": "2026-04-20",
       "reference": "BIUROSFERA.PL ZAM 90640 KARTA *4417",
       "amount": {
@@ -6488,6 +6671,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000253",
       "booking_date": "2026-04-20",
       "reference": "SKLEPIK.PL*ZAM 18005 KARTA *4417",
       "amount": {
@@ -6523,6 +6707,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000255",
       "booking_date": "2026-04-22",
       "reference": "BIUROSFERA.PL ZAM 91631 KARTA *4417",
       "amount": {
@@ -6558,6 +6743,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000256",
       "booking_date": "2026-04-23",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -6593,6 +6779,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000258",
       "booking_date": "2026-04-24",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -6628,6 +6815,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000257",
       "booking_date": "2026-04-24",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -6663,6 +6851,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000261",
       "booking_date": "2026-04-27",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -6698,6 +6887,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000268",
       "booking_date": "2026-04-30",
       "reference": "FV 4/04/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -6733,6 +6923,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000270",
       "booking_date": "2026-04-30",
       "reference": "FV 4/04/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -6768,6 +6959,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000271",
       "booking_date": "2026-04-30",
       "reference": "FV 4/04/2026 TESTY QA",
       "amount": {
@@ -6803,6 +6995,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000269",
       "booking_date": "2026-04-30",
       "reference": "FV 4/04/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -6838,6 +7031,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000263",
       "booking_date": "2026-04-27",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -6873,6 +7067,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000262",
       "booking_date": "2026-04-27",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -6908,6 +7103,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000264",
       "booking_date": "2026-04-28",
       "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
       "amount": {
@@ -6943,6 +7139,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000265",
       "booking_date": "2026-04-29",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -6978,6 +7175,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000309",
       "booking_date": "2026-05-15",
       "reference": "ZAPLATA ZA FV 2026/04/043",
       "amount": {
@@ -7013,6 +7211,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000332",
       "booking_date": "2026-05-27",
       "reference": "FV 2026/04/042",
       "amount": {
@@ -7048,6 +7247,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000291",
       "booking_date": "2026-05-07",
       "reference": "FV 2026/04/041",
       "amount": {
@@ -7083,6 +7283,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000279",
       "booking_date": "2026-05-04",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -7118,6 +7319,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000276",
       "booking_date": "2026-05-04",
       "reference": "CZYNSZ 05/2026 BIURO 4B FV CW/05/2026/011",
       "amount": {
@@ -7153,6 +7355,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000280",
       "booking_date": "2026-05-04",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -7188,6 +7391,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000282",
       "booking_date": "2026-05-04",
       "reference": "BIUROSFERA.PL ZAM 74088 KARTA *4417",
       "amount": {
@@ -7223,6 +7427,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000283",
       "booking_date": "2026-05-04",
       "reference": "KURIERON*NADANIE 48183 KARTA *4417",
       "amount": {
@@ -7258,6 +7463,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000297",
       "booking_date": "2026-05-11",
       "reference": "FV 105/05/2026 OBSLUGA KSIEGOWA 05/2026",
       "amount": {
@@ -7293,6 +7499,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000281",
       "booking_date": "2026-05-04",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -7328,6 +7535,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000284",
       "booking_date": "2026-05-04",
       "reference": "SKLEPIK.PL*ZAM 46585 KARTA *4417",
       "amount": {
@@ -7363,6 +7571,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000288",
       "booking_date": "2026-05-05",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -7398,6 +7607,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000286",
       "booking_date": "2026-05-05",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -7433,6 +7643,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000287",
       "booking_date": "2026-05-05",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -7468,6 +7679,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000290",
       "booking_date": "2026-05-06",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -7532,6 +7744,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000292",
       "booking_date": "2026-05-07",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -7567,6 +7780,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000293",
       "booking_date": "2026-05-07",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -7602,6 +7816,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000295",
       "booking_date": "2026-05-08",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -7637,6 +7852,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000296",
       "booking_date": "2026-05-08",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -7672,6 +7888,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000299",
       "booking_date": "2026-05-11",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -7707,6 +7924,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000298",
       "booking_date": "2026-05-11",
       "reference": "KURIERON*NADANIE 52238 KARTA *4417",
       "amount": {
@@ -7742,6 +7960,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000301",
       "booking_date": "2026-05-11",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -7777,6 +7996,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000304",
       "booking_date": "2026-05-11",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -7812,6 +8032,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000300",
       "booking_date": "2026-05-11",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -7847,6 +8068,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000303",
       "booking_date": "2026-05-11",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -7882,6 +8104,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000302",
       "booking_date": "2026-05-11",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -7917,6 +8140,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000320",
       "booking_date": "2026-05-20",
       "reference": "FV LEX/5/2026 OBSLUGA PRAWNA",
       "amount": {
@@ -7952,6 +8176,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000307",
       "booking_date": "2026-05-14",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -7987,6 +8212,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000310",
       "booking_date": "2026-05-15",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -8022,6 +8248,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000312",
       "booking_date": "2026-05-18",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -8057,6 +8284,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000315",
       "booking_date": "2026-05-18",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -8092,6 +8320,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000314",
       "booking_date": "2026-05-18",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -8127,6 +8356,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000313",
       "booking_date": "2026-05-18",
       "reference": "BIUROSFERA.PL ZAM 79456 KARTA *4417",
       "amount": {
@@ -8162,6 +8392,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000316",
       "booking_date": "2026-05-19",
       "reference": "KURIERON*NADANIE 97426 KARTA *4417",
       "amount": {
@@ -8197,6 +8428,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_owner",
+      "entry_reference": "E000000111",
       "booking_date": "2026-05-20",
       "reference": "HOTEL CENTRUM WARSZAWA KARTA *9021",
       "amount": {
@@ -8234,6 +8466,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000321",
       "booking_date": "2026-05-20",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -8269,6 +8502,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_owner",
+      "entry_reference": "E000000110",
       "booking_date": "2026-05-20",
       "reference": "RAILEXPRESS BILETY LODZ-WARSZAWA KARTA *9021",
       "amount": {
@@ -8306,6 +8540,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000322",
       "booking_date": "2026-05-20",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -8341,6 +8576,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000323",
       "booking_date": "2026-05-21",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -8376,6 +8612,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_owner",
+      "entry_reference": "E000000112",
       "booking_date": "2026-05-21",
       "reference": "TAXIGO*TRIP WARSZAWA KARTA *9021",
       "amount": {
@@ -8413,6 +8650,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000325",
       "booking_date": "2026-05-22",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -8448,6 +8686,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000324",
       "booking_date": "2026-05-22",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -8483,6 +8722,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000326",
       "booking_date": "2026-05-22",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -8518,6 +8758,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000328",
       "booking_date": "2026-05-25",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -8553,6 +8794,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000329",
       "booking_date": "2026-05-25",
       "reference": "KURIERON*NADANIE 41789 KARTA *4417",
       "amount": {
@@ -8588,6 +8830,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000330",
       "booking_date": "2026-05-25",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -8623,6 +8866,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000336",
       "booking_date": "2026-05-29",
       "reference": "FV 5/05/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -8658,6 +8902,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000338",
       "booking_date": "2026-05-29",
       "reference": "FV 5/05/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -8693,6 +8938,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000331",
       "booking_date": "2026-05-26",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -8728,6 +8974,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000339",
       "booking_date": "2026-05-29",
       "reference": "FV 5/05/2026 TESTY QA",
       "amount": {
@@ -8763,6 +9010,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000337",
       "booking_date": "2026-05-29",
       "reference": "FV 5/05/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -8798,6 +9046,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000333",
       "booking_date": "2026-05-27",
       "reference": "SKLEPIK.PL*ZAM 83707 KARTA *4417",
       "amount": {
@@ -8833,6 +9082,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000343",
       "booking_date": "2026-05-29",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -8868,6 +9118,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000342",
       "booking_date": "2026-05-29",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -8903,6 +9154,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000344",
       "booking_date": "2026-06-01",
       "reference": "KURIERON*NADANIE 43992 KARTA *4417",
       "amount": {
@@ -8938,6 +9190,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000375",
       "booking_date": "2026-06-17",
       "reference": "ZAPLATA ZA FV 2026/05/043",
       "amount": {
@@ -8973,6 +9226,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000394",
       "booking_date": "2026-06-29",
       "reference": "FV 2026/05/042",
       "amount": {
@@ -9008,6 +9262,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000356",
       "booking_date": "2026-06-08",
       "reference": "FV 2026/05/041",
       "amount": {
@@ -9043,6 +9298,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000345",
       "booking_date": "2026-06-01",
       "reference": "CZYNSZ 06/2026 BIURO 4B FV CW/06/2026/012",
       "amount": {
@@ -9078,6 +9334,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000347",
       "booking_date": "2026-06-02",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -9113,6 +9370,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000361",
       "booking_date": "2026-06-10",
       "reference": "FV 106/06/2026 OBSLUGA KSIEGOWA 06/2026",
       "amount": {
@@ -9148,6 +9406,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000353",
       "booking_date": "2026-06-05",
       "reference": "BIUROSFERA.PL ZAM 69947 KARTA *4417",
       "amount": {
@@ -9183,6 +9442,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000350",
       "booking_date": "2026-06-05",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -9218,6 +9478,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000352",
       "booking_date": "2026-06-05",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -9253,6 +9514,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000351",
       "booking_date": "2026-06-05",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -9288,6 +9550,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000358",
       "booking_date": "2026-06-08",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -9323,6 +9586,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000357",
       "booking_date": "2026-06-08",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -9358,6 +9622,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000360",
       "booking_date": "2026-06-09",
       "reference": "BIUROSFERA.PL ZAM 97122 KARTA *4417",
       "amount": {
@@ -9393,6 +9658,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000364",
       "booking_date": "2026-06-11",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -9428,6 +9694,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000363",
       "booking_date": "2026-06-11",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -9463,6 +9730,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000362",
       "booking_date": "2026-06-11",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -9498,6 +9766,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000365",
       "booking_date": "2026-06-11",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -9533,6 +9802,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000366",
       "booking_date": "2026-06-11",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -9568,6 +9838,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000374",
       "booking_date": "2026-06-15",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -9603,6 +9874,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000373",
       "booking_date": "2026-06-15",
       "reference": "BIUROSFERA.PL ZAM 91633 KARTA *4417",
       "amount": {
@@ -9638,6 +9910,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000371",
       "booking_date": "2026-06-15",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -9673,6 +9946,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000372",
       "booking_date": "2026-06-15",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -9708,6 +9982,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_eur",
+      "entry_reference": "E000000063",
       "booking_date": "2026-08-07",
       "reference": "INV 2026/06/044 BORSUK LABS",
       "amount": {
@@ -9743,6 +10018,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000376",
       "booking_date": "2026-06-17",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -9778,6 +10054,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000378",
       "booking_date": "2026-06-18",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -9813,6 +10090,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000379",
       "booking_date": "2026-06-18",
       "reference": "SKLEPIK.PL*ZAM 92084 KARTA *4417",
       "amount": {
@@ -9848,6 +10126,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000380",
       "booking_date": "2026-06-19",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -9883,6 +10162,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000385",
       "booking_date": "2026-06-22",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -9918,6 +10198,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000387",
       "booking_date": "2026-06-22",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -9953,6 +10234,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000384",
       "booking_date": "2026-06-22",
       "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
       "amount": {
@@ -9988,6 +10270,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000386",
       "booking_date": "2026-06-22",
       "reference": "BIUROSFERA.PL ZAM 75129 KARTA *4417",
       "amount": {
@@ -10023,6 +10306,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000388",
       "booking_date": "2026-06-23",
       "reference": "BIUROSFERA.PL ZAM 86082 KARTA *4417",
       "amount": {
@@ -10058,6 +10342,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000389",
       "booking_date": "2026-06-24",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -10093,6 +10378,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000390",
       "booking_date": "2026-06-24",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -10157,6 +10443,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000392",
       "booking_date": "2026-06-25",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -10192,6 +10479,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000401",
       "booking_date": "2026-06-30",
       "reference": "FV 6/06/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -10227,6 +10515,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000403",
       "booking_date": "2026-06-30",
       "reference": "FV 6/06/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -10262,6 +10551,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000393",
       "booking_date": "2026-06-26",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -10297,6 +10587,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000404",
       "booking_date": "2026-06-30",
       "reference": "FV 6/06/2026 TESTY QA",
       "amount": {
@@ -10332,6 +10623,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000402",
       "booking_date": "2026-06-30",
       "reference": "FV 6/06/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -10367,6 +10659,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000398",
       "booking_date": "2026-06-29",
       "reference": "KURIERON*NADANIE 30617 KARTA *4417",
       "amount": {
@@ -10402,6 +10695,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000395",
       "booking_date": "2026-06-29",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -10437,6 +10731,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000396",
       "booking_date": "2026-06-29",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -10472,6 +10767,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000397",
       "booking_date": "2026-06-29",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -10507,6 +10803,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000409",
       "booking_date": "2026-06-30",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -10542,6 +10839,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000446",
       "booking_date": "2026-07-20",
       "reference": "ZAPLATA ZA FV 2026/06/043",
       "amount": {
@@ -10577,6 +10875,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000457",
       "booking_date": "2026-07-27",
       "reference": "FV 2026/06/042",
       "amount": {
@@ -10612,6 +10911,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000421",
       "booking_date": "2026-07-06",
       "reference": "FV 2026/06/041",
       "amount": {
@@ -10647,6 +10947,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000410",
       "booking_date": "2026-07-01",
       "reference": "CZYNSZ 07/2026 BIURO 4B FV CW/07/2026/013",
       "amount": {
@@ -10682,6 +10983,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000412",
       "booking_date": "2026-07-02",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -10717,6 +11019,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000415",
       "booking_date": "2026-07-03",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -10752,6 +11055,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000417",
       "booking_date": "2026-07-03",
       "reference": "BIUROSFERA.PL ZAM 27947 KARTA *4417",
       "amount": {
@@ -10787,6 +11091,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000416",
       "booking_date": "2026-07-03",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -10822,6 +11127,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000418",
       "booking_date": "2026-07-03",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -10857,6 +11163,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000414",
       "booking_date": "2026-07-03",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -10892,6 +11199,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000426",
       "booking_date": "2026-07-10",
       "reference": "FV 107/07/2026 OBSLUGA KSIEGOWA 07/2026",
       "amount": {
@@ -10927,6 +11235,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000422",
       "booking_date": "2026-07-06",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -10962,6 +11271,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000423",
       "booking_date": "2026-07-06",
       "reference": "SKLEPIK.PL*ZAM 96639 KARTA *4417",
       "amount": {
@@ -10997,6 +11307,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000424",
       "booking_date": "2026-07-07",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -11032,6 +11343,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000431",
       "booking_date": "2026-07-13",
       "reference": "BIUROSFERA.PL ZAM 43733 KARTA *4417",
       "amount": {
@@ -11067,6 +11379,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000440",
       "booking_date": "2026-07-17",
       "reference": "FV EM/7/2026 KRZESLA BIUROWE",
       "amount": {
@@ -11102,6 +11415,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000432",
       "booking_date": "2026-07-13",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -11137,6 +11451,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000429",
       "booking_date": "2026-07-13",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -11172,6 +11487,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000430",
       "booking_date": "2026-07-13",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -11207,6 +11523,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000428",
       "booking_date": "2026-07-13",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -11242,6 +11559,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000436",
       "booking_date": "2026-07-15",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -11277,6 +11595,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000437",
       "booking_date": "2026-07-15",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -11312,6 +11631,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000435",
       "booking_date": "2026-07-15",
       "reference": "SKLEPIK.PL*ZAM 90251 KARTA *4417",
       "amount": {
@@ -11347,6 +11667,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000438",
       "booking_date": "2026-07-16",
       "reference": "BIUROSFERA.PL ZAM 15769 KARTA *4417",
       "amount": {
@@ -11382,6 +11703,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000439",
       "booking_date": "2026-07-16",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -11417,6 +11739,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000441",
       "booking_date": "2026-07-17",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -11452,6 +11775,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000449",
       "booking_date": "2026-07-20",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -11487,6 +11811,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000448",
       "booking_date": "2026-07-20",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -11522,6 +11847,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000447",
       "booking_date": "2026-07-20",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -11557,6 +11883,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000450",
       "booking_date": "2026-07-21",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -11592,6 +11919,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000451",
       "booking_date": "2026-07-21",
       "reference": "SKLEPIK.PL*ZAM 80327 KARTA *4417",
       "amount": {
@@ -11627,6 +11955,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000452",
       "booking_date": "2026-07-22",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -11662,6 +11991,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000453",
       "booking_date": "2026-07-22",
       "reference": "KURIERON*NADANIE 93356 KARTA *4417",
       "amount": {
@@ -11697,6 +12027,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000454",
       "booking_date": "2026-07-23",
       "reference": "BIUROSFERA.PL ZAM 23959 KARTA *4417",
       "amount": {
@@ -11732,6 +12063,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000455",
       "booking_date": "2026-07-24",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -11767,6 +12099,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000458",
       "booking_date": "2026-07-27",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -11802,6 +12135,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000463",
       "booking_date": "2026-07-27",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -11837,6 +12171,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000469",
       "booking_date": "2026-07-31",
       "reference": "FV 7/07/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -11872,6 +12207,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000459",
       "booking_date": "2026-07-27",
       "reference": "BIUROSFERA.PL ZAM 99105 KARTA *4417",
       "amount": {
@@ -11907,6 +12243,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000471",
       "booking_date": "2026-07-31",
       "reference": "FV 7/07/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -11942,6 +12279,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000472",
       "booking_date": "2026-07-31",
       "reference": "FV 7/07/2026 TESTY QA",
       "amount": {
@@ -11977,6 +12315,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000460",
       "booking_date": "2026-07-27",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -12012,6 +12351,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000470",
       "booking_date": "2026-07-31",
       "reference": "FV 7/07/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -12047,6 +12387,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000462",
       "booking_date": "2026-07-27",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -12082,6 +12423,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000461",
       "booking_date": "2026-07-27",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -12117,6 +12459,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000466",
       "booking_date": "2026-07-29",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -12152,6 +12495,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000464",
       "booking_date": "2026-07-29",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -12187,6 +12531,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000465",
       "booking_date": "2026-07-29",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -12222,6 +12567,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000504",
       "booking_date": "2026-08-17",
       "reference": "ZAPLATA ZA FV 2026/07/043",
       "amount": {
@@ -12257,6 +12603,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000527",
       "booking_date": "2026-08-27",
       "reference": "FV 2026/07/042",
       "amount": {
@@ -12292,6 +12639,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000490",
       "booking_date": "2026-08-07",
       "reference": "FV 2026/07/041",
       "amount": {
@@ -12327,6 +12675,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000478",
       "booking_date": "2026-08-03",
       "reference": "CZYNSZ 08/2026 BIURO 4B FV CW/08/2026/014",
       "amount": {
@@ -12362,6 +12711,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000481",
       "booking_date": "2026-08-03",
       "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
       "amount": {
@@ -12397,6 +12747,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000483",
       "booking_date": "2026-08-03",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -12432,6 +12783,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000482",
       "booking_date": "2026-08-03",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -12467,6 +12819,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000492",
       "booking_date": "2026-08-10",
       "reference": "FV 108/08/2026 OBSLUGA KSIEGOWA 08/2026",
       "amount": {
@@ -12502,6 +12855,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000484",
       "booking_date": "2026-08-04",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -12537,6 +12891,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000485",
       "booking_date": "2026-08-04",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -12572,6 +12927,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000487",
       "booking_date": "2026-08-05",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -12607,6 +12963,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000488",
       "booking_date": "2026-08-05",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -12642,6 +12999,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000491",
       "booking_date": "2026-08-07",
       "reference": "KURIERON*NADANIE 38916 KARTA *4417",
       "amount": {
@@ -12677,6 +13035,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000495",
       "booking_date": "2026-08-10",
       "reference": "KURIERON*NADANIE 51592 KARTA *4417",
       "amount": {
@@ -12712,6 +13071,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000494",
       "booking_date": "2026-08-10",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -12747,6 +13107,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000496",
       "booking_date": "2026-08-10",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -12782,6 +13143,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000498",
       "booking_date": "2026-08-11",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -12817,6 +13179,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000499",
       "booking_date": "2026-08-12",
       "reference": "SKLEPIK.PL*ZAM 57589 KARTA *4417",
       "amount": {
@@ -12881,6 +13244,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000502",
       "booking_date": "2026-08-14",
       "reference": "BIUROSFERA.PL ZAM 58236 KARTA *4417",
       "amount": {
@@ -12916,6 +13280,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000509",
       "booking_date": "2026-08-17",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -12951,6 +13316,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000510",
       "booking_date": "2026-08-17",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -12986,6 +13352,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000511",
       "booking_date": "2026-08-17",
       "reference": "BIUROSFERA.PL ZAM 69593 KARTA *4417",
       "amount": {
@@ -13021,6 +13388,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000507",
       "booking_date": "2026-08-17",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -13056,6 +13424,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_eur",
+      "entry_reference": "E000000080",
       "booking_date": "2026-10-07",
       "reference": "INV 2026/08/044 BORSUK LABS",
       "amount": {
@@ -13091,6 +13460,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000506",
       "booking_date": "2026-08-17",
       "reference": "SKLEPIK.PL*ZAM 62879 KARTA *4417",
       "amount": {
@@ -13126,6 +13496,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000508",
       "booking_date": "2026-08-17",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -13161,6 +13532,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000514",
       "booking_date": "2026-08-19",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -13196,6 +13568,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000513",
       "booking_date": "2026-08-19",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -13231,6 +13604,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000515",
       "booking_date": "2026-08-19",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -13266,6 +13640,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000519",
       "booking_date": "2026-08-20",
       "reference": "SKLEPIK.PL*ZAM 74527 KARTA *4417",
       "amount": {
@@ -13301,6 +13676,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000520",
       "booking_date": "2026-08-24",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -13336,6 +13712,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000522",
       "booking_date": "2026-08-24",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -13371,6 +13748,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000521",
       "booking_date": "2026-08-24",
       "reference": "KURIERON*NADANIE 66223 KARTA *4417",
       "amount": {
@@ -13406,6 +13784,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000523",
       "booking_date": "2026-08-24",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -13441,6 +13820,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000525",
       "booking_date": "2026-08-25",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -13476,6 +13856,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000533",
       "booking_date": "2026-08-31",
       "reference": "FV 8/08/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -13511,6 +13892,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000535",
       "booking_date": "2026-08-31",
       "reference": "FV 8/08/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -13546,6 +13928,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000536",
       "booking_date": "2026-08-31",
       "reference": "FV 8/08/2026 TESTY QA",
       "amount": {
@@ -13581,6 +13964,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000526",
       "booking_date": "2026-08-26",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -13616,6 +14000,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000534",
       "booking_date": "2026-08-31",
       "reference": "FV 8/08/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -13651,6 +14036,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000529",
       "booking_date": "2026-08-27",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -13686,6 +14072,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000528",
       "booking_date": "2026-08-27",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -13721,6 +14108,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000530",
       "booking_date": "2026-08-28",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -13756,6 +14144,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000542",
       "booking_date": "2026-08-31",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -13791,6 +14180,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000540",
       "booking_date": "2026-08-31",
       "reference": "SKLEPIK.PL*ZAM 56652 KARTA *4417",
       "amount": {
@@ -13826,6 +14216,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000541",
       "booking_date": "2026-08-31",
       "reference": "BIUROSFERA.PL ZAM 94233 KARTA *4417",
       "amount": {
@@ -13861,6 +14252,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000539",
       "booking_date": "2026-08-31",
       "reference": "KURIERON*NADANIE 99415 KARTA *4417",
       "amount": {
@@ -13896,6 +14288,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000543",
       "booking_date": "2026-08-31",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -13931,6 +14324,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000570",
       "booking_date": "2026-09-15",
       "reference": "ZAPLATA ZA FV 2026/08/043",
       "amount": {
@@ -13966,6 +14360,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000590",
       "booking_date": "2026-09-28",
       "reference": "FV 2026/08/042",
       "amount": {
@@ -14001,6 +14396,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000548",
       "booking_date": "2026-09-04",
       "reference": "FV 2026/08/041",
       "amount": {
@@ -14036,6 +14432,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000544",
       "booking_date": "2026-09-01",
       "reference": "CZYNSZ 09/2026 BIURO 4B FV CW/09/2026/015",
       "amount": {
@@ -14071,6 +14468,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000547",
       "booking_date": "2026-09-03",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -14106,6 +14504,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000562",
       "booking_date": "2026-09-10",
       "reference": "FV 109/09/2026 OBSLUGA KSIEGOWA 09/2026",
       "amount": {
@@ -14141,6 +14540,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000549",
       "booking_date": "2026-09-04",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -14176,6 +14576,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000557",
       "booking_date": "2026-09-07",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -14211,6 +14612,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000553",
       "booking_date": "2026-09-07",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -14246,6 +14648,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000554",
       "booking_date": "2026-09-07",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -14281,6 +14684,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000552",
       "booking_date": "2026-09-07",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -14316,6 +14720,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000556",
       "booking_date": "2026-09-07",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -14351,6 +14756,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000555",
       "booking_date": "2026-09-07",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -14386,6 +14792,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000559",
       "booking_date": "2026-09-08",
       "reference": "SKLEPIK.PL*ZAM 10451 KARTA *4417",
       "amount": {
@@ -14421,6 +14828,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000560",
       "booking_date": "2026-09-08",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -14456,6 +14864,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000561",
       "booking_date": "2026-09-09",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -14491,6 +14900,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000564",
       "booking_date": "2026-09-10",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -14555,6 +14965,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000563",
       "booking_date": "2026-09-10",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -14590,6 +15001,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000567",
       "booking_date": "2026-09-14",
       "reference": "DEVCAMP.PL*BILETY KARTA *4417",
       "amount": {
@@ -14625,6 +15037,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000568",
       "booking_date": "2026-09-14",
       "reference": "SKLEPIK.PL*ZAM 71708 KARTA *4417",
       "amount": {
@@ -14660,6 +15073,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000571",
       "booking_date": "2026-09-15",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -14695,6 +15109,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000572",
       "booking_date": "2026-09-16",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -14730,6 +15145,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000573",
       "booking_date": "2026-09-16",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -14765,6 +15181,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000575",
       "booking_date": "2026-09-17",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -14800,6 +15217,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000574",
       "booking_date": "2026-09-17",
       "reference": "BIUROSFERA.PL ZAM 22921 KARTA *4417",
       "amount": {
@@ -14835,6 +15253,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000577",
       "booking_date": "2026-09-17",
       "reference": "BIUROSFERA.PL ZAM 64382 KARTA *4417",
       "amount": {
@@ -14870,6 +15289,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000576",
       "booking_date": "2026-09-17",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -14905,6 +15325,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000579",
       "booking_date": "2026-09-18",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -14940,6 +15361,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000586",
       "booking_date": "2026-09-21",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -14975,6 +15397,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000583",
       "booking_date": "2026-09-21",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -15010,6 +15433,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000585",
       "booking_date": "2026-09-21",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -15045,6 +15469,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000584",
       "booking_date": "2026-09-21",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -15080,6 +15505,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000587",
       "booking_date": "2026-09-23",
       "reference": "SKLEPIK.PL*ZAM 31107 KARTA *4417",
       "amount": {
@@ -15115,6 +15541,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000588",
       "booking_date": "2026-09-24",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -15150,6 +15577,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000599",
       "booking_date": "2026-09-30",
       "reference": "FV 9/09/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -15185,6 +15613,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000591",
       "booking_date": "2026-09-28",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -15220,6 +15649,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000601",
       "booking_date": "2026-09-30",
       "reference": "FV 9/09/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -15255,6 +15685,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000602",
       "booking_date": "2026-09-30",
       "reference": "FV 9/09/2026 TESTY QA",
       "amount": {
@@ -15290,6 +15721,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000600",
       "booking_date": "2026-09-30",
       "reference": "FV 9/09/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -15325,6 +15757,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000592",
       "booking_date": "2026-09-28",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -15360,6 +15793,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000593",
       "booking_date": "2026-09-28",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -15395,6 +15829,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000594",
       "booking_date": "2026-09-28",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -15430,6 +15865,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000595",
       "booking_date": "2026-09-28",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -15465,6 +15901,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000596",
       "booking_date": "2026-09-29",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -15500,6 +15937,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000605",
       "booking_date": "2026-10-01",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -15535,6 +15973,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000641",
       "booking_date": "2026-10-19",
       "reference": "ZAPLATA ZA FV 2026/09/043",
       "amount": {
@@ -15570,6 +16009,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000657",
       "booking_date": "2026-10-27",
       "reference": "FV 2026/09/042",
       "amount": {
@@ -15605,6 +16045,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000621",
       "booking_date": "2026-10-06",
       "reference": "FV 2026/09/041",
       "amount": {
@@ -15640,6 +16081,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000606",
       "booking_date": "2026-10-01",
       "reference": "CZYNSZ 10/2026 BIURO 4B FV CW/10/2026/016",
       "amount": {
@@ -15675,6 +16117,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000609",
       "booking_date": "2026-10-02",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -15710,6 +16153,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000608",
       "booking_date": "2026-10-02",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -15745,6 +16189,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000619",
       "booking_date": "2026-10-05",
       "reference": "BIUROSFERA.PL ZAM 47894 KARTA *4417",
       "amount": {
@@ -15780,6 +16225,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000614",
       "booking_date": "2026-10-05",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -15815,6 +16261,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000613",
       "booking_date": "2026-10-05",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -15850,6 +16297,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000628",
       "booking_date": "2026-10-12",
       "reference": "FV 110/10/2026 OBSLUGA KSIEGOWA 10/2026",
       "amount": {
@@ -15885,6 +16333,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000617",
       "booking_date": "2026-10-05",
       "reference": "BIUROSFERA.PL ZAM 15477 KARTA *4417",
       "amount": {
@@ -15920,6 +16369,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000612",
       "booking_date": "2026-10-05",
       "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
       "amount": {
@@ -15955,6 +16405,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000616",
       "booking_date": "2026-10-05",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -15990,6 +16441,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000618",
       "booking_date": "2026-10-05",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -16025,6 +16477,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000615",
       "booking_date": "2026-10-05",
       "reference": "SKLEPIK.PL*ZAM 32157 KARTA *4417",
       "amount": {
@@ -16060,6 +16513,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000622",
       "booking_date": "2026-10-07",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -16095,6 +16549,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000625",
       "booking_date": "2026-10-08",
       "reference": "BIUROSFERA.PL ZAM 74083 KARTA *4417",
       "amount": {
@@ -16130,6 +16585,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000624",
       "booking_date": "2026-10-08",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -16165,6 +16621,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000627",
       "booking_date": "2026-10-09",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -16200,6 +16657,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000633",
       "booking_date": "2026-10-12",
       "reference": "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417",
       "amount": {
@@ -16235,6 +16693,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000629",
       "booking_date": "2026-10-12",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -16270,6 +16729,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000631",
       "booking_date": "2026-10-12",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -16305,6 +16765,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000630",
       "booking_date": "2026-10-12",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -16340,6 +16801,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000632",
       "booking_date": "2026-10-12",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -16375,6 +16837,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000636",
       "booking_date": "2026-10-13",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -16410,6 +16873,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000635",
       "booking_date": "2026-10-13",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -16445,6 +16909,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000639",
       "booking_date": "2026-10-15",
       "reference": "KURIERON*NADANIE 45251 KARTA *4417",
       "amount": {
@@ -16507,6 +16972,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000643",
       "booking_date": "2026-10-19",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -16542,6 +17008,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000642",
       "booking_date": "2026-10-19",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -16577,6 +17044,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000645",
       "booking_date": "2026-10-19",
       "reference": "DOMENOWO.PL KARTA *4417",
       "amount": {
@@ -16612,6 +17080,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000644",
       "booking_date": "2026-10-19",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -16647,6 +17116,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000651",
       "booking_date": "2026-10-22",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -16682,6 +17152,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000650",
       "booking_date": "2026-10-22",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -16717,6 +17188,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000649",
       "booking_date": "2026-10-22",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -16752,6 +17224,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000654",
       "booking_date": "2026-10-26",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -16787,6 +17260,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000653",
       "booking_date": "2026-10-26",
       "reference": "RAILEXPRESS BILETY KARTA *4417",
       "amount": {
@@ -16822,6 +17296,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000656",
       "booking_date": "2026-10-26",
       "reference": "SUSHI KAMIEN LODZ KARTA *4417",
       "amount": {
@@ -16857,6 +17332,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000655",
       "booking_date": "2026-10-26",
       "reference": "BIUROSFERA.PL ZAM 93436 KARTA *4417",
       "amount": {
@@ -16892,6 +17368,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000665",
       "booking_date": "2026-10-30",
       "reference": "FV 10/10/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -16927,6 +17404,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000667",
       "booking_date": "2026-10-30",
       "reference": "FV 10/10/2026 PROJEKTOWANIE UX",
       "amount": {
@@ -16962,6 +17440,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000668",
       "booking_date": "2026-10-30",
       "reference": "FV 10/10/2026 TESTY QA",
       "amount": {
@@ -16997,6 +17476,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000666",
       "booking_date": "2026-10-30",
       "reference": "FV 10/10/2026 USLUGI PROGRAMISTYCZNE",
       "amount": {
@@ -17032,6 +17512,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000658",
       "booking_date": "2026-10-27",
       "reference": "NORDPETRO STACJA 21 LODZ KARTA *4417",
       "amount": {
@@ -17067,6 +17548,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000659",
       "booking_date": "2026-10-27",
       "reference": "PARKUJ.PL LODZ KARTA *4417",
       "amount": {
@@ -17102,6 +17584,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000661",
       "booking_date": "2026-10-28",
       "reference": "KAWIARNIA ZIARNO LODZ KARTA *4417",
       "amount": {
@@ -17137,6 +17620,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000660",
       "booking_date": "2026-10-28",
       "reference": "MARKET KOSZYK 24 LODZ KARTA *4417",
       "amount": {
@@ -17172,6 +17656,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000662",
       "booking_date": "2026-10-29",
       "reference": "PALIWEX 112 LODZ KARTA *4417",
       "amount": {
@@ -17207,6 +17692,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000672",
       "booking_date": "2026-10-30",
       "reference": "TAXIGO*TRIP LODZ KARTA *4417",
       "amount": {
@@ -17242,6 +17728,7 @@
     "payment": "card",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000673",
       "booking_date": "2026-11-02",
       "reference": "SKLEPIK.PL*ZAM 13281 KARTA *4417",
       "amount": {
@@ -17277,6 +17764,7 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000709",
       "booking_date": "2026-11-17",
       "reference": "ZAPLATA ZA FV 2026/10/043",
       "amount": {
@@ -17339,10 +17827,83 @@
     "payment": "transfer",
     "bank_line": {
       "account": "acc_pln",
+      "entry_reference": "E000000680",
       "booking_date": "2026-11-04",
       "reference": "FV 2026/10/041",
       "amount": {
         "amount": "8610.00",
+        "currency": "PLN"
+      }
+    },
+    "messiness": []
+  },
+  {
+    "id": "fa3_20261110_01",
+    "file": "fa3/2026-11/fa3_20261110_01.xml",
+    "number": "FV/EM/00006/11/2026",
+    "direction": "purchase",
+    "issue_date": "2026-11-10",
+    "due_date": null,
+    "counterparty": "ElektroMarkt Polska S.A. (SAMPLE)",
+    "counterparty_tax_id": "9990000043",
+    "description": "Laptop 14 cali",
+    "vat_rate": "23",
+    "net": {
+      "amount": "3982.93",
+      "currency": "PLN"
+    },
+    "vat": {
+      "amount": "916.07",
+      "currency": "PLN"
+    },
+    "gross": {
+      "amount": "4899.00",
+      "currency": "PLN"
+    },
+    "payment": "card",
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000694",
+      "booking_date": "2026-11-12",
+      "reference": "ELEKTROMARKT LODZ PORT KARTA *4417",
+      "amount": {
+        "amount": "-4899.00",
+        "currency": "PLN"
+      }
+    },
+    "messiness": []
+  },
+  {
+    "id": "fa3_20261114_01",
+    "file": "fa3/2026-11/fa3_20261114_01.xml",
+    "number": "FV/BS/00038/11/2026",
+    "direction": "purchase",
+    "issue_date": "2026-11-14",
+    "due_date": null,
+    "counterparty": "Biurosfera sp. z o.o. (SAMPLE)",
+    "counterparty_tax_id": "9990014447",
+    "description": "Materiały biurowe",
+    "vat_rate": "23",
+    "net": {
+      "amount": "314.15",
+      "currency": "PLN"
+    },
+    "vat": {
+      "amount": "72.25",
+      "currency": "PLN"
+    },
+    "gross": {
+      "amount": "386.40",
+      "currency": "PLN"
+    },
+    "payment": "card",
+    "bank_line": {
+      "account": "acc_pln",
+      "entry_reference": "E000000702",
+      "booking_date": "2026-11-16",
+      "reference": "BIUROSFERA.PL ZAM 55120 KARTA *4417",
+      "amount": {
+        "amount": "-386.40",
         "currency": "PLN"
       }
     },

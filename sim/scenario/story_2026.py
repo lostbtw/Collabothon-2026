@@ -12,12 +12,10 @@ Usage: python3 sim/scenario/story_2026.py
 import json
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from pathlib import Path
 
 from bank_2026 import PAY_RUN_PLAN
-from world import ACCOUNTS, AS_OF, COMPANY_ID, PEOPLE, PERSON, RATES
+from world import ACCOUNTS, AS_OF, COMPANY_ID, OUT, PEOPLE, PERSON, RATES
 
-OUT = Path(__file__).parent / "out"
 CENT = Decimal("0.01")
 
 # Story table (spec #4). The story rounds its EUR conversions (3,100 EUR = 13,670; 18,400 EUR = 81,100),
@@ -45,7 +43,7 @@ def m(amount, currency="PLN"):
 RECEIPTS = [
     ("doc_rcpt412", "per_jan", "2026-11-20", "ElektroMarkt Polska S.A. (SAMPLE)", "Monitor 27 cali QHD", "1299.00",
      "M1", False, True),
-    ("doc_rcpt401", "per_marta", "2026-11-04", "Bistro Piotrkowska 90 (SAMPLE)", "Team lunch", "486.00",
+    ("doc_rcpt401", "per_marta", "2026-11-04", "Bistro Piotrkowska 90 s.c. (SAMPLE)", "Team lunch", "486.00",
      "M2", True, False),
     ("doc_rcpt402", "per_anna", "2026-11-05", "RailExpress S.A. (SAMPLE)", "Train ticket Lodz-Warszawa", "139.80",
      "M2", True, False),
@@ -61,7 +59,7 @@ RECEIPTS = [
      "M2", True, False),
     ("doc_rcpt408", "per_anna", "2026-11-16", "Taxigo sp. z o.o. (SAMPLE)", "Taxi to client", "63.50",
      "M1", False, False),
-    ("doc_rcpt409", "per_piotr", "2026-11-18", "Sushi Kamien (SAMPLE)", "Client dinner", "701.00",
+    ("doc_rcpt409", "per_piotr", "2026-11-18", "Sushi Kamień sp. z o.o. (SAMPLE)", "Client dinner", "701.00",
      "M1", False, False),
 ]
 
@@ -179,11 +177,11 @@ def check(items, people):
 
 def write(path, data):
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{path.relative_to(OUT.parent.parent.parent)}: {len(data)} entries")
+    print(f"out/{path.name}: {len(data)} entries")
 
 
 def main():
-    OUT.mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
     people = [{k: p[k] for k in ("id", "company_id", "name", "email", "role")} for p in PEOPLE]
     items = story_items()
     write(OUT / "people.json", people)

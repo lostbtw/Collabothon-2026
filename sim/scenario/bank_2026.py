@@ -15,11 +15,9 @@ import math
 import random
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from pathlib import Path
 
-from world import ACCOUNTS, COMPANY, PERSON, bank_name
+from world import ACCOUNTS, COMPANY, OUT, PERSON, bank_name
 
-OUT = Path(__file__).parent / "out"
 SEED = 2026
 START, END = date(2026, 1, 1), date(2026, 11, 20)
 
@@ -258,8 +256,22 @@ class Book:
         self.rows[acc].append(row)
         if doc is not None:
             self.docs.append({"party": payer, "party_account": cp_acc, **doc,
-                              "bank": {"account": acc, "booking_date": row[0], "value_date": row[1],
+                              "bank": {"account": acc, "row_index": len(self.rows[acc]) - 1,
+                                       "booking_date": row[0], "value_date": row[1],
                                        "reference": ref, "amount": row[6], "currency": ACCOUNTS[acc]["currency"]}})
+
+    def ordered(self, acc):
+        """Rows in booking order, as (entry reference, insertion index, row).
+
+        The Sandbox Bank (sim/bank) loads a CSV in the same order and numbers the lines E000000001, ...
+        """
+        rows = sorted(enumerate(self.rows[acc]), key=lambda x: (x[1][0], x[0]))
+        return [(f"E{n:09d}", i, row) for n, (i, row) in enumerate(rows, start=1)]
+
+    def entry_reference(self, acc, row_index):
+        if not hasattr(self, "_refs"):
+            self._refs = {(a, i): ref for a in self.rows for ref, i, _ in self.ordered(a)}
+        return self._refs[(acc, row_index)]
 
     def card(self, acc, purchase, descriptor, payer, amount, card, doc=None):
         if doc is not None:
@@ -283,7 +295,7 @@ def daily_cards(book, rng, m, count, last_day=None):
     for _ in range(count):
         desc, payer, lo, hi = rng.choice(CARD_PLN)
         book.card("acc_pln", random_day(rng, m, last=last_day), noisy(rng, desc), payer, rng.uniform(lo, hi), "4417",
-                  doc={})
+                  doc={"daily": True})
     for _ in range(max(1, count // 6)):
         desc, payer, lo, hi = rng.choice(CARD_EUR)
         book.card("acc_eur", random_day(rng, m, last=last_day), desc, payer, rng.uniform(lo, hi), "2290")
@@ -410,10 +422,46 @@ def generate_nordwind(book, rng):
         book.add("acc_pln", day, "INTERNAL TRANSFER", ref, COMPANY, ACCOUNTS["acc_eur"]["iban"], convert * rate)
 
 
-# October invoices paid in November (the hand-written rows above).
+def card_doc(currency=None, gross=None, **extra):
+    """Invoice data for a hand-written November card line; foreign ones keep their original amount."""
+    doc = {"direction": "purchase", "pay": "card", **extra}
+    if currency:
+        doc.update(currency=currency, gross=Decimal(gross), foreign=True)
+    return doc
+
+
+# Documents behind the hand-written November rows, by reference. Rows not listed have no document
+# (bank fees, ZUS, taxes, the spa (M4) and the owner's private purchases).
 NOV_DOCS = {
+    # October invoices paid in November.
     "FV 2026/10/041": sale_doc("2026/10/041", date(2026, 10, 31), date(2026, 11, 4)),
     "ZAPLATA ZA FV 2026/10/043": sale_doc("2026/10/043", date(2026, 10, 31), date(2026, 11, 15)),
+    "CZYNSZ 11/2026 BIURO 4B FV CW/11/2026/017": purchase_doc(
+        "CW/11/2026/017", date(2026, 11, 1), date(2026, 11, 2), "Najem stanowiska biurowego 11/2026"),
+    "FV 112/11/2026 OBSLUGA KSIEGOWA 11/2026": purchase_doc(
+        "112/11/2026", date(2026, 11, 3), date(2026, 11, 10), "Obsługa księgowa 11/2026"),
+    "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417": card_doc("USD", "420.00"),
+    "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417": card_doc("USD", "380.00"),
+    "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417": card_doc("EUR", "120.00"),
+    "MAILFOX* ATLANTA 89.00 USD KARTA *4417": card_doc("USD", "89.00"),
+    "TASKLOOM.COM 136.00 USD KARTA *4417": card_doc("USD", "136.00"),
+    "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417": card_doc("EUR", "60.00"),
+    "LOGBEAR INC* 80.00 USD KARTA *4417": card_doc("USD", "80.00"),
+    "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417": card_doc("USD", "45.00"),
+    "PALIWEX 112 LODZ KARTA *4417": card_doc(),
+    "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417": card_doc(),
+    # These two also arrive as FA(3) XML from KSeF (and as a PDF by e-mail: M5).
+    "ELEKTROMARKT LODZ PORT KARTA *4417": card_doc(ksef=True, line="Laptop 14 cali"),
+    "BIUROSFERA.PL ZAM 55120 KARTA *4417": card_doc(ksef=True),
+    "INV LB-2026-0912 TRANSLATION DE": {
+        "direction": "purchase", "pay": "transfer", "number": "LB-2026-0912", "issue": date(2026, 11, 2),
+        "due": date(2026, 11, 16), "currency": "EUR", "gross": Decimal("240.00"), "foreign": True,
+        "line": "Translation EN-DE, product documentation"},
+    # M3: company costs on the owner's private card, invoices made out to the company.
+    "RAILEXPRESS BILETY LODZ-WARSZAWA KARTA *9021": card_doc(messiness=["M3"]),
+    "HOTEL CENTRUM WARSZAWA KARTA *9021": card_doc(messiness=["M3"]),
+    "TAXIGO*TRIP WARSZAWA KARTA *9021": card_doc(messiness=["M3"]),
+    "FIGMENT DESIGN* 15.00 USD KARTA *9021": card_doc("USD", "15.00", messiness=["M3"]),
 }
 
 
@@ -423,7 +471,12 @@ def add_november(book, rng):
             if isinstance(amount, tuple):
                 amount = fx_amount(*amount)
             d = lambda s: date(2026, int(s[3:]), int(s[:2]))  # noqa: E731
-            book.add(acc, d(booking), ttype, ref, payer, cp_acc, amount, value=d(value), doc=NOV_DOCS.get(ref))
+            doc = NOV_DOCS.get(ref)
+            if doc is not None:
+                doc = dict(doc)
+                if doc["pay"] == "card":
+                    doc.update(issue=d(value), paid=d(value))
+            book.add(acc, d(booking), ttype, ref, payer, cp_acc, amount, value=d(value), doc=doc)
     # Daily purchases 1-18 Nov, booked by 19 Nov, so the PIXELBOARD line stays last.
     daily_cards(book, rng, 11, rng.randint(22, 26), last_day=18)
 
@@ -447,12 +500,12 @@ def build():
 def main():
     book = build()
 
-    OUT.mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
     total = 0
     for acc, rows in book.rows.items():
         meta = ACCOUNTS[acc]
         check(acc, rows)
-        rows = [r for _, r in sorted(enumerate(rows), key=lambda x: (x[1][0], x[0]))]  # stable by booking date
+        rows = [row for _, _, row in book.ordered(acc)]  # booking order, same as the Sandbox Bank
         net = sum(r[6] for r in rows)
         opening = meta["opening"] if "opening" in meta else meta["closing"] - net
         balance, low = opening, (opening, START)

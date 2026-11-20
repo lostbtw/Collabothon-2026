@@ -3,8 +3,13 @@
 Shared by bank_2026.py (bank lines) and story_2026.py (People, open items, story check).
 All names are invented and marked SAMPLE. IBANs use check digits 00, so they are not valid accounts.
 """
+import os
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
+
+# Output folder; tests set SCENARIO_OUT to generate into a temporary folder.
+OUT = Path(os.environ.get("SCENARIO_OUT") or Path(__file__).parent / "out")
 
 COMPANY_ID = "co_borsuk"
 COMPANY = "BORSUK LABS SP Z O O (SAMPLE)"

@@ -8,6 +8,9 @@ agree with the bank CSVs. Adds the invoices that have no bank line: October sale
 Only Polish sellers and Borsuk Labs' own sales invoices are FA(3). Foreign vendors (SaaS, Lingua
 Bridge, EUR card purchases) and private receipts are not KSeF invoices, so they are not here.
 
+Two November invoices (ElektroMarkt laptop, Biurosfera) also come from KSeF, as duplicates (M5)
+of their e-mailed PDFs.
+
 Usage: python3 sim/scenario/fa3_2026.py [--xsd DIR]
   --xsd DIR  validate every file with xmllint against the FA(3) schema in DIR
              (schemat.xsd from https://crd.gov.pl/wzor/2025/06/25/13775/, with its imports)
@@ -24,9 +27,8 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 from bank_2026 import build
-from world import ACCOUNTS, NIP
+from world import ACCOUNTS, NIP, OUT
 
-OUT = Path(__file__).parent / "out"
 FIRST, LAST = date(2025, 12, 1), date(2026, 10, 31)
 NS = "http://crd.gov.pl/wzor/2025/06/25/13775/"
 CENT = Decimal("0.01")
@@ -133,14 +135,15 @@ def money(x):
     return Decimal(x).quantize(CENT, ROUND_HALF_UP)
 
 
-def collect():
+def collect(book):
     docs = []
-    for d in build().docs + EXTRA:
-        if not FIRST <= d["issue"] <= LAST:
-            continue  # November documents come as PDFs and photos (next step)
+    for d in book.docs + EXTRA:
+        if not (FIRST <= d["issue"] <= LAST or d.get("ksef")):
+            continue  # other November documents are PDFs and photos (november_2026.py)
         d = dict(d)
         bank = d.get("bank")
         if bank:
+            d["entry_reference"] = book.entry_reference(bank["account"], bank["row_index"])
             d["gross"] = abs(bank["amount"])
             d.setdefault("currency", bank["currency"])
             if bank["account"] == "acc_owner":
@@ -249,14 +252,15 @@ def index_entry(d, path):
         "gross": {"amount": f"{d['gross']}", "currency": d["currency"]},
         "payment": d["pay"],
         "bank_line": None if not bank else {
-            "account": bank["account"], "booking_date": bank["booking_date"].isoformat(),
+            "account": bank["account"], "entry_reference": d["entry_reference"],
+            "booking_date": bank["booking_date"].isoformat(),
             "reference": bank["reference"], "amount": {"amount": f"{bank['amount']}", "currency": bank["currency"]}},
         "messiness": d.get("messiness", []),
     }
 
 
 def main():
-    docs = collect()
+    docs = collect(build())
     target = OUT / "fa3"
     if target.exists():
         shutil.rmtree(target)
