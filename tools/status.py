@@ -184,7 +184,8 @@ def working_hours(a, b):
         t += timedelta(minutes=15)
     return h
 def cmd_forecast(args):
-    fetch(); allr = load_all(None); avail = working_hours(now(), FREEZE)
+    fetch(); mine = my_role(args) if (ROOT / ".role").exists() or args.as_role else None
+    allr = load_all(mine); avail = working_hours(now(), FREEZE)
     print(f"FORECAST   {now():%a %H:%M}   working hours left until feature freeze (sleep excluded): {avail:.1f} h per person\n")
     w = {"todo": 1.0, "in_progress": 0.5, "mock_done": 0.2, "done": 0.0, "cut": 0.0}
     for n, d in allr.items():

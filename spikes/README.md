@@ -9,6 +9,8 @@ Run from the repo root. All were run on 2026-11-20 on a laptop (macOS, Python 3.
 | 03 Forecast backtest | `python3 spikes/03_forecast_backtest/forecast_backtest.py pizzeria-amalfi-bank-statement-2025-v6.csv` | 0.04 s | Forecast made on 2025-05-15 **with** the owner-supplied event "closed 1–30 June": low point −21,824.82 on 2025-07-03 vs actual −22,097.60 on 2025-07-03 (error 272.78 EUR, 1.2%), 17 days before the first negative day, 7 weeks before the low point. **Without** the event: predicts −1,353 (misses the gap by 20,744) |
 | 04 Matching engine | `python3 spikes/04_matching_engine/matching_spike.py 7` (seeds 7, 1, 2, 3, 4) | 0.1–0.2 s each | 60 synthetic purchases, 87–94 documents, FA(3)-style XML round trip. Dedup clusters 100% pure; document-to-bank matching 100% precision and recall; who-paid 97–100%; VAT-not-deductible total equals ground truth on all seeds |
 
+| 05 FX downside (FX Shield) | `python3 spikes/05_fx_downside/fx_downside.py` | 7–14 s (39 NBP calls) | 756 daily rates per currency. 45-day moves, 5th/95th percentile: EUR −1.6%/+1.9%, USD −3.9%/+4.8%, CHF −3.1%/+3.7%; mean near zero. 18,400 EUR invoice: expected shortfall 1,426 PLN (10% of profit) -> not worth hedging. 40,000 USD order with 8,000 PLN profit: expected shortfall 6,595 PLN (82%) vs illustrative forward cost 487 PLN -> propose hedge |
+
 Each folder has `output.txt` with the full output.
 
 ## Not run

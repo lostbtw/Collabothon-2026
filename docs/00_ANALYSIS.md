@@ -220,7 +220,7 @@ Columns: Hours = build estimate. Verdict: **D** doable / **R** doable in a reduc
 | PIT filing helper | 15+ | Forms change yearly | High risk | Low | Low | **N** (cut) | — |
 | Tax reserve + calendar | 4 | Ledger + calendar | PL-CAL-01..03 verified | Medium | High (tax agent, partial) | **D** | Research |
 | FX month-boundary warning | — | — | Premise wrong | — | — | **N** | PL-FX-01 |
-| FX exposure + simulated forward | 4 | NBP + open invoices | Info only | Medium | High (FX agent, partial) | **R** (nice-to-have) | Spike 02 |
+| FX exposure + simulated forward | 5 | NBP + open invoices | Info only | Medium–high | High (FX agent) | **D** — upgraded on 20 Nov to **FX Shield**, a must-have (`03_FX_SHIELD.md`) | Spikes 02 and 05 |
 | Accounting-software sales invoices | 4 | inFakt sandbox | n/a | Medium (receivables feed the forecast) | High | **D** | Research |
 | Chat with SQL + row links | 10 | Model with tool calling | n/a | High | High | **R** (5 tools + guarded SQL) | — |
 | Data export | 1 | — | n/a | Low | Medium | **D** | — |

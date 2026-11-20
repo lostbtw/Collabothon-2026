@@ -22,6 +22,6 @@ Everything six people need to build in parallel against mocks from hour one.
 
 ## Verified
 
-- `validate_fixtures.py`: 29 examples, 0 invalid (run 2026-11-20).
+- `validate_fixtures.py`: 31 examples, 0 invalid (run 2026-11-20).
 - `openapi.yaml`: parses as YAML, 33 paths, every `./schemas/...` reference resolves to an existing file (run 2026-11-20).
 - Not verified: no OpenAPI linter or code generator was run against the spec.

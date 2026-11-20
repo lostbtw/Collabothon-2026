@@ -69,6 +69,8 @@ Demo clock: Sat 21 Nov 2026. Company: Borsuk Labs.
 
 Time split: messy data 0:00–1:40 (100 s), liquidity agent and pizzeria 1:40–2:48 (68 s). The liquidity flow is still shown complete (forecast -> explanation -> approval -> simulated execution), because the challenge requires one agent end to end.
 
+FX Shield segment (about 25 seconds, script in `03_FX_SHIELD.md` section 10): the second agent. Where it goes, and what it replaces in a 3-minute slot, is decided when the team prepares the presentation.
+
 5-minute stretch (only if the slot allows): add (a) chat question "Why will I be short in December?" answered with evidence and the SQL behind it; (b) tax card "Set aside 14,300 PLN for VAT on the 25th"; (c) the MLflow trace of the receipt extraction, shown to the Red Hat judge.
 
 ### 3.1 Timing budget of the live moment

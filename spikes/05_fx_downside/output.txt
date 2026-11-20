@@ -1,0 +1,60 @@
+EUR: 756 daily rates 2023-11-21 .. 2026-11-20, today 4.4559, min 4.1339, max 4.4559
+USD: 756 daily rates 2023-11-21 .. 2026-11-20, today 4.0613, min 3.5045, max 4.1904
+CHF: 756 daily rates 2023-11-21 .. 2026-11-20, today 4.8282, min 4.2862, max 4.8324
+
+== distribution of rate changes by horizon (3 years of history, overlapping windows) ==
+cur  days     n      p05   median      p95     mean
+EUR    30   735   -1.49%    0.01%    1.73%    0.07%
+EUR    45   724   -1.62%   -0.04%    1.85%    0.08%
+EUR    60   713   -1.86%   -0.04%    2.10%    0.09%
+EUR    90   692   -2.12%   -0.01%    2.14%    0.06%
+USD    30   735   -3.23%   -0.20%    3.83%    0.02%
+USD    45   724   -3.92%   -0.23%    4.76%    0.01%
+USD    60   713   -4.62%   -0.38%    5.21%   -0.03%
+USD    90   692   -6.16%   -0.18%    5.67%   -0.25%
+CHF    30   735   -2.65%    0.05%    3.36%    0.17%
+CHF    45   724   -3.07%    0.10%    3.68%    0.20%
+CHF    60   713   -3.76%    0.02%    4.14%    0.21%
+CHF    90   692   -4.96%    0.27%    4.27%    0.19%
+
+== downside per invoice (PLN) ==
+
+A  small SaaS bill: 1,150 USD payable, due in 30 days, worth 4,670 PLN today (rate 4.0613)
+   scenarios 735; rate moved against us in 47% of them; average result -1 PLN (near zero: useless as a risk measure)
+   good case (95th percentile gain) 151 PLN
+   bad case (95th percentile) loss 179 PLN; expected shortfall (mean of worst 10%) 187 PLN; worst seen 258 PLN
+   no margin known; owner loss limit 500 PLN -> HEDGING NOT WORTH IT (say so explicitly)
+
+B  usual EUR sales invoice: 18,400 EUR receivable, due in 45 days, worth 81,989 PLN today (rate 4.4559)
+   scenarios 724; rate moved against us in 52% of them; average result +63 PLN (near zero: useless as a risk measure)
+   good case (95th percentile gain) 1,519 PLN
+   bad case (95th percentile) loss 1,330 PLN; expected shortfall (mean of worst 10%) 1,426 PLN; worst seen 2,580 PLN
+   deal margin 14,000 PLN -> a bad case eats 10% of it
+   forward cost (illustrative 0.3%) 246 PLN; option premium (illustrative 1.2%) 984 PLN
+   RULE: downside >= 25% of margin AND forward cost < expected shortfall  ->  HEDGING NOT WORTH IT
+
+C  unusually large USD sales order: 60,000 USD receivable, due in 45 days, worth 243,678 PLN today (rate 4.0613)
+   scenarios 724; rate moved against us in 54% of them; average result +28 PLN (near zero: useless as a risk measure)
+   good case (95th percentile gain) 11,599 PLN
+   bad case (95th percentile) loss 9,561 PLN; expected shortfall (mean of worst 10%) 9,892 PLN; worst seen 15,775 PLN
+   deal margin 19,000 PLN -> a bad case eats 52% of it
+   forward cost (illustrative 0.3%) 731 PLN; option premium (illustrative 1.2%) 2,924 PLN
+   RULE: downside >= 25% of margin AND forward cost < expected shortfall  ->  PROPOSE HEDGE (forward)
+
+D  large USD equipment purchase: 42,000 USD payable, due in 60 days, worth 170,575 PLN today (rate 4.0613)
+   scenarios 713; rate moved against us in 45% of them; average result +47 PLN (near zero: useless as a risk measure)
+   good case (95th percentile gain) 7,889 PLN
+   bad case (95th percentile) loss 8,895 PLN; expected shortfall (mean of worst 10%) 9,425 PLN; worst seen 16,267 PLN
+   deal margin 12,000 PLN -> a bad case eats 79% of it
+   forward cost (illustrative 0.3%) 512 PLN; option premium (illustrative 1.2%) 2,047 PLN
+   RULE: downside >= 25% of margin AND forward cost < expected shortfall  ->  PROPOSE HEDGE (forward)
+
+E  demo case: one-off USD order, thin margin: 40,000 USD receivable, due in 45 days, worth 162,452 PLN today (rate 4.0613)
+   scenarios 724; rate moved against us in 54% of them; average result +19 PLN (near zero: useless as a risk measure)
+   good case (95th percentile gain) 7,733 PLN
+   bad case (95th percentile) loss 6,374 PLN; expected shortfall (mean of worst 10%) 6,595 PLN; worst seen 10,517 PLN
+   deal margin 8,000 PLN -> a bad case eats 82% of it
+   forward cost (illustrative 0.3%) 487 PLN; option premium (illustrative 1.2%) 1,949 PLN
+   RULE: downside >= 25% of margin AND forward cost < expected shortfall  ->  PROPOSE HEDGE (forward)
+
+elapsed: 7.2s

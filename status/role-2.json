@@ -76,9 +76,9 @@
     },
     {
       "id": "2.6",
-      "title": "NBP rates connector + /fx/rates",
+      "title": "NBP rates connector + /fx/rates + 3 years of daily history for FX Shield",
       "priority": "must",
-      "est_h": 1,
+      "est_h": 1.5,
       "needs": [
         "2.2"
       ],
@@ -105,9 +105,9 @@
     },
     {
       "id": "2.13",
-      "title": "Simulated executor: credit-line application and payment draft against the Sandbox Bank",
+      "title": "Simulated executor: credit-line application, payment draft and FX forward against the Sandbox Bank",
       "priority": "must",
-      "est_h": 2,
+      "est_h": 2.5,
       "needs": [
         "2.4",
         "5.4"

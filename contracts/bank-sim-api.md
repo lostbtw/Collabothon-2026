@@ -13,6 +13,7 @@ Auth: `Authorization: Bearer <static token from Secret>` + header `Consent-ID: d
 | `GET /v1/accounts/{id}/balances` | `balances[]` with `balanceType: closingBooked`, `balanceAmount`, `referenceDate` |
 | `GET /v1/accounts/{id}/transactions?bookingStatus=booked&dateFrom=YYYY-MM-DD&entryReferenceFrom=E000000731` | Booked lines **after** the given entry reference (delta). Returns `transactions.booked[]` and `_links.next` |
 | `POST /v1/credit-line-applications` | Simulated execution target: `{accountId, limit, tenorDays}` -> `{reference: "SIM-CL-...", status: "accepted", availableFrom}` |
+| `POST /v1/fx-forwards` | Simulated execution target for FX Shield: `{accountId, sellCurrency, buyCurrency, notional, rate, valueDate}` -> `{reference: "SIM-FX-...", status: "booked"}` |
 | `POST /v1/payment-drafts` | Simulated execution target for reimbursements: `{debtorAccount, creditorName, amount, remittance, requestedExecutionDate}` -> `{reference, status: "draft"}` |
 | `POST /admin/transactions` | Generator only: inject one booked line `{accountId, bookingDate, amount, currency, creditorName/debtorName, remittance, cardLast4?}` |
 | `POST /admin/load-csv?profile=commerzbank_csv&accountId=` | Load the organisers' pizzeria CSV as an account (keeps CHF quirk as-is, so the normaliser must fix it) |

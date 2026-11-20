@@ -65,8 +65,9 @@ Two labels on everything the agents produce. Both are required schema fields (`c
 | Tax (partial) | Compute upcoming VAT / ZUS / advance payments from the ledger and the calendar | analysed autonomously | none |
 | Tax (partial) | "Set aside N for VAT due on the 25th" | approval required | simulated (transfer to a tax pocket) |
 | Tax (partial) | "You lost N of VAT this year on private-name purchases — issue company cards / give the tax number at the till" | recommendation | none |
-| FX (partial) | List open foreign-currency exposure with value at today's rate and at ±5% | analysed autonomously | none |
-| FX (partial) | "Fix the rate for the 18,400 EUR you expect on 7 Dec" (forward) | approval required | simulated |
+| FX Shield | Detect foreign-currency invoices; run about 700 historical rate scenarios; measure the bad case against the deal's profit | analysed autonomously | none |
+| FX Shield | "No need to hedge this invoice" / "pay it from your EUR balance" | recommendation | none |
+| FX Shield | "Protect the profit on this order: fix the rate with a forward" | approval required | simulated |
 | Chat | Answer questions with evidence | analysed autonomously | none |
 | Chat | Record an owner statement about the future as a forecast event | owner's own action | none |
 | Chat | Anything that moves money | **cannot**; it creates a card in the inbox instead | — |
@@ -77,7 +78,7 @@ Two labels on everything the agents produce. Both are required schema fields (`c
 |---|---|---|---|
 | **Liquidity agent** | **Complete**, end to end | Monitors accounts (connectors) -> forecasts 45 days -> detects gap -> proposes credit facility with explanation and alternatives -> approval -> simulated application -> forecast updates | Best fit with the data we can create and with the organisers' own dataset; clear bank product at the end |
 | Tax agent | Partial (extension 1) | Tax calendar and amounts inside the forecast; tax-reserve card; "VAT lost" optimisation hint | Falls out of the ledger almost for free; matches "coordinates advance tax payments and identifies optimisation opportunities" |
-| FX hedging agent | Partial (extension 2, nice-to-have) | Exposure list; one simulated forward card (EUR receivable; CHF tranches on the pizzeria) | Small effort, natural with multi-currency data. No rate prediction |
+| FX hedging agent | **Second agent: FX Shield** (`03_FX_SHIELD.md`) | Watches foreign-currency invoices; measures the downside from 3 years of real rate history (no prediction); compares it with the deal's profit; proposes a forward only when it matters and says "not worth it" otherwise; approval; simulated order | A team member's precise brief, proven on real NBP data in spike 05. Reuses ingestion, per-client payment delay, cards and approvals |
 | Investment agent | Not built | One sentence: once the forecast shows durable surplus, the same engine can propose a fixed-term deposit | Does not fit a company that struggles to make payroll |
 
 ## 6. Architecture on OpenShift AI
@@ -173,7 +174,7 @@ Why "numbers are code": the LLM never calculates. It reads documents into a JSON
 | Ingestion | `raw_item.received` | parse_xml, extract_document (vision/text model with JSON schema), validate_document, find_duplicates, match_candidates, classify_category | Document, Match, Recommendation (review / reimburse / flag) |
 | Liquidity | `forecast.updated` when an alert exists or changes | get_forecast, list_overdue_receivables, run_scenario (credit line, shift receivable, shift payable), get_bank_price_list | One Recommendation with ranked alternatives; the engine re-checks the numbers |
 | Tax (partial) | daily + ledger changes | tax_calendar, vat_position, vat_lost_summary | Tax-reserve card; optimisation hint |
-| FX (partial) | daily + new foreign-currency invoice | open_exposure, fx_rate, simulate_forward | Exposure note; forward card |
+| FX Shield | new or changed foreign-currency invoice; daily | rate_history, net_exposure, downside_scenarios, product_catalog | "Hedge" card or "not worth it" card (`03_FX_SHIELD.md`) |
 | Chat | owner message | get_cash_position, get_forecast, search_ledger, explain_recommendation, add_forecast_event, run_readonly_sql | Answer + evidence links; optionally a new inbox card |
 
 Agent loop: `messages + tools -> model -> tool calls -> results -> … -> final JSON (schema-constrained) -> validate -> store`. Maximum 6 tool calls. On any failure the agent falls back to a template text built from the same engine numbers, so the card always appears.

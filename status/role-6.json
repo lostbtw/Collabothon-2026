@@ -171,6 +171,20 @@
       "done_at": null,
       "note": "",
       "evidence": ""
+    },
+    {
+      "id": "6.13",
+      "title": "Small with/without-hedge comparison graphic inside the FX card",
+      "priority": "nice",
+      "est_h": 1,
+      "needs": [
+        "6.3"
+      ],
+      "status": "todo",
+      "started_at": null,
+      "done_at": null,
+      "note": "",
+      "evidence": ""
     }
   ]
 }

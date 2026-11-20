@@ -50,6 +50,10 @@ Ask at the feedback session (Saturday 14:00–18:00) or earlier on Discord (`#Co
 | Q9 | How much autonomy would you accept for a real product: may an agent ever move money without approval (for example into the owner's own tax pocket)? | Calibrate the control model | Never without approval in this build |
 | Q10 | The data sheet says the pizzeria closes for 3 weeks in June; the file shows no revenue for the whole month, and the year-end only reconciles with a 2,500 EUR opening balance that is not in the file. Intended? | Shows we read the data; confirms our numbers | Treat both as data-quality notes |
 
+| Q18 | Which Commerzbank or mBank FX products are open to a small business, and from what deal size (forward, option)? | FX Shield names a product on its card | Forward, labelled illustrative |
+| Q19 | May we show illustrative forward and option pricing (0.3% and 1.2% placeholders)? | Avoid looking like a fake offer | Show it, labelled "illustrative, not an offer" |
+| Q20 | For a small business, would the bank rather propose a forward (cheap, gives up the upside) or an option (dearer, keeps it) as the default? | Default choice on the card | Forward first, option as the alternative |
+
 ### Technical (Red Hat)
 
 | # | Question | Why | Default |

@@ -7,7 +7,7 @@
   "tasks": [
     {
       "id": "4.1",
-      "title": "Scenario definition (recurring series, November purchases, clients, liquidity story) + ground_truth.json",
+      "title": "Scenario definition (recurring series, November purchases, clients, liquidity story) + ground_truth.json + the 40,000 USD Lakeshore order for FX Shield",
       "priority": "must",
       "est_h": 3,
       "needs": [],
@@ -92,24 +92,26 @@
       "mock": "compute from contracts/fixtures/ledger_entry.json shape until 3.4 lands"
     },
     {
-      "id": "4.6",
-      "title": "Tax calendar + VAT position + tax-reserve recommendation data",
-      "priority": "should",
-      "est_h": 2.5,
+      "id": "4.9",
+      "title": "FX Shield engine: rate-history scenarios, downside (95th pct, expected shortfall), netting, profit framing, decision rule, product catalog, hedge and not-worth-it cards (docs/03_FX_SHIELD.md)",
+      "priority": "must",
+      "est_h": 5,
       "needs": [
-        "4.2"
+        "2.6",
+        "5.4"
       ],
       "status": "todo",
       "started_at": null,
       "done_at": null,
       "note": "",
-      "evidence": ""
+      "evidence": "",
+      "mock": "port spikes/05_fx_downside/fx_downside.py (fetches NBP history itself); emit cards shaped like rec_fx01 / rec_fx02 in contracts/fixtures/recommendation.json"
     },
     {
-      "id": "4.9",
-      "title": "FX exposure list + simulated forward on the pizzeria CHF tranches",
-      "priority": "nice",
-      "est_h": 3,
+      "id": "4.6",
+      "title": "Tax calendar + VAT position + tax-reserve recommendation data",
+      "priority": "should",
+      "est_h": 2.5,
       "needs": [
         "4.2"
       ],

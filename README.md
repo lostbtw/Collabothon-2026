@@ -6,6 +6,7 @@ Planning package produced on Friday 20 Nov 2026. Coding ends **Sunday 10:00**.
 |---|---|
 | [docs/04_DEV_PLAN.md](docs/04_DEV_PLAN.md) | Everyone — roles, tasks, hour-by-hour timeline, cut order, Git rules |
 | [docs/01_SOLUTION.md](docs/01_SOLUTION.md) | Everyone — product, control model, architecture, model choice, bonus items |
+| [docs/03_FX_SHIELD.md](docs/03_FX_SHIELD.md) | Role 4 mainly — the FX hedging agent: method, real-data results, cards, tasks |
 | [docs/02_DATA_AND_SYNC.md](docs/02_DATA_AND_SYNC.md) | Roles 2, 3, 4 — dataset, connectors, matching engine, domain rules |
 | [contracts/](contracts/README.md) | Everyone who writes code — schemas, API, events, fixtures (the mocks) |
 | [docs/05_DEMO_AND_PITCH.md](docs/05_DEMO_AND_PITCH.md) | Roles 4, 5, 6 — 1-minute and 3-minute scripts, fallbacks, critic pass |

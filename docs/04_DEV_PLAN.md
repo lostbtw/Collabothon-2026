@@ -57,6 +57,7 @@ Rebalanced from the starting suggestion. Changes and reasons:
 
 | Change | Reason |
 |---|---|
+| FX agent upgraded from a 3-hour nice-to-have to **FX Shield**, a 5-hour must-have for role 4 (+0.5 h each on role 2's tasks 2.6 and 2.13) | A team member's brief made it precise, and spike 05 proved the method on real NBP data. Role 4 had the only slack (pitch tasks were removed). Cost: role 4's slack is gone, so the tax calendar (4.6) will probably not be built |
 | Outbox framework and simulated executor moved from role 5 to role 2 (tasks 2.12, 2.13); chat split into a 3-hour must and a 2-hour should | `tools/status.py forecast` showed role 5 at 27 must-have hours against 22 working hours before the freeze, and role 2 at 15.5. Role 2 already owns the Sandbox Bank the executor talks to |
 | Synthetic data, domain rules and pitch moved **out of** the frontend role | Frontend alone is about 25 hours. A person who must also write the generator and the pitch would finish none of them |
 | Receipt/PDF **extraction** (the model-facing part) moved to role 1 | The model owner tunes prompts, JSON schema and serving flags together, and evaluates them in MLflow (which is also a bonus item) |
@@ -127,9 +128,9 @@ Done when: route URL loads the app from outside; `/api/v1/health` reports the in
 | 2.3 | Mailbox connector (poll 20 s, attachments, forwarded-by) | 4 h | Must |
 | 2.4 | Sandbox Bank simulator incl. `load-csv` for the pizzeria file, demo clock, credit-line and payment-draft endpoints | 3 h | Must |
 | 2.5 | Bank connector (PSD2-shaped polling, delta by `entryReference`) | 2 h | Must |
-| 2.6 | NBP rates connector + `/fx/rates` (port spike 02) | 1 h | Must |
+| 2.6 | NBP rates connector + `/fx/rates` (port spike 02) + 3 years of daily history for FX Shield | 1.5 h | Must |
 | 2.12 | Outbox consumer framework (claim, retry, dead) used by all workers — moved from role 5 | 2 h | Must |
-| 2.13 | Simulated executor: credit-line application and payment draft against the Sandbox Bank; called by role 5's decision endpoint — moved from role 5 | 2 h | Must |
+| 2.13 | Simulated executor: credit-line application, payment draft and FX forward against the Sandbox Bank; called by role 5's decision endpoint — moved from role 5 | 2.5 h | Must |
 | 2.7 | Releaser: push scenario artefacts through the real sources (bank admin API, SMTP to the mailbox, inFakt API) in `backfill` and `drip` modes | 3 h | Must |
 | 2.8 | inFakt sandbox connector (sales invoices, paid status) | 3 h | Should |
 | 2.9 | Commerzbank developer sandbox, accounts read-only. **Time-box: 90 minutes.** If no working token by then, stop | 1.5 h | Should |
@@ -181,7 +182,7 @@ Done when: on the scenario data, every purchase in `ground_truth.json` gets the 
 | 4.5 | Endpoints `/ledger`, `/ledger/summary`, `/forecast/*` (with role 5) | 2 h | Must |
 | 4.6a | "VAT lost this year" figure in `/ledger/summary` (the demo script shows it at 1:15) | 0.5 h | Must |
 | 4.6 | Tax calendar (VAT 25th, advances 20th, ZUS 15th, weekend shift) + VAT position from the ledger + tax-reserve recommendation data | 2.5 h | Should — first should-have to build |
-| 4.9 | FX exposure list + simulated forward on the pizzeria CHF tranches | 3 h | Nice |
+| 4.9 | **FX Shield** engine (`03_FX_SHIELD.md`): rate-history scenarios, downside (95th percentile, expected shortfall), netting, profit framing, decision rule, product catalog, "hedge" and "not worth it" cards. Port spike 05 | 5 h | **Must** |
 | 4.10 | Month-over-month insight sentence | 1 h | Nice |
 
 Done when: both regression tests pass in CI; `/forecast/latest` returns components that each carry at least one evidence link; adding the event "closed 1–30 June" to the pizzeria moves the low to about −21.8k.
@@ -268,7 +269,7 @@ Milestones are **bold**. "All" = whole team.
 | 18:00–18:30 | **All: decision meeting.** Apply feedback using the options table in `05_DEMO_AND_PITCH.md` section 2. Decide stretch items. Update the cut list | | | | | |
 | 18:30–20:00 | 1.7 guardrails | 2.7 backfill run of the full scenario | 3.8 missing documents | 4.4 scenario regression; fix numbers | 5.7 chat; 5.8 MCP | 6.10 simple/detailed |
 | 20:00 | **M4: liquidity flow complete on real data: forecast, alert, credit card with explanation, approve with edit, simulated execution, chart redraws. Pizzeria company works with the June event** | | | | | |
-| 20:00–22:00 | 1.8 smoke script; limits; 1.9 show guardrails | 2.10 Telegram fallback | Fix matching misses found in backfill | 4.9 FX exposure if on track, else help role 6 | 5.9 SQL tool or bug fixing | Demo polish, empty/error states |
+| 20:00–22:00 | 1.8 smoke script; limits; 1.9 show guardrails | 2.10 Telegram fallback | Fix matching misses found in backfill | 4.9 FX Shield (start earlier if 4.3 is done) | 5.9 SQL tool or bug fixing | Demo polish, empty/error states |
 | **22:00** | **FEATURE FREEZE.** Only bug fixes, data fixes and copy changes after this. Nothing new is started. Anything unfinished is cut or mocked | | | | | |
 | 22:00–23:30 | All: integration slot. Run the whole script three times on the cluster. Every failure becomes a ticket with one owner | | | | | |
 | 23:30–00:30 | **M5: fallback video recorded** (full script, on the cluster). Rehearsal 1 with a timer. Then sleep | | | | | |
@@ -294,7 +295,7 @@ Milestones are **bold**. "All" = whole team.
 | 1 | Served model; deployed services; extraction; MLflow traces + eval notebook; smoke script | NeMo Guardrails | OSS coding agent in a workbench | OGX + MCP registration |
 | 2 | Mailbox, bank simulator + connector, NBP, outbox framework, simulated executor, releaser | inFakt, Commerzbank sandbox, Telegram | — | KSeF API |
 | 3 | Normaliser, dedup, matching, who-paid, endpoints, document test set | Missing-document detection | Private-use flag | — |
-| 4 | Scenario, forecast, alerts + credit sizing, regressions, endpoints, VAT-lost figure | Tax calendar + reserve | FX exposure + forward; insights sentence | — |
+| 4 | Scenario, forecast, alerts + credit sizing, regressions, endpoints, VAT-lost figure, FX Shield | Tax calendar + reserve (will probably not fit) | Insights sentence | — |
 | 5 | Schema, skeleton API, state machine, liquidity agent, chat with 5 tools | Chat hardening; MCP server; SQL tool | Reminder draft | — |
 | 6 | Shell, dashboard, inbox + Why, document view, sources, feed, chat panel, switcher, live toasts | Simple/Detailed toggle | PL/DE toggle | — |
 
@@ -306,7 +307,7 @@ Decide at Saturday 18:00 and again at 22:00. Cut from the top.
 |---|---|---|
 | 1 | KSeF API connector | FA(3) XML arriving by e-mail (same parser) |
 | 2 | OGX | Plain tool loop (already the baseline) |
-| 3 | FX exposure and forward card | One sentence in the pitch |
+| 3 | FX Shield extras: netting, option alternative, comparison graphic | The scenario method and the two cards stay (must-have) |
 | 4 | Free SQL tool in chat | The 5 fixed tools |
 | 5 | Commerzbank sandbox connector | A line on the architecture slide: "connector interface is PSD2-shaped" |
 | 6 | NeMo Guardrails | Code-level rule "chat cannot execute" (already there) |

@@ -228,5 +228,239 @@
       "label": "Receipt photo"
     },
     "approval_id": null
+  },
+  {
+    "id": "rec_fx01",
+    "company_id": "co_borsuk",
+    "agent": "fx",
+    "type": "fx_hedge",
+    "title": "Protect the profit on the Lakeshore order",
+    "summary": "This 40,000 USD order earns you about 8,000 PLN. You will be paid in 45 days. If the dollar falls the way it did in the worst tenth of the last three years, you lose about 6,600 PLN of that profit. Fixing the rate today costs about 490 PLN.",
+    "control_level": "approval_required",
+    "execution_mode": "simulated",
+    "status": "new",
+    "severity": "warning",
+    "created_at": "2026-11-21T10:20:00Z",
+    "valid_until": "2026-11-24T16:00:00Z",
+    "explanation": {
+      "why": [
+        "The invoice is in USD and you will be paid in 45 days",
+        "Over 45 days the dollar fell by more than 3.9% against the zloty in 1 of every 20 cases in the last three years",
+        "The possible loss is large compared with the profit on this deal; fixing the rate is cheap compared with that loss"
+      ],
+      "calculation": [
+        {
+          "label": "Invoice value today",
+          "value": "162,452 PLN",
+          "formula": "40,000 USD x 4.0613 (NBP mid rate)"
+        },
+        {
+          "label": "Scenarios",
+          "value": "724",
+          "formula": "every 45-day change of USD/PLN from 21 Nov 2023 to 20 Nov 2026, applied to today's rate"
+        },
+        {
+          "label": "Average result",
+          "value": "+19 PLN",
+          "formula": "mean over all scenarios: close to zero, so not a useful risk measure"
+        },
+        {
+          "label": "Bad case (95th percentile)",
+          "value": "-6,374 PLN",
+          "formula": "loss exceeded in 5% of scenarios"
+        },
+        {
+          "label": "Expected shortfall",
+          "value": "-6,595 PLN",
+          "formula": "average loss in the worst 10% of scenarios"
+        },
+        {
+          "label": "Good case (95th percentile)",
+          "value": "+7,733 PLN",
+          "formula": "gain exceeded in 5% of scenarios"
+        },
+        {
+          "label": "Share of deal profit at risk",
+          "value": "82%",
+          "formula": "6,595 / 8,000 (threshold 25%)"
+        },
+        {
+          "label": "Cost of a forward",
+          "value": "487 PLN",
+          "formula": "162,452 x 0.3% (illustrative bank margin)"
+        },
+        {
+          "label": "With the forward you receive",
+          "value": "161,965 PLN",
+          "formula": "40,000 USD x 4.0491, whatever the rate does"
+        }
+      ],
+      "alternatives": [
+        {
+          "label": "Do nothing",
+          "pros": "Free; you keep the gain if the dollar rises",
+          "cons": "In a bad case most of the profit is gone",
+          "cost": {
+            "amount": "0.00",
+            "currency": "PLN"
+          }
+        },
+        {
+          "label": "Option instead of forward",
+          "pros": "Protects the bad case and keeps the good case",
+          "cons": "Costs about four times more",
+          "cost": {
+            "amount": "1949.00",
+            "currency": "PLN"
+          }
+        }
+      ],
+      "assumptions": [
+        "Lakeshore pays on the due date (new client, no payment history)",
+        "Forward and option prices are illustrative placeholders, not a bank offer; the interest-rate difference between currencies is ignored",
+        "History is not a forecast: a move larger than any in the last three years is possible"
+      ],
+      "confidence": 0.8,
+      "generated_by": {
+        "numbers": "finance-engine",
+        "wording": "template",
+        "trace_id": null
+      }
+    },
+    "evidence": [
+      {
+        "kind": "document",
+        "id": "doc_fvlake01",
+        "label": "Sales invoice FV/11/09 Lakeshore Robotics Inc. (SAMPLE), 40,000.00 USD",
+        "url": "/documents/doc_fvlake01"
+      },
+      {
+        "kind": "fx_rate",
+        "id": "nbp_usd_2023-11-21_2026-11-20",
+        "label": "USD/PLN daily rates, NBP table A, 756 days",
+        "url": "/fx/history?currency=USD"
+      },
+      {
+        "kind": "rule",
+        "id": "FX-RULE-01",
+        "label": "Hedge when expected shortfall >= 25% of deal profit and hedge cost < expected shortfall"
+      }
+    ],
+    "proposed_action": {
+      "kind": "book_fx_forward",
+      "params": {
+        "sell_currency": "USD",
+        "buy_currency": "PLN",
+        "notional": {
+          "amount": "40000.00",
+          "currency": "USD"
+        },
+        "rate": "4.0491",
+        "value_date": "2027-01-05",
+        "hedge_ratio": 1.0,
+        "bank": "Sandbox Bank"
+      },
+      "preview": "SIMULATED: books a forward to sell 40,000 USD for 161,965 PLN on 5 Jan 2027 at the sandbox bank. No real bank is contacted."
+    },
+    "impact": {
+      "cash_effect": null,
+      "cost": {
+        "amount": "487.00",
+        "currency": "PLN"
+      },
+      "min_balance_before": null,
+      "min_balance_after": null,
+      "scenario_forecast_id": null
+    },
+    "subject": {
+      "kind": "document",
+      "id": "doc_fvlake01",
+      "label": "Sales invoice FV/11/09"
+    },
+    "approval_id": null
+  },
+  {
+    "id": "rec_fx02",
+    "company_id": "co_borsuk",
+    "agent": "fx",
+    "type": "info",
+    "title": "No need to hedge the Nordwind invoice",
+    "summary": "18,400 EUR, due in 45 days. Even in a bad case the exchange rate costs about 1,400 PLN, 10% of the profit on this job. Hedging would not pay off.",
+    "control_level": "recommendation",
+    "execution_mode": "none",
+    "status": "new",
+    "severity": "info",
+    "created_at": "2026-11-21T10:20:01Z",
+    "valid_until": null,
+    "explanation": {
+      "why": [
+        "The euro moves little against the zloty: under 2% over 45 days in 19 of 20 cases",
+        "The possible loss is small compared with the profit on this job"
+      ],
+      "calculation": [
+        {
+          "label": "Invoice value today",
+          "value": "81,989 PLN",
+          "formula": "18,400 EUR x 4.4559 (NBP mid rate)"
+        },
+        {
+          "label": "Expected shortfall",
+          "value": "-1,426 PLN",
+          "formula": "average loss in the worst 10% of 724 scenarios"
+        },
+        {
+          "label": "Share of deal profit at risk",
+          "value": "10%",
+          "formula": "1,426 / 14,000 (threshold 25%)"
+        }
+      ],
+      "alternatives": [
+        {
+          "label": "Hedge anyway with a forward",
+          "pros": "Certainty",
+          "cons": "Costs about 246 PLN to remove a risk of about 1,400 PLN that would not hurt the deal",
+          "cost": {
+            "amount": "246.00",
+            "currency": "PLN"
+          }
+        }
+      ],
+      "assumptions": [
+        "Profit on this job estimated from your average margin"
+      ],
+      "confidence": 0.8,
+      "generated_by": {
+        "numbers": "finance-engine",
+        "wording": "template",
+        "trace_id": null
+      }
+    },
+    "evidence": [
+      {
+        "kind": "document",
+        "id": "doc_fv1007",
+        "label": "Sales invoice FV/10/07 Nordwind Logistik GmbH (SAMPLE)",
+        "url": "/documents/doc_fv1007"
+      },
+      {
+        "kind": "fx_rate",
+        "id": "nbp_eur_2023-11-21_2026-11-20",
+        "label": "EUR/PLN daily rates, NBP table A, 756 days",
+        "url": "/fx/history?currency=EUR"
+      },
+      {
+        "kind": "rule",
+        "id": "FX-RULE-01",
+        "label": "Hedge when expected shortfall >= 25% of deal profit and hedge cost < expected shortfall"
+      }
+    ],
+    "proposed_action": null,
+    "impact": null,
+    "subject": {
+      "kind": "document",
+      "id": "doc_fv1007",
+      "label": "Sales invoice FV/10/07"
+    },
+    "approval_id": null
   }
 ]

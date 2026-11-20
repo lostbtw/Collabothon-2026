@@ -149,9 +149,15 @@ Proof: Red Hat's own advice ("focus on ~2–4", "focus on the hard criteria and 
 
 Proof: challenge wording ("coordinates advance tax payments and identifies optimization opportunities"); rules verified in `docs/02_DATA_AND_SYNC.md` section 5; the company has an accountant (transcript 2, 69:21).
 
-## D-15 — FX agent = exposure list + one simulated forward. No rate prediction, no "month-boundary" warning
+## D-15 — FX agent = FX Shield: historical-scenario downside versus deal profit. No rate prediction
 
-Proof: the brainstorm premise ("previous month's rate") is wrong — the rule is the NBP rate of the last business day before the transaction ([source](https://poradnikprzedsiebiorcy.pl/-przeliczenia-kosztu-w-walutach-obcych-kursy-walut-a-data-faktury); mechanics in spike 02).
+| | |
+|---|---|
+| Context | The first plan had the FX agent as a 3-hour nice-to-have ("exposure list + one forward"). A team member wrote a precise brief (FX Shield): protect only the deals where currency risk matters, measured against the deal's margin |
+| Options | (a) keep the vague exposure list; (b) the brainstorm's "month-boundary" warning; (c) FX Shield |
+| Decision | **(c)**, as a must-have for role 4 (5 h) |
+| Proof | Spike 05 on 756 days of real NBP rates: average result is near zero in every case (so the average is useless); EUR invoices come out "not worth hedging" (bad case 10% of profit); a 40,000 USD order with 8,000 PLN profit loses 6,595 PLN in the worst 10% of scenarios while a forward costs about 487 PLN (illustrative price). Option (b) rests on a wrong premise: the tax rule is the NBP rate of the last business day before the transaction ([source](https://poradnikprzedsiebiorcy.pl/-przeliczenia-kosztu-w-walutach-obcych-kursy-walut-a-data-faktury)) |
+| Consequences | Role 4's slack is used up; the tax calendar and reserve card (4.6) will probably not be built. Forward and option prices are placeholders, labelled as such. Spec: `docs/03_FX_SHIELD.md` |
 
 ## D-16 — Stack: Python (FastAPI) + PostgreSQL + React/TypeScript. Not Quarkus
 
