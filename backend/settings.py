@@ -5,10 +5,12 @@ that are already set. The model variables use the cluster's names (LLM_BASE_URL,
 ORDO_LLM_* overrides them.
 """
 import os
+import ssl
 from pathlib import Path
 
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/ordo"
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+SERVICE_CA_FILE = "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
 
 
 def _load_env_file(path: Path = ENV_FILE) -> None:
@@ -48,6 +50,17 @@ def llm_model() -> str:
 def llm_token() -> str:
     """Bearer token of the model endpoint (OpenShift Secret cfo-app-token); 'EMPTY' for an endpoint without auth."""
     return _first("ORDO_LLM_API_KEY", "LLM_TOKEN", default="EMPTY")
+
+
+def llm_ca_file() -> str | None:
+    if os.environ.get("ORDO_LLM_CA_FILE"):
+        return os.environ["ORDO_LLM_CA_FILE"]
+    return SERVICE_CA_FILE if Path(SERVICE_CA_FILE).is_file() else None
+
+
+def llm_verify() -> ssl.SSLContext | bool:
+    ca_file = llm_ca_file()
+    return ssl.create_default_context(cafile=ca_file) if ca_file else True
 
 
 def sse_replay_fixtures() -> bool:
