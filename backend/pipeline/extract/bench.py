@@ -112,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--truth", action="append", default=[])
     parser.add_argument("--out", type=Path)
     parser.add_argument("--today", type=date.fromisoformat)
+    parser.add_argument("--markdown", action="store_true")
     args = parser.parse_args(argv)
 
     truth = load_truth(args.truth)
@@ -125,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
             record = bench_file(path, truth, args.today, docling_client, llm_client)
             records.append(record)
             print(row(record), flush=True)
+            if args.markdown and record.get("markdown") is not None:
+                print(f"----- {Path(record['file']).name} markdown -----\n{record['markdown']}\n-----", flush=True)
     finally:
         docling_client.close()
     print(summary(records))

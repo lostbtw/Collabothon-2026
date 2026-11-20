@@ -80,6 +80,13 @@ def test_cli_prints_rows_and_summary_and_writes_results(tmp_path, monkeypatch, c
     assert [r["verdict"] for r in records] == ["ok", "WRONG"]
 
 
+def test_cli_prints_the_markdown_on_request(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(bench.docling, "default_client", lambda: FakeDocling(markdown="SUMA PLN 1 299,00").client())
+    monkeypatch.setattr(bench.model, "default_client", lambda: FakeModel(HERO))
+    bench.main([str(write_photo(tmp_path)), "--markdown", "--today", "2026-11-21"])
+    assert "SUMA PLN 1 299,00" in capsys.readouterr().out
+
+
 def test_cli_exits_zero_when_nothing_is_wrong(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(bench.docling, "default_client", lambda: FakeDocling().client())
     monkeypatch.setattr(bench.model, "default_client", lambda: FakeModel(HERO))
