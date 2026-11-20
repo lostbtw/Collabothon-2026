@@ -5,7 +5,7 @@ import psycopg
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import Response
 
-from backend.api.deps import ApiError, company_id, conn, get_or_404, new_id, now_iso, store
+from backend.api.deps import ApiError, company_id, conn, get_or_404, new_id, not_found, now_iso, store
 from backend.db.events import new_event, publish
 from backend.db.store import Store
 
@@ -68,10 +68,15 @@ def raw_item_content(id: str, s: Store = Depends(store), c: psycopg.Connection =
 async def upload(
     file: UploadFile = File(...),
     submitted_by: str | None = Form(None),
+    transaction_id: str | None = Form(None),
     company: str = Depends(company_id),
     c: psycopg.Connection = Depends(conn),
 ):
-    """Fallback only: the file becomes a RawItem of kind `upload` and enters the normal pipeline."""
+    """Fallback only: the file becomes a RawItem of kind `upload` and enters the normal pipeline.
+    `transaction_id`: the bank line the owner adds this receipt to; matching takes that line first."""
+    s = Store(c)
+    if transaction_id and s.company_of("transaction", transaction_id) != company:
+        raise not_found("transaction", transaction_id)
     data = await file.read()
     digest = hashlib.sha256(data).hexdigest()
     item = {
@@ -86,10 +91,10 @@ async def upload(
         "content_type": file.content_type or "application/octet-stream",
         "sha256": digest,
         "size_bytes": len(data),
-        "metadata": {"filename": file.filename, "submitted_by": submitted_by},
+        "metadata": {"filename": file.filename, "submitted_by": submitted_by,
+                     **({"for_transaction_id": transaction_id} if transaction_id else {})},
         "processing_status": "queued",
     }
-    s = Store(c)
     if not s.add("raw_item", item, company_id=company):
         return s.list("raw_item", idempotency_key=item["idempotency_key"])[0]
     c.execute(
