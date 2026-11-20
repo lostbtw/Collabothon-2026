@@ -63,7 +63,7 @@ def test_asking_chat_to_move_money_creates_an_inbox_card_instead(demo, db):
 def test_no_execution_or_decision_tool_is_reachable_from_chat():
     names = set(chat.CHAT_TOOLS)
     assert names == {"get_cash_position", "get_forecast", "search_ledger", "explain_recommendation",
-                     "add_forecast_event", "get_fx_exposure", "request_action"}
+                     "add_forecast_event", "get_fx_exposure", "request_action", "run_readonly_sql"}
     assert not {n for n in names if "execute" in n or "decide" in n or "approve" in n}
 
 
@@ -129,3 +129,30 @@ def test_a_model_that_tries_to_execute_gets_an_unknown_tool_and_nothing_moves(wi
     tool_message = next(m for m in model.requests[-1]["messages"] if m["role"] == "tool")
     assert "unknown tool" in tool_message["content"]
     assert Store(db).get("recommendation", "rec_cl01")["status"] == "new"
+
+
+# --- 5.7b: multi-turn and recovery ------------------------------------------------------------------------------------
+
+def test_a_follow_up_question_gets_the_previous_turn_as_context(with_model):
+    app, model = with_model(turn(content=json.dumps({"answer": "Your lowest balance is in December."})),
+                            turn(content=json.dumps({"answer": "Because salaries leave before Nordwind pays."})))
+    with app:
+        first = ask(app, "When is my cash lowest?")
+        ask(app, "Why?", session_id=first["session_id"])
+
+    second_request = [(m["role"], m.get("content")) for m in model.requests[-1]["messages"]]
+    assert ("user", "When is my cash lowest?") in second_request
+    assert ("assistant", "Your lowest balance is in December.") in second_request
+    assert second_request[-1] == ("user", "Why?")
+
+
+def test_the_model_recovers_from_a_wrong_tool_call(with_model):
+    app, model = with_model(turn(tool_calls=[call("get_forecast", {"horizon": "forever"})]),
+                            turn(tool_calls=[call("get_forecast", {}, id="c2")]),
+                            turn(content=json.dumps({"answer": "Your lowest balance is -7,870 PLN on 5 Dec."})))
+    with app:
+        answer = ask(app, "When is my cash lowest?")
+
+    first_result = [m for m in model.requests[-1]["messages"] if m["role"] == "tool"][0]["content"]
+    assert "error" in first_result
+    assert answer["answer"] == "Your lowest balance is -7,870 PLN on 5 Dec."

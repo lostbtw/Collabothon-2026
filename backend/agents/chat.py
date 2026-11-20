@@ -18,6 +18,7 @@ import psycopg
 from backend.agents import liquidity, tools
 from backend.agents.llm import run_tool_loop
 from backend.agents.numbers import unexpected_numbers
+from backend.agents.sql import VIEWS, run_readonly_sql
 from backend.agents.text import fmt_money, short_date
 from backend.api import stand_ins
 from backend.api.forecasting import add_forecast_event as store_forecast_event
@@ -36,6 +37,8 @@ SYSTEM = (
     "Copy numbers exactly from tool results; never compute or invent a number. You cannot move money, approve or "
     "execute anything: for such requests call request_action, which puts a card in the owner's inbox. "
     "When the owner states a future fact (closed days, a client paying on a date), call add_forecast_event. "
+    "Refuse politely anything that is not about this company's finances. If a tool returns an error, fix the "
+    "arguments or choose another tool. "
     'Answer with JSON {"answer": "..."}.'
 )
 FINAL_SCHEMA = {"type": "object", "required": ["answer"], "properties": {"answer": {"type": "string", "minLength": 1}}}
@@ -140,7 +143,26 @@ CHAT_TOOLS: dict[str, tools.Tool] = {
     "request_action": (_schema("request_action", "Put a request that would move money into the owner's inbox", {
         "description": {"type": "string"}, "kind": {"type": "string", "enum": ["payment", "transfer", "credit_line", "fx_hedge"]}},
         ["description"]), request_action),
+    "run_readonly_sql": (_schema("run_readonly_sql", "One read-only SELECT over the views " + ", ".join(VIEWS)
+                                 + " (at most 200 rows, 3 s)", {"sql": {"type": "string"}}, ["sql"]), run_readonly_sql),
 }
+
+HISTORY_TURNS = 6
+
+
+def history(conn: psycopg.Connection, session_id: str, company: str) -> list[dict[str, str]]:
+    """The session's last turns as chat messages (user and assistant text only)."""
+    rows = conn.execute(
+        """select role, content from (select role, content, seq from chat_messages
+           where session_id = %s and company_id = %s order by seq desc limit %s) t order by seq""",
+        (session_id, company, HISTORY_TURNS * 2)).fetchall()
+    return [{"role": r, "content": c} for r, c in rows]
+
+
+def remember(conn: psycopg.Connection, session_id: str, company: str, question: str, reply: str) -> None:
+    conn.execute("insert into chat_messages (session_id, company_id, role, content) values (%s, %s, 'user', %s), "
+                 "(%s, %s, 'assistant', %s)", (session_id, company, question, session_id, company, reply))
+    conn.commit()
 
 
 # --- answers ----------------------------------------------------------------------------------------------------------
@@ -251,16 +273,22 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
 
 def answer(conn: psycopg.Connection, company: str, message: str, session_id: str | None, model: Any) -> dict[str, Any]:
     trace: list[dict[str, Any]] = []
-    created = guardrail = None
+    created = guardrail = table = None
     text = evidence = None
+    session_id = session_id or f"chat_{uuid.uuid4().hex[:10]}"
     if model is not None:
-        messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": message}]
+        messages = [{"role": "system", "content": SYSTEM}, *history(conn, session_id, company),
+                    {"role": "user", "content": message}]
         result, results = run_tool_loop(model, conn, company, messages, CHAT_TOOLS, FINAL_SCHEMA, trace=trace)
         for r in results:
             if isinstance(r, dict) and r.get("recommendation_id") and any(t["tool"] == "request_action" for t in trace):
                 created, guardrail = r["recommendation_id"], GUARDRAIL_MONEY
         if result and not unexpected_numbers([result["answer"]], [results, message]):
             text, evidence = result["answer"], _evidence(results)
+            sql = next((r for r in reversed(results) if isinstance(r, dict) and "columns" in r), None)
+            if sql:
+                table = {"columns": sql["columns"], "rows": sql["rows"], "sql": sql["sql"]}
+                evidence.append({"kind": "sql", "id": "q_chat", "label": "The query behind the table", "excerpt": sql["sql"]})
             for r in results:
                 if isinstance(r, dict) and r.get("forecast_id"):
                     evidence += [e for e in _component_evidence(conn, r["forecast_id"]) if e not in evidence]
@@ -269,11 +297,12 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
         trace = trace or fallback_trace
         created = created or fallback_created
         guardrail = guardrail or fallback_guardrail
+    remember(conn, session_id, company, message, text)
     return {
-        "session_id": session_id or f"chat_{uuid.uuid4().hex[:10]}",
+        "session_id": session_id,
         "answer": text,
         "evidence": evidence or [],
-        "table": None,
+        "table": table,
         "tool_calls": trace,
         "created_recommendation_id": created,
         "guardrail": guardrail,
