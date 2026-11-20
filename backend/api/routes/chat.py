@@ -1,30 +1,23 @@
-"""POST /chat. Stand-in until 5.7: answers from the latest forecast with evidence, no model call."""
+"""POST /chat: the owner's question, answered by the chat agent (backend/agents/chat.py) with evidence."""
 from typing import Any
 
 import psycopg
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 
-from backend.api.deps import ApiError, conn, new_id
-from backend.api.routes.forecast import latest_forecast
+from backend.agents import chat as chat_agent
+from backend.api.deps import ApiError, conn
 from backend.db.seed import companies
-from backend.db.store import Store
 
 router = APIRouter()
 
 
 @router.post("/chat")
-def chat(body: dict[str, Any] = Body(...), c: psycopg.Connection = Depends(conn)):
-    if not body.get("message"):
+def chat(request: Request, body: dict[str, Any] = Body(...), c: psycopg.Connection = Depends(conn)):
+    message = (body.get("message") or "").strip()
+    if not message:
         raise ApiError(422, "invalid_request", "message is required")
-    company = body.get("company_id") or companies(c)[0]["id"]
-    forecast = latest_forecast(Store(c), company)
-    low = forecast["min_balance"]
-    return {
-        "session_id": body.get("session_id") or new_id("chat"),
-        "answer": f"The forecast's lowest balance is {low['amount']['amount']} {low['amount']['currency']} on {low['date']}.",
-        "evidence": [{"kind": "forecast", "id": forecast["id"], "label": "Latest forecast", "url": f"/forecast/{forecast['id']}"}],
-        "tool_calls": [{"tool": "get_forecast", "arguments": {"company_id": company}, "duration_ms": 0}],
-        "created_recommendation_id": None,
-        "guardrail": None,
-        "trace_id": None,
-    }
+    known = [co["id"] for co in companies(c)]
+    company = body.get("company_id") or known[0]
+    if company not in known:
+        raise ApiError(404, "not_found", f"No company with id {company!r}")
+    return chat_agent.answer(c, company, message, body.get("session_id"), request.app.state.chat_model())

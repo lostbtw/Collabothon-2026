@@ -3,8 +3,6 @@
 A tool is (OpenAI function schema, python function(conn, company_id, **arguments) -> dict). The same functions are
 exposed over MCP (5.7b). None of them moves money.
 """
-import importlib
-import importlib.util
 from datetime import date
 from decimal import Decimal
 from typing import Any, Callable
@@ -12,21 +10,11 @@ from typing import Any, Callable
 import psycopg
 
 from backend.agents import stand_ins
+from backend.api.ports import finance_engine as _engine, latest_base_forecast
 from backend.db.store import Store
 
 
-def _engine():
-    try:
-        if importlib.util.find_spec("backend.finance.engine") is None:
-            return None
-    except ModuleNotFoundError:
-        return None
-    return importlib.import_module("backend.finance.engine")
-
-
-def latest_forecast(conn: psycopg.Connection, company: str) -> dict[str, Any] | None:
-    bases = [f for f in Store(conn).list("forecast", company_id=company) if not f.get("scenario_of")]
-    return bases[0] if bases else None
+latest_forecast = latest_base_forecast
 
 
 def get_forecast(conn: psycopg.Connection, company: str, forecast_id: str | None = None) -> dict[str, Any]:
@@ -70,13 +58,23 @@ def list_overdue_receivables(conn: psycopg.Connection, company: str) -> dict[str
 
 
 def run_scenario(conn: psycopg.Connection, company: str, credit_line_limit: str | None = None,
-                 from_date: str | None = None) -> dict[str, Any]:
-    """What-if: the lowest balance with a credit line of `credit_line_limit` available from `from_date`."""
+                 from_date: str | None = None, shift_receivable: dict | None = None,
+                 shift_payable: dict | None = None) -> dict[str, Any]:
+    """What-if (the body of POST /forecast/scenario): a credit line of `credit_line_limit` from `from_date`, a
+    receivable moved ({document_id, new_date}) or a payable delayed ({component_id, days})."""
     engine = _engine()
     if engine and hasattr(engine, "scenario"):
-        body = {"credit_line": {"limit": {"amount": credit_line_limit}, "from": from_date}} if credit_line_limit else {}
+        body: dict[str, Any] = {}
+        if credit_line_limit:
+            body["credit_line"] = {"limit": {"amount": credit_line_limit}, "from": from_date}
+        if shift_receivable:
+            body["shift_receivable"] = shift_receivable
+        if shift_payable:
+            body["shift_payable"] = shift_payable
         result = engine.scenario(conn, company, body)
         return {"forecast_id": result["id"], "min_balance": result["min_balance"]}
+    if shift_receivable or shift_payable:
+        return {"error": "only the credit-line scenario is available until the finance engine lands"}
     forecast = latest_forecast(conn, company)
     if forecast is None:
         return {"error": "no forecast yet"}
@@ -106,9 +104,11 @@ LIQUIDITY_TOOLS: dict[str, Tool] = {
                      get_forecast),
     "list_overdue_receivables": (_schema("list_overdue_receivables", "Client invoices the forecast expects to be paid late"),
                                  list_overdue_receivables),
-    "run_scenario": (_schema("run_scenario", "Lowest balance if a credit line of the given limit were available",
+    "run_scenario": (_schema("run_scenario", "Lowest balance with a credit line, a receivable moved or a payable delayed",
                              {"credit_line_limit": {"type": "string", "description": "decimal, base currency"},
-                              "from_date": {"type": "string", "format": "date"}}), run_scenario),
+                              "from_date": {"type": "string", "format": "date"},
+                              "shift_receivable": {"type": "object", "description": "{document_id, new_date}"},
+                              "shift_payable": {"type": "object", "description": "{component_id, days}"}}), run_scenario),
     "get_bank_price_list": (_schema("get_bank_price_list", "Illustrative price list of the simulated bank's credit line"),
                             get_bank_price_list),
 }

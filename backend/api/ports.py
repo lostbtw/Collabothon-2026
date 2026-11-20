@@ -28,13 +28,32 @@ SIM_PREFIX = {
 }
 
 
-def _module(name: str):
+def optional_module(name: str):
+    """Another role's module, or None while it does not exist yet."""
     try:
         if importlib.util.find_spec(name) is None:
             return None
     except ModuleNotFoundError:
         return None
     return importlib.import_module(name)
+
+
+def finance_engine():
+    """Role 4's engine (backend/finance/engine.py), or None until it lands."""
+    return optional_module("backend.finance.engine")
+
+
+def latest_base_forecast(conn: psycopg.Connection, company: str) -> dict[str, Any] | None:
+    """The newest stored forecast that is not a what-if scenario."""
+    bases = [f for f in Store(conn).list("forecast", company_id=company) if not f.get("scenario_of")]
+    return bases[0] if bases else None
+
+
+def reissue_forecast(conn: psycopg.Connection, company: str, base: dict[str, Any], **changes: Any) -> dict[str, Any]:
+    """Stand-in for a recompute: the base forecast stored again under a new id with `changes` (numbers unchanged)."""
+    forecast = {**base, "id": new_id("fc"), "generated_at": now_iso(), "inputs_hash": None, **changes}
+    Store(conn).add("forecast", forecast, company_id=company)
+    return forecast
 
 
 def _amount(m: dict[str, str] | None) -> str:
@@ -73,7 +92,7 @@ def _stand_in_execute(c: psycopg.Connection, approval: dict[str, Any], action: d
 
 def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:
     """Run an approved action in simulation. Returns {"reference", "result"}."""
-    executor = _module("backend.executor")
+    executor = optional_module("backend.executor")
     if executor is not None and hasattr(executor, "execute"):
         return executor.execute(approval)
     return _stand_in_execute(c, approval, action, company)
@@ -82,15 +101,10 @@ def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, A
 def recompute_forecast(c: psycopg.Connection, company: str, note: str) -> dict[str, Any] | None:
     """A new base forecast after an executed action. Stand-in: the latest one re-issued with the action as an
     assumption (no numbers are invented; role 4's engine recomputes them)."""
-    engine = _module("backend.finance.engine")
+    engine = finance_engine()
     if engine is not None and hasattr(engine, "recompute"):
         return engine.recompute(c, company)
-    s = Store(c)
-    bases = [f for f in s.list("forecast", company_id=company) if not f.get("scenario_of")]
-    if not bases:
+    latest = latest_base_forecast(c, company)
+    if latest is None:
         return None
-    latest = bases[0]
-    forecast = {**latest, "id": new_id("fc"), "generated_at": now_iso(), "inputs_hash": None,
-                "assumptions": [*latest["assumptions"], note]}
-    s.add("forecast", forecast, company_id=company)
-    return forecast
+    return reissue_forecast(c, company, latest, assumptions=[*latest["assumptions"], note])

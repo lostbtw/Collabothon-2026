@@ -30,7 +30,7 @@ def _claim(conn: psycopg.Connection, retry_after_seconds: int) -> tuple[dict[str
         """select d.event_id, d.attempts, o.type, o.company_id, o.occurred_at, o.correlation_id, o.payload
            from outbox_delivery d join outbox o on o.id = d.event_id
            where d.consumer = %s and d.status = 'pending' and (d.locked_until is null or d.locked_until < now())
-           order by o.seq limit 1 for update of d skip locked""",
+           order by (o.type = 'match.suggested') desc, o.seq limit 1 for update of d skip locked""",
         (CONSUMER,),
     ).fetchone()
     if row is None:

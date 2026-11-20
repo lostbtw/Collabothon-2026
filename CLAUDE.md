@@ -30,7 +30,12 @@ At the start of the session and after finishing every ticket: `git switch main &
 Take musts before shoulds. For each ticket:
 
 1. The human claims it in the browser (Assignees: assign yourself).
-2. **Never commit to `main` directly.** One branch per ticket, cut from fresh `main`: `git switch main && git pull --rebase && git switch -c r<role>/<n>-<short-slug>` (for example `r2/13-bank-sim`). Work in your folders only, commit small with `#<n>` in the message, push the branch often (`git push -u origin <branch>`).
+2. **Never commit to `main` directly.** One branch per ticket, cut from fresh `main`: `git switch main && git pull --rebase && git switch -c r<role>/<n>-<short-slug>` (for example `r2/13-bank-sim`). Work in your folders only, commit small with `#<n>` in the message, push the branch often (`git push -u origin <branch>`). Before every push, from the repo root:
+
+   ```bash
+   uv run python -m pytest                  # all backend tests (CI runs the same)
+   python3 contracts/validate_fixtures.py   # must print 0 invalid
+   ```
 3. Done = acceptance criteria met, tests pass, and it works against the **real** thing it depends on. Then the human opens a pull request into `main` (GitHub shows a link after `git push`), title `R<role>·<id> <title>`, body `Closes #<n>. <what was verified>`. Before merging: `git fetch && git rebase origin/main`, tests green. Merge it yourselves (squash) once it is green; use another role's review only for changes under `contracts/`. Merging closes the ticket through `Closes #<n>`.
 
 `main` must always run. After a merge, delete the branch and start the next ticket from fresh `main`. A ticket that is blocked by another ticket's code branches from `main` once that code is merged; if it must start earlier, branch from the other branch and say so in the PR.

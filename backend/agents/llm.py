@@ -27,8 +27,8 @@ def default_client():
         return None
     from openai import OpenAI
 
-    return OpenAI(base_url=settings.llm_base_url(), api_key=os.environ.get("ORDO_LLM_API_KEY", "EMPTY"),
-                  timeout=float(os.environ.get("ORDO_LLM_TIMEOUT_SECONDS", "20")), max_retries=0)
+    return OpenAI(base_url=settings.llm_base_url(), api_key=settings.llm_token(),
+                  timeout=float(os.environ.get("ORDO_LLM_TIMEOUT_SECONDS", "60")), max_retries=0)
 
 
 def _json(content: str | None) -> Any:
@@ -44,6 +44,7 @@ def run_tool_loop(client: Any, conn: psycopg.Connection, company: str, messages:
     """Returns (final JSON or None, every tool result). `trace` collects {tool, arguments, duration_ms}."""
     results: list[Any] = []
     calls = 0
+    retried = False
     validator = Draft202012Validator(final_schema)
     try:
         while True:
@@ -52,11 +53,22 @@ def run_tool_loop(client: Any, conn: psycopg.Connection, company: str, messages:
                 tool_choice="auto", temperature=0.2)
             message = response.choices[0].message
             if not message.tool_calls:
-                answer = _json(message.content)
-                if answer is None or list(validator.iter_errors(answer)):
-                    log.warning("model answer does not match the schema: %.200s", message.content)
+                try:
+                    answer = _json(message.content)
+                except ValueError:
+                    answer = None
+                problems = ["the answer is not JSON"] if answer is None else [
+                    f"{'/'.join(map(str, e.absolute_path)) or 'answer'}: {e.message}" for e in validator.iter_errors(answer)]
+                if not problems:
+                    return answer, results
+                if retried:
+                    log.warning("model answer does not match the schema: %s", "; ".join(problems)[:300])
                     return None, results
-                return answer, results
+                retried = True  # one corrective turn: tell the model what is wrong
+                messages.append({"role": "assistant", "content": message.content or ""})
+                messages.append({"role": "user", "content": "Your answer does not match the required JSON: "
+                                 + "; ".join(problems)[:500] + ". Answer again with JSON only."})
+                continue
             messages.append({"role": "assistant", "content": message.content, "tool_calls": [
                 {"id": c.id, "type": "function", "function": {"name": c.function.name, "arguments": c.function.arguments}}
                 for c in message.tool_calls]})

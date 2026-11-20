@@ -1,4 +1,5 @@
 """/health, /companies, /fx/rates, /fx/exposure."""
+import os
 from datetime import date
 
 import httpx
@@ -14,8 +15,13 @@ router = APIRouter()
 
 
 def _llm_reachable(base_url: str) -> bool:
+    """True when the model endpoint answers and accepts our token."""
+    if os.environ.get("ORDO_LLM_ENABLED", "1") == "0":
+        return False
     try:
-        return httpx.get(base_url.rstrip("/") + "/models", timeout=0.5).status_code < 500
+        response = httpx.get(base_url.rstrip("/") + "/models", timeout=2.0,
+                             headers={"Authorization": f"Bearer {settings.llm_token()}"})
+        return response.status_code == 200
     except httpx.HTTPError:
         return False
 

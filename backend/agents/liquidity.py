@@ -36,7 +36,8 @@ SYSTEM = (
     "You are the liquidity agent of Ordo, an autonomous CFO for a small company. A cash gap is coming. "
     "Call the tools you need, then answer with JSON {title, summary, why} for a card that proposes the credit line "
     "in the facts. The title is an instruction to the owner. Write plain language for a busy owner. "
-    "Copy every number exactly from the tool results or the facts; never compute, round or invent a number."
+    "Copy every number exactly from the tool results or the facts; never compute, round or invent a number. "
+    'Answer with JSON only, exactly this shape: {"title": "...", "summary": "...", "why": ["reason 1", "reason 2", "reason 3"]}.'
 )
 
 
@@ -44,12 +45,12 @@ def _money(amount: Decimal, currency: str) -> dict[str, str]:
     return {"amount": f"{amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}", "currency": currency}
 
 
-def _signed(m: dict[str, str]) -> str:
+def signed_amount(m: dict[str, str]) -> str:
     sign = "-" if Decimal(m["amount"]) < 0 else ""
     return sign + fmt_money(m, cents=False)
 
 
-def _alert(forecast: dict[str, Any]) -> dict[str, Any] | None:
+def earliest_gap(forecast: dict[str, Any]) -> dict[str, Any] | None:
     gaps = [a for a in forecast["alerts"] if a["type"] in ("cash_gap", "below_buffer")]
     return sorted(gaps, key=lambda a: a["date_from"])[0] if gaps else None
 
@@ -59,7 +60,7 @@ def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[
     f = tools.get_forecast(conn, company, forecast_id)
     if "error" in f:
         return None
-    alert = next((a for a in f["alerts"] if a["type"] in ("cash_gap", "below_buffer")), None)
+    alert = earliest_gap(f)
     if alert is None:
         return None
     currency = f["base_currency"]
@@ -95,7 +96,7 @@ def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[
     }
 
 
-def _reasons(facts: dict[str, Any]) -> list[str]:
+def reasons(facts: dict[str, Any]) -> list[str]:
     alert = facts["alert"]
     comps = facts["forecast"]["components"]
     outflows = sorted((c for c in comps if Decimal(c["amount_base"]["amount"]) < 0 and c.get("dates")
@@ -114,17 +115,17 @@ def _reasons(facts: dict[str, Any]) -> list[str]:
     return why[:3]
 
 
-def template_card(company: str, facts: dict[str, Any], at: str) -> dict[str, Any]:
+def template_recommendation(company: str, facts: dict[str, Any], at: str) -> dict[str, Any]:
     alert, low, limit, currency = facts["alert"], facts["low"], facts["limit"], facts["currency"]
     deadline = date.fromisoformat(facts["deadline"])
     stress = facts["stress"]
     client = next((o["client"] for o in facts["overdue"] if o.get("client")), None)
 
-    calculation = [{"label": "Lowest projected balance", "value": f"{_signed(low['amount'])} on {short_date(low['date'])}",
+    calculation = [{"label": "Lowest projected balance", "value": f"{signed_amount(low['amount'])} on {short_date(low['date'])}",
                     "formula": None}]
     if stress:
         calculation.append({"label": f"Stress case ({stress['label']})",
-                            "value": f"{_signed(stress['balance'])} on {short_date(stress['date'])}", "formula": None})
+                            "value": f"{signed_amount(stress['balance'])} on {short_date(stress['date'])}", "formula": None})
     calculation += [
         {"label": "Proposed limit", "value": fmt_money(limit, cents=False),
          "formula": f"{'stress' if stress else 'largest'} shortfall {fmt_money(facts['stress_shortfall'], cents=False)} "
@@ -166,7 +167,7 @@ def template_card(company: str, facts: dict[str, Any], at: str) -> dict[str, Any
         "created_at": at,
         "valid_until": f"{(deadline - timedelta(days=3)).isoformat()}T23:59:59Z",
         "explanation": {
-            "why": _reasons(facts),
+            "why": reasons(facts),
             "calculation": calculation,
             "alternatives": alternatives,
             "assumptions": ["Interest rate and fee come from the simulated bank's price list, not a real offer"],
@@ -186,7 +187,7 @@ def template_card(company: str, facts: dict[str, Any], at: str) -> dict[str, Any
                        "product": facts["prices"].get("product"),
                        "alert": {"date_from": alert["date_from"], "max_shortfall": alert["max_shortfall"]}},
             "preview": f"SIMULATED: sends a credit-line application for {fmt_money(limit, cents=False)} / 60 days to the "
-                       f"sandbox bank. No real bank is contacted.",
+                       f"Sandbox Bank. No real bank is contacted.",
         },
         "impact": {
             "cash_effect": limit,
@@ -216,7 +217,7 @@ def _model_wording(model: Any, conn: psycopg.Connection, company: str, facts: di
     return answer
 
 
-def _open_cards(s: Store, company: str) -> list[dict[str, Any]]:
+def _open_credit_lines(s: Store, company: str) -> list[dict[str, Any]]:
     return [r for r in s.list("recommendation", company_id=company, agent="liquidity", status=["new", "seen"])
             if r["type"] == "credit_line"]
 
@@ -229,22 +230,29 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
         return None
     s = Store(conn)
     signature = {"date_from": facts["alert"]["date_from"], "max_shortfall": facts["alert"]["max_shortfall"]}
-    open_cards = _open_cards(s, company)
-    if any(r["proposed_action"]["params"].get("alert") == signature for r in open_cards):
+    open_credit_lines = _open_credit_lines(s, company)
+    if any(r["proposed_action"]["params"].get("alert") == signature for r in open_credit_lines):
         return None  # same alert, card already in the inbox
 
-    card = template_card(company, facts, event["occurred_at"])
+    card = template_recommendation(company, facts, event["occurred_at"])
+    for old in open_credit_lines:
+        s.put("recommendation", {**old, "status": "superseded"})
+        publish(conn, new_event("recommendation.status_changed", company,
+                                {"recommendation_id": old["id"], "status": "superseded"}, producer="agents"))
+    if not save_recommendation(conn, card):
+        return None
+    # The template card is in the inbox now; the model's wording replaces its text only if it passes the checks
+    # and the owner has not decided the card meanwhile.
     if model is _DEFAULT:
         model = default_client()
     if model is not None:
         wording = _model_wording(model, conn, company, facts, card)
-        if wording:
-            card["title"], card["summary"] = wording["title"], wording["summary"]
-            card["explanation"]["why"] = wording["why"]
-            card["explanation"]["generated_by"]["wording"] = settings.llm_model()
-
-    for old in open_cards:
-        s.put("recommendation", {**old, "status": "superseded"})
-        publish(conn, new_event("recommendation.status_changed", company,
-                                {"recommendation_id": old["id"], "status": "superseded"}, producer="agents"))
-    return card["id"] if save_recommendation(conn, card) else None
+        current = s.get("recommendation", card["id"])
+        if wording and current and current["status"] in ("new", "seen"):
+            current["title"], current["summary"] = wording["title"], wording["summary"]
+            current["explanation"]["why"] = wording["why"]
+            current["explanation"]["generated_by"]["wording"] = settings.llm_model()
+            s.put("recommendation", current)
+            publish(conn, new_event("recommendation.status_changed", company,
+                                    {"recommendation_id": card["id"], "status": current["status"]}, producer="agents"))
+    return card["id"]

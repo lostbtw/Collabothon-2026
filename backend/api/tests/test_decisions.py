@@ -124,3 +124,50 @@ def test_an_auto_confirmed_match_can_be_undone_from_its_activity_item(demo, db):
     assert [e["payload"]["status"] for e in events(db, "match.decided")] == ["rejected"]
     remaining = demo.get("/api/v1/activity", params={"company_id": "co_borsuk"}).json()["items"]
     assert item["subject"] not in [i["subject"] for i in remaining]
+
+
+# --- review fixes -------------------------------------------------------------------------------------------------
+
+def test_approving_a_card_about_a_document_decides_no_match_unless_it_is_an_ingestion_card(demo, db):
+    """rec_fx01 (FX hedge) is about invoice doc_fvlake01; a pending Match on that invoice is not its decision."""
+    from backend.db.store import Store
+    s = Store(db)
+    pending = {**next(m for m in read("match") if m["id"] == "mat_412"), "id": "mat_lake", "document_id": "doc_fvlake01"}
+    s.add("match", pending, company_id="co_borsuk")
+
+    demo.post("/api/v1/recommendations/rec_fx01/decision", json={"decision": "approved"})
+
+    assert events(db, "match.decided") == []
+    assert s.get("match", "mat_lake")["status"] == "suggested"
+
+
+def test_dismissing_a_hint_leaves_its_match_alone(demo, db):
+    from backend.db.store import Store
+    s = Store(db)
+    hint = {**fixture_rec("rec_412"), "id": "rec_hint", "type": "mark_private", "control_level": "recommendation",
+            "execution_mode": "none", "proposed_action": None}
+    s.put("recommendation", hint)
+    s.put("recommendation", {**fixture_rec("rec_412"), "status": "superseded"})  # make the hint the only open card
+
+    response = demo.post("/api/v1/recommendations/rec_hint/decision", json={"decision": "rejected"})
+
+    assert response.status_code == 200
+    assert events(db, "match.decided") == []
+    assert s.get("match", "mat_412")["status"] == "suggested"
+
+
+def test_deciding_the_match_directly_closes_its_card_so_the_purchase_is_never_approved_twice(demo, db):
+    demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
+
+    assert demo.get("/api/v1/recommendations/rec_412").json()["status"] == "approved"
+    again = demo.post("/api/v1/recommendations/rec_412/decision", json={"decision": "approved"})
+    assert again.status_code == 409
+    assert events(db, "execution.simulated") == []
+
+
+def test_a_decided_match_cannot_be_decided_again(demo):
+    demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
+
+    again = demo.post("/api/v1/matches/mat_412/decision", json={"decision": "rejected"})
+
+    assert again.status_code == 409
