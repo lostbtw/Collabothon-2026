@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { api } from "../api/client";
 import { fixtures } from "../api/mock";
+import { isNew } from "../lib/live";
 import { DashboardView } from "../pages/Dashboard";
 import { ToastList, toastFor } from "./Toasts";
 
@@ -32,5 +33,11 @@ describe("live updates from the event replay", () => {
     const html = renderToStaticMarkup(<MemoryRouter><DashboardView accounts={accounts} forecast={forecast} summary={null} inbox={null} previousLow={previous} /></MemoryRouter>);
     expect(html).toContain("Lowest -7,870 PLN on 5 Dec (was -6,571 PLN)");
     expect(html).toContain("chart-low flash");
+  });
+
+  it("passes each event on once, so a replayed stream does not repeat toasts", () => {
+    const known = new Set<string>();
+    expect(fixtures.events.map((e) => isNew(e, known))).toEqual([true, true, true, true, true]);
+    expect(fixtures.events.some((e) => isNew(e, known))).toBe(false);
   });
 });

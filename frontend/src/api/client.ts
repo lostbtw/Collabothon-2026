@@ -64,10 +64,21 @@ export const api = {
 /** Where the original file of a raw item (photo, PDF) is served. Null in mock mode: fixtures carry no files. */
 export const rawContentUrl = (rawItemId: string): string | null => (API_MODE === "mock" ? null : `${API_BASE}/raw-items/${rawItemId}/content`);
 
+/** Every event type of the contract. A Record so the compiler complains when the contract gains a type. */
+export const EVENT_TYPES: Record<OrdoEvent["type"], true> = {
+  "sync.run.started": true, "sync.run.finished": true, "raw_item.received": true, "document.extracted": true, "document.duplicate_detected": true,
+  "transaction.ingested": true, "match.suggested": true, "match.decided": true, "ledger.entry.proposed": true, "ledger.entry.approved": true,
+  "forecast.updated": true, "recommendation.created": true, "recommendation.status_changed": true, "approval.recorded": true, "execution.simulated": true,
+};
+
 /** Live updates (Server-Sent Events). Returns an unsubscribe function. Used by the toasts ticket. */
 export function subscribeEvents(onEvent: (e: OrdoEvent) => void, companyId?: string): () => void {
   if (API_MODE === "mock") return mockEventStream(onEvent);
   const source = new EventSource(`${API_BASE}/events/stream${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`);
-  source.onmessage = (m) => onEvent(JSON.parse(m.data) as OrdoEvent);
+  const deliver = (m: MessageEvent<string>) => onEvent(JSON.parse(m.data) as OrdoEvent);
+  // The API names each SSE message after its event type ("event: document.extracted"), and a named
+  // message never reaches onmessage: listen for every type, and keep onmessage for unnamed ones.
+  for (const type of Object.keys(EVENT_TYPES)) source.addEventListener(type, deliver as EventListener);
+  source.onmessage = deliver;
   return () => source.close();
 }
