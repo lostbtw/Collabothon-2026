@@ -32,7 +32,8 @@ def _load_standin() -> dict:
 
 class StandInRates:
     """STAND-IN for the NBP rates connector (#34): standin_rates.json, built from role 4's scenario by
-    build_standin_rates.py (USD on 18 Nov 2026 = 3.9099, the fixture rate). Not real NBP rates."""
+    build_standin_rates.py: real NBP rates up to 20 Nov 2026 (sim/scenario/nbp_rates.json), except the fixture
+    override USD on 18 Nov 2026 = 3.9099."""
 
     def __init__(self, table: dict | None = None):
         # {(currency, "YYYY-MM-DD"): ("rate", "table no or None")}

@@ -32,8 +32,9 @@ def main() -> None:
             for ccy in table:
                 table[ccy][day.isoformat()] = OVERRIDES.get((ccy, day.isoformat()), f"{bank.mid_rate(ccy, day):.4f}")
         day += timedelta(days=1)
-    payload = {"_comment": "STAND-IN NBP table A mid rates (PLN per unit), built by build_standin_rates.py from "
-                           "role 4's scenario; replaced by role 2's NBP connector (#34). Not real NBP rates.",
+    payload = {"_comment": "NBP table A mid rates (PLN per unit), built by build_standin_rates.py from role 4's "
+                           "scenario: real NBP rates (sim/scenario/nbp_rates.json) up to 20 Nov 2026, the last one "
+                           "repeated after it, and the fixture override USD 18 Nov 2026 = 3.9099.",
                **table}
     OUT.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(f"wrote {OUT} ({sum(len(v) for v in table.values())} rates)")
