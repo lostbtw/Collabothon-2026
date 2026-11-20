@@ -36,7 +36,12 @@ gh issue list --label role:<N> --label needs-triage --state open   # requests fr
 Take musts before shoulds. For each ticket:
 
 1. Claim it: `gh issue edit <n> --add-assignee @me`. Read the ticket and its parent spec.
-2. The human runs `/implement #<n>`. Work in your folders only, commit small with `#<n>` in the message, `git pull --rebase --autostash && git push` often. `main` must always run.
+2. The human runs `/implement #<n>`. Work in your folders only, commit small with `#<n>` in the message, `git pull --rebase --autostash && git push` often. `main` must always run. Before every push, from the repo root:
+
+   ```bash
+   uv run python -m pytest                  # all backend tests (CI runs the same)
+   python3 contracts/validate_fixtures.py   # must print 0 invalid
+   ```
 3. Done = acceptance criteria met, tests pass, and it works against the **real** thing it depends on: `gh issue comment <n> --body "Done in <sha>: <what was verified>"`, then `gh issue close <n>`.
 
 **Integrates with** (in the ticket body) means the dependency is not finished but a stand-in exists: build against the stand-in, comment "works on the stand-in", start a background wait, and take the next ticket. When the wait ends, swap in the real thing first, then close.
