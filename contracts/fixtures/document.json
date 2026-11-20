@@ -77,8 +77,8 @@
       "role": "employee"
     },
     "extraction": {
-      "method": "llm_vision",
-      "model": "<served-vision-model>",
+      "method": "docling_llm",
+      "model": "gpt-oss-20b",
       "confidence": 0.93,
       "field_confidence": {
         "gross": 0.99,
