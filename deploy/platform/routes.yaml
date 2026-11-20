@@ -1,0 +1,35 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ordo-web
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  host: ordo-cfo-ai.apps.ocp.w6k4q.sandbox2219.opentlc.com
+  path: /
+  to:
+    kind: Service
+    name: ordo-web
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ordo-api
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+  annotations:
+    haproxy.router.openshift.io/timeout: 1h
+spec:
+  host: ordo-cfo-ai.apps.ocp.w6k4q.sandbox2219.opentlc.com
+  path: /api
+  to:
+    kind: Service
+    name: ordo-api
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

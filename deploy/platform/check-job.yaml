@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: platform-check
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: platform-check
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: check
+          image: registry.redhat.io/rhel9/postgresql-16:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              pg_isready -d "$ORDO_DATABASE_URL"
+              psql "$ORDO_DATABASE_URL" -tAc "select 'connected as ' || current_user || ' to ' || current_database() || ': ' || version()"
+              date -u +%FT%TZ > /data/raw/.platform-check
+              echo "raw volume writable: $(cat /data/raw/.platform-check)"
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: raw
+              mountPath: /data/raw
+      volumes:
+        - name: raw
+          persistentVolumeClaim:
+            claimName: ordo-raw
