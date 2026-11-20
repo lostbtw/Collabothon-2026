@@ -4,8 +4,8 @@ Everything six people need to build in parallel against mocks from hour one.
 
 | File | What it is | Who changes it |
 |---|---|---|
-| `schemas/*.schema.json` | JSON Schema (2020-12) for the core entities: Source, SyncRun, RawItem, Document, Account, Transaction, Counterparty, Match, LedgerEntry, Forecast, Recommendation, Approval, Event. `common.schema.json` holds Money, FxConversion, EvidenceLink, ControlLevel, ExecutionMode, PersonRef | Owner of the producing role, via PR (see below) |
-| `openapi.yaml` | Backend REST API used by the frontend, the chat agent tools and the simulators (33 paths) | Role 5 (API owner) |
+| `schemas/*.schema.json` | JSON Schema (2020-12) for the core entities: Source, SyncRun, RawItem, Document, Account, Transaction, Counterparty, Match, LedgerEntry, Forecast, Recommendation, Approval, Event. `common.schema.json` holds Money, FxConversion, EvidenceLink, ControlLevel, ExecutionMode, PersonRef, Category (the fixed category list, D-09) | Owner of the producing role, via PR (see below) |
+| `openapi.yaml` | Backend REST API used by the frontend, the chat agent tools and the simulators (34 paths) | Role 5 (API owner) |
 | `events.md` | Queue/SSE event types, payloads, idempotency keys, the live-demo chain and timing budget | Role 2 + Role 5 |
 | `bank-sim-api.md` | API of the Sandbox Bank simulator (PSD2-shaped) | Role 2 |
 | `fixtures/*.json` | Example payloads, one JSON array per schema. They tell one consistent story (company `co_borsuk`, the receipt Jan forwards, the 30,000 PLN credit line). Use them as mocks | Anyone, with the schema |
@@ -18,10 +18,10 @@ Everything six people need to build in parallel against mocks from hour one.
 3. **Money is a string decimal + currency.** Never a float. Negative = money out.
 4. **Every Recommendation carries `control_level`, `execution_mode`, `explanation`, `evidence` (min 1).** The UI refuses to render a card without them. This is the challenge's "analyse / recommend / approve / simulated" requirement, enforced by schema.
 5. **The LLM never produces numbers that reach a schema field directly.** Numbers come from the finance engine or from extraction with a confidence value; `explanation.generated_by` says who wrote what.
-6. **Ids** are opaque strings with a prefix (`doc_`, `txn_`, `mat_`, `led_`, `fc_`, `rec_`, `apr_`, `raw_`, `run_`, `src_`, `acc_`, `cp_`, `per_`, `evt_`, `ser_`, `co_`).
+6. **Ids** are opaque strings with a prefix (`doc_`, `txn_`, `mat_`, `led_`, `fc_`, `rec_`, `apr_`, `raw_`, `run_`, `src_`, `acc_`, `cp_`, `per_`, `evt_`, `ser_`, `co_`). Ids of nested parts (forecast components `c_…`, calculation rows `q_…`, rule ids such as `PL-VAT-01`) are local to their parent and need no prefix from this list.
 
 ## Verified
 
-- `validate_fixtures.py`: 31 examples, 0 invalid (run 2026-11-20).
-- `openapi.yaml`: parses as YAML, 33 paths, every `./schemas/...` reference resolves to an existing file (run 2026-11-20).
+- `validate_fixtures.py`: 37 examples, 0 invalid (2026-11-20; re-checked with a Node port of the same rules after adding `acc_eur`, `acc_pizzeria` and four sources).
+- `openapi.yaml`: parses as YAML, 34 paths, every `./schemas/...` reference resolves to an existing file (run 2026-11-20).
 - Not verified: no OpenAPI linter or code generator was run against the spec.

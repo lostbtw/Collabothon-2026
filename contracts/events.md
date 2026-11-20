@@ -29,13 +29,13 @@ Rules:
 | `document.duplicate_detected` | matcher | `document_id, duplicate_of, reason` | UI | (`document_id`) |
 | `transaction.ingested` | normaliser | `transaction_id, account_id, amount, booking_date` | matcher, finance engine | (`account_id`, `external_id`) unique |
 | `match.suggested` | matcher | `match_id, document_id, transaction_id?, paid_by, score` | agent service (creates Recommendation), UI | (`document_id`, `match_type`) for open matches |
-| `match.decided` | API | `match_id, status, approval_id` | finance engine (ledger), matcher (learn alias) | `approval_id` |
-| `ledger.entry.proposed` | finance engine | `ledger_entry_id, type, amount` | UI | (`match_id`, `type`) |
+| `match.decided` | API (also when the owner decides a Recommendation whose subject is a Match: one tap decides both) | `match_id, status, approval_id` | finance engine (books the ledger entries, already approved), matcher (learn alias) | `approval_id` |
+| `ledger.entry.proposed` | finance engine | `ledger_entry_id, type, amount` | UI | (`match_id`, `type`). Not used in the demo flow: entries from a decided Match are booked approved directly (D-20) |
 | `ledger.entry.approved` | API / finance engine | `ledger_entry_id, approval_id` | finance engine (forecast) | `approval_id` |
 | `forecast.updated` | finance engine | `forecast_id, min_balance, min_balance_previous, first_negative_date` | agent service (liquidity agent), UI chart | `forecast.inputs_hash` (skip if unchanged) |
 | `recommendation.created` | agent service | `recommendation_id, type, control_level` | UI inbox badge | (`type`, `subject.id`) for open recommendations |
 | `recommendation.status_changed` | API | `recommendation_id, status` | UI | - |
-| `approval.recorded` | API | `approval_id, subject_type, subject_id, decision` | executor (simulated actions) | `approval_id` |
+| `approval.recorded` | API | `approval_id, subject_type, subject_id, decision` | UI, finance engine | `approval_id`. The executor is **not** a consumer: the decision endpoint calls it in-process and returns the reference in the same response (D-19) |
 | `execution.simulated` | executor | `approval_id, reference, result` | finance engine (scenario becomes base), UI | `approval_id` |
 
 ## The live-demo chain (target: under 30 s end to end)

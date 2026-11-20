@@ -41,7 +41,7 @@ paths:
     get:
       summary: Demo companies (Borsuk Labs = messy data; Pizzeria Amalfi = organisers' data)
       responses:
-        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {id: {type: string}, name: {type: string}, base_currency: {type: string}, country: {type: string}}}}}}}}}
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {id: {type: string}, name: {type: string}, base_currency: {type: string}, country: {type: string}, as_of_date: {type: string, format: date, description: "Day the company is seen on: forecasts use only transactions booked up to it (D-21). co_borsuk 2026-11-21, co_amalfi 2025-05-15"}}}}}}}}}
   /sources:
     get:
       tags: [sources]
@@ -331,7 +331,7 @@ paths:
       summary: '"What the agents did on their own" feed (control_level = analysed_autonomously), built from events'
       parameters: [{$ref: '#/components/parameters/company'}, {name: since, in: query, schema: {type: string, format: date-time}}]
       responses:
-        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {at: {type: string, format: date-time}, agent: {type: string}, text: {type: string}, evidence: {type: array, items: {$ref: './schemas/common.schema.json#/$defs/EvidenceLink'}}}}}}}}}}
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {at: {type: string, format: date-time}, agent: {type: string}, text: {type: string}, subject: {type: object, description: "What the action touched. Undo of an auto-confirmed match = reject it via /matches/{id}/decision", properties: {type: {type: string}, id: {type: string}}}, evidence: {type: array, items: {$ref: './schemas/common.schema.json#/$defs/EvidenceLink'}}}}}}}}}}
   /chat:
     post:
       tags: [chat]
@@ -364,7 +364,7 @@ paths:
         '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/common.schema.json#/$defs/FxConversion'}}}}
   /fx/exposure:
     get:
-      summary: FX Shield - open foreign-currency exposure per invoice with historical-scenario downside (see docs/03_FX_SHIELD.md)
+      summary: FX Shield - open foreign-currency exposure per invoice with historical-scenario downside (method in the role 4 spec issue)
       parameters: [{$ref: '#/components/parameters/company'}]
       responses:
         '200':

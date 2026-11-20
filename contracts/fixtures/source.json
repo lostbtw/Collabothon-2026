@@ -40,6 +40,66 @@
     "is_sandbox": true
   },
   {
+    "id": "src_bank_eur",
+    "company_id": "co_borsuk",
+    "connector": "bank_psd2",
+    "display_name": "Sandbox Bank - company EUR account",
+    "status": "connected",
+    "mode": "polling",
+    "poll_interval_seconds": 60,
+    "last_synced_at": "2026-11-21T10:14:02Z",
+    "last_success_at": "2026-11-21T10:14:02Z",
+    "next_run_at": "2026-11-21T10:15:02Z",
+    "last_error": null,
+    "cursor": "2026-11-19|E000000088",
+    "config_public": {
+      "iban_masked": "PL** **** **** **** **** 0425",
+      "api": "Berlin Group NextGenPSD2 style /v1/accounts/{id}/transactions"
+    },
+    "items_total": 88,
+    "is_sandbox": true
+  },
+  {
+    "id": "src_bank_owner",
+    "company_id": "co_borsuk",
+    "connector": "bank_psd2",
+    "display_name": "Sandbox Bank - owner's private card *9021 (company costs only)",
+    "status": "connected",
+    "mode": "polling",
+    "poll_interval_seconds": 60,
+    "last_synced_at": "2026-11-21T10:14:02Z",
+    "last_success_at": "2026-11-21T10:14:02Z",
+    "next_run_at": "2026-11-21T10:15:02Z",
+    "last_error": null,
+    "cursor": "2026-11-20|E000000214",
+    "config_public": {
+      "iban_masked": null,
+      "api": "Berlin Group NextGenPSD2 style /v1/accounts/{id}/transactions"
+    },
+    "items_total": 214,
+    "is_sandbox": true
+  },
+  {
+    "id": "src_nbp",
+    "company_id": "co_borsuk",
+    "connector": "fx_rates",
+    "display_name": "NBP exchange rates (table A)",
+    "status": "connected",
+    "mode": "polling",
+    "poll_interval_seconds": 86400,
+    "last_synced_at": "2026-11-20T11:30:05Z",
+    "last_success_at": "2026-11-20T11:30:05Z",
+    "next_run_at": "2026-11-23T11:30:00Z",
+    "last_error": null,
+    "cursor": "225/A/NBP/2026",
+    "config_public": {
+      "table": "A",
+      "history_days": 1095
+    },
+    "items_total": 756,
+    "is_sandbox": false
+  },
+  {
     "id": "src_ksef",
     "company_id": "co_borsuk",
     "connector": "ksef",
@@ -61,6 +121,26 @@
       "environment": "test"
     },
     "items_total": 41,
+    "is_sandbox": true
+  },
+  {
+    "id": "src_bank_pizzeria",
+    "company_id": "co_amalfi",
+    "connector": "bank_psd2",
+    "display_name": "Sandbox Bank - Pizzeria Amalfi (organisers' CSV)",
+    "status": "connected",
+    "mode": "polling",
+    "poll_interval_seconds": 60,
+    "last_synced_at": "2026-11-21T10:14:02Z",
+    "last_success_at": "2026-11-21T10:14:02Z",
+    "next_run_at": "2026-11-21T10:15:02Z",
+    "last_error": null,
+    "cursor": "2025-12-31|E000001125",
+    "config_public": {
+      "iban_masked": null,
+      "api": "Berlin Group NextGenPSD2 style /v1/accounts/{id}/transactions"
+    },
+    "items_total": 1125,
     "is_sandbox": true
   }
 ]

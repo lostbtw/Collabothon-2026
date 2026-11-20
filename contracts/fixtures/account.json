@@ -22,6 +22,26 @@
     "include_in_liquidity": true
   },
   {
+    "id": "acc_eur",
+    "company_id": "co_borsuk",
+    "kind": "company_bank",
+    "name": "Company account EUR",
+    "iban_masked": "PL** **** 0425",
+    "card_last4": [],
+    "currency": "EUR",
+    "source_id": "src_bank_eur",
+    "balance": {
+      "amount": "3100.00",
+      "currency": "EUR"
+    },
+    "balance_at": "2026-11-21T10:14:02Z",
+    "opening_balance": {
+      "amount": "2400.00",
+      "currency": "EUR"
+    },
+    "include_in_liquidity": true
+  },
+  {
     "id": "acc_owner",
     "company_id": "co_borsuk",
     "kind": "owner_private",
@@ -36,5 +56,25 @@
     "balance_at": null,
     "opening_balance": null,
     "include_in_liquidity": false
+  },
+  {
+    "id": "acc_pizzeria",
+    "company_id": "co_amalfi",
+    "kind": "company_bank",
+    "name": "Pizzeria Amalfi business account (organisers' data)",
+    "iban_masked": null,
+    "card_last4": [],
+    "currency": "EUR",
+    "source_id": "src_bank_pizzeria",
+    "balance": {
+      "amount": "33266.35",
+      "currency": "EUR"
+    },
+    "balance_at": "2025-12-31T23:59:59Z",
+    "opening_balance": {
+      "amount": "2500.00",
+      "currency": "EUR"
+    },
+    "include_in_liquidity": true
   }
 ]

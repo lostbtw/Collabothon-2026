@@ -4,6 +4,8 @@ Short entries: context, options, decision, proof, consequences. Newest at the bo
 `R-xx` = recommendation on a fixed decision (the team decides). `D-xx` = decision on how to build (made, with proof).
 All entries dated Friday 20 Nov 2026.
 
+The planning documents cited below (`docs/00_ANALYSIS.md` … `docs/06_RISKS_AND_QUESTIONS.md`) and the `spikes/` were removed on 20 Nov 2026; their content now lives in the role spec issues #1–#6. Read an original with `git show 77495ef:docs/<file>`.
+
 ---
 
 ## R-01 — Recommended change to fixed decision 1: lead with the liquidity agent, not with messy data — NOT ACCEPTED
@@ -157,7 +159,7 @@ Proof: challenge wording ("coordinates advance tax payments and identifies optim
 | Options | (a) keep the vague exposure list; (b) the brainstorm's "month-boundary" warning; (c) FX Shield |
 | Decision | **(c)**, as a must-have for role 4 (5 h) |
 | Proof | Spike 05 on 756 days of real NBP rates: average result is near zero in every case (so the average is useless); EUR invoices come out "not worth hedging" (bad case 10% of profit); a 40,000 USD order with 8,000 PLN profit loses 6,595 PLN in the worst 10% of scenarios while a forward costs about 487 PLN (illustrative price). Option (b) rests on a wrong premise: the tax rule is the NBP rate of the last business day before the transaction ([source](https://poradnikprzedsiebiorcy.pl/-przeliczenia-kosztu-w-walutach-obcych-kursy-walut-a-data-faktury)) |
-| Consequences | Role 4's slack is used up; the tax calendar and reserve card (4.6) will probably not be built. Forward and option prices are placeholders, labelled as such. Spec: `docs/03_FX_SHIELD.md` |
+| Consequences | Role 4's slack is used up; the tax calendar and reserve card (4.6) will probably not be built. Forward and option prices are placeholders, labelled as such. Spec: issue #4 (role 4) |
 
 ## D-16 — Stack: Python (FastAPI) + PostgreSQL + React/TypeScript. Not Quarkus
 
@@ -170,3 +172,15 @@ Synthetic data, domain rules and pitch leave the frontend role; extraction joins
 ## D-18 — Invented vendors and tax ids only
 
 The first version of spike 04 used real company names. Replaced with invented names and checksum-valid NIPs with prefix 999; every generated document carries SAMPLE. Reason: fixed decision 4 and avoiding documents that look like real companies' invoices.
+
+## D-19 — The executor is called in-process by the decision endpoint, not through the queue
+
+The owner must see "SIMULATED — SIM-CL-…" in the same response as the approve tap, and the executor was always a module inside the API (0 pods). So the decision endpoint calls `execute(approval)` synchronously and still emits `execution.simulated`; `approval.recorded` has no executor consumer. Rejected: executor as a queue consumer (one more hop, the reference arrives later over SSE).
+
+## D-20 — One writer for the ledger: the finance engine books entries from decided Matches
+
+Matching (role 3) states the consequences on the Match; the finance engine (role 4) is the only code that creates Ledger entries. A Decision on a Recommendation whose subject is a Match also decides that Match, and its entries are booked already approved: one tap for the owner, never a second approval of the same purchase. Rejected: matching writes proposed entries that the owner approves again.
+
+## D-21 — Each company has its own as-of date
+
+Pizzeria Amalfi is shown on 2025-05-15 (the backtest that predicts the July low) while its full year is ingested for the year-end regression; Borsuk Labs is shown on 2026-11-21. Forecasts use only transactions booked up to the company's as-of date. Rejected: one global demo clock (the pizzeria forecast would see July's actuals).

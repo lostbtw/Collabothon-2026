@@ -57,8 +57,7 @@
       ]
     },
     "category": {
-      "type": "string",
-      "description": "One of the fixed category list in docs/02_DATA_AND_SYNC.md"
+      "$ref": "common.schema.json#/$defs/Category"
     },
     "cost_behaviour": {
       "oneOf": [

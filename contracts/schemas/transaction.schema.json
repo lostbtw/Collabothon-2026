@@ -162,7 +162,7 @@
     "category": {
       "oneOf": [
         {
-          "type": "string"
+          "$ref": "common.schema.json#/$defs/Category"
         },
         {
           "type": "null"

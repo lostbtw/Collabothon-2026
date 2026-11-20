@@ -509,7 +509,7 @@
           ],
           "properties": {
             "category": {
-              "type": "string"
+              "$ref": "common.schema.json#/$defs/Category"
             },
             "confidence": {
               "type": "number",

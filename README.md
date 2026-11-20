@@ -1,23 +1,16 @@
 # Ordo — Autonomous CFO (Collabothon 2026, Commerzbank x Red Hat)
 
-Planning package produced on Friday 20 Nov 2026. Coding ends **Sunday 10:00**.
+Ordo turns a small company's scattered money data into one owner-approved ledger, forecasts cash day by day, and prepares the fix when a gap is coming. The owner approves; every action runs in simulation. Coding ends **Sunday 22 Nov 2026, 10:00**.
 
-| Read this | If you are |
+| Where | What |
 |---|---|
-| [docs/04_DEV_PLAN.md](docs/04_DEV_PLAN.md) | Everyone — roles, tasks, hour-by-hour timeline, cut order, Git rules |
-| [docs/01_SOLUTION.md](docs/01_SOLUTION.md) | Everyone — product, control model, architecture, model choice, bonus items |
-| [docs/03_FX_SHIELD.md](docs/03_FX_SHIELD.md) | Role 4 mainly — the FX hedging agent: method, real-data results, cards, tasks |
-| [docs/02_DATA_AND_SYNC.md](docs/02_DATA_AND_SYNC.md) | Roles 2, 3, 4 — dataset, connectors, matching engine, domain rules |
-| [contracts/](contracts/README.md) | Everyone who writes code — schemas, API, events, fixtures (the mocks) |
-| [docs/05_DEMO_AND_PITCH.md](docs/05_DEMO_AND_PITCH.md) | Roles 4, 5, 6 — 1-minute and 3-minute scripts, fallbacks, critic pass |
-| [docs/06_RISKS_AND_QUESTIONS.md](docs/06_RISKS_AND_QUESTIONS.md) | Stand-ups; questions for the organisers |
-| [docs/00_ANALYSIS.md](docs/00_ANALYSIS.md) | Anyone who wants the reasons — challenge, data profile, idea verdicts, feasibility, research |
-| [DECISIONS.md](DECISIONS.md) | Before reopening a decision |
-| [spikes/](spikes/README.md) | Proofs you can run in seconds |
-| [CLAUDE.md](CLAUDE.md) | Every Claude Code session reads this: role folders, work loop, waiting on dependencies, hard rules |
-| `python3 tools/status.py board` | Live team progress; `next`, `wait`, `forecast` — see `CLAUDE.md` |
+| [Issues #1–#6](https://github.com/lostbtw/Collabothon-2026/issues?q=label%3Aspec) | One spec per role; each role's tickets are its sub-issues |
+| [CLAUDE.md](CLAUDE.md) | Roles, folders, the work loop, hard rules, milestones, cut order |
+| [GLOSSARY.md](GLOSSARY.md) | The project's vocabulary |
+| [contracts/](contracts/README.md) | Schemas, API, events and fixtures every role builds against |
+| [DECISIONS.md](DECISIONS.md) | Why things are the way they are |
 
-Set-up per person: clone, `echo <your role number 1-6> > .role`, start Claude Code in the folder, say "start my role".
+Set-up per person: clone, `echo <your role number 1-6> > .role`, install the GitHub CLI and run `gh auth login`, start Claude Code in the folder, pick a ticket (see `CLAUDE.md` section 2) and run `/implement #<number>`.
 
 Checks: `python3 contracts/validate_fixtures.py` (expects `0 invalid`).
 

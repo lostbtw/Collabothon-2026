@@ -179,7 +179,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "description": "Ids from docs/domain rules table, e.g. PL-VAT-01"
+            "description": "Domain rule id, e.g. PL-VAT-01, PL-COST-01, DQ-01. The rules table lives in the role 3 (matching) and role 4 (finance) spec issues"
           }
         },
         "note": {
