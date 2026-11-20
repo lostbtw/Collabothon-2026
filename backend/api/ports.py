@@ -1,0 +1,96 @@
+"""Where role 5's code calls other roles' in-process code, with a stand-in until theirs exists.
+
+executor (role 2, backend/executor):  execute(approval) -> {"reference", "result"}   (D-19; it emits execution.simulated)
+finance  (role 4, backend/finance/engine): recompute(conn, company_id) -> Forecast
+
+The real executor receives only the Approval; it finds the action as the Recommendation's `proposed_action` with
+the Approval's `changes` applied (dotted paths such as "proposed_action.params.limit").
+"""
+import importlib
+import importlib.util
+from decimal import Decimal
+from typing import Any
+
+import psycopg
+
+from backend.api.deps import new_id, now_iso
+from backend.db.events import new_event, publish
+from backend.db.store import Store
+
+SIM_PREFIX = {
+    "apply_credit_line": "CL",
+    "create_payment_draft": "PD",
+    "book_fx_forward": "FX",
+    "move_to_tax_pocket": "TX",
+    "schedule_transfer": "TR",
+    "send_email_draft": "EM",
+    "book_ledger_entries": "LE",
+}
+
+
+def _module(name: str):
+    try:
+        if importlib.util.find_spec(name) is None:
+            return None
+    except ModuleNotFoundError:
+        return None
+    return importlib.import_module(name)
+
+
+def _amount(m: dict[str, str] | None) -> str:
+    if not m:
+        return ""
+    value = Decimal(m["amount"])
+    text = f"{value:,.0f}" if value == value.to_integral_value() else f"{value:,.2f}"
+    return f"{text} {m['currency']}"
+
+
+def _describe(action: dict[str, Any]) -> str:
+    p = action.get("params", {})
+    kind = action["kind"]
+    if kind == "apply_credit_line":
+        tenor = f", {p['tenor_days']} days" if p.get("tenor_days") else ""
+        return f"Sandbox Bank accepted the credit-line application: limit {_amount(p.get('limit'))}{tenor}."
+    if kind == "create_payment_draft":
+        when = f" for {p['pay_on']}" if p.get("pay_on") else ""
+        return f"Transfer draft of {_amount(p.get('amount'))} added to the payment run{when} in the Sandbox Bank."
+    if kind == "book_fx_forward":
+        return (f"Forward booked in the Sandbox Bank: sell {_amount(p.get('notional'))} at {p.get('rate')} "
+                f"on {p.get('value_date')}.")
+    if kind == "move_to_tax_pocket":
+        return f"{_amount(p.get('amount'))} moved to the tax pocket in the Sandbox Bank."
+    return f"{kind.replace('_', ' ')} done in the Sandbox Bank."
+
+
+def _stand_in_execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:
+    seq = c.execute("select nextval('sim_reference_seq')").fetchone()[0]
+    reference = f"SIM-{SIM_PREFIX.get(action['kind'], 'XX')}-{approval['decided_at'][:4]}-{seq:04d}"
+    result = "SIMULATED: " + _describe(action)
+    publish(c, new_event("execution.simulated", company,
+                         {"approval_id": approval["id"], "reference": reference, "result": result}, producer="executor"))
+    return {"reference": reference, "result": result}
+
+
+def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:
+    """Run an approved action in simulation. Returns {"reference", "result"}."""
+    executor = _module("backend.executor")
+    if executor is not None and hasattr(executor, "execute"):
+        return executor.execute(approval)
+    return _stand_in_execute(c, approval, action, company)
+
+
+def recompute_forecast(c: psycopg.Connection, company: str, note: str) -> dict[str, Any] | None:
+    """A new base forecast after an executed action. Stand-in: the latest one re-issued with the action as an
+    assumption (no numbers are invented; role 4's engine recomputes them)."""
+    engine = _module("backend.finance.engine")
+    if engine is not None and hasattr(engine, "recompute"):
+        return engine.recompute(c, company)
+    s = Store(c)
+    bases = [f for f in s.list("forecast", company_id=company) if not f.get("scenario_of")]
+    if not bases:
+        return None
+    latest = bases[0]
+    forecast = {**latest, "id": new_id("fc"), "generated_at": now_iso(), "inputs_hash": None,
+                "assumptions": [*latest["assumptions"], note]}
+    s.add("forecast", forecast, company_id=company)
+    return forecast
