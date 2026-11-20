@@ -165,10 +165,12 @@ def score_pair(doc: dict, txn: dict, accounts: dict) -> tuple[float, list[dict]]
 
 def run_matching(documents: list[dict], transactions: list[dict], *, company: dict, people: list[dict],
                  accounts: list[dict], now: str, as_of: str | None = None,
-                 senders: dict | None = None) -> list[dict]:
+                 senders: dict | None = None, linked: dict | None = None) -> list[dict]:
     """One result per golden Document: {"match", "control_level", "alternatives"}.
 
     `senders` maps document id -> forwarding address (RawItem metadata), used by who paid for unmatched documents.
+    `linked` maps document id -> the bank line the owner added it to (upload form): that line is taken first
+    when it passes the hard filters, even below the threshold.
     Transactions already matched (match_status != unmatched) are not offered again.
     """
     senders = senders or {}
@@ -178,16 +180,18 @@ def run_matching(documents: list[dict], transactions: list[dict], *, company: di
     lines = [t for t in transactions if t["account_id"] in by_account
              and t.get("match_status", "unmatched") in ("unmatched", "missing_document")]  # a late receipt still fits
 
+    linked = linked or {}
     candidates = []  # (score, doc index, txn index, reasons)
     for di, doc in enumerate(docs):
         for ti, txn in enumerate(lines):
             s, reasons = score_pair(doc, txn, by_account)
-            if s >= THRESHOLD:
+            if s >= THRESHOLD or (reasons and linked.get(doc["id"]) == txn["id"]):
                 candidates.append((s, di, ti, reasons))
     candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
+    preferred = [c for c in candidates if linked.get(docs[c[1]]["id"]) == lines[c[2]]["id"]]
 
     taken_doc, taken_txn, chosen = set(), set(), {}
-    for s, di, ti, reasons in candidates:
+    for s, di, ti, reasons in preferred + candidates:
         if di in taken_doc or ti in taken_txn:
             continue
         taken_doc.add(di)

@@ -195,6 +195,15 @@ def _save_match(ctx: Context, company: str, doc: dict, result: dict, correlation
     ctx.publish("match.suggested", company, match_suggested_payload(match), correlation, causation)
 
 
+def linked_transaction(ctx: Context, doc: dict) -> str | None:
+    """The bank line the owner added this document to (upload form `transaction_id`), if any."""
+    for raw_id in doc.get("raw_item_ids") or []:
+        found = ((ctx.store.get("raw_item", raw_id) or {}).get("metadata") or {}).get("for_transaction_id")
+        if found:
+            return found
+    return None
+
+
 def match_document(ctx: Context, company: str, doc: dict, correlation: str | None, causation: str | None) -> None:
     info, people, accounts = _company_inputs(ctx, company)
     txns = ctx.store.list("transaction", company_id=company, match_status=["unmatched", "missing_document"])
@@ -203,8 +212,10 @@ def match_document(ctx: Context, company: str, doc: dict, correlation: str | Non
         own = ctx.store.get("transaction", previous["transaction_id"])
         if own and own not in txns:
             txns.append({**own, "match_status": "unmatched"})
+    linked = linked_transaction(ctx, doc)
     [result] = run_matching([doc], txns, company=info, people=people, accounts=accounts, now=ctx.now(),
-                            as_of=info.get("as_of_date"), senders={doc["id"]: sender_of(ctx, doc)})
+                            as_of=info.get("as_of_date"), senders={doc["id"]: sender_of(ctx, doc)},
+                            linked={doc["id"]: linked} if linked else None)
     if missing.is_unpaid_question(result["match"]) and missing.not_yet_due(doc, info.get("as_of_date")) \
             and not _existing_match(ctx, doc["id"]):
         return  # unpaid and not due yet: a payable for the forecast, not a question (#43); the sweep asks later
