@@ -47,13 +47,20 @@ def _sources(conn: psycopg.Connection) -> list[dict[str, Any]]:
     return [r[0] for r in rows]
 
 
-def _is_due(source: dict[str, Any], now: datetime) -> bool:
+def _is_due(source: dict[str, Any], now: datetime, first: bool = False) -> bool:
+    """Due when its next_run_at has passed. Also due on the first pass after start, and when next_run_at lies
+    further ahead than one poll interval: such a time was not set by us (contracts/fixtures put it a day ahead)."""
     if source.get("status") == "paused":
         return False
     nxt = source.get("next_run_at")
-    if not nxt:
+    if first or not nxt:
         return True
-    return datetime.strptime(nxt, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC) <= now
+    try:
+        at = datetime.strptime(nxt, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    except ValueError:
+        return True
+    interval = int(source.get("poll_interval_seconds") or 60)
+    return at <= now or (at - now).total_seconds() > 2 * interval
 
 
 def manual_requests(conn: psycopg.Connection) -> list[tuple[str, str]]:
@@ -128,7 +135,7 @@ def tick(conn: psycopg.Connection, bank: httpx.Client, *, now: datetime | None =
         if result:
             done.append(result)
     for source in by_id.values():
-        if source["id"] in manual_sources or not _is_due(source, now):
+        if source["id"] in manual_sources or not _is_due(source, now, first):
             continue
         connector = build_connector(conn, source, bank)
         if connector is None:
