@@ -64,7 +64,7 @@ def test_unknown_extension_is_an_error_row(tmp_path):
 
 def test_cli_prints_rows_and_summary_and_writes_results(tmp_path, monkeypatch, capsys):
     wrong = copy.deepcopy(HERO)
-    wrong.update(gross="1239.00", vat_lines=[{"rate": "23", "net": None, "vat": "231.68", "gross": "1239.00"}],
+    wrong.update(gross="1239.00", vat_lines=[{"rate": "23", "vat": "231.68", "gross": "1239.00"}],
                  vat="231.68")
     models = FakeModel(HERO, wrong)
     monkeypatch.setattr(bench.docling, "default_client", lambda: FakeDocling().client())

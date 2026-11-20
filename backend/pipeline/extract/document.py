@@ -105,13 +105,14 @@ def _copied_gross(net: str | None, gross: str | None, vat: str | None) -> bool:
 
 def _vat_lines(raw: Any, total_gross: str | None) -> list[dict[str, str]]:
     result = []
-    for line in raw or []:
-        if not isinstance(line, dict):
-            continue
+    lines = [line for line in raw or [] if isinstance(line, dict)]
+    for line in lines:
         rate = normalise_vat_rate(_text(line.get("rate")))
         net, vat, gross = _money(line.get("net")), _money(line.get("vat")), _money(line.get("gross"))
         if gross is None and _copied_gross(net, total_gross, vat):
             gross = net
+        if gross is None and net is None and len(lines) == 1:
+            gross = total_gross
         if gross is not None and vat is not None:
             net = _format(Decimal(gross) - Decimal(vat))
         if rate is None or net is None or vat is None:

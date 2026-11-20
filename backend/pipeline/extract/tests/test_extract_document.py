@@ -25,7 +25,7 @@ HERO = {
     "gross": "1299.00",
     "net": None,
     "vat": "242.90",
-    "vat_lines": [{"rate": "23", "net": None, "vat": "242.90", "gross": "1299.00"}],
+    "vat_lines": [{"rate": "23", "vat": "242.90", "gross": "1299.00"}],
     "lines": [{"description": "Monitor 27 cali QHD (SAMPLE)", "quantity": 1, "unit_price": "1299.00",
                "net": None, "vat_rate": "23"}],
     "payment_method": "card",
@@ -49,7 +49,7 @@ USD_INVOICE = {
     "gross": "480.00",
     "net": "480.00",
     "vat": "0.00",
-    "vat_lines": [{"rate": "np I", "net": "480.00", "vat": "0.00", "gross": None}],
+    "vat_lines": [{"rate": "np I", "vat": "0.00", "gross": "480.00"}],
     "lines": [{"description": "Cloud hosting 11/2026", "quantity": "1", "unit_price": "480.00", "net": "480.00",
                "vat_rate": "np"}],
     "payment_method": "transfer",
@@ -221,8 +221,17 @@ def test_net_equal_to_gross_stays_when_there_is_no_vat():
 
 def test_incomplete_vat_lines_are_dropped():
     answer = copy.deepcopy(HERO)
-    answer["vat_lines"] = [{"rate": "23", "net": None, "vat": None, "gross": "1299.00"}]
+    answer["vat_lines"] = [{"rate": "23", "vat": None, "gross": "1299.00"},
+                           {"rate": "8", "vat": "8.00", "gross": None}]
     assert build(answer)["vat_lines"] == []
+
+
+def test_single_vat_line_without_gross_takes_the_document_gross():
+    answer = copy.deepcopy(HERO)
+    answer["vat_lines"] = [{"rate": "23", "vat": "242.90", "gross": None}]
+    doc = build(answer)
+    assert doc["vat_lines"] == [{"rate": "23", "net": "1056.10", "vat": "242.90"}]
+    assert doc["status"] == "extracted"
 
 
 def test_category_is_left_to_the_matcher():

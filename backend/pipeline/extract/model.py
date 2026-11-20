@@ -44,8 +44,7 @@ SCHEMA = _object({
     "gross": MONEY_FIELD,
     "net": MONEY_FIELD,
     "vat": MONEY_FIELD,
-    "vat_lines": {"type": "array", "items": _object({"rate": TEXT, "net": MONEY_FIELD, "vat": MONEY_FIELD,
-                                                      "gross": MONEY_FIELD})},
+    "vat_lines": {"type": "array", "items": _object({"rate": TEXT, "vat": MONEY_FIELD, "gross": MONEY_FIELD})},
     "lines": {"type": "array", "items": _object({"description": {"type": "string"},
                                                   "quantity": {"type": ["number", "null"]},
                                                   "unit_price": MONEY_FIELD, "net": MONEY_FIELD,
@@ -66,9 +65,10 @@ SYSTEM = (
     "Money is a decimal string with a dot and two decimals, without currency signs or thousands separators. "
     "Dates are YYYY-MM-DD. Currency is the ISO code; zl and PLN mean PLN. "
     "gross is the total to pay (SUMA, Razem brutto, Do zaplaty, Total). "
-    "On a Polish fiscal receipt PTU is the VAT: each PTU line is a vat_line with its rate letter's percentage, "
-    "its VAT amount and, as gross, the SPRZEDAZ OPODATK. amount of the same letter. "
-    "vat_lines rate is the printed rate: 23, 8, 5, 0, zw, np or oo. "
+    "On a Polish fiscal receipt PTU is the VAT: each PTU letter is a vat_line whose rate is the percentage printed "
+    "next to that letter (Kwota PTU B 8,00% means rate 8), whose vat is the Kwota PTU amount and whose gross is "
+    "the Sprzed. opod. amount of the same letter. On an invoice each VAT rate row is a vat_line with its VAT and "
+    "gross (brutto) amounts. vat_lines rate is the printed rate: 23, 8, 5, 0, zw, np or oo. "
     "lines are at most the first 10 items. "
     "tax_id is the NIP, VAT id or USt-IdNr as printed. country is the two-letter code. "
     "card_last4 is the last four digits of a masked card number. "
