@@ -4,7 +4,7 @@ set -euo pipefail
 NS=cfo-ai
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-IMAGES=(backend sim)
+IMAGES=(backend sim web)
 EXISTING_SECRETS=(llm-token docling-api-key)
 SECRET_VALUES=(
   "ordo-db POSTGRESQL_PASSWORD"
@@ -98,6 +98,25 @@ dev_build() {
   done
 }
 
+dev_build_web() {
+  local ref="${1:-}" tree
+  if [[ -z "$ref" ]]; then
+    echo "usage: $0 dev-build-web <git ref with frontend/, e.g. origin/r6/6-live-backend>" >&2
+    exit 2
+  fi
+  git -C "$ROOT" fetch -q origin
+  tree="$(mktemp -d)"
+  git -C "$ROOT" worktree add -q --detach "$tree" HEAD
+  if git -C "$tree" checkout "$ref" -- frontend &&
+    git -C "$tree" commit -q -m "frontend from $ref for a test build" &&
+    oc -n "$NS" start-build ordo-web --from-repo="$tree" --follow --wait; then
+    git -C "$ROOT" worktree remove --force "$tree"
+  else
+    git -C "$ROOT" worktree remove --force "$tree"
+    exit 1
+  fi
+}
+
 job_finished() {
   local status
   status="$(oc -n "$NS" get job platform-check -o jsonpath='{.status.succeeded}{.status.failed}')"
@@ -169,9 +188,10 @@ case "$stage" in
   apply) apply ;;
   build) build "$@" ;;
   dev-build) dev_build "$@" ;;
+  dev-build-web) dev_build_web "$@" ;;
   verify) verify ;;
   *)
-    echo "usage: $0 secrets|apply|build|dev-build|verify [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|verify [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
