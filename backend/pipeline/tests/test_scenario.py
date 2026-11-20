@@ -13,8 +13,6 @@ KNOWN_SCENARIO_ISSUES = {
     # so they look like two invoices; the PDF copy takes the bank line and the XML stays unpaid.
     "fa3_20261110_01": "dup_01 numbers differ", "fa3_20261114_01": "dup_02 numbers differ",
 }
-# The hand-written PIXELBOARD line (180.62 PLN) uses the fixture's NBP 3.9099, not the scenario's mid rate; the stand-in
-# rate table (normalise/standin_rates.json) carries 3.9099 for 18 Nov, so nov_036 matches like on the cluster.
 NEVER_MISSING = {"bank_fee", "tax_or_social_security", "salary", "reimbursement_payout", "internal_transfer"}
 
 
