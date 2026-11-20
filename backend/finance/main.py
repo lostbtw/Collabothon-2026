@@ -13,7 +13,7 @@ import psycopg
 
 from backend.settings import database_url
 
-from .handlers import HANDLERS
+from .handlers import DEBOUNCE_SECONDS, HANDLERS, recompute_due
 
 log = logging.getLogger("ordo.finance")
 CONSUMER = "finance"
@@ -74,5 +74,6 @@ def run(argv: list[str]) -> int:
         log.info("finance: listening (%s)", CONSUMER)
         while True:
             process_pending(conn)
-            for _ in listener.notifies(timeout=5.0, stop_after=1):  # wake on NOTIFY, or poll every 5 s
+            recompute_due(conn)  # debounce: 2 s after a company's last input event
+            for _ in listener.notifies(timeout=DEBOUNCE_SECONDS, stop_after=1):  # wake on NOTIFY, or poll
                 pass

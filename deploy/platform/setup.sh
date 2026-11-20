@@ -4,7 +4,9 @@ set -euo pipefail
 NS=cfo-ai
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
+APP="$ROOT/deploy/app"
 IMAGES=(backend sim web)
+M1_QUESTION="How much cash do we have today, and what is the next large payment?"
 EXISTING_SECRETS=(llm-token docling-api-key)
 SECRET_VALUES=(
   "ordo-db POSTGRESQL_PASSWORD"
@@ -143,19 +145,23 @@ tag_demo() {
 
 job_finished() {
   local status
-  status="$(oc -n "$NS" get job platform-check -o jsonpath='{.status.succeeded}{.status.failed}')"
+  status="$(oc -n "$NS" get job "$1" -o jsonpath='{.status.succeeded}{.status.failed}')"
   [[ -n "$status" ]]
 }
 
+run_job() {
+  local name="$1" file="$2" succeeded
+  oc -n "$NS" delete job "$name" --ignore-not-found --wait
+  oc apply -f "$file"
+  wait_for "job $name" 300 job_finished "$name"
+  oc -n "$NS" logs "job/$name"
+  succeeded="$(oc -n "$NS" get job "$name" -o jsonpath='{.status.succeeded}')"
+  oc -n "$NS" delete job "$name" --wait
+  [[ "$succeeded" == 1 ]]
+}
+
 check_platform() {
-  oc -n "$NS" delete job platform-check --ignore-not-found --wait
-  oc apply -f "$HERE/check-job.yaml"
-  wait_for "job platform-check" 300 job_finished
-  oc -n "$NS" logs job/platform-check
-  local succeeded
-  succeeded="$(oc -n "$NS" get job platform-check -o jsonpath='{.status.succeeded}')"
-  oc -n "$NS" delete job platform-check --wait
-  if [[ "$succeeded" != 1 ]]; then
+  if ! run_job platform-check "$HERE/check-job.yaml"; then
     echo "FAIL platform-check: postgres or the raw volume is not reachable from a pod" >&2
     return 1
   fi
@@ -202,6 +208,74 @@ verify() {
   ((failed == 0))
 }
 
+app() {
+  local name
+  for name in ordo-db llm-token; do
+    if ! secret_exists "$name"; then
+      echo "secret $name is missing, see deploy/secrets.example.yaml" >&2
+      exit 1
+    fi
+  done
+  oc apply -f "$APP/config.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml"
+  oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
+  oc -n "$NS" rollout status deployment/ordo-web --timeout=300s
+}
+
+db_fixtures() {
+  if ! run_job db-fixtures "$APP/db-fixtures-job.yaml"; then
+    echo "FAIL db-fixtures: contracts/fixtures were not loaded" >&2
+    return 1
+  fi
+  echo "OK   contracts/fixtures loaded as demo data"
+}
+
+model_requests() {
+  oc get --raw "/api/v1/namespaces/$NS/services/http:gpt-oss-20b-metrics:8080/proxy/metrics" |
+    awk '/^vllm:request_success_total\{/ && !/finished_reason="abort"/ { sum += $NF } END { printf "%d\n", sum }'
+}
+
+check_m1() {
+  local base health company request answer before after failed=0
+  base="https://$(oc -n "$NS" get route ordo-web -o jsonpath='{.spec.host}')"
+
+  if curl -fsS -o /dev/null "$base/"; then
+    echo "OK   $base/ opens from outside the cluster"
+  else
+    echo "FAIL $base/ does not open" >&2
+    failed=1
+  fi
+
+  if health="$(curl -fsS "$base/api/v1/health")" && jq -e '.llm.reachable == true' <<<"$health" >/dev/null; then
+    echo "OK   $base/api/v1/health: $(jq -r '.llm.model + " at " + .llm.base_url' <<<"$health") is reachable"
+  else
+    echo "FAIL $base/api/v1/health does not report the model reachable: ${health:-no answer}" >&2
+    failed=1
+  fi
+
+  company="$(curl -fsS "$base/api/v1/companies" | jq -r '.items[0].id // empty')" || company=""
+  if [[ -z "$company" ]]; then
+    echo "FAIL $base/api/v1/companies lists no company" >&2
+    return 1
+  fi
+  request="$(jq -nc --arg c "$company" --arg m "$M1_QUESTION" '{company_id: $c, message: $m}')"
+  before="$(model_requests)"
+  if ! answer="$(curl -fsS --max-time 300 -H 'Content-Type: application/json' -d "$request" "$base/api/v1/chat")"; then
+    echo "FAIL $base/api/v1/chat did not answer" >&2
+    return 1
+  fi
+  after="$(model_requests)"
+  echo "     question ($company): $M1_QUESTION"
+  echo "     answer: $(jq -r '.answer' <<<"$answer")"
+  echo "     answered by: $(jq -r '.model // "not reported by the API yet"' <<<"$answer")"
+  if ((after > before)); then
+    echo "OK   gpt-oss-20b finished $((after - before)) requests while the chat answered"
+  else
+    echo "FAIL gpt-oss-20b finished no request while the chat answered, the text is the fallback" >&2
+    failed=1
+  fi
+  ((failed == 0))
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -217,8 +291,11 @@ case "$stage" in
   webhook-urls) webhook_urls ;;
   freeze) freeze ;;
   tag-demo) tag_demo ;;
+  app) app ;;
+  db-fixtures) db_fixtures ;;
+  check-m1) check_m1 ;;
   *)
-    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|app|db-fixtures|check-m1|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

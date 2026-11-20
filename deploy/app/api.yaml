@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordo-api
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-api
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"api\")].image"}]'
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ordo-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: ordo-api
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      serviceAccountName: cfo-app
+      initContainers:
+        - name: db-setup
+          image: ordo-backend:latest
+          command: ["python", "-m", "backend.db", "setup"]
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      containers:
+        - name: api
+          image: ordo-backend:latest
+          args: ["api"]
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ordo-config
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+            - name: LLM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-token
+                  key: token
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordo-api
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-api
+spec:
+  selector:
+    app.kubernetes.io/name: ordo-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
