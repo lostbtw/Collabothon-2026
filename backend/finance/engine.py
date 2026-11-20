@@ -149,9 +149,54 @@ def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
 
 
 def latest_base(conn: psycopg.Connection, company_id: str) -> dict[str, Any] | None:
+    """The newest stored base forecast, by insertion order (a fixture's `generated_at` can lie in the future)."""
     row = conn.execute("select doc from forecasts where company_id = %s and scenario_of is null "
-                       "order by generated_at desc, id desc limit 1", (company_id,)).fetchone()
+                       "order by seq desc limit 1", (company_id,)).fetchone()
     return row[0] if row else None
+
+
+def latest(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
+    """GET /forecast/latest: the engine's current forecast (the stored one when nothing changed, so no new event).
+
+    Never a stale stand-in: a fixture forecast loaded for the demo is replaced by the first recompute.
+    """
+    return recompute(conn, company_id)
+
+
+def ledger_kpis(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
+    """KPIs of GET /ledger/summary (openapi: reimbursements_owed, vat_lost_ytd, documents_missing, tax_due_next_30d).
+
+    vat_lost_ytd        non-deductible VAT on Ledger entries dated in the as-of date's year (VAT lost this year)
+    reimbursements_owed debts to the team (reimbursement_liability) minus what was paid out (reimbursement_payout)
+    documents_missing   bank lines that wait for a document
+    tax_due_next_30d    tax and social-security payments in the forecast within 30 days after the as-of date
+    """
+    s = Store(conn)
+    company = _company(conn, company_id)
+    base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
+    entries = [e for e in s.list("ledger_entry", company_id=company_id) if e.get("status") != "void"]
+
+    def total(values) -> Decimal:
+        return sum((Decimal(v) for v in values), Decimal(0))
+
+    vat_lost = total(e["vat"]["amount"]["amount"] for e in entries
+                     if e.get("vat") and e["vat"].get("deductible") is False and str(e.get("date", ""))[:4] == str(as_of.year))
+    owed = total(e["amount_base"]["amount"] for e in entries if e["type"] == "reimbursement_liability")
+    paid = total(e["amount_base"]["amount"] for e in entries if e["type"] == "reimbursement_payout")
+    missing = len(s.list("transaction", company_id=company_id, match_status="missing_document"))
+    forecast = latest(conn, company_id)
+    until = (as_of + timedelta(days=30)).isoformat()
+    tax = Decimal(0)
+    for c in forecast["components"]:
+        if c["kind"] in ("tax", "social_security") and c["dates"]:
+            each = Decimal(c["amount_base"]["amount"]) / len(c["dates"])
+            tax += each * sum(1 for d in c["dates"] if as_of.isoformat() < d <= until)
+
+    def m(value: Decimal) -> dict[str, str]:
+        return {"amount": f"{value.quantize(Decimal('0.01')):.2f}", "currency": base}
+
+    return {"reimbursements_owed": m(abs(owed) - abs(paid)), "vat_lost_ytd": m(vat_lost),
+            "documents_missing": missing, "tax_due_next_30d": m(abs(tax))}
 
 
 def _write_series_ids(s: Store, transactions: list[dict], ids: dict[str, str], company_id: str) -> int:
