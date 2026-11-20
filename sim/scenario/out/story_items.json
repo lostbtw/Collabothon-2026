@@ -1,0 +1,401 @@
+[
+  {
+    "id": "si_vat_10",
+    "date": "2026-11-25",
+    "kind": "tax",
+    "description": "VAT-7 10/2026",
+    "counterparty": "URZAD SKARBOWY LODZ-POLESIE",
+    "amount": {
+      "amount": "-14300.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-14300.00"
+  },
+  {
+    "id": "si_meblostyl",
+    "date": "2026-11-27",
+    "kind": "receivable",
+    "description": "FV 2026/10/042, due 27 Nov, client pays on time",
+    "counterparty": "MEBLOSTYL SP Z O O (SAMPLE)",
+    "amount": {
+      "amount": "36900.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "36900.00",
+    "due_date": "2026-11-27"
+  },
+  {
+    "id": "si_pay_jan",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Salary Payment: WYNAGRODZENIE 11/2026",
+    "counterparty": "Jan Kowalski (SAMPLE)",
+    "amount": {
+      "amount": "-8200.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-8200.00",
+    "person_id": "per_jan"
+  },
+  {
+    "id": "si_pay_marta",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Salary Payment: WYNAGRODZENIE 11/2026",
+    "counterparty": "Marta Zielinska (SAMPLE)",
+    "amount": {
+      "amount": "-7400.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-7400.00",
+    "person_id": "per_marta"
+  },
+  {
+    "id": "si_pay_anna",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Supplier Payment: FV 11/11/2026 USLUGI PROGRAMISTYCZNE",
+    "counterparty": "Anna Wrona (SAMPLE)",
+    "amount": {
+      "amount": "-9800.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-9800.00",
+    "person_id": "per_anna"
+  },
+  {
+    "id": "si_pay_piotr",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Supplier Payment: FV 11/11/2026 USLUGI PROGRAMISTYCZNE",
+    "counterparty": "Piotr Lis (SAMPLE)",
+    "amount": {
+      "amount": "-10500.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-10500.00",
+    "person_id": "per_piotr"
+  },
+  {
+    "id": "si_pay_karolina",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Supplier Payment: FV 11/11/2026 PROJEKTOWANIE UX",
+    "counterparty": "Karolina Mazur (SAMPLE)",
+    "amount": {
+      "amount": "-8600.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-8600.00",
+    "person_id": "per_karolina"
+  },
+  {
+    "id": "si_pay_michal",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Supplier Payment: FV 11/11/2026 TESTY QA",
+    "counterparty": "Michal Dudek (SAMPLE)",
+    "amount": {
+      "amount": "-6500.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-6500.00",
+    "person_id": "per_michal"
+  },
+  {
+    "id": "si_pay_tomek",
+    "date": "2026-11-30",
+    "kind": "payroll",
+    "description": "Salary Payment: WYNAGRODZENIE ZARZADU 11/2026",
+    "counterparty": "Tomasz Borsuk (SAMPLE)",
+    "amount": {
+      "amount": "-7000.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-7000.00",
+    "person_id": "per_tomek"
+  },
+  {
+    "id": "si_reimb_rcpt412",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Monitor 27 cali QHD, ElektroMarkt Polska S.A. (SAMPLE), bought 2026-11-20",
+    "counterparty": "Jan Kowalski (SAMPLE)",
+    "amount": {
+      "amount": "-1299.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-1299.00",
+    "person_id": "per_jan",
+    "document_id": "doc_rcpt412",
+    "messiness": "M1",
+    "company_nip_on_document": false,
+    "live_in_demo": true
+  },
+  {
+    "id": "si_reimb_rcpt401",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Team lunch, Bistro Piotrkowska 90 (SAMPLE), bought 2026-11-04",
+    "counterparty": "Marta Zielinska (SAMPLE)",
+    "amount": {
+      "amount": "-486.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-486.00",
+    "person_id": "per_marta",
+    "document_id": "doc_rcpt401",
+    "messiness": "M2",
+    "company_nip_on_document": true,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt402",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Train ticket Lodz-Warszawa, RailExpress S.A. (SAMPLE), bought 2026-11-05",
+    "counterparty": "Anna Wrona (SAMPLE)",
+    "amount": {
+      "amount": "-139.80",
+      "currency": "PLN"
+    },
+    "amount_pln": "-139.80",
+    "person_id": "per_anna",
+    "document_id": "doc_rcpt402",
+    "messiness": "M2",
+    "company_nip_on_document": true,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt403",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Workshop ticket, DevCamp sp. z o.o. (SAMPLE), bought 2026-11-06",
+    "counterparty": "Piotr Lis (SAMPLE)",
+    "amount": {
+      "amount": "-1149.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-1149.00",
+    "person_id": "per_piotr",
+    "document_id": "doc_rcpt403",
+    "messiness": "M1",
+    "company_nip_on_document": false,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt404",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Drawing tablet, Sklepik.pl sp. z o.o. (SAMPLE), bought 2026-11-09",
+    "counterparty": "Karolina Mazur (SAMPLE)",
+    "amount": {
+      "amount": "-689.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-689.00",
+    "person_id": "per_karolina",
+    "document_id": "doc_rcpt404",
+    "messiness": "M1",
+    "company_nip_on_document": false,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt405",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "USB-C hub, ElektroMarkt Polska S.A. (SAMPLE), bought 2026-11-10",
+    "counterparty": "Michal Dudek (SAMPLE)",
+    "amount": {
+      "amount": "-219.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-219.00",
+    "person_id": "per_michal",
+    "document_id": "doc_rcpt405",
+    "messiness": "M1",
+    "company_nip_on_document": false,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt406",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Fuel, client visit, Paliwex sp. z o.o. (SAMPLE), bought 2026-11-12",
+    "counterparty": "Jan Kowalski (SAMPLE)",
+    "amount": {
+      "amount": "-268.40",
+      "currency": "PLN"
+    },
+    "amount_pln": "-268.40",
+    "person_id": "per_jan",
+    "document_id": "doc_rcpt406",
+    "messiness": "M2",
+    "company_nip_on_document": true,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt407",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Office supplies, Biurosfera sp. z o.o. (SAMPLE), bought 2026-11-13",
+    "counterparty": "Marta Zielinska (SAMPLE)",
+    "amount": {
+      "amount": "-154.30",
+      "currency": "PLN"
+    },
+    "amount_pln": "-154.30",
+    "person_id": "per_marta",
+    "document_id": "doc_rcpt407",
+    "messiness": "M2",
+    "company_nip_on_document": true,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt408",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Taxi to client, Taxigo sp. z o.o. (SAMPLE), bought 2026-11-16",
+    "counterparty": "Anna Wrona (SAMPLE)",
+    "amount": {
+      "amount": "-63.50",
+      "currency": "PLN"
+    },
+    "amount_pln": "-63.50",
+    "person_id": "per_anna",
+    "document_id": "doc_rcpt408",
+    "messiness": "M1",
+    "company_nip_on_document": false,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_reimb_rcpt409",
+    "date": "2026-11-30",
+    "kind": "reimbursement",
+    "description": "Client dinner, Sushi Kamien (SAMPLE), bought 2026-11-18",
+    "counterparty": "Piotr Lis (SAMPLE)",
+    "amount": {
+      "amount": "-701.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-701.00",
+    "person_id": "per_piotr",
+    "document_id": "doc_rcpt409",
+    "messiness": "M1",
+    "company_nip_on_document": false,
+    "live_in_demo": false
+  },
+  {
+    "id": "si_coworking_12",
+    "date": "2026-12-01",
+    "kind": "recurring",
+    "description": "CZYNSZ 12/2026 BIURO 4B",
+    "counterparty": "COWORKING PIOTRKOWSKA SP Z O O (SAMPLE)",
+    "amount": {
+      "amount": "-2460.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-2460.00"
+  },
+  {
+    "id": "si_bankfee_11",
+    "date": "2026-12-01",
+    "kind": "recurring",
+    "description": "OPLATA ZA PROWADZENIE RACHUNKU 11/2026",
+    "counterparty": "",
+    "amount": {
+      "amount": "-39.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-39.00"
+  },
+  {
+    "id": "si_codeharbor_12",
+    "date": "2026-12-03",
+    "kind": "recurring",
+    "description": "CODEHARBOR.IO 420.00 USD, bought 2 Dec on card *4417",
+    "counterparty": "CODEHARBOR INC (SAMPLE)",
+    "amount": {
+      "amount": "-420.00",
+      "currency": "USD"
+    },
+    "amount_pln": "-1705.75"
+  },
+  {
+    "id": "si_cards_1_5_dec",
+    "date": "2026-12-05",
+    "kind": "estimate",
+    "description": "Card purchases 1-5 Dec (weekday average)",
+    "counterparty": "",
+    "amount": {
+      "amount": "-1496.25",
+      "currency": "PLN"
+    },
+    "amount_pln": "-1496.25"
+  },
+  {
+    "id": "si_nordwind",
+    "date": "2026-12-07",
+    "kind": "receivable",
+    "description": "FV 2026/10/044, due 14 Nov, not paid; expected = due date + 23 days average delay",
+    "counterparty": "NORDWIND LOGISTIK GMBH (SAMPLE)",
+    "amount": {
+      "amount": "18400.00",
+      "currency": "EUR"
+    },
+    "amount_pln": "81144.00",
+    "due_date": "2026-11-14",
+    "average_delay_days": 23,
+    "stress_date": "2026-12-21"
+  },
+  {
+    "id": "si_zus_11",
+    "date": "2026-12-15",
+    "kind": "tax",
+    "description": "SKLADKI ZUS 11/2026",
+    "counterparty": "ZAKLAD UBEZPIECZEN SPOLECZNYCH",
+    "amount": {
+      "amount": "-9400.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-9400.00"
+  },
+  {
+    "id": "si_pit4_11",
+    "date": "2026-12-21",
+    "kind": "tax",
+    "description": "PIT-4 11/2026 (20 Dec is a Sunday)",
+    "counterparty": "URZAD SKARBOWY LODZ-POLESIE",
+    "amount": {
+      "amount": "-3850.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-3850.00"
+  },
+  {
+    "id": "si_cit5_11",
+    "date": "2026-12-21",
+    "kind": "tax",
+    "description": "CIT-5 ZALICZKA 11/2026 (20 Dec is a Sunday)",
+    "counterparty": "URZAD SKARBOWY LODZ-POLESIE",
+    "amount": {
+      "amount": "-7050.00",
+      "currency": "PLN"
+    },
+    "amount_pln": "-7050.00"
+  },
+  {
+    "id": "si_lakeshore",
+    "date": "2027-01-05",
+    "kind": "receivable",
+    "description": "FV 2026/11/045, 40,000 USD order, due in 45 days; FX Shield hero case",
+    "counterparty": "LAKESHORE ROBOTICS INC (SAMPLE)",
+    "amount": {
+      "amount": "40000.00",
+      "currency": "USD"
+    },
+    "amount_pln": "162452.00",
+    "due_date": "2027-01-05",
+    "profit_pln": "8000.00"
+  }
+]
