@@ -64,11 +64,31 @@ class ClockIn(BaseModel):
 
 
 # ---------- app ----------
-def create_app(store: Store | None = None, token: str | None = None) -> FastAPI:
+def create_app(store: Store | None = None, token: str | None = None, autoload_csv: str | None = None,
+               autoload_account: str | None = None) -> FastAPI:
+    """autoload_csv: path of the organisers' CSV to load at start and after /admin/reset, so a restarted
+    bank is never empty. Defaults to the env var BANK_AUTOLOAD_CSV (account: BANK_AUTOLOAD_ACCOUNT, default acc_pizzeria)."""
     store = store or Store()
     expected = token or os.environ.get("BANK_TOKEN", "demo-token")
+    csv_path = autoload_csv or os.environ.get("BANK_AUTOLOAD_CSV")
+    csv_account = autoload_account or os.environ.get("BANK_AUTOLOAD_ACCOUNT", "acc_pizzeria")
     app = FastAPI(title="Sandbox Bank simulator (SIMULATED)", version="0.1.0")
     app.state.store = store
+
+    def apply_autoload() -> None:
+        if not csv_path:
+            return
+        acc = store.accounts.get(csv_account)
+        if acc is None:
+            raise RuntimeError(f"BANK_AUTOLOAD_ACCOUNT '{csv_account}' is not a known account")
+        try:
+            with open(csv_path, "rb") as f:
+                iban, lines = parse_commerzbank_csv(f.read())
+        except (OSError, CsvError) as exc:  # fail fast: a bank that silently starts empty ruins the demo
+            raise RuntimeError(f"BANK_AUTOLOAD_CSV '{csv_path}' could not be loaded: {exc}") from exc
+        acc.lines = lines
+        if iban:
+            acc.iban = iban
 
     def bearer(authorization: str | None = Header(default=None)) -> None:
         if authorization != f"Bearer {expected}":
@@ -246,8 +266,10 @@ def create_app(store: Store | None = None, token: str | None = None) -> FastAPI:
     @app.post("/admin/reset", dependencies=admin)
     def reset() -> dict:
         store.reset()
-        return {"status": "reset"}
+        apply_autoload()
+        return {"status": "reset", "autoloaded": bool(csv_path)}
 
+    apply_autoload()
     return app
 
 
