@@ -49,3 +49,12 @@ def test_a_slow_query_stops_after_three_seconds(db):
     result = run_readonly_sql(db, "co_borsuk", "select pg_sleep(5)")
 
     assert "statement timeout" in result["error"]
+
+
+def test_the_company_filter_cannot_be_switched_from_inside_the_query(db):
+    load_fixtures(db)
+
+    result = run_readonly_sql(db, "co_amalfi",
+                              "with s as (select set_config('ordo.company_id', 'co_borsuk', true)) select v.id from s, v_ledger v")
+
+    assert "error" in result or result["rows"] == []

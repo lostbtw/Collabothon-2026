@@ -109,7 +109,7 @@ def test_the_model_chooses_tools_and_writes_the_wording_with_engine_numbers_only
     assert [m["role"] for m in model.requests[-1]["messages"]].count("tool") == 2
 
 
-def test_a_model_answer_with_an_invented_number_is_rejected_and_the_template_card_stored(db, world):
+def test_a_model_answer_with_an_invented_number_is_rejected_and_the_template_recommendation_stored(db, world):
     model = FakeModel(
         turn(tool_calls=[tool_call("get_forecast", {})]),
         final("Open a 45,000 PLN credit line before 30 November", "You need 45,000 PLN.", ["a", "b", "c"]),
@@ -122,7 +122,7 @@ def test_a_model_answer_with_an_invented_number_is_rejected_and_the_template_car
     assert card["explanation"]["generated_by"]["wording"] == "template"
 
 
-def test_a_model_timeout_still_gives_the_template_card(db, world):
+def test_a_model_timeout_still_gives_the_template_recommendation(db, world):
     on_forecast_updated(db, updated("fc_20261121a"), model=FakeModel(error=TimeoutError("model did not answer")))
 
     [card] = cards(world)

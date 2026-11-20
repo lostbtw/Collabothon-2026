@@ -8,6 +8,7 @@ from backend.db.events import new_event, publish
 from backend.db.store import Store
 
 DECISIONS = {"approved", "approved_with_changes", "rejected"}
+DECIDABLE_MATCH = {"suggested", "auto_confirmed"}  # auto_confirmed: the owner may still undo it
 
 
 def draft_approval(c: psycopg.Connection, *, company: str, subject_type: str, subject_id: str, decision: str,
@@ -59,13 +60,29 @@ def decide_match(c: psycopg.Connection, match_id: str, decision: str, *, channel
     match = s.get("match", match_id)
     if match is None:
         raise ApiError(404, "not_found", f"No match with id {match_id!r}")
+    if match["status"] not in DECIDABLE_MATCH:
+        raise ApiError(409, "not_decidable", f"{match_id} is already {match['status']}")
     company = s.company_of("match", match_id)
+    status = "rejected" if decision == "rejected" else "confirmed"
     if approval is None:
         approval = record_approval(c, company=company, subject_type="match", subject_id=match_id,
                                    decision=decision, channel=channel, comment=comment, changes=changes)
-    status = "rejected" if decision == "rejected" else "confirmed"
+        _close_open_recommendations_of(c, match, approval, "rejected" if decision == "rejected" else "approved")
     s.put("match", {**match, "status": status, "decided_by": approval["decided_by"],
                     "decided_at": approval["decided_at"]}, company_id=company)
     publish(c, new_event("match.decided", company,
                          {"match_id": match_id, "status": status, "approval_id": approval["id"]}, producer="api"))
     return approval
+
+
+def _close_open_recommendations_of(c: psycopg.Connection, match: dict[str, Any], approval: dict[str, Any], status: str) -> None:
+    """A Match decided directly also closes the open ingestion Recommendations about it, so the purchase cannot
+    be approved a second time from the inbox."""
+    s = Store(c)
+    company = s.company_of("match", match["id"])
+    for rec in s.list("recommendation", company_id=company, agent="ingestion", status=["new", "seen"]):
+        subject = rec.get("subject") or {}
+        if (subject.get("kind"), subject.get("id")) in {("match", match["id"]), ("document", match["document_id"])}:
+            s.put("recommendation", {**rec, "status": status, "approval_id": approval["id"]})
+            publish(c, new_event("recommendation.status_changed", company,
+                                 {"recommendation_id": rec["id"], "status": status}, producer="api"))

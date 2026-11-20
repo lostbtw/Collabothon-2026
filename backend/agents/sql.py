@@ -4,7 +4,8 @@ Layers, each enough on its own to stop a write:
 1. guard(): one statement, SELECT or WITH only, no write keyword, LIMIT at most 200 (added when missing);
 2. the transaction is READ ONLY with statement_timeout = 3s;
 3. it runs as role ordo_readonly, which can SELECT the 6 v_* views and nothing else;
-4. the views show only the asking company's rows (ordo.company_id).
+4. the views show only the asking company's rows (ordo.company_id, which guard() stops a query from changing
+   through set_config).
 """
 import re
 from decimal import Decimal
@@ -16,7 +17,8 @@ MAX_ROWS = 200
 VIEWS = ("v_ledger", "v_transactions", "v_documents", "v_accounts", "v_recommendations", "v_forecast_components")
 _COMMENTS = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
 _WRITES = re.compile(r"\b(insert|update|delete|merge|drop|alter|create|grant|revoke|truncate|copy|call|do|execute|"
-                     r"vacuum|analyze|set|reset|lock|listen|notify|into|refresh|comment|security|pg_sleep_for)\b", re.I)
+                     r"vacuum|analyze|set|reset|lock|listen|notify|into|refresh|comment|security|pg_sleep_for|"
+                     r"set_config|dblink\w*|lo_\w+|pg_read_\w+|pg_ls_\w+|pg_terminate_\w+|pg_cancel_\w+)\b", re.I)
 
 
 class UnsafeQuery(ValueError):

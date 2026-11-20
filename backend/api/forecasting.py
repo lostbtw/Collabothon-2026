@@ -9,9 +9,8 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-from backend.api.deps import ApiError, new_id, now_iso
-from backend.api.ports import _module
-from backend.db.store import Store
+from backend.api.deps import ApiError, new_id
+from backend.api.ports import finance_engine, latest_base_forecast, reissue_forecast
 
 EFFECTS = {"no_variable_flows", "no_revenue", "extra_inflow", "extra_outflow"}
 
@@ -34,15 +33,10 @@ def add_forecast_event(conn: psycopg.Connection, company: str, body: dict[str, A
     conn.execute("insert into forecast_events (id, company_id, doc) values (%s, %s, %s)", (event["id"], company, Jsonb(event)))
     conn.commit()
 
-    engine = _module("backend.finance.engine")
+    engine = finance_engine()
     if engine is not None and hasattr(engine, "recompute"):
         return event, engine.recompute(conn, company)
-    s = Store(conn)
-    bases = [f for f in s.list("forecast", company_id=company) if not f.get("scenario_of")]
-    if not bases:
+    latest = latest_base_forecast(conn, company)
+    if latest is None:
         return event, None
-    latest = bases[0]
-    forecast = {**latest, "id": new_id("fc"), "generated_at": now_iso(), "inputs_hash": None,
-                "events": [*latest.get("events", []), event]}
-    s.add("forecast", forecast, company_id=company)
-    return event, forecast
+    return event, reissue_forecast(conn, company, latest, events=[*latest.get("events", []), event])

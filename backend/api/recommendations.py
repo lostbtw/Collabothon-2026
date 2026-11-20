@@ -54,11 +54,15 @@ def _apply_changes(rec: dict[str, Any], changes: dict[str, Any] | None) -> dict[
 
 
 def _subject_match(s: Store, rec: dict[str, Any]) -> str | None:
-    """The Match this Recommendation decides (one tap, D-20): its subject, or the open Match of its subject Document."""
+    """The Match this Recommendation decides (one tap, D-20): its subject, or, for an ingestion card about a
+    Document, that Document's open Match. Hints (control level recommendation) decide nothing: dismissing
+    "mark as private?" must not reject the Match."""
+    if rec["control_level"] != "approval_required":
+        return None
     subject = rec.get("subject") or {}
     if subject.get("kind") == "match":
         return subject["id"]
-    if subject.get("kind") == "document":
+    if subject.get("kind") == "document" and rec["agent"] == "ingestion":
         open_matches = s.list("match", document_id=subject["id"], status="suggested")
         return open_matches[0]["id"] if open_matches else None
     return None

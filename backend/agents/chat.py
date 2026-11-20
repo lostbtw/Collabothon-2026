@@ -100,10 +100,10 @@ def request_action(conn: psycopg.Connection, company: str, description: str, kin
         if forecast:
             liquidity.on_forecast_updated(conn, {"company_id": company, "occurred_at": _now(),
                                                  "payload": {"forecast_id": forecast["id"]}}, model=None)
-            open_cards = [r for r in Store(conn).list("recommendation", company_id=company, type="credit_line",
+            open_credit_lines = [r for r in Store(conn).list("recommendation", company_id=company, type="credit_line",
                                                       status=["new", "seen"])]
-            if open_cards:
-                return {"recommendation_id": open_cards[0]["id"], "title": open_cards[0]["title"]}
+            if open_credit_lines:
+                return {"recommendation_id": open_credit_lines[0]["id"], "title": open_credit_lines[0]["title"]}
     card = {
         "id": f"rec_chat_{uuid.uuid4().hex[:10]}", "company_id": company, "agent": "chat", "type": "info",
         "title": f"You asked: {description[:80]}",
@@ -226,7 +226,7 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
         answer = f"Noted: closed {short_date(period[0])} to {short_date(period[1])} {period[0][:4]}. It is in the forecast as your event."
         if result["min_balance"]:
             low = result["min_balance"]
-            answer += f" The lowest balance is now {liquidity._signed(low['amount'])} on {short_date(low['date'])}."
+            answer += f" The lowest balance is now {liquidity.signed_amount(low['amount'])} on {short_date(low['date'])}."
         return answer, _evidence([result]), [{"tool": "add_forecast_event", "arguments": args, "duration_ms": 0}], None, None
 
     if MONEY_WORDS.search(message) or "credit line" in text:
@@ -246,20 +246,20 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
             return "There is no forecast yet.", [], [], None, None
         low = forecast["min_balance"]
         if facts is None:
-            answer = (f"No gap is forecast: the lowest balance is {liquidity._signed(low['amount'])} "
+            answer = (f"No gap is forecast: the lowest balance is {liquidity.signed_amount(low['amount'])} "
                       f"on {short_date(low['date'])}.")
         else:
             alert = facts["alert"]
-            reasons = "; ".join(liquidity._reasons(facts))
+            reasons = "; ".join(liquidity.reasons(facts))
             answer = (f"The accounts go below zero from {short_date(alert['date_from'])} and reach "
-                      f"{liquidity._signed(low['amount'])} on {short_date(low['date'])}. Main reasons: {reasons}.")
+                      f"{liquidity.signed_amount(low['amount'])} on {short_date(low['date'])}. Main reasons: {reasons}.")
         g = tools.get_forecast(conn, company)
         evidence = _evidence([g]) + [e for e in _component_evidence(conn, forecast["id"]) if e]
-        open_cards = Store(conn).list("recommendation", company_id=company, type="credit_line", status=["new", "seen"])
-        if open_cards:
-            answer += f" Proposed fix in your inbox: {open_cards[0]['title']}."
-            evidence.append({"kind": "recommendation", "id": open_cards[0]["id"], "label": open_cards[0]["title"],
-                             "url": f"/recommendations/{open_cards[0]['id']}"})
+        open_credit_lines = Store(conn).list("recommendation", company_id=company, type="credit_line", status=["new", "seen"])
+        if open_credit_lines:
+            answer += f" Proposed fix in your inbox: {open_credit_lines[0]['title']}."
+            evidence.append({"kind": "recommendation", "id": open_credit_lines[0]["id"], "label": open_credit_lines[0]["title"],
+                             "url": f"/recommendations/{open_credit_lines[0]['id']}"})
         return answer, evidence, [{"tool": "get_forecast", "arguments": {}, "duration_ms": 0}], None, None
 
     if re.search(r"cash|balance|how much|money|ile|wie viel|saldo", text):

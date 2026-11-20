@@ -153,7 +153,7 @@ def recommendation_for_match(s: Store, company: str, match: dict[str, Any], docu
                              "params": {"to": person.get("person_id"), "amount": owed,
                                         "title": f"Reimbursement: {_what(document)}", "pay_on": pay_on},
                              "preview": f"SIMULATED: books the cost, records {fmt_money(owed)} owed to {first} and adds a "
-                                        f"transfer draft to the {short_date(pay_on)} payment run in the sandbox bank."},
+                                        f"transfer draft to the {short_date(pay_on)} payment run in the Sandbox Bank."},
             impact={"cash_effect": {"amount": f"-{Decimal(owed['amount']):.2f}", "currency": owed["currency"]},
                     "cost": c.get("vat_lost")},
             **common)
@@ -246,7 +246,7 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any]) -> list
             calculation=[{"label": tax, "value": fmt_money(amount), "formula": comp.get("schedule")}],
             confidence=comp["confidence"], evidence=evidence,
             proposed_action={"kind": "move_to_tax_pocket", "params": {"amount": amount, "tax": tax, "due_date": due.isoformat()},
-                             "preview": f"SIMULATED: moves {fmt_money(amount)} to the tax pocket in the sandbox bank."})
+                             "preview": f"SIMULATED: moves {fmt_money(amount)} to the tax pocket in the Sandbox Bank."})
         if save_recommendation(conn, rec):
             created.append(rec["id"])
     return created
