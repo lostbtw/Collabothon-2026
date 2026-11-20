@@ -55,7 +55,9 @@ def name_similarity(seller: str, bank_text: str) -> float:
     ratio = SequenceMatcher(None, a, b).ratio()
     core = [t for t in a.split() if t not in _LEGAL and len(t) >= 3]
     contained = 0.9 if core and all(any(w.startswith(t) for w in tb) for t in core) else 0.0
-    return round(max(overlap, ratio, contained), 2)
+    core_b = [t for t in b.split() if t not in _LEGAL]
+    core_ratio = SequenceMatcher(None, " ".join(core), " ".join(core_b)).ratio() if core and core_b else 0.0
+    return round(max(overlap, ratio, contained, core_ratio), 2)
 
 
 def _alnum(text) -> str:

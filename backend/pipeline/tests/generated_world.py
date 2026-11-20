@@ -47,8 +47,11 @@ def _m(x: float, ccy: str) -> dict:
     return {"amount": f"{x:.2f}", "currency": ccy}
 
 
-def build(seed: int):
-    """(documents, transactions, senders {doc id: email}, truth [{event, doc_id, txn_id, paid_by, vat_lost}])."""
+CHANNEL = {"ksef": "ksef", "email_pdf": "email", "photo": "photo"}
+METHOD = {"ksef": "xml_parse", "email_pdf": "docling_llm", "photo": "llm_vision"}
+
+
+def _generate(seed: int):
     rnd = random.Random(seed)
 
     def ocr_noise(s):
@@ -59,7 +62,7 @@ def build(seed: int):
             s = s[:i] + s[i + 1:]
         return s
 
-    docs, bank, truth, senders = [], [], [], {}
+    docs, bank, truth, senders, all_copies = [], [], [], {}, []
     for i in range(60):
         seller, nip, desc, cur, typ, vr = rnd.choice(SELLERS)
         d = date(2026, 10, 1) + timedelta(days=rnd.randrange(30))
@@ -109,23 +112,28 @@ def build(seed: int):
                     if ch == "photo" and rnd.random() < 0.1:
                         g = round(gross + rnd.choice([-0.9, 0.09, 1.0]), 2)
                 copies.append((ch, sender, name, num, g))
-            ch, sender, name, num, g = copies[0]  # golden: ksef > e-mail > photo (generation order)
-            doc_id = f"doc_E{i}"
+            doc_id = f"doc_E{i}"  # golden: ksef > e-mail > photo (generation order); other copies doc_E{i}_c{k}
             foreign = cur != "PLN"
-            senders[doc_id] = sender or next((c[1] for c in copies if c[1]), None)
-            docs.append({
-                "id": doc_id, "company_id": "co_world", "direction": "purchase", "doc_type": "invoice",
-                "channel": "ksef" if ch == "ksef" else ("photo" if ch == "photo" else "email"),
-                "number": num, "issue_date": d.isoformat(), "due_date": None,
-                "seller": {"name": name, "tax_id": nip},
-                "buyer": {"tax_id": COMPANY["tax_id"] if buyer_is_company else None, "is_company": buyer_is_company},
-                "totals": {"gross": _m(g, cur), "vat": _m(vat, cur),
-                           "gross_base": _m(round(g * NBP[cur], 2), "PLN"),
-                           "fx": {"rate": f"{NBP[cur]}", "rate_date": d.isoformat(), "source": "stand-in",
-                                  "rule": "pl_tax_prev_business_day"} if foreign else None},
-                "vat_lines": [], "lines": [], "payment": {"method": "unknown", "card_last4": None, "bank_account": None},
-                "submitted_by": None, "flags": [], "status": "extracted", "category_suggestion": None,
-            })
+            senders[doc_id] = next((c[1] for c in copies if c[1]), None)
+            for k, (ch, sender, name, num, g) in enumerate(copies):
+                doc = {
+                    "id": doc_id if k == 0 else f"{doc_id}_c{k}", "company_id": "co_world", "direction": "purchase",
+                    "doc_type": "invoice", "channel": CHANNEL[ch], "extraction": {"method": METHOD[ch]},
+                    "created_at": f"{d.isoformat()}T{8 + k:02d}:00:00Z" if ch != "ksef" else f"{d.isoformat()}T23:00:00Z",
+                    "number": num, "issue_date": d.isoformat(), "due_date": None,
+                    "seller": {"name": name, "tax_id": nip},
+                    "buyer": {"tax_id": COMPANY["tax_id"] if buyer_is_company else None, "is_company": buyer_is_company},
+                    "totals": {"gross": _m(g, cur), "vat": _m(vat, cur),
+                               "gross_base": _m(round(g * NBP[cur], 2), "PLN"),
+                               "fx": {"rate": f"{NBP[cur]}", "rate_date": d.isoformat(), "source": "stand-in",
+                                      "rule": "pl_tax_prev_business_day"} if foreign else None},
+                    "vat_lines": [], "lines": [],
+                    "payment": {"method": "unknown", "card_last4": None, "bank_account": None},
+                    "submitted_by": None, "flags": [], "status": "extracted", "category_suggestion": None,
+                }
+                all_copies.append((doc, i))
+                if k == 0:
+                    docs.append(doc)
         truth.append({"event": i, "doc_id": doc_id, "txn_id": txn_id, "paid_by": PAID_BY[payer],
                       "vat_lost": round(vat * NBP[cur], 2) if (not buyer_is_company and vat > 0) else 0.0})
     for k in range(8):  # unrelated bank noise
@@ -138,4 +146,15 @@ def build(seed: int):
                      "transaction_type": "transfer_out", "recurring_series_id": None, "match_status": "unmatched"})
     rnd.shuffle(docs)
     rnd.shuffle(bank)
-    return docs, bank, senders, truth
+    rnd.shuffle(all_copies)
+    return docs, bank, senders, truth, all_copies
+
+
+def build(seed: int):
+    """(golden documents, transactions, senders {doc id: email}, truth [{event, doc_id, txn_id, paid_by, vat_lost}])."""
+    return _generate(seed)[:4]
+
+
+def build_copies(seed: int):
+    """Every copy of every document, as [(document, purchase event number)], shuffled. For deduplication (#40)."""
+    return _generate(seed)[4]
