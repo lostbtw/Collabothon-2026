@@ -42,7 +42,7 @@ Rules:
 
 ```
 mail connector poll (every 20 s)            raw_item.received      t+0..20 s
-extractor: vision model -> Document          document.extracted     +5..10 s
+extractor: docling + gpt-oss -> Document     document.extracted     +5..10 s
 matcher: dedup, match, who paid              match.suggested        +1 s
 agent service: reimbursement card            recommendation.created +1 s (template text, no LLM wait)
 finance engine: forecast recompute           forecast.updated       +1 s
