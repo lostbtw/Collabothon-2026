@@ -85,7 +85,7 @@ def seed_accounts() -> dict[str, Account]:
         Account("acc_owner", "PL99 9990 0000 0000 0000 0000 9021", "PLN", "Owner's private card (SAMPLE)",
                 "Tomasz Borsuk (SAMPLE)", cash_account_type="CARD", opening_balance=None),
         Account("acc_pizzeria", "DE00 0000 0000 0000 0000 00", "EUR", "Pizzeria Amalfi business account (SAMPLE)",
-                "Vincenzo Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),
+                "Lucia Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),  # same as backend/db/seed_data/people.json
     ]
     return {a.resource_id: a for a in accounts}
 
