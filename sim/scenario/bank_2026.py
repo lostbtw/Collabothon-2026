@@ -11,10 +11,12 @@ Usage: python3 sim/scenario/bank_2026.py
 Output: sim/scenario/out/bank_<account>.csv
 """
 import csv
+import json
 import math
 import random
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
 
 from world import ACCOUNTS, COMPANY, OUT, PERSON, bank_name
 
@@ -214,11 +216,30 @@ def last_bank_day(m):
     return d
 
 
+NBP_RATES = json.loads((Path(__file__).parent / "nbp_rates.json").read_text(encoding="utf-8"))
+
+
 def mid_rate(cur, d):
-    """Smooth invented mid rate, ending near the demo-day rates (4.41 EUR, 4.0613 USD)."""
-    a, b = {"EUR": (4.33, 4.41), "USD": (3.98, 4.06)}[cur]
-    t = (d - START).days / (END - START).days
-    return a + (b - a) * t + 0.015 * math.sin(d.toordinal() / 9)
+    """Real NBP table A mid rate (sim/scenario/nbp_rates.json) of the last table published on or before `d`:
+    the rate a card purchase on day `d` is priced from. After the last table the last one is used."""
+    table = NBP_RATES[cur]
+    day = d
+    for _ in range(400):
+        rate = table.get(day.isoformat())
+        if rate is not None:
+            return float(rate)
+        if day < date.fromisoformat(min(table)):
+            return float(table[min(table)])
+        day -= timedelta(days=1)
+    raise KeyError(f"no NBP {cur} rate on or before {d}")
+
+
+def card_rate(cur, d):
+    """The NBP rate a foreign card purchase on day `d` is priced from: the last table published BEFORE `d`.
+    That is the PL-FX-01 rate the matcher converts the document with, so bank amount / (document x rate) is the
+    card spread alone and never the day-to-day move of the real rate (a real jump of 1.5% plus a 3% spread
+    would leave the matcher's band)."""
+    return mid_rate(cur, d - timedelta(days=1))
 
 
 def fx_amount(amount, rate):
@@ -337,7 +358,7 @@ def generate_month(book, rng, m):
     # SaaS on the company card at card rates (M6: 0.5-4.5% spread over mid).
     for day, desc, payer, amount, cur in SAAS:
         purchase = date(2026, m, day)
-        rate = Decimal(f"{mid_rate(cur, purchase) * (1 + rng.uniform(0.005, 0.045)):.4f}")
+        rate = Decimal(f"{card_rate(cur, purchase) * (1 + rng.uniform(0.005, 0.045)):.4f}")
         book.card(pln, purchase, f"{desc} {amount} {cur}", payer, -fx_amount(amount, rate), "4417")
 
     # Pay run on the last bank day, plus reimbursements owed to the team (M1/M2).
@@ -391,7 +412,7 @@ def generate_month(book, rng, m):
     book.add(owner, on_or_after(date(2026, m, 22)), "DIRECT DEBIT", f"ABONAMENT {mm} NR KLIENTA 4471902",
              "TELEFONIA ZASIEG S.A. (SAMPLE)", "PL00999900000000000000020020", "-89.00")
     figment = date(2026, m, 17)
-    rate = Decimal(f"{mid_rate('USD', figment) * 1.03:.4f}")
+    rate = Decimal(f"{card_rate('USD', figment) * 1.03:.4f}")
     book.card(owner, figment, "FIGMENT DESIGN* 15.00 USD", "FIGMENT DESIGN INC (SAMPLE)",
               -fx_amount("15.00", rate), "9021")
     if m == 5:  # M3: client trip to Warsaw on the owner's card; invoices made out to the company
@@ -465,12 +486,27 @@ NOV_DOCS = {
 }
 
 
+def _invented_mid(cur, d):
+    """The invented curve the hand-written November card rates were tuned on. Kept only to recover each row's
+    card spread (its rate over this curve), so the row keeps its spread on top of the real NBP rate."""
+    a, b = {"EUR": (4.33, 4.41), "USD": (3.98, 4.06)}[cur]
+    t = (d - START).days / (END - START).days
+    return a + (b - a) * t + 0.015 * math.sin(d.toordinal() / 9)
+
+
+def story_card_amount(foreign, tuned_rate, cur, day):
+    """PLN amount of a hand-written foreign card row: the real card_rate() of the purchase day plus the row's spread."""
+    spread = float(tuned_rate) / _invented_mid(cur, day) - 1
+    return fx_amount(foreign, Decimal(f"{card_rate(cur, day) * (1 + spread):.4f}"))
+
+
 def add_november(book, rng):
     for acc, rows in NOV_ROWS.items():
         for booking, value, ttype, payer, cp_acc, ref, amount in rows:
-            if isinstance(amount, tuple):
-                amount = fx_amount(*amount)
             d = lambda s: date(2026, int(s[3:]), int(s[:2]))  # noqa: E731
+            if isinstance(amount, tuple):
+                cur = "EUR" if " EUR " in f" {ref} " else "USD"
+                amount = story_card_amount(*amount, cur, d(value))
             doc = NOV_DOCS.get(ref)
             if doc is not None:
                 doc = dict(doc)

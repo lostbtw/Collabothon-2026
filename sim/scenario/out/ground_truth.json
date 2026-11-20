@@ -13810,7 +13810,7 @@
       "entry_reference": "E000000006",
       "booking_date": "2026-01-05",
       "amount": {
-        "amount": "-1749.76",
+        "amount": "-1577.90",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -13822,7 +13822,7 @@
       "entry_reference": "E000000007",
       "booking_date": "2026-01-05",
       "amount": {
-        "amount": "-1578.48",
+        "amount": "-1421.77",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -13834,7 +13834,7 @@
       "entry_reference": "E000000011",
       "booking_date": "2026-01-07",
       "amount": {
-        "amount": "-542.28",
+        "amount": "-526.51",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -13846,7 +13846,7 @@
       "entry_reference": "E000000014",
       "booking_date": "2026-01-08",
       "amount": {
-        "amount": "-365.70",
+        "amount": "-330.38",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -13858,7 +13858,7 @@
       "entry_reference": "E000000020",
       "booking_date": "2026-01-13",
       "amount": {
-        "amount": "-553.55",
+        "amount": "-502.85",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -13870,7 +13870,7 @@
       "entry_reference": "E000000022",
       "booking_date": "2026-01-14",
       "amount": {
-        "amount": "-267.16",
+        "amount": "-259.63",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -13894,7 +13894,7 @@
       "entry_reference": "E000000029",
       "booking_date": "2026-01-19",
       "amount": {
-        "amount": "-330.43",
+        "amount": "-302.02",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -13930,7 +13930,7 @@
       "entry_reference": "E000000042",
       "booking_date": "2026-01-20",
       "amount": {
-        "amount": "-185.29",
+        "amount": "-169.46",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -14052,7 +14052,7 @@
       "entry_reference": "E000000073",
       "booking_date": "2026-02-03",
       "amount": {
-        "amount": "-1721.71",
+        "amount": "-1531.74",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -14064,7 +14064,7 @@
       "entry_reference": "E000000077",
       "booking_date": "2026-02-05",
       "amount": {
-        "amount": "-1533.07",
+        "amount": "-1378.53",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -14076,10 +14076,10 @@
       "entry_reference": "E000000082",
       "booking_date": "2026-02-05",
       "amount": {
-        "amount": "80240.40",
+        "amount": "78131.16",
         "currency": "PLN"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3140",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2006",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -14088,7 +14088,7 @@
       "entry_reference": "E000000083",
       "booking_date": "2026-02-06",
       "amount": {
-        "amount": "-540.72",
+        "amount": "-527.33",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -14100,7 +14100,7 @@
       "entry_reference": "E000000085",
       "booking_date": "2026-02-09",
       "amount": {
-        "amount": "-369.13",
+        "amount": "-331.14",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -14112,7 +14112,7 @@
       "entry_reference": "E000000100",
       "booking_date": "2026-02-13",
       "amount": {
-        "amount": "-548.95",
+        "amount": "-486.32",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -14136,7 +14136,7 @@
       "entry_reference": "E000000105",
       "booking_date": "2026-02-16",
       "amount": {
-        "amount": "-268.97",
+        "amount": "-260.74",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -14148,7 +14148,7 @@
       "entry_reference": "E000000110",
       "booking_date": "2026-02-18",
       "amount": {
-        "amount": "-324.20",
+        "amount": "-287.26",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -14184,7 +14184,7 @@
       "entry_reference": "E000000119",
       "booking_date": "2026-02-20",
       "amount": {
-        "amount": "-183.10",
+        "amount": "-162.80",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -14306,7 +14306,7 @@
       "entry_reference": "E000000145",
       "booking_date": "2026-03-03",
       "amount": {
-        "amount": "-1696.76",
+        "amount": "-1516.37",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -14318,7 +14318,7 @@
       "entry_reference": "E000000149",
       "booking_date": "2026-03-05",
       "amount": {
-        "amount": "-1552.00",
+        "amount": "-1427.01",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -14330,7 +14330,7 @@
       "entry_reference": "E000000150",
       "booking_date": "2026-03-06",
       "amount": {
-        "amount": "-540.29",
+        "amount": "-529.76",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -14342,7 +14342,7 @@
       "entry_reference": "E000000153",
       "booking_date": "2026-03-09",
       "amount": {
-        "amount": "-359.81",
+        "amount": "-332.42",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -14354,7 +14354,7 @@
       "entry_reference": "E000000168",
       "booking_date": "2026-03-13",
       "amount": {
-        "amount": "-561.94",
+        "amount": "-518.77",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -14378,7 +14378,7 @@
       "entry_reference": "E000000172",
       "booking_date": "2026-03-16",
       "amount": {
-        "amount": "-272.26",
+        "amount": "-267.27",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -14404,7 +14404,7 @@
       "entry_reference": "E000000182",
       "booking_date": "2026-03-18",
       "amount": {
-        "amount": "-320.86",
+        "amount": "-300.01",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -14440,7 +14440,7 @@
       "entry_reference": "E000000191",
       "booking_date": "2026-03-20",
       "amount": {
-        "amount": "-181.84",
+        "amount": "-168.46",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -14550,7 +14550,7 @@
       "entry_reference": "E000000214",
       "booking_date": "2026-04-03",
       "amount": {
-        "amount": "-1709.36",
+        "amount": "-1582.18",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -14562,7 +14562,7 @@
       "entry_reference": "E000000216",
       "booking_date": "2026-04-07",
       "amount": {
-        "amount": "-1563.66",
+        "amount": "-1449.40",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -14574,7 +14574,7 @@
       "entry_reference": "E000000217",
       "booking_date": "2026-04-07",
       "amount": {
-        "amount": "-529.92",
+        "amount": "-521.12",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -14586,7 +14586,7 @@
       "entry_reference": "E000000228",
       "booking_date": "2026-04-08",
       "amount": {
-        "amount": "-370.69",
+        "amount": "-343.12",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -14598,10 +14598,10 @@
       "entry_reference": "E000000230",
       "booking_date": "2026-04-09",
       "amount": {
-        "amount": "76816.23",
+        "amount": "75118.80",
         "currency": "PLN"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3399",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2440",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -14610,7 +14610,7 @@
       "entry_reference": "E000000233",
       "booking_date": "2026-04-13",
       "amount": {
-        "amount": "-566.78",
+        "amount": "-514.07",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -14622,7 +14622,7 @@
       "entry_reference": "E000000238",
       "booking_date": "2026-04-14",
       "amount": {
-        "amount": "-263.56",
+        "amount": "-256.85",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -14670,7 +14670,7 @@
       "entry_reference": "E000000246",
       "booking_date": "2026-04-20",
       "amount": {
-        "amount": "-329.48",
+        "amount": "-294.94",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -14682,7 +14682,7 @@
       "entry_reference": "E000000247",
       "booking_date": "2026-04-20",
       "amount": {
-        "amount": "-182.02",
+        "amount": "-162.55",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -14792,7 +14792,7 @@
       "entry_reference": "E000000278",
       "booking_date": "2026-05-04",
       "amount": {
-        "amount": "-1726.03",
+        "amount": "-1567.23",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -14804,7 +14804,7 @@
       "entry_reference": "E000000285",
       "booking_date": "2026-05-05",
       "amount": {
-        "amount": "-1553.59",
+        "amount": "-1411.59",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -14816,7 +14816,7 @@
       "entry_reference": "E000000289",
       "booking_date": "2026-05-06",
       "amount": {
-        "amount": "-543.28",
+        "amount": "-529.94",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -14828,7 +14828,7 @@
       "entry_reference": "E000000294",
       "booking_date": "2026-05-08",
       "amount": {
-        "amount": "-366.04",
+        "amount": "-328.78",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -14840,7 +14840,7 @@
       "entry_reference": "E000000305",
       "booking_date": "2026-05-13",
       "amount": {
-        "amount": "-558.59",
+        "amount": "-502.53",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -14852,7 +14852,7 @@
       "entry_reference": "E000000306",
       "booking_date": "2026-05-14",
       "amount": {
-        "amount": "-263.42",
+        "amount": "-257.14",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -14876,7 +14876,7 @@
       "entry_reference": "E000000311",
       "booking_date": "2026-05-18",
       "amount": {
-        "amount": "-325.07",
+        "amount": "-296.89",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -14912,7 +14912,7 @@
       "entry_reference": "E000000319",
       "booking_date": "2026-05-20",
       "amount": {
-        "amount": "-181.13",
+        "amount": "-165.10",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -14998,7 +14998,7 @@
       "entry_reference": "E000000348",
       "booking_date": "2026-06-03",
       "amount": {
-        "amount": "-1721.08",
+        "amount": "-1556.27",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -15010,7 +15010,7 @@
       "entry_reference": "E000000349",
       "booking_date": "2026-06-05",
       "amount": {
-        "amount": "-1573.58",
+        "amount": "-1430.70",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -15022,7 +15022,7 @@
       "entry_reference": "E000000354",
       "booking_date": "2026-06-08",
       "amount": {
-        "amount": "-536.62",
+        "amount": "-520.79",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -15034,7 +15034,7 @@
       "entry_reference": "E000000355",
       "booking_date": "2026-06-08",
       "amount": {
-        "amount": "-361.83",
+        "amount": "-327.08",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -15046,10 +15046,10 @@
       "entry_reference": "E000000359",
       "booking_date": "2026-06-08",
       "amount": {
-        "amount": "92432.00",
+        "amount": "89659.04",
         "currency": "PLN"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3600",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2292",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -15070,7 +15070,7 @@
       "entry_reference": "E000000368",
       "booking_date": "2026-06-15",
       "amount": {
-        "amount": "-556.23",
+        "amount": "-508.61",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -15082,7 +15082,7 @@
       "entry_reference": "E000000369",
       "booking_date": "2026-06-15",
       "amount": {
-        "amount": "-267.77",
+        "amount": "-259.49",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -15108,7 +15108,7 @@
       "entry_reference": "E000000377",
       "booking_date": "2026-06-18",
       "amount": {
-        "amount": "-334.98",
+        "amount": "-303.66",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -15144,7 +15144,7 @@
       "entry_reference": "E000000383",
       "booking_date": "2026-06-22",
       "amount": {
-        "amount": "-188.69",
+        "amount": "-173.30",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -15254,7 +15254,7 @@
       "entry_reference": "E000000413",
       "booking_date": "2026-07-03",
       "amount": {
-        "amount": "-1740.02",
+        "amount": "-1630.78",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -15266,7 +15266,7 @@
       "entry_reference": "E000000419",
       "booking_date": "2026-07-06",
       "amount": {
-        "amount": "-1554.96",
+        "amount": "-1447.23",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -15278,7 +15278,7 @@
       "entry_reference": "E000000420",
       "booking_date": "2026-07-06",
       "amount": {
-        "amount": "-544.93",
+        "amount": "-534.50",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -15290,7 +15290,7 @@
       "entry_reference": "E000000425",
       "booking_date": "2026-07-08",
       "amount": {
-        "amount": "-371.69",
+        "amount": "-347.36",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -15302,7 +15302,7 @@
       "entry_reference": "E000000427",
       "booking_date": "2026-07-13",
       "amount": {
-        "amount": "-555.34",
+        "amount": "-526.16",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -15314,7 +15314,7 @@
       "entry_reference": "E000000433",
       "booking_date": "2026-07-14",
       "amount": {
-        "amount": "-270.87",
+        "amount": "-269.83",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -15362,7 +15362,7 @@
       "entry_reference": "E000000444",
       "booking_date": "2026-07-20",
       "amount": {
-        "amount": "-330.50",
+        "amount": "-310.66",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -15374,7 +15374,7 @@
       "entry_reference": "E000000445",
       "booking_date": "2026-07-20",
       "amount": {
-        "amount": "-182.92",
+        "amount": "-172.87",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -15496,7 +15496,7 @@
       "entry_reference": "E000000480",
       "booking_date": "2026-08-03",
       "amount": {
-        "amount": "-1725.65",
+        "amount": "-1599.02",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -15508,7 +15508,7 @@
       "entry_reference": "E000000486",
       "booking_date": "2026-08-05",
       "amount": {
-        "amount": "-1559.60",
+        "amount": "-1440.31",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -15520,7 +15520,7 @@
       "entry_reference": "E000000489",
       "booking_date": "2026-08-06",
       "amount": {
-        "amount": "-544.19",
+        "amount": "-534.04",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -15532,7 +15532,7 @@
       "entry_reference": "E000000493",
       "booking_date": "2026-08-10",
       "amount": {
-        "amount": "-367.90",
+        "amount": "-338.55",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -15544,10 +15544,10 @@
       "entry_reference": "E000000497",
       "booking_date": "2026-08-10",
       "amount": {
-        "amount": "94204.40",
+        "amount": "92159.75",
         "currency": "PLN"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3816",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2865",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -15556,7 +15556,7 @@
       "entry_reference": "E000000500",
       "booking_date": "2026-08-13",
       "amount": {
-        "amount": "-564.13",
+        "amount": "-519.11",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -15568,7 +15568,7 @@
       "entry_reference": "E000000501",
       "booking_date": "2026-08-14",
       "amount": {
-        "amount": "-268.34",
+        "amount": "-262.42",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -15606,7 +15606,7 @@
       "entry_reference": "E000000512",
       "booking_date": "2026-08-18",
       "amount": {
-        "amount": "-327.28",
+        "amount": "-301.46",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -15642,7 +15642,7 @@
       "entry_reference": "E000000518",
       "booking_date": "2026-08-20",
       "amount": {
-        "amount": "-189.94",
+        "amount": "-175.05",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -15728,7 +15728,7 @@
       "entry_reference": "E000000546",
       "booking_date": "2026-09-03",
       "amount": {
-        "amount": "-1734.64",
+        "amount": "-1608.35",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -15740,7 +15740,7 @@
       "entry_reference": "E000000550",
       "booking_date": "2026-09-07",
       "amount": {
-        "amount": "-1598.01",
+        "amount": "-1476.49",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -15752,7 +15752,7 @@
       "entry_reference": "E000000551",
       "booking_date": "2026-09-07",
       "amount": {
-        "amount": "-528.82",
+        "amount": "-521.54",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -15764,7 +15764,7 @@
       "entry_reference": "E000000558",
       "booking_date": "2026-09-08",
       "amount": {
-        "amount": "-366.72",
+        "amount": "-338.24",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -15776,7 +15776,7 @@
       "entry_reference": "E000000565",
       "booking_date": "2026-09-14",
       "amount": {
-        "amount": "-554.98",
+        "amount": "-513.41",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -15788,7 +15788,7 @@
       "entry_reference": "E000000566",
       "booking_date": "2026-09-14",
       "amount": {
-        "amount": "-267.34",
+        "amount": "-263.90",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -15812,7 +15812,7 @@
       "entry_reference": "E000000578",
       "booking_date": "2026-09-18",
       "amount": {
-        "amount": "-337.05",
+        "amount": "-314.49",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -15848,7 +15848,7 @@
       "entry_reference": "E000000582",
       "booking_date": "2026-09-21",
       "amount": {
-        "amount": "-186.04",
+        "amount": "-175.11",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -15934,7 +15934,7 @@
       "entry_reference": "E000000610",
       "booking_date": "2026-10-05",
       "amount": {
-        "amount": "-1744.72",
+        "amount": "-1665.85",
         "currency": "PLN"
       },
       "reference": "CODEHARBOR.IO* SAN FRANCISCO 420.00 USD KARTA *4417",
@@ -15946,7 +15946,7 @@
       "entry_reference": "E000000611",
       "booking_date": "2026-10-05",
       "amount": {
-        "amount": "-1552.49",
+        "amount": "-1486.03",
         "currency": "PLN"
       },
       "reference": "CLOUDNEST HOSTING* AMSTERDAM 380.00 USD KARTA *4417",
@@ -15958,7 +15958,7 @@
       "entry_reference": "E000000620",
       "booking_date": "2026-10-06",
       "amount": {
-        "amount": "-534.90",
+        "amount": "-530.26",
         "currency": "PLN"
       },
       "reference": "NOTEFORGE EU* DUBLIN 120.00 EUR KARTA *4417",
@@ -15970,7 +15970,7 @@
       "entry_reference": "E000000623",
       "booking_date": "2026-10-08",
       "amount": {
-        "amount": "-371.37",
+        "amount": "-355.18",
         "currency": "PLN"
       },
       "reference": "MAILFOX* ATLANTA 89.00 USD KARTA *4417",
@@ -15982,10 +15982,10 @@
       "entry_reference": "E000000626",
       "booking_date": "2026-10-08",
       "amount": {
-        "amount": "91891.03",
+        "amount": "91153.26",
         "currency": "PLN"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3967",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3614",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -15994,7 +15994,7 @@
       "entry_reference": "E000000634",
       "booking_date": "2026-10-13",
       "amount": {
-        "amount": "-577.46",
+        "amount": "-554.49",
         "currency": "PLN"
       },
       "reference": "TASKLOOM.COM 136.00 USD KARTA *4417",
@@ -16006,7 +16006,7 @@
       "entry_reference": "E000000637",
       "booking_date": "2026-10-14",
       "amount": {
-        "amount": "-273.43",
+        "amount": "-271.91",
         "currency": "PLN"
       },
       "reference": "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417",
@@ -16030,7 +16030,7 @@
       "entry_reference": "E000000640",
       "booking_date": "2026-10-19",
       "amount": {
-        "amount": "-331.49",
+        "amount": "-317.05",
         "currency": "PLN"
       },
       "reference": "LOGBEAR INC* 80.00 USD KARTA *4417",
@@ -16066,7 +16066,7 @@
       "entry_reference": "E000000648",
       "booking_date": "2026-10-20",
       "amount": {
-        "amount": "-190.06",
+        "amount": "-181.89",
         "currency": "PLN"
       },
       "reference": "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417",
@@ -16509,7 +16509,7 @@
         "amount": "-18600.00",
         "currency": "EUR"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3140",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2006",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -16729,7 +16729,7 @@
         "amount": "-17700.00",
         "currency": "EUR"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3399",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2440",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -16925,7 +16925,7 @@
         "amount": "-21200.00",
         "currency": "EUR"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3600",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2292",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -17121,7 +17121,7 @@
         "amount": "-21500.00",
         "currency": "EUR"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3816",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,2865",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -17305,7 +17305,7 @@
         "amount": "-20900.00",
         "currency": "EUR"
       },
-      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3967",
+      "reference": "PRZEWALUTOWANIE EUR/PLN KURS 4,3614",
       "reason": "internal_transfer",
       "messiness": []
     },
@@ -17564,7 +17564,7 @@
       "entry_reference": "E000000009",
       "booking_date": "2026-01-19",
       "amount": {
-        "amount": "-61.44",
+        "amount": "-56.15",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -17888,7 +17888,7 @@
       "entry_reference": "E000000036",
       "booking_date": "2026-02-18",
       "amount": {
-        "amount": "-61.84",
+        "amount": "-54.80",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -18128,7 +18128,7 @@
       "entry_reference": "E000000056",
       "booking_date": "2026-03-18",
       "amount": {
-        "amount": "-61.61",
+        "amount": "-57.61",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -18500,7 +18500,7 @@
       "entry_reference": "E000000087",
       "booking_date": "2026-04-20",
       "amount": {
-        "amount": "-62.10",
+        "amount": "-55.59",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -18752,7 +18752,7 @@
       "entry_reference": "E000000108",
       "booking_date": "2026-05-18",
       "amount": {
-        "amount": "-61.79",
+        "amount": "-56.43",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -19064,7 +19064,7 @@
       "entry_reference": "E000000137",
       "booking_date": "2026-06-18",
       "amount": {
-        "amount": "-62.36",
+        "amount": "-56.53",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -19316,7 +19316,7 @@
       "entry_reference": "E000000158",
       "booking_date": "2026-07-20",
       "amount": {
-        "amount": "-62.02",
+        "amount": "-58.29",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -19580,7 +19580,7 @@
       "entry_reference": "E000000180",
       "booking_date": "2026-08-18",
       "amount": {
-        "amount": "-62.57",
+        "amount": "-57.63",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -19880,7 +19880,7 @@
       "entry_reference": "E000000205",
       "booking_date": "2026-09-18",
       "amount": {
-        "amount": "-62.32",
+        "amount": "-58.15",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
@@ -20132,7 +20132,7 @@
       "entry_reference": "E000000226",
       "booking_date": "2026-10-19",
       "amount": {
-        "amount": "-62.72",
+        "amount": "-59.99",
         "currency": "PLN"
       },
       "reference": "FIGMENT DESIGN* 15.00 USD KARTA *9021",
