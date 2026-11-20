@@ -1,7 +1,9 @@
 """Event handlers of the pipeline process (role 3). Consumer groups from backend/db/migrations/001_init.sql:
 
   normaliser  raw_item.received     bank line -> Transaction (transaction.ingested);
-                                    FA(3) XML / inFakt JSON -> Document (document.extracted)
+                                    FA(3) XML / inFakt JSON -> Document (document.extracted);
+                                    photo / PDF (e-mail attachment, chat photo, upload) -> role 1's
+                                    extract_document() -> Document (document.extracted)
   matcher     document.extracted    dedupe (document.duplicate_detected), then match + who paid (match.suggested)
               transaction.ingested  a new bank line may pay documents that had none yet (match.suggested)
               match.decided         bank line status follows the decision; alias learning arrives with #41
@@ -17,6 +19,7 @@ from typing import Any, Callable, Protocol
 from . import counterparty, dedupe, missing
 from .match import match_suggested_payload, run_matching
 from .normalise import NormaliseError, normalise_bank_line, parse_fa3, parse_infakt, transaction_ingested_payload
+from .normalise.extracted import EXTRACTABLE_KINDS, document_from_extraction, is_extractable, is_xml
 from .normalise.fa3 import Fa3Error
 from .normalise.fx import StandInRates
 from .who_paid import document_flags
@@ -42,15 +45,22 @@ class Context:
     rates: Any = None  # NBP rates (fx.py); StandInRates until the NBP connector (#34) lands
     now: Callable[[], str] = lambda: datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     choose: Callable[[str, list[str]], str | None] | None = None  # model picks from an enum (D-09); None = rules only
+    # role 1's extract_document(bytes, content_type, today) -> Document fields (#17); None = no extractor here
+    extract: Callable[[bytes, str, str | None], dict] | None = None
 
 
 # ---------- normaliser ----------
 
+EXTRACT_TRIES = 2  # docling or the model hiccups: one more try before the RawItem is marked failed
+
+
 def on_raw_item_received(ctx: Context, event: dict) -> None:
     s = ctx.store
     raw = s.get("raw_item", event["payload"]["raw_item_id"])
+    if raw is not None and raw["kind"] in EXTRACTABLE_KINDS:
+        return _read_file(ctx, raw, event)
     if raw is None or raw["kind"] not in ("bank_transaction", "ksef_invoice_xml", "accounting_invoice"):
-        return  # e-mails, photos and uploads belong to the extractor (role 1)
+        return  # the e-mail itself (its attachments are their own RawItems), FX tables
     company = event["company_id"]
     correlation = event.get("correlation_id") or raw["id"]
     try:
@@ -83,6 +93,46 @@ def on_raw_item_received(ctx: Context, event: dict) -> None:
               company_id=company)
 
 
+def _failed(ctx: Context, raw: dict, company: str, code: str, message: str, retryable: bool) -> None:
+    ctx.store.put("raw_item", {**raw, "processing_status": "failed",
+                               "error": {"code": code, "message": message[:500], "retryable": retryable}},
+                  company_id=company)
+
+
+def _read_file(ctx: Context, raw: dict, event: dict) -> None:
+    """A photo or PDF goes through role 1's extractor; an uploaded FA(3) XML is parsed without a model."""
+    s = ctx.store
+    company = event["company_id"]
+    correlation = event.get("correlation_id") or raw["id"]
+    info = ctx.company(company)
+    data = ctx.raw_bytes(raw)
+    if data is None:
+        return _failed(ctx, raw, company, "normalise_failed", f"{raw['id']}: no file content", False)
+    content_type = raw.get("content_type")
+    if is_xml(content_type):
+        try:
+            doc = parse_fa3(data, raw, info, rates=ctx.rates)
+        except Fa3Error as exc:
+            return _failed(ctx, raw, company, "normalise_failed", str(exc), False)
+    elif not is_extractable(content_type):
+        return _failed(ctx, raw, company, "unsupported_content_type", f"cannot read {content_type!r}", False)
+    elif ctx.extract is None:
+        return _failed(ctx, raw, company, "extraction_failed", "no extractor configured", True)
+    else:
+        for attempt in range(1, EXTRACT_TRIES + 1):
+            try:
+                fields = ctx.extract(data, content_type, info.get("as_of_date"))
+                break
+            except Exception as exc:  # noqa: BLE001 - docling/model down or an unusable answer (role 1's ExtractionError)
+                if attempt == EXTRACT_TRIES:
+                    return _failed(ctx, raw, company, "extraction_failed", f"{type(exc).__name__}: {exc}", True)
+        doc = document_from_extraction(fields, raw, info, people=ctx.people(company), sender=raw_sender(ctx, raw),
+                                       rates=ctx.rates)
+    if s.add("document", doc, company_id=company):
+        ctx.publish("document.extracted", company, _extracted_payload(doc), correlation, event["id"])
+    s.put("raw_item", {**raw, "processing_status": "processed", "error": None}, company_id=company)
+
+
 def _extracted_payload(doc: dict) -> dict:
     return {"document_id": doc["id"], "status": doc["status"], "gross": doc["totals"]["gross"],
             "seller": doc["seller"]["name"], "flags": doc.get("flags", [])}
@@ -96,16 +146,22 @@ def _company_inputs(ctx: Context, company: str):
     return info, ctx.people(company), [{**a, "company_id": a.get("company_id") or company} for a in accounts]
 
 
+def raw_sender(ctx: Context, raw: dict) -> str | None:
+    """RawItem metadata `forwarded_by` (e-mail) or `submitted_by` (upload form), else the parent e-mail's `from`."""
+    meta = raw.get("metadata") or {}
+    found = meta.get("forwarded_by") or meta.get("from") or meta.get("submitted_by")
+    if found:
+        return found
+    parent = ctx.store.get("raw_item", raw["parent_raw_item_id"]) if raw.get("parent_raw_item_id") else None
+    return (parent.get("metadata") or {}).get("from") if parent else None
+
+
 def sender_of(ctx: Context, doc: dict) -> str | None:
-    """Who forwarded the document: RawItem metadata `forwarded_by`, else the parent e-mail's `from`."""
+    """Who forwarded the document: its RawItem's sender, else the document's `submitted_by`."""
     for raw_id in doc.get("raw_item_ids") or []:
-        raw = ctx.store.get("raw_item", raw_id) or {}
-        meta = raw.get("metadata") or {}
-        if meta.get("forwarded_by") or meta.get("from"):
-            return meta.get("forwarded_by") or meta.get("from")
-        parent = ctx.store.get("raw_item", raw["parent_raw_item_id"]) if raw.get("parent_raw_item_id") else None
-        if parent and (parent.get("metadata") or {}).get("from"):
-            return parent["metadata"]["from"]
+        found = raw_sender(ctx, ctx.store.get("raw_item", raw_id) or {})
+        if found and "@" in found:
+            return found
     return (doc.get("submitted_by") or {}).get("email")
 
 
