@@ -1,0 +1,4 @@
+[
+  {"id": "co_borsuk", "name": "Borsuk Labs sp. z o.o. (SAMPLE)", "base_currency": "PLN", "country": "PL", "as_of_date": "2026-11-21", "tax_id": "9990000014"},
+  {"id": "co_amalfi", "name": "Pizzeria Amalfi (SAMPLE)", "base_currency": "EUR", "country": "DE", "as_of_date": "2025-05-15", "tax_id": null}
+]

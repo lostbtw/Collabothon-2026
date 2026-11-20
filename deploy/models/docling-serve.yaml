@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve
+  namespace: cfo-ai
+  labels:
+    app: docling-serve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+    spec:
+      containers:
+        - name: docling-serve
+          image: quay.io/docling-project/docling-serve-cpu:v1.9.0
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          env:
+            - name: DOCLING_SERVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docling-api-key
+                  key: DOCLING_SERVE_API_KEY
+            - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
+              value: "2"
+            - name: OMP_NUM_THREADS
+              value: "4"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "8"
+              memory: 8Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  namespace: cfo-ai
+spec:
+  selector:
+    app: docling-serve
+  ports:
+    - name: http
+      port: 5001
+      targetPort: http
