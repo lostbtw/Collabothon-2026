@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Counterparty, Transaction } from "../api/types.gen";
@@ -31,14 +32,21 @@ export function Transactions() {
   );
 }
 
+const PAGE = 50;
+
+/** Newest first; a marked line (from an evidence link) is always among the rows shown. */
 export function TransactionsView({ items, parties, marked }: { items: Transaction[]; parties: Counterparty[]; marked?: string }) {
+  const sorted = [...items].sort((a, b) => b.booking_date.localeCompare(a.booking_date) || b.external_id.localeCompare(a.external_id));
+  const markedAt = marked ? sorted.findIndex((t) => t.id === marked) : -1;
+  const [shown, setShown] = useState(Math.max(PAGE, markedAt + 1));
   const name = (t: Transaction) => parties.find((p) => p.id === t.counterparty_id)?.name ?? t.counterparty_name_raw ?? t.description;
   return (
+    <>
     <div className="card table-card">
       <table>
         <thead><tr><th>Date</th><th>To / From</th><th>Category</th><th>Document</th><th className="right">Amount</th></tr></thead>
         <tbody>
-          {items.map((t) => (
+          {sorted.slice(0, shown).map((t) => (
             <tr key={t.id} className={t.id === marked ? "marked" : undefined} title={t.description}>
               <td className="tertiary">{shortDate(t.booking_date)}</td>
               <td>{name(t)}{(t.data_quality?.length ?? 0) > 0 && <span className="chip neutral" style={{ marginLeft: 8 }} title={t.fx?.source ?? undefined}>converted</span>}</td>
@@ -53,5 +61,10 @@ export function TransactionsView({ items, parties, marked }: { items: Transactio
         </tbody>
       </table>
     </div>
+    <div className="hstack">
+      <span className="muted">Showing {Math.min(shown, sorted.length)} of {sorted.length}</span>
+      {shown < sorted.length && <button type="button" className="outline" onClick={() => setShown(shown + PAGE)}>Show {Math.min(PAGE, sorted.length - shown)} more</button>}
+    </div>
+    </>
   );
 }

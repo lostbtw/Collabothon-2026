@@ -72,7 +72,8 @@ export function buildLists(inbox: InboxResponse, all: Recommendation[], approval
   const decided = new Map<string, Recommendation>();
   for (const d of Object.values(justDecided)) decided.set(d.rec.id, d.rec);
   for (const r of all.filter(isRenderableRecommendation).filter(isDecided)) if (!decided.has(r.id)) decided.set(r.id, r);
-  const approvalFor = (id: string) => justDecided[id]?.approval ?? approvals.find((a) => a.subject_type === "recommendation" && a.subject_id === id);
+  // A stored approval counts only for a card that is decided; an open card is never shown as approved.
+  const approvalFor = (id: string) => justDecided[id]?.approval ?? (decided.has(id) ? approvals.find((a) => a.subject_type === "recommendation" && a.subject_id === id) : undefined);
   return {
     open,
     decided: [...decided.values()],

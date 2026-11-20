@@ -78,7 +78,7 @@ export function Layout() {
           <Agent icon="shield" name="FX Shield" tone={hedges ? "accent" : undefined}
             status={inbox.error ? "No data yet" : !inbox.data ? "…" : hedges ? `${hedges} hedge${hedges > 1 ? "s" : ""} proposed` : "Nothing to hedge"} />
           <Agent icon="percent" name="Tax"
-            status={summary.error ? "No data yet" : !summary.data ? "…" : `${formatMoney(summary.data.kpis.tax_due_next_30d, { decimals: false })} due in 30 days`} />
+            status={summary.error ? "No data yet" : !summary.data ? "…" : summary.data.kpis.tax_due_next_30d ? `${formatMoney(summary.data.kpis.tax_due_next_30d, { decimals: false })} due in 30 days` : "Nothing due in 30 days"} />
           <div className="mode">Data: {API_MODE === "mock" ? "sample data (mock mode)" : "live API"}</div>
         </aside>
         <main className="main">
