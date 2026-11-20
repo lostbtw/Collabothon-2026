@@ -8,7 +8,7 @@ import type {
 } from "./types.gen";
 
 export type Page<T> = { items: T[]; next_cursor: string | null };
-export type Company = { id: string; name: string; base_currency: string; country: string };
+export type Company = { id: string; name: string; base_currency: string; country: string; as_of_date?: string };
 export type Health = { status: "ok"; llm: { base_url: string; model: string; reachable: boolean }; demo_clock: string };
 export type DocumentDetail = { document: OrdoDocument; duplicates: OrdoDocument[]; matches: Match[] };
 export type AccountsResponse = { items: Account[]; total_liquidity_base: Money | null };
@@ -17,7 +17,9 @@ export type LedgerSummary = {
   rows: { key: string; amount_base: Money; previous_period: Money; change_pct: number | null; entries: number }[];
   kpis: { reimbursements_owed: Money; vat_lost_ytd: Money; documents_missing: number; tax_due_next_30d: Money };
 };
-export type ActivityItem = { at: string; agent: string; text: string; evidence: EvidenceLink[] };
+export type ActivityItem = { at: string; agent: string; text: string; subject?: { type: string; id: string } | null; evidence: EvidenceLink[] };
+/** Partial Document: only totals, dates, seller, buyer and category_suggestion.category may be corrected. */
+export type DocumentPatch = { issue_date?: string; totals?: { gross?: Money; vat?: Money }; seller?: { tax_id?: string | null }; buyer?: { tax_id?: string | null } };
 export type DecisionRequest = { decision: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: "dashboard" | "chat" };
 export type ChatAnswer = {
   session_id: string;
@@ -40,6 +42,7 @@ export const api = {
   syncRuns: (sourceId?: string) => http<{ items: SyncRun[] }>("GET", "/sync-runs", { query: { source_id: sourceId } }),
   documents: (companyId?: string, filter: { status?: string; direction?: string } = {}) => http<Page<OrdoDocument>>("GET", "/documents", { query: { ...co(companyId), ...filter } }),
   document: (id: string) => http<DocumentDetail>("GET", `/documents/${id}`),
+  patchDocument: (id: string, body: DocumentPatch) => http<OrdoDocument>("PATCH", `/documents/${id}`, { body }),
   accounts: (companyId?: string) => http<AccountsResponse>("GET", "/accounts", { query: co(companyId) }),
   transactions: (companyId?: string, accountId?: string) => http<Page<Transaction>>("GET", "/transactions", { query: { ...co(companyId), account_id: accountId } }),
   counterparties: (companyId?: string) => http<{ items: Counterparty[] }>("GET", "/counterparties", { query: co(companyId) }),
@@ -50,12 +53,16 @@ export const api = {
   forecast: (companyId?: string, horizonDays = 45) => http<Forecast>("GET", "/forecast/latest", { query: { ...co(companyId), horizon_days: horizonDays } }),
   recommendations: (companyId?: string) => http<{ items: Recommendation[] }>("GET", "/recommendations", { query: co(companyId) }),
   recommendation: (id: string) => http<Recommendation>("GET", `/recommendations/${id}`),
+  decideMatch: (matchId: string, body: DecisionRequest) => http<Approval>("POST", `/matches/${matchId}/decision`, { body }),
   decide: (recommendationId: string, body: DecisionRequest) => http<Approval>("POST", `/recommendations/${recommendationId}/decision`, { body }),
   approvals: (companyId?: string) => http<{ items: Approval[] }>("GET", "/approvals", { query: co(companyId) }),
   activity: (companyId?: string) => http<{ items: ActivityItem[] }>("GET", "/activity", { query: co(companyId) }),
   chat: (message: string, companyId?: string, sessionId?: string | null) => http<ChatAnswer>("POST", "/chat", { body: { message, company_id: companyId, session_id: sessionId ?? null } }),
   fxRate: (currency: string, date: string) => http<FxConversion | null>("GET", "/fx/rates", { query: { currency, date } }),
 };
+
+/** Where the original file of a raw item (photo, PDF) is served. Null in mock mode: fixtures carry no files. */
+export const rawContentUrl = (rawItemId: string): string | null => (API_MODE === "mock" ? null : `${API_BASE}/raw-items/${rawItemId}/content`);
 
 /** Live updates (Server-Sent Events). Returns an unsubscribe function. Used by the toasts ticket. */
 export function subscribeEvents(onEvent: (e: OrdoEvent) => void, companyId?: string): () => void {

@@ -39,8 +39,8 @@ class MockNotFound extends Error {
 }
 
 const COMPANIES = [
-  { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", base_currency: "PLN", country: "PL" },
-  { id: "co_amalfi", name: "Pizzeria Amalfi (organisers' data)", base_currency: "EUR", country: "DE" },
+  { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", base_currency: "PLN", country: "PL", as_of_date: "2026-11-21" },
+  { id: "co_amalfi", name: "Pizzeria Amalfi (organisers' data)", base_currency: "EUR", country: "DE", as_of_date: "2025-05-15" },
 ];
 
 // Not in the fixtures yet: the "What I did on my own" feed. Numbers follow the demo script in the role 6 spec.
@@ -54,8 +54,20 @@ const ACTIVITY = [
 // Decisions made in this tab. The fixtures never change; this sits on top of them so that an approved
 // card leaves the inbox and shows up as decided, the way the real API behaves.
 const decisions = new Map<string, Approval>();
+const documentEdits = new Map<string, OrdoDocument>();
+const undoneMatches = new Set<string>();
 export function resetMockState(): void {
   decisions.clear();
+  documentEdits.clear();
+  undoneMatches.clear();
+}
+
+/** Applies a partial correction to a document, level by level (totals.gross replaces only gross). */
+function mergeDeep<T>(base: T, patch: unknown): T {
+  if (typeof patch !== "object" || patch === null || Array.isArray(patch) || typeof base !== "object" || base === null) return patch as T;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(patch)) out[k] = "amount" in (patch as object) ? v : mergeDeep(out[k], v);
+  return out as T;
 }
 const withDecision = (r: Recommendation): Recommendation => {
   const a = decisions.get(r.id);
@@ -109,7 +121,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   const q = parsed.searchParams;
   const company = q.get("company_id");
   const seg = path.split("/").filter(Boolean);
-  const f = { ...fixtures, recommendations: fixtures.recommendations.map(withDecision) };
+  const f = { ...fixtures, recommendations: fixtures.recommendations.map(withDecision), documents: fixtures.documents.map((d) => documentEdits.get(d.id) ?? d) };
   const page = <I,>(items: I[]) => ({ items, next_cursor: null });
   let result: unknown;
 
@@ -123,7 +135,11 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     result = page(byCompany(f.documents, company).filter((d) => (!q.get("status") || d.status === q.get("status")) && (!q.get("direction") || d.direction === q.get("direction"))));
   else if ((method === "GET" || method === "PATCH") && seg[0] === "documents" && seg.length === 2) {
     const document = find(f.documents, seg[1]);
-    result = method === "PATCH" ? { ...document, ...(body as object) } : { document, duplicates: f.documents.filter((d) => d.duplicate_of === document.id), matches: f.matches.filter((m) => m.document_id === document.id) };
+    if (method === "PATCH") {
+      const edited = mergeDeep(document, body);
+      documentEdits.set(document.id, edited);
+      result = edited;
+    } else result = { document, duplicates: f.documents.filter((d) => d.duplicate_of === document.id), matches: f.matches.filter((m) => m.document_id === document.id) };
   } else if (method === "GET" && path === "/accounts") {
     const items = byCompany(f.accounts, company);
     const forecast = byCompany(f.forecasts, company)[0];

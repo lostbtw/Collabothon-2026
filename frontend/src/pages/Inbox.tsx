@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { Approval, EvidenceLink, Recommendation } from "../api/types.gen";
+import type { Approval, Recommendation } from "../api/types.gen";
 import { ControlBadges } from "../components/ControlBadges";
+import { Evidence, More, MoreGroup } from "../components/More";
 import { PageState } from "../components/PageState";
 import { useCompany } from "../lib/company";
 import { dateTime, shortDate } from "../lib/dates";
@@ -100,24 +101,6 @@ function DecisionChip({ approval }: { approval: Approval }) {
   return approval.decision === "rejected" ? <span className="chip neutral">Rejected</span> : <span className="chip positive">Approved</span>;
 }
 
-function Evidence({ links }: { links: EvidenceLink[] }) {
-  return (
-    <div className="hstack">
-      {links.map((e) => (e.url ? <Link key={e.kind + e.id} to={e.url} className="chip">{e.label}</Link> : <span key={e.kind + e.id} className="chip neutral">{e.label}</span>))}
-    </div>
-  );
-}
-
-/** A closed-by-default section: the title and a count are visible, the content opens on click. */
-function More({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
-  return (
-    <details>
-      <summary>{title}{count !== undefined && <span className="muted">{count}</span>}</summary>
-      <div className="more-body">{children}</div>
-    </details>
-  );
-}
-
 /** Two lines of summary; the rest on request. */
 function Summary({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
@@ -154,7 +137,7 @@ export function Detail({ rec, approval, onDecide }: { rec: Recommendation; appro
 
       {approval ? <Result approval={approval} /> : <Decision rec={rec} onDecide={onDecide} />}
 
-      <div className="more">
+      <MoreGroup>
         <More title="Why" count={x.why.length}>
           <ol className="reasons">
             {x.why.map((w, i) => (<li key={w} className="reason"><span className="reason-n">{i + 1}</span><span>{w}</span></li>))}
@@ -186,7 +169,7 @@ export function Detail({ rec, approval, onDecide }: { rec: Recommendation; appro
           {by && <p className="small tertiary">Numbers: {by.numbers === "finance-engine" ? "finance engine" : by.numbers}. Wording: {by.wording === "template" ? "fixed template" : "the model on your cluster"}.{by.trace_id ? ` Trace ${by.trace_id}.` : ""}</p>}
           {(x.assumptions ?? []).map((a) => <p key={a} className="small tertiary">Assumes: {a}</p>)}
         </More>
-      </div>
+      </MoreGroup>
     </article>
   );
 }
