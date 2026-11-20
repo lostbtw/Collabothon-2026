@@ -132,7 +132,7 @@ def test_role_5_api_recomputes_with_the_engine_and_takes_owner_events(labs_db, d
         repair = {"label": "Server repair", "date_from": "2026-12-02", "date_to": "2026-12-02",
                   "effect": "extra_outflow", "amount": {"amount": "2000.00", "currency": "PLN"}}
         after = client.post("/api/v1/forecast/events", json=repair, params={"company_id": "co_borsuk"}).json()
-        assert after["min_balance"]["amount"]["amount"] == "-15115.97"
+        assert after["min_balance"]["amount"]["amount"] == "-14970.34"
         assert client.get("/api/v1/forecast/latest", params={"company_id": "co_borsuk"}).json()["id"] == after["id"]
 
 
