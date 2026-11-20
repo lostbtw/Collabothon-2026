@@ -137,7 +137,7 @@ function AskPanel({ draft, onClose }: { draft: string; onClose: () => void }) {
             <span className="medium grow">{open?.title ?? "New chat"}</span>
             <button type="button" className="quiet" aria-label="Close" onClick={onClose}>✕</button>
           </div>
-          <Thread lines={lines} pending={pending} error={error} />
+          <Thread lines={lines} pending={pending} error={error} onLeave={onClose} />
           <div className="conv-foot">
             <div className="hstack">
               {(SUGGESTIONS[companyId] ?? SUGGESTIONS.co_borsuk).map((s) => <button key={s} type="button" disabled={pending !== null} onClick={() => send(s)}>{s}</button>)}
@@ -150,11 +150,12 @@ function AskPanel({ draft, onClose }: { draft: string; onClose: () => void }) {
   );
 }
 
-export function Thread({ lines, pending, error }: { lines: Line[]; pending: string | null; error: string | null }) {
+/** `onLeave` runs when the owner follows an evidence link, so the page it opens is not hidden behind the panel. */
+export function Thread({ lines, pending, error, onLeave }: { lines: Line[]; pending: string | null; error: string | null; onLeave?: () => void }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView?.({ block: "end" }); }, [lines.length, pending, error]);
   return (
-    <div className="conv-body">
+    <div className="conv-body" onClick={(e) => { if (onLeave && (e.target as HTMLElement).closest("a")) onLeave(); }}>
       {lines.length === 0 && !pending && (
         <div className="stack" style={{ margin: "auto 0", gap: 4 }}>
           <span className="heading">What do you want to know?</span>
