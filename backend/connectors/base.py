@@ -60,6 +60,7 @@ class FetchResult:
     items: list[FetchedItem]
     cursor: str | None  # cursor after these items; stored only once they are committed
     more: bool = False  # another page is waiting: fetch again from `cursor` in the same run
+    reset_cursor: bool = False  # the stored cursor was invalid: store `cursor` even when it is None
 
 
 class ConnectorError(Exception):
@@ -293,9 +294,11 @@ def _commit_page(conn: psycopg.Connection, connector: Connector, source: dict[st
                                         producer="connector", correlation_id=rid), commit=False)
             else:
                 dup += 1
-        if result.cursor is not None:
+        if result.cursor is not None or result.reset_cursor:
             source["cursor"] = result.cursor
-        source["items_total"] = int(source.get("items_total") or 0) + new
+        # counted, not added up: stays right whatever happened to the cursor (fixtures, a reset, a re-read)
+        source["items_total"] = conn.execute("select count(*) from raw_items where source_id = %s",
+                                             (source["id"],)).fetchone()[0]
         run["items_fetched"] += len(result.items)
         run["items_new"] += new
         run["items_duplicate"] += dup
