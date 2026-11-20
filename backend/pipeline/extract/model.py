@@ -73,8 +73,9 @@ SYSTEM = (
     "lines are at most the first 10 items. "
     "tax_id is the NIP, VAT id or USt-IdNr as printed. country is the two-letter code. "
     "card_last4 is the last four digits of a masked card number. "
-    "confidence is how sure you are that every field is right, from 0 to 1; "
-    "field_confidence gives the same for each named field, low when OCR text around it looks damaged."
+    "confidence is how sure you are, from 0 to 1, that gross, vat, issue_date and the seller tax_id are copied "
+    "correctly; a value that is simply not printed does not lower it, damaged OCR text around these values does. "
+    "field_confidence gives the same for each named field; use 1 for a field that is not printed and left null."
 )
 
 
