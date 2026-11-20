@@ -61,7 +61,7 @@ class Fa3Invoice(unittest.TestCase):
         self.assertEqual(doc["totals"]["gross_base"], {"amount": "177.75", "currency": "PLN"})
 
     def test_missing_rate_leaves_gross_base_empty_with_warning(self):
-        doc = parse_fa3(usd_invoice("2026-06-01"), RAW, BORSUK, rates=StandInRates())
+        doc = parse_fa3(usd_invoice("2024-06-03"), RAW, BORSUK, rates=StandInRates())  # before the table
         self.assertIsNone(doc["totals"]["gross_base"])
         self.assertEqual(len(doc["extraction"]["warnings"]), 1)
         self.assertEqual(schema_errors(doc, "document"), [])
