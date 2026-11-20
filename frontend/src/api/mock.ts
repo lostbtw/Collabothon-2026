@@ -13,8 +13,9 @@ import recommendationsJson from "@contracts/fixtures/recommendation.json";
 import sourcesJson from "@contracts/fixtures/source.json";
 import syncRunsJson from "@contracts/fixtures/sync_run.json";
 import transactionsJson from "@contracts/fixtures/transaction.json";
+import { formatMoney } from "../lib/money";
 import type {
-  Account, Approval, Counterparty, Forecast, LedgerEntry, Match, OrdoDocument, OrdoEvent, RawItem, Recommendation, Source, SyncRun, Transaction,
+  Account, Approval, Counterparty, Forecast, LedgerEntry, Match, Money, OrdoDocument, OrdoEvent, RawItem, Recommendation, Source, SyncRun, Transaction,
 } from "./types.gen";
 
 export const fixtures = {
@@ -50,6 +51,49 @@ const ACTIVITY = [
   { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments to documents, including a 45 USD invoice to a 180.62 PLN card line", evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
 ];
 
+// Decisions made in this tab. The fixtures never change; this sits on top of them so that an approved
+// card leaves the inbox and shows up as decided, the way the real API behaves.
+const decisions = new Map<string, Approval>();
+export function resetMockState(): void {
+  decisions.clear();
+}
+const withDecision = (r: Recommendation): Recommendation => {
+  const a = decisions.get(r.id);
+  return a ? { ...r, status: a.decision === "rejected" ? "rejected" : "executed_simulated", approval_id: a.id } : r;
+};
+
+type DecisionBody = { decision?: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: Approval["channel"] };
+
+/** What the sandbox bank would answer. Amounts are echoed from the request, never calculated here. */
+function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
+  const template = fixtures.approvals[0];
+  const decision = body.decision ?? "approved";
+  const params = (rec.proposed_action?.params ?? {}) as Record<string, unknown>;
+  const money = (key: string) => formatMoney((body.changes?.[`proposed_action.params.${key}`] ?? params[key]) as Money | undefined);
+  const outcomes: Record<string, () => { reference: string; result: string; effects?: Approval["execution"]["effects"] }> = {
+    apply_credit_line: () => ({ reference: "SIM-CL-2026-0007", result: `Sandbox bank accepted the application: limit ${money("limit")}, available from 2026-11-27.`, effects: template.execution.effects }),
+    create_payment_draft: () => ({ reference: "SIM-PAY-2026-0412", result: `Sandbox bank added a transfer draft of ${money("amount")} to the payment run on ${String(params.pay_on)}.` }),
+    book_fx_forward: () => ({ reference: "SIM-FX-2026-0003", result: `Sandbox bank booked the forward: sell ${money("notional")} at ${String(params.rate)}, value date ${String(params.value_date)}.` }),
+  };
+  const outcome = (outcomes[rec.proposed_action?.kind ?? "none"] ?? (() => ({ reference: `SIM-${rec.id.toUpperCase()}`, result: "Recorded in the sandbox." })))();
+  const approval: Approval = {
+    id: `apr_mock_${decisions.size + 1}`,
+    subject_type: "recommendation",
+    subject_id: rec.id,
+    decision,
+    decided_by: template.decided_by,
+    decided_at: template.decided_at,
+    channel: body.channel ?? "dashboard",
+    comment: body.comment ?? null,
+    changes: body.changes ?? null,
+    execution: decision === "rejected"
+      ? { mode: rec.execution_mode, status: "not_applicable", executed_at: null, reference: null, result: "Rejected. Nothing was sent.", effects: [] }
+      : { mode: "simulated", status: "done", executed_at: template.execution.executed_at, reference: outcome.reference, result: outcome.result, effects: outcome.effects ?? [] },
+  };
+  decisions.set(rec.id, approval);
+  return approval;
+}
+
 const byCompany = <T,>(items: T[], companyId: string | null): T[] =>
   companyId ? items.filter((i) => (i as { company_id?: string }).company_id === undefined || (i as { company_id?: string }).company_id === companyId) : items;
 
@@ -65,7 +109,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   const q = parsed.searchParams;
   const company = q.get("company_id");
   const seg = path.split("/").filter(Boolean);
-  const f = fixtures;
+  const f = { ...fixtures, recommendations: fixtures.recommendations.map(withDecision) };
   const page = <I,>(items: I[]) => ({ items, next_cursor: null });
   let result: unknown;
 
@@ -100,10 +144,11 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/recommendations")
     result = { items: byCompany(f.recommendations, company).filter((r) => (!q.get("status") || r.status === q.get("status")) && (!q.get("agent") || r.agent === q.get("agent")) && (!q.get("control_level") || r.control_level === q.get("control_level"))) };
   else if (method === "GET" && seg[0] === "recommendations" && seg.length === 2) result = find(f.recommendations, seg[1]);
-  else if (method === "POST" && (seg[0] === "recommendations" || seg[0] === "matches") && seg[2] === "decision") {
-    const decision = (body as { decision?: Approval["decision"] } | undefined)?.decision ?? "approved";
-    result = { ...f.approvals[0], subject_type: seg[0] === "matches" ? "match" : "recommendation", subject_id: seg[1], decision };
-  } else if (method === "GET" && path === "/approvals") result = { items: f.approvals };
+  else if (method === "POST" && seg[0] === "recommendations" && seg[2] === "decision") result = mockDecide(find(fixtures.recommendations, seg[1]), body as DecisionBody | undefined);
+  else if (method === "POST" && seg[0] === "matches" && seg[2] === "decision") {
+    const decision = (body as DecisionBody | undefined)?.decision ?? "approved";
+    result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision };
+  } else if (method === "GET" && path === "/approvals") result = { items: [...decisions.values()] };
   else if (method === "GET" && path === "/activity") result = { items: ACTIVITY };
   else if (method === "POST" && path === "/chat") {
     const forecast = f.forecasts[0];

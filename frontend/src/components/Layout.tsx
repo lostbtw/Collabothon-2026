@@ -52,7 +52,7 @@ export function Layout() {
         {sources.data && (
           <Link to="/sources" className="sync">
             <span className={`dot${unhealthy ? " degraded" : ""}`} style={{ marginRight: 0 }} />
-            {sourceItems.length} sources · {unhealthy ? `${unhealthy} need attention` : "all connected"}
+            {sourceItems.length} sources · {unhealthy ? `${unhealthy} need${unhealthy === 1 ? "s" : ""} attention` : "all connected"}
           </Link>
         )}
         <span className="chip">Sandbox · actions are simulated</span>

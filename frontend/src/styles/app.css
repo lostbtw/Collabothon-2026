@@ -131,6 +131,32 @@ dl.fields { display: grid; grid-template-columns: 180px 1fr; gap: 10px 16px; mar
 dl.fields dt { color: var(--text-tertiary); }
 dl.fields dd { margin: 0; }
 
+/* Inbox */
+.inbox-cols { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 20px; align-items: start; }
+.decision-list { padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.decision-item { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius-sm); color: inherit; }
+.decision-item:hover { background: var(--bg-canvas); text-decoration: none; }
+.decision-item.active { background: var(--bg-neutral-tint); }
+.detail { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.impact { display: flex; gap: 24px; flex-wrap: wrap; padding: 16px 20px; background: var(--bg-canvas); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); }
+.impact > div { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 4px; }
+.reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.reason { display: flex; gap: 12px; }
+.reason-n { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--bg-neutral-tint); color: var(--text-tertiary); font-size: 12px; }
+.calc-row { display: flex; gap: 16px; align-items: flex-start; }
+.calc-row .right { white-space: nowrap; }
+.approve-box, .result-box { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: var(--radius-md); }
+.approve-box { background: var(--bg-lavender); gap: 16px; }
+.result-box.positive { background: var(--bg-positive-tint); }
+.result-box.neutral { background: var(--bg-neutral-tint); }
+.confirm { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--radius-sm); background: var(--bg-surface); }
+.field { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-full); background: var(--bg-surface); }
+.field:focus-within { border-color: var(--accent); }
+.field input[type="text"] { flex: none; width: 96px; height: auto; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; }
+@media (max-width: 1100px) {
+  .inbox-cols { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (max-width: 900px) {
   .search, .sync { display: none; }
   .sidebar { width: 56px; }

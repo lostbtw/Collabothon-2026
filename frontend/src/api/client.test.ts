@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { api, subscribeEvents } from "./client";
 import { isRenderableRecommendation } from "./guards";
-import { fixtures } from "./mock";
+import { fixtures, resetMockState } from "./mock";
+
+afterEach(resetMockState);
 import { http } from "./transport";
 
 describe("mock mode answers every call the pages make", () => {
