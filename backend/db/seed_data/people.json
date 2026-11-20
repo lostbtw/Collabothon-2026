@@ -1,0 +1,5 @@
+[
+  {"id": "per_tomek", "company_id": "co_borsuk", "name": "Tomasz Borsuk (SAMPLE)", "email": "owner@borsuk-labs.sample", "role": "owner"},
+  {"id": "per_jan", "company_id": "co_borsuk", "name": "Jan Kowalski (SAMPLE)", "email": "jan@borsuk-labs.sample", "role": "employee"},
+  {"id": "per_amalfi_owner", "company_id": "co_amalfi", "name": "Lucia Amalfi (SAMPLE)", "email": "owner@pizzeria-amalfi.sample", "role": "owner"}
+]
