@@ -1,0 +1,3 @@
+# Rendered November documents are committed: role 2's releaser sends them (release_plan.json, root sim/documents/).
+# The repository ignores *.pdf (event materials); these are generated SAMPLE documents.
+!*.pdf
