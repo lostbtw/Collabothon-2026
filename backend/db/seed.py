@@ -28,11 +28,11 @@ def seed(conn: psycopg.Connection, address_map: dict[str, str] | None = None) ->
         address_map = address_map_from_env()
     for c in json.loads(COMPANIES_FILE.read_text(encoding="utf-8")):
         conn.execute(
-            """insert into companies (id, name, base_currency, country, as_of_date)
-               values (%(id)s, %(name)s, %(base_currency)s, %(country)s, %(as_of_date)s)
+            """insert into companies (id, name, base_currency, country, as_of_date, tax_id)
+               values (%(id)s, %(name)s, %(base_currency)s, %(country)s, %(as_of_date)s, %(tax_id)s)
                on conflict (id) do update set name = excluded.name, base_currency = excluded.base_currency,
-                 country = excluded.country, as_of_date = excluded.as_of_date""",
-            c,
+                 country = excluded.country, as_of_date = excluded.as_of_date, tax_id = excluded.tax_id""",
+            {"tax_id": None, **c},
         )
     for p in json.loads(PEOPLE_FILE.read_text(encoding="utf-8")):
         conn.execute(
