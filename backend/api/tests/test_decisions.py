@@ -1,0 +1,126 @@
+"""Seam: HTTP API. The Recommendation/Approval state machine with simulated execution (5.4)."""
+import pytest
+
+from backend.api.recommendations import InvalidRecommendation, save_recommendation
+from backend.db.events import events_after
+from backend.db.fixtures import load_fixtures, read
+
+
+@pytest.fixture
+def demo(client, db):
+    load_fixtures(db)
+    return client
+
+
+def events(db, type):
+    return [e for _, e in events_after(db, 0, limit=1000) if e["type"] == type]
+
+
+def fixture_rec(id):
+    return next(r for r in read("recommendation") if r["id"] == id)
+
+
+def test_approving_the_credit_line_with_a_lower_limit_executes_in_simulation_with_a_new_forecast(demo, db):
+    before = demo.get("/api/v1/forecast/latest", params={"company_id": "co_borsuk"}).json()["id"]
+
+    response = demo.post("/api/v1/recommendations/rec_cl01/decision", json={
+        "decision": "approved_with_changes",
+        "comment": "25k is enough",
+        "changes": {"proposed_action.params.limit": {"amount": "25000.00", "currency": "PLN"}},
+    })
+
+    assert response.status_code == 200, response.text
+    approval = response.json()
+    assert approval["decision"] == "approved_with_changes"
+    assert approval["execution"]["mode"] == "simulated"
+    assert approval["execution"]["status"] == "done"
+    assert approval["execution"]["reference"].startswith("SIM-CL-")
+    assert "25,000" in approval["execution"]["result"]
+    assert "SIMULATED" in approval["execution"]["result"]
+    after = demo.get("/api/v1/forecast/latest", params={"company_id": "co_borsuk"}).json()["id"]
+    assert after != before
+    assert any(e["kind"] == "forecast" and e["id"] == after for e in approval["execution"]["effects"])
+    assert demo.get("/api/v1/recommendations/rec_cl01").json()["status"] == "executed_simulated"
+    assert [e["payload"]["approval_id"] for e in events(db, "approval.recorded")] == [approval["id"]]
+    assert [e["payload"]["reference"] for e in events(db, "execution.simulated")] == [approval["execution"]["reference"]]
+
+
+def test_approving_the_reimbursement_decides_its_match_with_the_same_single_approval(demo, db):
+    approval = demo.post("/api/v1/recommendations/rec_412/decision", json={"decision": "approved"}).json()
+
+    decided = events(db, "match.decided")
+    assert [(e["payload"]["match_id"], e["payload"]["status"], e["payload"]["approval_id"]) for e in decided] == [
+        ("mat_412", "confirmed", approval["id"])]
+    approvals = demo.get("/api/v1/approvals", params={"company_id": "co_borsuk"}).json()["items"]
+    about_this_purchase = [a for a in approvals if a["subject_id"] in ("rec_412", "mat_412")]
+    assert [a["id"] for a in about_this_purchase] == [approval["id"]]
+    assert demo.get("/api/v1/matches", params={"company_id": "co_borsuk", "status": "confirmed"}).json()["items"][0]["id"] == "mat_412"
+
+
+def test_approving_the_credit_line_decides_no_match_even_though_it_cites_one(demo, db):
+    demo.post("/api/v1/recommendations/rec_cl01/decision", json={"decision": "approved"})
+
+    assert events(db, "match.decided") == []
+
+
+def test_a_rejection_records_an_approval_and_executes_nothing(demo, db):
+    approval = demo.post("/api/v1/recommendations/rec_cl01/decision", json={"decision": "rejected"}).json()
+
+    assert approval["decision"] == "rejected"
+    assert approval["execution"]["status"] == "not_applicable"
+    assert events(db, "execution.simulated") == []
+    assert demo.get("/api/v1/recommendations/rec_cl01").json()["status"] == "rejected"
+
+
+def test_a_decided_recommendation_cannot_be_decided_again(demo):
+    demo.post("/api/v1/recommendations/rec_cl01/decision", json={"decision": "approved"})
+
+    again = demo.post("/api/v1/recommendations/rec_cl01/decision", json={"decision": "approved"})
+
+    assert again.status_code == 409
+    assert again.json()["error"]["code"] == "not_decidable"
+
+
+def test_an_attempt_to_execute_for_real_is_refused(demo, db):
+    response = demo.post("/api/v1/recommendations/rec_cl01/decision",
+                         json={"decision": "approved_with_changes", "changes": {"execution_mode": "permitted"}})
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "execution_not_permitted"
+    assert events(db, "approval.recorded") == []
+
+
+def test_a_change_outside_the_action_parameters_is_refused(demo):
+    response = demo.post("/api/v1/recommendations/rec_cl01/decision",
+                         json={"decision": "approved_with_changes", "changes": {"control_level": "analysed_autonomously"}})
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("broken", [
+    {"control_level": None},
+    {"execution_mode": None},
+    {"explanation": None},
+    {"evidence": []},
+    {"execution_mode": "permitted"},
+])
+def test_a_recommendation_without_its_labels_explanation_or_evidence_is_not_stored(db, broken):
+    load_fixtures(db)
+    rec = {**fixture_rec("rec_412"), "id": "rec_new", "subject": None}
+    rec = {k: v for k, v in {**rec, **broken}.items() if v is not None}
+
+    with pytest.raises(InvalidRecommendation):
+        save_recommendation(db, rec)
+
+
+def test_an_auto_confirmed_match_can_be_undone_from_its_activity_item(demo, db):
+    item = next(i for i in demo.get("/api/v1/activity", params={"company_id": "co_borsuk"}).json()["items"]
+                if i["subject"]["type"] == "match")
+
+    undo = demo.post(f"/api/v1/matches/{item['subject']['id']}/decision", json={"decision": "rejected", "comment": "undo"})
+
+    assert undo.status_code == 200
+    assert undo.json()["decision"] == "rejected"
+    assert [e["payload"]["status"] for e in events(db, "match.decided")] == ["rejected"]
+    remaining = demo.get("/api/v1/activity", params={"company_id": "co_borsuk"}).json()["items"]
+    assert item["subject"] not in [i["subject"] for i in remaining]
