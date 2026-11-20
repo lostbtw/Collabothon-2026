@@ -65,9 +65,10 @@ def test_borsuk_labs_cash_gap_from_30_november(labs):
     low = forecast["min_balance"]
     assert "2026-12-01" <= low["date"] <= "2026-12-06"
     assert Decimal("-16000") < amount(low["amount"]) < Decimal("-9000")
-    known_only = Decimal(point(forecast, low["date"])["high"])  # part 1 only, no everyday spending
-    assert Decimal("-8000") < known_only < Decimal("-5000")
-    assert Decimal(point(forecast, low["date"])["low"]) < amount(low["amount"]) < known_only
+    at_low = point(forecast, low["date"])
+    assert Decimal(at_low["low"]) < amount(low["amount"]) < Decimal(at_low["high"])  # the band surrounds the line
+    widths = [Decimal(p["high"]) - Decimal(p["low"]) for p in forecast["points"]]
+    assert widths[0] == 0 and widths == sorted(widths)  # no uncertainty today, more every day after
     Forecast.model_validate(forecast)
 
 
