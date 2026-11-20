@@ -7,6 +7,8 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 APP="$ROOT/deploy/app"
 IMAGES=(backend sim web)
 M1_QUESTION="How much cash do we have today, and what is the next large payment?"
+UPLOAD_PHOTO="$ROOT/sim/documents/november/doc_rcpt412.jpg"
+UPLOAD_SECONDS=10
 EXISTING_SECRETS=(llm-token docling-api-key)
 SECRET_VALUES=(
   "ordo-db POSTGRESQL_PASSWORD"
@@ -277,6 +279,43 @@ check_m1() {
   ((failed == 0))
 }
 
+check_upload() {
+  local base photo raw doc start elapsed matches
+  base="https://$(oc -n "$NS" get route ordo-web -o jsonpath='{.spec.host}')"
+  photo="$(mktemp --suffix=.jpg)"
+  cp "$UPLOAD_PHOTO" "$photo"
+  date +%s%N >>"$photo"
+  start="$(date +%s)"
+  raw="$(curl -fsS -F "file=@$photo;type=image/jpeg" -F submitted_by=per_jan \
+    "$base/api/v1/uploads?company_id=co_borsuk" | jq -r '.id')"
+  rm -f "$photo"
+  echo "     uploaded $(basename "$UPLOAD_PHOTO") as $raw"
+  doc="doc_${raw#raw_}"
+  until curl -fsS -o /dev/null "$base/api/v1/documents/$doc" 2>/dev/null; do
+    if (($(date +%s) - start > 120)); then
+      echo "FAIL no document $doc after 120 s; raw item: $(curl -fsS "$base/api/v1/raw-items/$raw" | jq -c '{processing_status, error}')" >&2
+      return 1
+    fi
+    sleep 1
+  done
+  elapsed=$(($(date +%s) - start))
+  if ((elapsed <= UPLOAD_SECONDS)); then
+    echo "OK   $doc in GET /documents after ${elapsed} s"
+  else
+    echo "SLOW $doc in GET /documents after ${elapsed} s (target ${UPLOAD_SECONDS} s)"
+  fi
+  curl -fsS "$base/api/v1/documents/$doc" |
+    jq -r '.document | "     \(.seller.name) \(.totals.gross.amount) \(.totals.gross.currency) \(.status) confidence \(.extraction.confidence) flags \(.flags)"'
+  until matches="$(curl -fsS "$base/api/v1/documents/$doc" | jq -c '[.matches[] | {id, paid_by, score, status}]')" && [[ "$matches" != "[]" ]]; do
+    if (($(date +%s) - start > 120)); then
+      echo "FAIL no match for $doc after 120 s" >&2
+      return 1
+    fi
+    sleep 1
+  done
+  echo "OK   match.suggested for $doc after $(($(date +%s) - start)) s: $matches"
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -295,8 +334,9 @@ case "$stage" in
   app) app ;;
   db-fixtures) db_fixtures ;;
   check-m1) check_m1 ;;
+  check-upload) check_upload ;;
   *)
-    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|app|db-fixtures|check-m1|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|app|db-fixtures|check-m1|check-upload|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
