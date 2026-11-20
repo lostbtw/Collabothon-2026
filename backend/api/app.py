@@ -1,47 +1,21 @@
 """The Ordo API (contracts/openapi.yaml), served under /api/v1.
 
-Start locally: `uv run python -m backend api` (needs ORDO_DATABASE_URL; `python -m backend.db setup` first).
+Start locally: `uv run python -m backend.db setup --fixtures` then `uv run python -m backend api`.
+Entity endpoints read the database through the Store, so fixtures loaded as demo data and real data written by
+connectors, pipeline and finance engine are served the same way. Computations that belong to another role and do
+not exist yet answer from `stand_ins.py`.
 """
-from collections.abc import Iterator
 from contextlib import asynccontextmanager
 
-import psycopg
-from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from psycopg_pool import ConnectionPool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend import settings
-from backend.db.seed import companies
-
-
-class ApiError(Exception):
-    """Raise to answer with the standard error shape {"error": {"code", "message"}}."""
-
-    def __init__(self, status: int, code: str, message: str):
-        self.status, self.code, self.message = status, code, message
-
-
-def not_found(kind: str, id: str) -> ApiError:
-    return ApiError(404, "not_found", f"No {kind} with id {id!r}")
-
-
-def error_body(code: str, message: str) -> dict:
-    return {"error": {"code": code, "message": message}}
-
-
-def conn(request: Request) -> Iterator[psycopg.Connection]:
-    with request.app.state.pool.connection() as c:
-        yield c
-
-
-router = APIRouter(prefix="/api/v1")
-
-
-@router.get("/companies")
-def list_companies(c: psycopg.Connection = Depends(conn)):
-    return {"items": companies(c)}
+from backend.api.deps import ApiError, error_body
+from backend.api.routes import bank, chat, documents, forecast, ledger, recommendations, sources, stream, system
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
@@ -56,7 +30,8 @@ def create_app(database_url: str | None = None) -> FastAPI:
             app.state.pool.close()
 
     app = FastAPI(title="Ordo API", version="0.1.0", lifespan=lifespan)
-    app.include_router(router)
+    for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream):
+        app.include_router(module.router, prefix="/api/v1")
 
     @app.exception_handler(ApiError)
     async def _api_error(request: Request, exc: ApiError):

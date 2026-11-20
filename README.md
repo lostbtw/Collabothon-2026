@@ -12,6 +12,8 @@ Ordo turns a small company's scattered money data into one owner-approved ledger
 
 Set-up per person: clone, `echo <your role number 1-6> > .role`, start Claude Code in the folder, pick a ticket in the browser (see `CLAUDE.md` section 2) and tell Claude its number. One branch and one pull request per ticket; nobody commits to `main` directly.
 
+API with demo data, one command (no Docker needed): `uv sync --group localdb && uv run python -m backend.api.dev`, then http://localhost:8080/api/v1/inbox (docs at http://localhost:8080/docs). Every path of `contracts/openapi.yaml` answers from the database, loaded with `contracts/fixtures`; SSE at `/api/v1/events/stream` replays `fixtures/event.json` and then relays new events.
+
 Backend: one Python 3.12 package in `backend/`, managed with [uv](https://docs.astral.sh/uv/). `uv sync` installs it; each process starts as `uv run python -m backend <api|connectors|pipeline|agents>`. Your process goes in `backend/<your folder>/main.py` as `run(argv)`; until then the entrypoint is a placeholder. Tests live next to the code they test (`backend/<folder>/tests/`).
 
 Database: Postgres, schema in `backend/db/migrations/`; `uv run python -m backend.db setup` migrates and seeds the database at `ORDO_DATABASE_URL`. Entities are read and written through `backend.db.store.Store`; pydantic models of every contract entity are in `backend.db.contracts.MODELS`. Tests that need a database use the `db` fixture: CI provides Postgres, and locally `uv sync --group localdb` installs a private Postgres (pgserver) so no Docker is needed; without either, those tests are skipped.

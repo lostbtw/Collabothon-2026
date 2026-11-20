@@ -15,3 +15,8 @@ def llm_base_url() -> str:
 
 def llm_model() -> str:
     return os.environ.get("ORDO_LLM_MODEL", "ordo-model")
+
+
+def sse_replay_fixtures() -> bool:
+    """Replay contracts/fixtures/event.json to every new SSE client (skeleton mode). Off on the cluster once real events flow."""
+    return os.environ.get("ORDO_SSE_REPLAY_FIXTURES", "1") != "0"

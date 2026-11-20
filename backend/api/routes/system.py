@@ -1,0 +1,48 @@
+"""/health, /companies, /fx/rates, /fx/exposure."""
+from datetime import date
+
+import httpx
+import psycopg
+from fastapi import APIRouter, Depends, Query
+
+from backend import settings
+from backend.api import stand_ins
+from backend.api.deps import ApiError, company_id, conn, now_iso
+from backend.db.seed import companies
+
+router = APIRouter()
+
+
+def _llm_reachable(base_url: str) -> bool:
+    try:
+        return httpx.get(base_url.rstrip("/") + "/models", timeout=0.5).status_code < 500
+    except httpx.HTTPError:
+        return False
+
+
+@router.get("/health")
+def health():
+    base_url = settings.llm_base_url()
+    return {
+        "status": "ok",
+        "llm": {"base_url": base_url, "model": settings.llm_model(), "reachable": _llm_reachable(base_url)},
+        "demo_clock": now_iso(),
+    }
+
+
+@router.get("/companies")
+def list_companies(c: psycopg.Connection = Depends(conn)):
+    return {"items": companies(c)}
+
+
+@router.get("/fx/rates")
+def fx_rates(currency: str, date_: date = Query(alias="date"), rule: str = "pl_tax_prev_business_day"):
+    found = stand_ins.fx_rate(currency.upper(), date_, rule)
+    if found is None:
+        raise ApiError(404, "not_found", f"No rate for {currency} on {date_}")
+    return found
+
+
+@router.get("/fx/exposure")
+def fx_exposure(company: str = Depends(company_id)):
+    return {"items": stand_ins.FX_EXPOSURE.get(company, [])}
