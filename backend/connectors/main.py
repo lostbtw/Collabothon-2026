@@ -7,8 +7,8 @@ At start it closes runs a previous process left `running` (the pod was killed mi
 
 Options:
   --once            one tick, then exit (tests, manual runs)
-  --reset-cursors   start the bank sources from the beginning: their stored cursors came from
-                    contracts/fixtures (mock data) and would skip every real line
+  --reset-cursors   start the bank sources from the beginning (a manual tool; not needed for the invented
+                    cursors of contracts/fixtures, the bank connector detects and fixes those by itself)
 Environment: ORDO_DATABASE_URL, ORDO_BANK_URL, ORDO_BANK_TOKEN, ORDO_DEMO_MODE=1 (bank sources poll every 15 s).
 """
 from __future__ import annotations
