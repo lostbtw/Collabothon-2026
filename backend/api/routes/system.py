@@ -19,7 +19,7 @@ def _llm_reachable(base_url: str) -> bool:
     if os.environ.get("ORDO_LLM_ENABLED", "1") == "0":
         return False
     try:
-        response = httpx.get(base_url.rstrip("/") + "/models", timeout=2.0,
+        response = httpx.get(base_url.rstrip("/") + "/models", timeout=2.0, verify=settings.llm_verify(),
                              headers={"Authorization": f"Bearer {settings.llm_token()}"})
         return response.status_code == 200
     except httpx.HTTPError:
