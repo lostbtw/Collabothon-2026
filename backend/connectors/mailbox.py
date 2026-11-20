@@ -33,6 +33,7 @@ from backend.connectors.base import AuthError, Connector, ConnectorError, Fetche
 PAGE_MESSAGES = 10
 MIN_INLINE_IMAGE = 20 * 1024
 INVOICE_WORDS = re.compile(r"faktur|invoice|rachun|paragon|receipt|quittung|rechnung|\bFV[/ ]|zwrot|reimburs", re.I)
+ADDRESS_OR_LINK = re.compile(r"\S+@\S+|https?://\S+|www\.\S+", re.I)
 FILE_TYPES = ("image/", "application/pdf", "application/xml", "text/xml")
 FILE_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png", ".heic", ".webp", ".xml")
 FA3_MARKERS = (b"crd.gov.pl/wzor", b"<Faktura")
@@ -100,7 +101,10 @@ def message_items(raw: bytes, uid: int) -> list[FetchedItem]:
     msg = email.message_from_bytes(raw, policy=email.policy.default)
     files = _attachments(msg)
     subject = str(msg.get("Subject") or "")
-    if not files and not INVOICE_WORDS.search(subject + "\n" + _body_text(msg)):
+    # Addresses and links are not words of the message: the mailbox's own name ("...invoices...@gmail.com") would
+    # otherwise make every notification look like an invoice.
+    words = ADDRESS_OR_LINK.sub(" ", subject + "\n" + _body_text(msg))
+    if not files and not INVOICE_WORDS.search(words):
         return []
     sender = _address(msg.get("From"))
     message_id = (str(msg.get("Message-ID") or "").strip() or f"<uid-{uid}@ordo.sample>")
