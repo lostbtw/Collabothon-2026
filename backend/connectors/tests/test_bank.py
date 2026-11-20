@@ -263,6 +263,24 @@ def add_source_noop(db):
     return Store(db).get("source", "src_bank_pln")
 
 
+def test_fixture_cursor_that_matches_a_real_line_is_still_not_trusted(db, bank):
+    """Found live: the pizzeria fixture says E000001125, and the real bank's last line IS E000001125.
+    The cursor is still not ours (that line is not in our database), so everything is read."""
+    for i in range(3):
+        inject(bank, amount=f"-{i + 1}.00")
+    add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-20|E000000003", items_total=3)
+    result = poll(db, add_source_noop(db), bank)
+    assert result["items_new"] == 3 and result["cursor_before"] == "2026-11-20|E000000003"
+    assert Store(db).get("source", "src_bank_pln")["items_total"] == 3
+
+
+def test_fixture_schedule_a_day_ahead_does_not_block_the_first_poll(db, bank):
+    tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    add_source(db, "src_bank_pln", "acc_pln", next_run_at=tomorrow)
+    inject(bank)
+    assert len(_tick(db, bank, datetime.now(UTC))) == 1  # not first pass, still due: the time was not ours
+
+
 def test_fixture_cursor_with_an_empty_bank_is_cleared(db, bank):
     add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-21|E000000731", items_total=731)
     result = poll(db, add_source_noop(db), bank)
