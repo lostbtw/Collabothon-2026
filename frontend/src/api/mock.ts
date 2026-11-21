@@ -329,6 +329,13 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     people = [...people, added];
     result = added;
   }
+  else if (seg[0] === "people" && seg.length === 2 && method === "PATCH") {
+    onlyBorsuk(company, "people");
+    const found = find(people, seg[1]);
+    const changed = { ...found, ...(body as Partial<Person>) };
+    people = people.map((p) => (p.id === found.id ? changed : p));
+    result = changed;
+  }
   else if (path === "/rules" && method === "GET") { onlyBorsuk(company, "rules"); result = { items: rules }; }
   else if (seg[0] === "rules" && seg.length === 2 && method === "DELETE") { find(rules, seg[1]); rules = rules.filter((r) => r.id !== seg[1]); result = undefined; }
   else if (method === "GET" && path === "/chat/sessions")

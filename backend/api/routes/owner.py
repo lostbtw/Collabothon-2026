@@ -53,6 +53,17 @@ def add_person(body: dict[str, Any] = Body(...), company: str = Depends(company_
         raise _bad(exc) from exc
 
 
+@router.patch("/people/{id}")
+def change_person(id: str, body: dict[str, Any] = Body(...), company: str = Depends(company_id),
+                  c: psycopg.Connection = Depends(conn)):
+    try:
+        return owner.update_person(c, company, id, body)
+    except LookupError as exc:
+        raise not_found("person", id) from exc
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
 @router.get("/rules")
 def list_rules(company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
     return {"items": owner.rules(c, company)}

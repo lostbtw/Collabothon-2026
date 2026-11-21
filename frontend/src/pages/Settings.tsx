@@ -253,7 +253,25 @@ function InvoicesSection({ sources }: { sources: Source[] }) {
 function PeopleSection({ people, onChanged }: { people: Person[] | null; onChanged: () => void }) {
   const { companyId } = useCompany();
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  async function save(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const text = (k: string) => String(f.get(k) ?? "").trim();
+    try {
+      const saved = await api.updatePerson(id, companyId, {
+        name: text("name"), email: text("email"), role: text("role"),
+        card_last4: text("card") ? [text("card")] : [], statement_names: text("statement") ? [text("statement").toUpperCase()] : [],
+      });
+      if (!saved) return setError("Not saved: the backend cannot change people yet.");
+      setEditing(null);
+      setError(null);
+      onChanged();
+    } catch (err) {
+      setError(`Not saved: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
   async function add(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -277,8 +295,20 @@ function PeopleSection({ people, onChanged }: { people: Person[] | null; onChang
         <>
           <div className="trow head" style={{ paddingLeft: 0, paddingRight: 0 }}>
             <span className="cell grow">Person</span><span className="cell" style={{ width: 230 }}>Sends receipts from</span><span className="cell" style={{ width: 110 }}>Cards</span><span className="cell" style={{ width: 170 }}>Name on bank statements</span>
+          <span className="cell" style={{ width: 60 }} />
           </div>
-          {people.map((p) => (
+          {people.map((p) => editing === p.id ? (
+            <form key={p.id} className="hstack" onSubmit={(e) => save(e, p.id)} style={{ padding: "8px 0" }}>
+              <input type="text" name="name" defaultValue={p.name} aria-label="Name" required autoFocus />
+              <input type="text" name="email" defaultValue={p.email} aria-label="E-mail" required />
+              <label className="pill-select"><select name="role" aria-label="Role" defaultValue={p.role}>
+                <option value="employee">Employee</option><option value="contractor">Contractor</option><option value="owner">Owner</option></select></label>
+              <input type="text" name="card" defaultValue={p.card_last4[0] ?? ""} placeholder="Card ending" aria-label="Card ending" style={{ width: 120 }} />
+              <input type="text" name="statement" defaultValue={p.statement_names[0] ?? ""} placeholder="Name on statements" aria-label="Name on bank statements" />
+              <button type="submit" className="primary">Save</button>
+              <button type="button" className="quiet" onClick={() => { setEditing(null); setError(null); }}>Cancel</button>
+            </form>
+          ) : (
             <div key={p.id} className="trow" style={{ paddingLeft: 0, paddingRight: 0 }}>
               <span className="cell grow" style={{ gap: 12 }}>
                 <Avatar text={initials(p.name)} />
@@ -287,6 +317,7 @@ function PeopleSection({ people, onChanged }: { people: Person[] | null; onChang
               <span className="cell small t2" style={{ width: 230 }}>{p.email}</span>
               <span className="cell small t2" style={{ width: 110 }}>{p.card_last4.length ? p.card_last4.map((c) => `ending ${c}`).join(", ") : "—"}</span>
               <span className="cell small t2" style={{ width: 170 }}>{p.statement_names.join(", ") || "—"}</span>
+              <span className="cell" style={{ width: 60 }}><button type="button" className="quiet" onClick={() => setEditing(p.id)}>Edit</button></span>
             </div>
           ))}
           <div className="setting">

@@ -75,6 +75,24 @@ def test_people_list_and_add(demo):
     assert again.status_code == 422
 
 
+def test_a_person_can_be_edited_and_the_email_is_what_identifies_a_sender(demo):
+    changed = demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"email": "Phone.Jan@Gmail.example"})
+    assert changed.status_code == 200 and changed.json()["email"] == "phone.jan@gmail.example"
+    assert changed.json()["name"] == "Jan Kowalski (SAMPLE)" and changed.json()["card_last4"] == ["7730"]  # the rest is kept
+    again = demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"name": "Jan K.", "card_last4": ["1111"],
+                                                                     "statement_names": ["jan k"]})
+    assert again.json() | {"id": "x"} == {"id": "x", "name": "Jan K.", "email": "phone.jan@gmail.example", "role": "employee",
+                                          "pay_type": "salary", "card_last4": ["1111"], "statement_names": ["JAN K"],
+                                          "tax_id": None, "iban": None}
+    assert demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"role": "contractor"}).json()["pay_type"] == "invoice"
+    taken = demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"email": "marta@borsuk-labs.sample"})
+    assert taken.status_code == 422
+    assert demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"role": "boss"}).status_code == 422
+    assert demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"name": " "}).status_code == 422
+    assert demo.patch("/api/v1/people/per_nobody", params=BORSUK, json={"name": "X"}).status_code == 404
+    assert demo.patch("/api/v1/people/per_amalfi_owner", params=BORSUK, json={"name": "X"}).status_code == 404  # other company
+
+
 def test_changing_a_bank_lines_type_teaches_a_rule_the_pipeline_uses(demo, db):
     s = Store(db)
     s.put("counterparty", {"id": "cp_koszyk", "company_id": "co_borsuk", "name": "Koszyk 24 (SAMPLE)", "kind": "supplier"}, company_id="co_borsuk")
