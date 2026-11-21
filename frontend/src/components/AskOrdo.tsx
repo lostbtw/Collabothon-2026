@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type ChatAnswer, type ChatSession, type Health } from "../api/client";
+import { ApiError } from "../api/transport";
 import { useCompany, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
 import { requestRefresh } from "../lib/refresh";
@@ -55,6 +56,9 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
   const [current, setCurrent] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [reload, setReload] = useState(0);
   const [speech, setSpeech] = useState<Health["speech"]>(null);
@@ -97,6 +101,34 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
     }
   }
 
+  async function remove(id: string) {
+    setDeleting(true);
+    setHistoryError(null);
+    try {
+      if (server) await api.deleteChatSession(id, companyId);
+    } catch (e) {
+      if (!(e instanceof ApiError && e.status === 404)) {
+        setHistoryError(e instanceof ApiError && e.status === 405 ? "Not deleted: the backend cannot delete chats yet." : `Not deleted: ${e instanceof Error ? e.message : String(e)}`);
+        setDeleting(false);
+        setConfirming(null);
+        return;
+      }
+    }
+    setServer((s) => s?.filter((x) => x.session_id !== id) ?? s);
+    setLocal((l) => {
+      const next = { ...l };
+      delete next[id];
+      return next;
+    });
+    if (current === id) {
+      setCurrent(null);
+      setError(null);
+    }
+    setDeleting(false);
+    setConfirming(null);
+    setReload((n) => n + 1);
+  }
+
   async function send(question: string) {
     if (!question.trim() || pending) return;
     setPending(question);
@@ -132,13 +164,13 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
             <div key={group} className="stack" style={{ gap: 2 }}>
               <span className="caption t3 history-group">{group}</span>
               {items.map((c) => (
-                <button key={c.id} type="button" className={`history-item${c.id === current ? " on" : ""}`} onClick={() => select(c.id)}>
-                  <span className="title">{c.title}</span>
-                  <span className="caption t3">{whenLabel(c.lastAt, today)}</span>
-                </button>
+                <HistoryItem key={c.id} title={c.title} when={whenLabel(c.lastAt, today)} on={c.id === current}
+                  confirming={confirming === c.id} deleting={deleting && confirming === c.id}
+                  onOpen={() => select(c.id)} onAsk={() => { setHistoryError(null); setConfirming(c.id); }} onCancel={() => setConfirming(null)} onDelete={() => remove(c.id)} />
               ))}
             </div>
           ))}
+          {historyError && <span className="caption danger" role="alert">{historyError}</span>}
           <span className="grow" />
           <span className="caption t3">{server ? "Chats are saved for this company only." : "Chats stay in this tab until the backend saves them."}</span>
         </nav>
@@ -157,6 +189,36 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
         </section>
       </aside>
     </>
+  );
+}
+
+export function HistoryItem({ title, when, on, confirming, deleting = false, onOpen, onAsk, onCancel, onDelete }: {
+  title: string; when: string; on: boolean; confirming: boolean; deleting?: boolean;
+  onOpen: () => void; onAsk: () => void; onCancel: () => void; onDelete: () => void;
+}) {
+  if (confirming) {
+    return (
+      <div className="history-row confirming" role="group" aria-label={`Delete chat “${title}”?`}
+        onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onCancel(); } }}>
+        <span className="caption">Delete this chat?</span>
+        <span className="title caption t3">{title}</span>
+        <span className="hstack" style={{ gap: 4 }}>
+          <button type="button" className="delete-confirm" autoFocus disabled={deleting} onClick={onDelete}>{deleting ? "Deleting…" : "Delete"}</button>
+          <button type="button" className="quiet" disabled={deleting} onClick={onCancel}>Cancel</button>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className={`history-row${on ? " on" : ""}`}>
+      <button type="button" className={`history-item${on ? " on" : ""}`} onClick={onOpen}>
+        <span className="title">{title}</span>
+        <span className="caption t3">{when}</span>
+      </button>
+      <button type="button" className="history-delete" aria-label={`Delete chat “${title}”`} title="Delete chat" onClick={onAsk}>
+        <Icon name="trash" size={14} />
+      </button>
+    </div>
   );
 }
 
