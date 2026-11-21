@@ -162,3 +162,49 @@ class GeneratedWorld(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MonthlyInvoicesOfTheSameAmount(unittest.TestCase):
+    """Found on role 4's scenario: a contractor bills 9,800 PLN every month and is paid by transfer on the due date.
+    Each invoice must take its own month's transfer (its number is in the title), not the next month's."""
+
+    @staticmethod
+    def invoice(month):
+        doc = copy.deepcopy(DOCS["doc_rcpt412"])
+        doc.update(id=f"doc_aw_{month:02d}", doc_type="invoice", number=f"{month}/{month:02d}/2026",
+                   issue_date=f"2026-{month:02d}-25", due_date=f"2026-{month:02d}-29", flags=[])
+        doc["seller"] = {**doc["seller"], "name": "Anna Wrona Software (SAMPLE)", "tax_id": "9990000201"}
+        doc["totals"]["gross"] = {"amount": "9800.00", "currency": "PLN"}
+        doc["payment"].update(method="transfer", card_last4=None, bank_account="PL00999900000000000000040003")
+        return doc
+
+    @staticmethod
+    def transfer(month):
+        return line(id=f"txn_aw_{month:02d}", external_id=f"E{month:09d}", booking_date=f"2026-{month:02d}-29",
+                    value_date=f"2026-{month:02d}-29", amount={"amount": "-9800.00", "currency": "PLN"},
+                    amount_base={"amount": "-9800.00", "currency": "PLN"}, fx=None, original_amount=None,
+                    card_last4=None, transaction_type="transfer_out", counterparty_name_raw="ANNA WRONA (SAMPLE)",
+                    counterparty_account="PL00999900000000000000040003",
+                    description=f"FV {month}/{month:02d}/2026 USLUGI PROGRAMISTYCZNE")
+
+    def test_both_lines_reach_the_score_cap(self):
+        own = score_pair(self.invoice(4), self.transfer(4), BY_ACCOUNT)
+        next_month = score_pair(self.invoice(4), self.transfer(5), BY_ACCOUNT)
+        self.assertEqual((own[0], next_month[0]), (1.0, 1.0))  # the tie the ranking must break
+
+    def test_an_invoice_alone_takes_its_own_months_transfer(self):
+        [result] = run([self.invoice(4)], [self.transfer(5), self.transfer(4)])  # newest first, as the database lists them
+        self.assertEqual(result["match"]["transaction_id"], "txn_aw_04")
+        self.assertEqual(result["match"]["score"], 1.0)  # the shown score stays capped
+
+    def test_one_at_a_time_like_the_server_every_invoice_gets_its_own(self):
+        lines = [self.transfer(m) for m in (6, 5, 4)]
+        for month in (4, 5, 6):
+            [result] = run([self.invoice(month)], lines)
+            self.assertEqual(result["match"]["transaction_id"], f"txn_aw_{month:02d}")
+            lines = [t for t in lines if t["id"] != result["match"]["transaction_id"]]
+
+    def test_all_at_once_every_invoice_gets_its_own(self):
+        results = run([self.invoice(m) for m in (4, 5, 6)], [self.transfer(m) for m in (6, 5, 4)])
+        self.assertEqual({r["match"]["document_id"]: r["match"]["transaction_id"] for r in results},
+                         {f"doc_aw_{m:02d}": f"txn_aw_{m:02d}" for m in (4, 5, 6)})

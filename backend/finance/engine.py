@@ -127,7 +127,10 @@ def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[st
     """Open invoices known on the as-of date, and the keys of every client paid by invoice."""
     documents = [d for d in s.list("document", company_id=company["id"]) if d.get("status") not in ("duplicate", "rejected")]
     matches = s.list("match", company_id=company["id"])
-    settled = {m["document_id"]: m for m in matches if m.get("status") in SETTLED and m.get("transaction_id")}
+    # For cash, a document matched to a bank line is paid: the money already moved, confirmed by the owner or not.
+    # Waiting for it again would count it twice (with role 3's `suggested` matches, every sales invoice of the year
+    # looked open). Only a match the owner rejected leaves the document open.
+    settled = {m["document_id"]: m for m in matches if m.get("transaction_id") and m.get("status") != "rejected"}
     private = {m["document_id"] for m in matches if m.get("paid_by") in ("employee_private", "owner_private")}
     counterparties = {c["id"]: c for c in s.list("counterparty", company_id=company["id"])}
 

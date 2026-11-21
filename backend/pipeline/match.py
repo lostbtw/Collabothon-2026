@@ -163,6 +163,11 @@ def score_pair(doc: dict, txn: dict, accounts: dict) -> tuple[float, list[dict]]
 
 # ---------- assignment and routing ----------
 
+def _evidence(reasons: list[dict]) -> float:
+    """The uncapped sum of a pair's reason weights: what ranks candidate pairs."""
+    return round(sum(r["weight"] for r in reasons), 4)
+
+
 def run_matching(documents: list[dict], transactions: list[dict], *, company: dict, people: list[dict],
                  accounts: list[dict], now: str, as_of: str | None = None,
                  senders: dict | None = None) -> list[dict]:
@@ -184,7 +189,10 @@ def run_matching(documents: list[dict], transactions: list[dict], *, company: di
             s, reasons = score_pair(doc, txn, by_account)
             if s >= THRESHOLD:
                 candidates.append((s, di, ti, reasons))
-    candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
+    # Rank by the evidence before the 1.0 cap: an invoice's own payment (amount + date + its number in the title)
+    # and next month's payment of the same amount both reach the cap, and the tie handed each monthly invoice the
+    # following month's line. The shown score stays capped.
+    candidates.sort(key=lambda c: (-_evidence(c[3]), -c[0], c[1], c[2]))
 
     taken_doc, taken_txn, chosen = set(), set(), {}
     for s, di, ti, reasons in candidates:
