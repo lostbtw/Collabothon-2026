@@ -91,10 +91,15 @@ spec:
                   try:
                       path = snapshot_download(model, allow_patterns=patterns, local_files_only=True)
                       missing = [name for name in required if not os.path.exists(os.path.join(path, name))]
-                      if missing:
-                          raise FileNotFoundError(", ".join(missing))
+                      holes = [name for name in os.listdir(path)
+                               if os.stat(os.path.join(path, name)).st_blocks * 512 < os.stat(os.path.join(path, name)).st_size]
+                      if missing or holes:
+                          raise FileNotFoundError(", ".join(missing + holes))
                       print(f"{model}: in the cache", flush=True)
-                  except Exception:
+                  except Exception as problem:
+                      print(f"{model}: downloading ({problem})", flush=True)
+                      shutil.rmtree(os.path.join(os.environ["HF_HOME"], "hub", "models--" + model.replace("/", "--")),
+                                    ignore_errors=True)
                       snapshot_download(model, allow_patterns=patterns)
                       print(f"{model}: downloaded", flush=True)
           env:
