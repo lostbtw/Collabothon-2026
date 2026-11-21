@@ -28,7 +28,8 @@ SUGGESTED = {
 GUARDRAIL_MONEY = {"blocked": True, "reason": "Chat cannot move money; it prepared an inbox card instead"}
 
 SYSTEM = (
-    "You are Ordo's assistant for a small company's owner. Answer in plain language using only the tools. "
+    "You are Ordo's assistant for a small company's owner. Answer in plain language using only the tools, in at most "
+    "four short sentences and without numbered lists. "
     "Copy numbers exactly from tool results; never compute or invent a number. You cannot move money, approve or "
     "execute anything: for such requests call request_action, which puts a card in the owner's inbox. "
     "To ask a client to pay sooner, call request_action with kind chase_receivable and the client's name in the "
@@ -283,7 +284,9 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
     if MONEY_WORDS.search(message) or "credit line" in text:
         kind = "credit_line" if "credit line" in text else "payment"
         result = request_action(conn, company, message, kind)
-        answer = (f"I cannot move money from the chat. I put this in your inbox: \"{result['title']}\". "
+        card = Store(conn).get("recommendation", result["recommendation_id"]) or {}
+        answer = (reminder_text(conn, company, card) if card.get("type") == "chase_receivable" else
+                  f"I cannot move money from the chat. I put this in your inbox: \"{result['title']}\". "
                   "It runs only after you approve it, in simulation.")
         return (answer, _evidence([result]), [{"tool": "request_action", "arguments": {"description": message, "kind": kind},
                                                "duration_ms": 0}], result["recommendation_id"], GUARDRAIL_MONEY)
@@ -367,6 +370,22 @@ def _reply(session_id: str, company: str, text: str, **fields: Any) -> dict[str,
             "suggested_questions": SUGGESTED.get(company, SUGGESTED["co_borsuk"])} | fields
 
 
+def reminder_text(conn: psycopg.Connection, company: str, card: dict[str, Any]) -> str:
+    """The reply for a reminder card when the model's own words were not usable: the forecast's facts, then the card."""
+    forecast = tools.get_forecast(conn, company)
+    gap = sorted((a for a in forecast.get("alerts", []) if a["type"] in ("cash_gap", "below_buffer")),
+                 key=lambda a: a["date_from"])
+    why = ""
+    if gap and forecast.get("safety_buffer"):
+        low = forecast["min_balance"]
+        why = (f"Your balance falls below the {fmt_money(forecast['safety_buffer'], cents=False)} safety buffer on "
+               f"{short_date(gap[0]['date_from'])}, lowest {fmt_money(low['amount'], cents=False)} on {short_date(low['date'])}. ")
+    elif gap:
+        why = f"The forecast shows a cash gap from {short_date(gap[0]['date_from'])}. "
+    return (f"{why}I drafted a reminder asking the client to pay earlier and put it in your to-do: \"{card['title']}\". "
+            "It is sent only after you approve it, in simulation.")
+
+
 def answer(conn: psycopg.Connection, company: str, message: str, session_id: str | None, model: Any) -> dict[str, Any]:
     trace: list[dict[str, Any]] = []
     created = guardrail = table = None
@@ -406,7 +425,8 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
                                    "created_recommendation_id": created})
     if text is None and created:
         card = Store(conn).get("recommendation", created) or {}
-        text = (f"I cannot move money from the chat. I put this in your inbox: \"{card.get('title', 'your request')}\". "
+        text = (reminder_text(conn, company, card) if card.get("type") == "chase_receivable" else
+                f"I cannot move money from the chat. I put this in your inbox: \"{card.get('title', 'your request')}\". "
                 "It runs only after you approve it, in simulation.")
         evidence = _evidence(results)
     if text is None:

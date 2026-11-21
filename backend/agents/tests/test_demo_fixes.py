@@ -72,3 +72,15 @@ def test_demo_reset_clears_chat_cards_and_brings_back_a_credit_line(db):
     assert result["open_credit_line"] == credit_line["id"]
     assert contract.entity_errors("recommendation", credit_line) == []
     assert demo_reset.reset(db, "co_borsuk")["open_credit_line"] == credit_line["id"]  # a second run adds none
+
+
+def test_without_usable_model_words_the_reminder_reply_explains_the_gap(db):
+    load_fixtures(db)
+    from backend.agents import chat
+
+    reply = chat.answer(db, "co_borsuk", "Ask Nordwind to pay their invoice earlier", None, model=None)
+
+    card = Store(db).get("recommendation", reply["created_recommendation_id"])
+    assert card["type"] == "chase_receivable"
+    assert card["title"] in reply["answer"] and "drafted a reminder" in reply["answer"]
+    assert "cannot move money" not in reply["answer"]
