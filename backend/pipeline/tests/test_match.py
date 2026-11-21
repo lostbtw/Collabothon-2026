@@ -129,6 +129,48 @@ class Rules(unittest.TestCase):
         self.assertEqual(run([dict(doc, status="duplicate")], [txn]), [])
 
 
+class KsefPaidToTheCent(unittest.TestCase):
+    """A KSeF invoice the bank paid exactly auto-confirms even without a recurring series (no inbox card)."""
+
+    def pair(self):
+        doc = copy.deepcopy(DOCS["doc_rcpt412"])
+        doc.update(doc_type="invoice", channel="ksef", number="FV/BS/00038/11/2026",
+                   extraction={**doc["extraction"], "method": "xml_parse", "confidence": 1.0})
+        doc["buyer"].update(tax_id="9990000014", is_company=True, name="Borsuk Labs sp. z o.o. (SAMPLE)")
+        doc["payment"].update(card_last4="4417")
+        txn = line(id="txn_em", amount_base={"amount": "-1299.00", "currency": "PLN"}, fx=None, original_amount=None,
+                   counterparty_name_raw="ELEKTROMARKT POLSKA", description="ELEKTROMARKT POLSKA KARTA *4417",
+                   booking_date="2026-11-20")
+        return doc, txn
+
+    def test_auto_confirms_with_its_own_rule(self):
+        [result] = run(*map(lambda x: [x], self.pair()))
+        match = result["match"]
+        self.assertGreaterEqual(match["score"], 0.90)
+        self.assertEqual((match["status"], result["control_level"]), ("auto_confirmed", "analysed_autonomously"))
+        self.assertEqual(match["decided_by"]["name"], "rule: auto-confirm >= 0.90 for a KSeF invoice paid to the cent")
+        self.assertEqual(schema_errors(match, "match"), [])
+
+    def test_a_pdf_or_photo_copy_still_asks(self):
+        doc, txn = self.pair()
+        doc.update(channel="email", extraction={**doc["extraction"], "method": "docling_llm", "confidence": 0.97})
+        [result] = run([doc], [txn])
+        self.assertEqual(result["match"]["status"], "suggested")
+
+    def test_an_amount_off_by_cents_still_asks(self):
+        doc, txn = self.pair()
+        txn["amount_base"] = {"amount": "-1299.40", "currency": "PLN"}
+        [result] = run([doc], [txn])
+        self.assertEqual(result["match"]["status"], "suggested")
+
+    def test_a_tax_consequence_still_asks(self):
+        doc, txn = self.pair()
+        doc["buyer"].update(tax_id=None, is_company=False)  # invoice not to the company: VAT lost
+        [result] = run([doc], [txn])
+        self.assertTrue(result["match"]["consequences"]["vat_lost"])
+        self.assertEqual(result["match"]["status"], "suggested")
+
+
 class GeneratedWorld(unittest.TestCase):
     """Spike 04's 5 seeds, golden documents only (dedup is #40)."""
 

@@ -62,6 +62,14 @@ class Scenario(unittest.TestCase):
         self.assertEqual((m["paid_by"], m["payer"]["person_id"], m["score"]), ("employee_private", "per_jan", 0.86))
         self.assertEqual(m["consequences"]["vat_lost"], {"amount": "242.90", "currency": "PLN"})
 
+    def test_auto_confirmed_matches_are_all_right(self):
+        """Nothing the owner is not asked about may be wrong; most of a year of exact KSeF invoices needs no card."""
+        want = {sc.doc_id(t["document_id"]): sc.txn_id(t["bank_line"]) for t in self.truth["documents"]
+                if t["match_type"] != "duplicate_document"}
+        auto = [m for m in self.match.values() if m["status"] == "auto_confirmed"]
+        self.assertEqual([m["document_id"] for m in auto if want.get(m["document_id"]) != m["transaction_id"]], [])
+        self.assertGreaterEqual(len(auto), 350)
+
     def test_duplicates(self):
         clusters = [set(c) for c in self.r["clusters"] if len(c) > 1]
         expected = [{sc.doc_id(c["original"])} | {sc.doc_id(x) for x in c["copies"]} for c in self.truth["duplicates"]]
