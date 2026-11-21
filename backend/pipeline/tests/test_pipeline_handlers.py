@@ -171,6 +171,22 @@ class BankLines(unittest.TestCase):
         self.assertEqual(len(p.store.list("transaction")), 1)
         self.assertEqual(p.types().count("transaction.ingested"), 1)
 
+    def test_auto_confirmed_subscription_is_announced_as_decided_once(self):
+        """contracts/events.md: an auto-confirmed Match emits match.decided so the finance engine books it."""
+        p = Pipeline()
+        txn = dict(fixture("transaction")[0], match_status="unmatched", recurring_series_id="ser_pixelboard")
+        p.store.add("transaction", txn, company_id=COMPANY)
+        p.extracted(copy.deepcopy(DOCS["doc_pixel11"]))
+        [match] = p.store.list("match", document_id="doc_pixel11")
+        decided = [e for e in p.events if e["type"] == "match.decided"]
+        self.assertEqual(match["status"], "auto_confirmed")
+        self.assertEqual([e["payload"] for e in decided],
+                         [{"match_id": match["id"], "status": "auto_confirmed", "approval_id": None}])
+        self.assertEqual(p.store.get("transaction", txn["id"])["match_status"], "matched")
+        p.publish("document.extracted", COMPANY, {"document_id": "doc_pixel11"}, "raw_x")  # re-matched later
+        p.run()
+        self.assertEqual(len([e for e in p.events if e["type"] == "match.decided"]), 1)
+
     def test_card_line_arriving_after_the_receipt(self):
         p = Pipeline()
         doc = copy.deepcopy(DOCS["doc_rcpt412"])
