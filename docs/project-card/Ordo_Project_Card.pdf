@@ -27,11 +27,11 @@ endobj
 endobj
 
 7 0 obj
-<</Type/Annot/Subtype/Widget/AP<</N 23 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 10 Tf)/DV()/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 6 0 R/Rect[42 547.8898 553.2756 595.8898]/T(one_line_summary)/V(Ordo is a CFO for small companies: it reads their receipts, invoices and bank data on its own, predicts the bank balance day by day and prepares fixes that run only after the owner approves.)>>
+<</Type/Annot/Subtype/Widget/AP<</N 23 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 10 Tf)/DV()/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 6 0 R/Rect[42 547.8898 553.2756 595.8898]/T(one_line_summary)/V(Ordo is a CFO for small companies: it reads their receipts, invoices and bank data on its own, predicts the bank balance day by day and suggests what to do; nothing runs until the owner approves.)>>
 endobj
 
 8 0 obj
-<</Type/Annot/Subtype/Widget/AP<</N 24 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 10 Tf)/DV()/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 6 0 R/Rect[42 401.8898 553.2756 489.8898]/T(technology_stack)/V(Backend: Python, FastAPI, PostgreSQL \(data and event queue\)\nFrontend: TypeScript, React, Vite\nBank simulator: Python, FastAPI, Berlin Group NextGenPSD2 account-information format\nAI: gpt-oss-20b on vLLM, docling-serve \(OCR\), Whisper \(speech\), OGX and MCP, NeMo Guardrails, MLflow\nPlatform: Red Hat OpenShift AI with one NVIDIA L4 GPU, Prometheus, Grafana, GitHub Actions\nData sources: IMAP mailbox, NBP exchange-rate API, KSeF e-invoice files, the bank simulator)>>
+<</Type/Annot/Subtype/Widget/AP<</N 24 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 10 Tf)/DV()/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 6 0 R/Rect[42 401.8898 553.2756 489.8898]/T(technology_stack)/V(Backend: Python, FastAPI, PostgreSQL \(data and event queue\)\nFrontend: TypeScript, React, Vite\nBank simulator: Python, FastAPI, PSD2-style bank API\nAI: gpt-oss-20b on vLLM, docling-serve \(OCR\), Whisper \(speech\), OGX and MCP, NeMo Guardrails, MLflow\nPlatform: Red Hat OpenShift AI with one NVIDIA L4 GPU, Prometheus, Grafana, GitHub Actions\nData sources: IMAP mailbox, NBP exchange-rate API, KSeF e-invoice files, the bank simulator)>>
 endobj
 
 9 0 obj
@@ -50,7 +50,7 @@ endobj
 endobj
 
 12 0 obj
-<</Type/Annot/Subtype/Widget/AP<</N 25 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 8 Tf)/DV(THE PROBLEM\nWhat problem are you addressing? Who experiences it, and why is it important to solve?\n\nYOUR SOLUTION\nHow does your project address this problem? Describe the core idea and what makes it unique, useful or innovative.\n\nTHE WORKING PROTOTYPE\nWhat can users do with your project today? Walk us through the main features and distinguish what is already implemented and working.\n\nBEHIND THE BUILD\nExplain how the key components work together and the technical decisions that shaped the implementation. Identify existing tools, libraries, services or codebases you built upon, and what your team created during the hackathon.\n\nCHALLENGES AND DISCOVERIES\nWhat challenges did you encounter? What approaches did you try, and what did you learn?\n\nRESULTS AND NEXT STEPS\nWhat did you achieve, and how did you validate or test it? Share the outcome you are most proud of, current limitations and what you would improve next.)/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 11 0 R/Rect[42 176 553.2756 686]/T(project_overview)/V(THE PROBLEM\nSmall business owners decide what they can afford by looking at the bank balance. The balance does not show what is already committed: taxes due next week, money owed back to employees, clients who always pay late. The shortfall shows up only when a payment fails. An accountant closes last month's books, but nobody looks at the next six weeks.\n\nYOUR SOLUTION\nOrdo connects to the company's mailbox, bank accounts and the central bank's exchange rates. It reads receipts and invoices, matches each one to its bank payment and records it as a ledger entry. From these entries and recurring payments it predicts the bank balance for each of the next 45 days. When the balance is about to drop below a safety level, Ordo shows which payments cause it and prepares options: a reminder to a late client, a later payment date, or a credit line. A second agent, FX Shield, checks foreign-currency invoices and proposes fixing the rate only when a likely rate move would take a real part of the profit.\nDesign rules: nothing runs without the owner's approval, and every action goes to a simulated bank. Amounts are always calculated by code; the language model reads documents and explains, but never produces a number. The model is open-weights and runs on OpenShift AI, so company data stays inside the environment.\n\nTHE WORKING PROTOTYPE\nDeployed as a web app on the Red Hat OpenShift AI environment provided for the hackathon \(one GPU node\). Two sample companies: a software studio with generated data and a pizzeria with the organisers' bank statement.\n- Data arrives by itself: e-mail attachments, bank transactions, daily exchange rates, KSeF e-invoices.\n- A receipt photo or PDF becomes structured fields, each with a confidence score.\n- Duplicate copies are merged, each document is matched to its bank payment, and Ordo works out whether the company or an employee paid.\n- An employee's receipt paid with a private card becomes a "Pay Jan back" task; one approval sends the transfer to the simulated bank.\n- A 45-day balance chart with the low point, the payments behind it, a worse case and options to fix it.\n- FX Shield: "hedge" or "no need" per foreign-currency invoice, from 756 days of exchange rates.\n- Ask Ordo: questions about the company's money by text or voice; account and card numbers are masked, off-topic questions refused.\n\nBEHIND THE BUILD\nHow it fits together: connectors store raw data \(mail, bank, rates, e-invoices\). A PostgreSQL table works as an event queue and hands each new item to the next step: OCR and the model turn documents into fields, the matching step pairs them with bank payments, the finance engine updates the ledger and the forecast, and the agents create proposals. The API records each approval and sends the action to the bank simulator.\nKey decisions: the forecast is rule-based \(recurring payments, averages, known invoices\) rather than machine learning, so every number can be explained; on the pizzeria data it was within about 1.2% seven weeks ahead. One model on one GPU does reading, sorting and tool calls; OCR runs on CPU. The bank simulator's account endpoints follow the Berlin Group NextGenPSD2 account-information format \(accounts, balances, booked transactions with paging and incremental sync\), so the bank connector is ready for a real bank's PSD2 API; only the consent step through a licensed provider is missing.\nBuilt on: OpenShift AI, vLLM, gpt-oss-20b, docling-serve, Whisper, OGX, MCP, NeMo Guardrails with Presidio, MLflow, PostgreSQL, FastAPI, React.\nBuilt during the hackathon: the connectors, the bank simulator, the document pipeline, the finance engine with Polish tax rules, the agents, the API, the web app, the generated demo data and the deployment setup.\nRed Hat bonus items used: vLLM, OGX with MCP, NeMo Guardrails, MLflow tracing and evaluation, Jupyter notebooks on OpenShift AI.\n\nCHALLENGES AND DISCOVERIES\n- Bank simulator: following the PSD2 format closely enough that the same connector code can later talk to a real bank, and loading the organisers' bank statement as it is, including Swiss-franc payments booked inside a euro account.\n- One GPU fits one model, so we dropped a vision model; OCR runs on CPU at about 11 seconds per document.\n- VAT on receipt photos is hard to read \(26 of 59 correct\), so every field shows how sure Ordo is and the owner confirms it.\n- Keeping the model honest: an answer containing a number that no calculation produced is rejected and replaced by a fixed template.\n\nRESULTS AND NEXT STEPS\nThe whole flow runs on OpenShift AI: data comes in, is recorded, forecast, turned into a proposal, approved and executed against the simulated bank.\nChecks: 833 backend and 75 frontend automated tests on every change; an MLflow evaluation on 59 documents \(total right on 59, date and seller tax number on 58, VAT on 26\); a 40-second end-to-end check of the deployment.\nNext: better VAT reading, a real bank connection through a licensed partner such as Commerzbank, and a direct KSeF connection.)>>
+<</Type/Annot/Subtype/Widget/AP<</N 25 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 8 Tf)/DV(THE PROBLEM\nWhat problem are you addressing? Who experiences it, and why is it important to solve?\n\nYOUR SOLUTION\nHow does your project address this problem? Describe the core idea and what makes it unique, useful or innovative.\n\nTHE WORKING PROTOTYPE\nWhat can users do with your project today? Walk us through the main features and distinguish what is already implemented and working.\n\nBEHIND THE BUILD\nExplain how the key components work together and the technical decisions that shaped the implementation. Identify existing tools, libraries, services or codebases you built upon, and what your team created during the hackathon.\n\nCHALLENGES AND DISCOVERIES\nWhat challenges did you encounter? What approaches did you try, and what did you learn?\n\nRESULTS AND NEXT STEPS\nWhat did you achieve, and how did you validate or test it? Share the outcome you are most proud of, current limitations and what you would improve next.)/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 11 0 R/Rect[42 176 553.2756 686]/T(project_overview)/V(THE PROBLEM\nSmall business owners decide what they can afford by looking at the bank balance. The balance does not show what is already committed: taxes due next week, money owed back to employees, clients who always pay late. The shortfall shows up only when a payment fails. An accountant closes last month's books, but nobody looks at the next six weeks.\n\nYOUR SOLUTION\nOrdo connects to the company's mailbox, bank accounts and the central bank's exchange rates. It reads receipts and invoices, matches each one to its bank payment and records it as a ledger entry. From these entries and recurring payments it predicts the bank balance for each of the next 45 days. When the balance is about to drop below a safety level, Ordo shows which payments cause it and prepares options: a reminder to a late client, a later payment date, or a credit line. A second agent, FX Shield, checks foreign-currency invoices and proposes fixing the rate only when a likely rate move would take a real part of the profit.\nOrdo works on its own and asks only when it is unsure: a doubtful match or a payment it cannot sort goes to the owner instead of being guessed. When the owner sorts a payment, Ordo saves the answer as a rule and sorts that payee's next payments itself. Every action that moves money needs the owner's approval and goes to a simulated bank. Amounts are always calculated by code; the language model reads and explains, but never produces a number. The model is open-weights and runs on OpenShift AI, so company data stays inside.\n\nTHE WORKING PROTOTYPE\nDeployed as a web app on Red Hat OpenShift AI with one GPU. It runs on two sample companies with synthetic data, a software studio and a pizzeria.\n- Data comes in automatically via the mailbox, the bank connection, the daily exchange-rate feed and KSeF e-invoices.\n- A receipt photo or PDF becomes structured fields, each with a confidence score.\n- Duplicate copies are merged, each document is matched to its bank payment, and Ordo works out whether the company or an employee paid.\n- An employee's receipt paid with a private card becomes a "Pay Jan back" task; one approval sends the transfer to the simulated bank.\n- A chart of the bank balance for the next 45 days: it marks the lowest day, lists the payments that cause it, shows what happens if a client pays late, and offers ways to cover it.\n- FX Shield: "hedge" or "no need" per foreign-currency invoice, from 756 days of exchange rates.\n- Ask Ordo: questions about the company's money by text or voice; account and card numbers are masked, off-topic questions refused.\n\nBEHIND THE BUILD\nHow it fits together: connectors store raw data \(mail, bank, rates, e-invoices\). A PostgreSQL table works as an event queue and hands each new item to the next step: OCR \(docling-serve\) reads the text and the language model \(gpt-oss-20b\) turns it into fields, the matching step pairs them with bank payments, the finance engine updates the ledger and the forecast, and the agents create proposals. The API records each approval and sends the action to the bank simulator.\nKey decisions: the forecast is rule-based \(recurring payments, averages, known invoices\) rather than machine learning, so every number can be explained; on the pizzeria data it was within about 1.2% seven weeks ahead. One model on one GPU does reading, sorting and tool calls; OCR runs on CPU. The bank simulator speaks a PSD2-style API, so the bank connector can switch to a real bank's PSD2 API once a licensed provider handles customer consent.\nBuilt on: OpenShift AI, vLLM, gpt-oss-20b, docling-serve, Whisper, OGX, MCP, NeMo Guardrails with Presidio, MLflow, PostgreSQL, FastAPI, React.\nRed Hat bonus items used: vLLM, OGX with MCP, NeMo Guardrails, MLflow tracing and evaluation, Jupyter notebooks on OpenShift AI.\n\nCHALLENGES AND DISCOVERIES\n- Bank simulator: making it close enough to a real PSD2 bank API that the same connector code can later talk to a real bank, and loading the organisers' bank statement as it is, including Swiss-franc payments booked inside a euro account.\n- One GPU fits one model, so we dropped a vision model; OCR runs on CPU at about 11 seconds per document.\n- VAT on receipt photos is hard to read \(26 of 59 correct\), so every field shows how sure Ordo is and the owner confirms it.\n- Keeping the model honest: an answer containing a number that no calculation produced is rejected and replaced by a fixed template.\n\nRESULTS AND NEXT STEPS\nThe whole flow runs on OpenShift AI: data comes in, is recorded, forecast, turned into a proposal, approved and executed against the simulated bank.\nChecks: 844 backend and 110 frontend automated tests on every change; an MLflow evaluation on 59 documents \(total right on 59, date and seller tax number on 58, VAT on 26\); a 40-second end-to-end check of the deployment.\nNext: better VAT reading, a real bank connection through a licensed partner such as Commerzbank, and a direct KSeF connection.)>>
 endobj
 
 13 0 obj
@@ -126,38 +126,35 @@ endstream
 endobj
 
 23 0 obj
-<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 48]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 21 0 R>>>>/Length 270/Filter/FlateDecode>>
+<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 48]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 21 0 R>>>>/Length 277/Filter/FlateDecode>>
 stream
-xœ}QËN!İóg©IÂDfZ—mªnL£!qÍÌ0ÂØÇß{ÓMÉ¹\îy$ÌÕ	«—5ûfyÇãàBe-å÷DÃzz>²¢.…¬–¸Æ·'VHĞ‘‚_hu¦¥IUòå¥[åî;sl¥XÁ+Z5®‘"”yRuå‚ˆŠs.ò}şl†‡êÙÍ6v6Acı¸Eï#Ò^Z¿ÚY“`GòÓ]Âøal¤º56ŒiëŞ¶†È®C£İ:=jxG”t3„h:Û÷oäêóÿH´k‰Ñœ'È$t$·ŞLÔ”ëÇ‘İ@ıhâdB¶Té¢?˜TLvÅ^Ù†>èp‚uP
+xœ}QÏOÃ ¾óW|GMf‹´›Ş¶L½˜EÓÄ3-´E;¨À6÷ßûZ³ËÉï½ïGÂ¼üÁúuÃ¾™À¸CË88¤Ù¢r‰û%‚aµO,+Bæ+\ãû3Ë$èHÁ/´b¤ÅIUòÕ¥šÕæØºdÏi¸FŠ°'KMQî(ˆÈ9çb|Ï_L„à(v³ÚÃF(lvh|@Ü«¾Gí÷ƒrÖÄØD~JG¤ÎØ@÷ÚØ!Å¬;z[";J¹/h•¼#J„?¹†`´­ÓÄı¹Eùù¤JõÊÕ†ÄÎ¨ÎŒñĞ¶&’Ô©S	ÉCûG8Ÿ:ëZ„ƒ‹8¸dûÉ‰¼M€†à&f“ç¶dolK¿ôÅõw
 endstream
 endobj
 
 24 0 obj
-<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 88]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 21 0 R>>>>/Length 472/Filter/FlateDecode>>
+<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 88]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 21 0 R>>>>/Length 455/Filter/FlateDecode>>
 stream
-xœ…“Ár¢@†ïó}ŒU`ÀZÔxH­F¢l²/#42œ!3ƒš·ßÆ­6µµU=ôĞıówqŸ] ZMÙ;ó¡»õyàAàûıÁ(Æ0ƒFVÒö™õG?>À×¸‰Y? zßû,ueæÚ5ğ>³Ã.ûÊ$‹2Ö÷†tàk$„A÷eVŠK şĞó<¿{¿_`}ßƒ¬dwÏßPH?l¥¤snl˜&¤ÊØƒÆíóvw·¸, O(-¼·Øâ®×ƒì×ÿÛÏµ’öÚ?ûhp›kÑX6Ès
-/Ââí—o`Ä±­¹Uú êZHˆµjxÂ‹Q¦ÛÙ x«VZWÈRé#·BIø³º­&84ÖUÆ¸oTzZ.W*'µƒkPŸœYO7»¯•0jJPÀ¼êrëøçÕ³Õ4ul¥ n¹.4µq`µ,ku¾M’Ò¹;ê	ÙVÀ‚[X7(·•(-„	œ…­ˆáé%™%!,¿Aœş ñiuD[aKR±æ%—œÂ.Ú=„yç…¹­=ëÆnT«s4HVa
-G¢ß«(J/yÅå]Í-Âuß·8$ÏOJä¥¨‘öò*ş˜±göHÎo…ìà
+xœ…“Moâ0†ïşs,RB´Ê-@hII!Ûî‹I&ÄÛ`SÛáãßï$«öPUKiâ7ö;ÏŒåûôãxÂŞ™ÍĞ{æïw{ƒ ÂpYA¿Ï¬;èùAÿ¾Æõœu 7ğ½mƒf›i]ïáCí7ê+“lœ²®×§g _#!ôš•iN(.ø}Ïóüf~¿Àê¾iÁîÆ<{C™ ¹ÚRIfÜØ0‰H”±{›ç%lïrn9p™PZx¯±Æm§éŸÿÛÏ´’¶õO¯GÜdZ­kä…añ¶Å˜Ë70âPWÜ*ıèfÚs½V»f-‰·]Ãhû£u•1nÏÛ’pZ.cr•UBî]ƒú„Tùj²Şvx-…9¢&fe£­æ¿ÛÄ“Ä'ŒÌk®sÍEeˆ—E¥Î·Iª«Pú0¢¶ä°àVG”›RÂÎÂ–D‡ğôM£–?`ü¢ªµ: -±¦TsÍ.9}»¨wfV(inç6ÇjT­34#ˆâ0ÑïÔ…
+'€—¬är®æ¡íöÏÎ ]!OJd…¨ä_ó?ªMş˜²göH7ã/kà	
 endstream
 endobj
 
 25 0 obj
-<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 510]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 21 0 R>>>>/Length 2644/Filter/FlateDecode>>
+<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 510]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 21 0 R>>>>/Length 2612/Filter/FlateDecode>>
 stream
-xœ•X[S9}÷¯è¢ê«$U6KØ‹yââ À^l6Ù*^ä­e,Í4ç×ïéÖŒm±ó…Øs‘úrúôiı6z¤ã«“Ö¿­·Ä?å¤µG{tğöíîş‡ƒƒø´G¥ne¸?oí~Ø{ğş=ÿ{sÖÚ= üÇÓÍ{{Ÿø=/ëâËòòG¾üµe[Ç£ÖîŞ{üû@ÏÿÂŠ}yt”ÂœÎÇİOûòù·s?>f­×£ónúÇ—½«74úç§Ïg*Ïi\ycµ÷äæV—R˜TÓ|ª…©^P¢,©,seJãåÎİ;¡x—ÆÊŞãW®l¢wi$Wä¥N{².Ÿºy\ÎxRy©UŠEİlfBĞi—6ÚÔ#–I+MV?šk}ß¦™³°ËÍ5,RÉ=GzVän¡µoS’mƒÇ–ÛÍÕÂS¡`¸
-µ…0¨ûÎ¦yª
-r6_àOùá L™ÜïÒ‘İl¡JWÙ ğF’;ksåÛ¦¯</5®‚1viŒ oâ'^yó(ùİvúÙ®÷oohØ¿¼]ô¯7Ú×/S‡p[«¡âmşBÙì›ÁË±{lÇLÖÎÀ<›Æ‰RårOëÇdªìDS‰h"88Ÿ¿mŠúEcœI83’)B¢U2İF¤”3XB,i²Àëaq Ïã&)ì@¹N'º$6m±KŸK7c[½–+Fûæ¥ª,ªõRò~QêÔH — ğh¦Ë¶@²IÛ»J®]úÊÀ	kØg RÒÒ4Ö9Š@‘W™€€~Ğy›$5ƒó©ÁÖKKUÁİ‡Í…*á–+‚qÖw±ĞFK=36E„°½à×EÑ®¿–Ëğ¦øÖ&¸®(áĞÊÁ@=y›«‰¼÷ù§Fç)êkª ñÒfb;em“Å2ëµÍ®bÈÌ#ç`kDPOÊ07÷ßäúÌ=€‘\•”ê^ã.P—Ã‰2pºø}l˜™ğc­ïsª=,¦²Ê5‚nš²iee¦’0,%D°«‹>($Š=BÊÊ
-„S@&7‰®7³ŠCš
-š¸Y]@¥nØ'QyÒ<ÃÌ—êÃíñ &‚ßS×U–º¤Š ‹‹\Û°ÈaH+IÙj6Öe¤¼¸ˆaiÛ™#qÓzñõqÎ]´É»ÍÖüÁğA{	C¸o°íÚ>˜ÒY¶ô×»Ö×şÍ—‹ë3î^£şèïAoK:…óÓH
-s=æŒ±/lÃ®Ÿƒd×ıZ7Œ#õ ƒS)|~cŠV¢€KwÂFgƒ[`$ÕwoÃ9
-U¡Ç4Ôiôö2ô.sÆUjœ`ŒPNº,Hì8h9æûw]–lâÑ_EšBƒ~9¢ë{vèT–ó= ÀUçY—t‡©}'€äD5çƒß­¸Æ¥-ñ|›¾õg¬Ğ”ø6š~@ÅÔ¡LáÁég° ‚«|(«$T%Ÿ9óŠ÷Š›U†Ì0‘z¿ŞêqUä&–s…Ğ?b>ÓåD§õÂMİpÄ–”¾Ôlb¡+Ï]	cF !!åzÛ¾´KÍ±…2éÖx­{åW±Ã›ML
-äS<T,Ãê8*Ú@Ùü[Xí€ıı!1xîÛ4v;És»Æ\[Súî ƒv·ìq Øw	Xîo…3D¡ã¦“5H’@z¢êÙüâH×ıŒB› môİYu¡.íLYìp*v¬ûét‡
-x÷³¾Ô¦Œ…Â‡ƒ÷Òµ¹o<S3Û"àï]ú·Ò>Z^wù§ŠJÔ)*/°H€}²ıa£­ÄsIc$è®ÈÃÕeY' ÅÉÚ&¥Î ^ ÑÏl=î_\Ÿ3êñíÅåéFÇÎ‘8´ıÌˆ:œØ»`D¾P­ˆ(B4Œu÷šy$rG»á‡50[ÑÀù0)õğÏK`rœëº˜¨-wR„şUÈAú+Ñj¶TÏ GítÑ¥şÉÍR²Æ^z±kıÀtK²‘§˜¸ıó\j¥TÉ,"zê2c÷MÔvù„‰‚uU,»Z¬6Ö1<Q 5×ğQXåxNŠ'nÜGƒ‹¥ü•-›__w­KêÈˆù›{S,~WnFı ™BuçºÌ¥¬¤:c”s
-Xü(¸á#4	üÃ§{YE+”0r"­3Å¹àX©Òb QpÅ"‘!t£¥cİè!6"`ÙW¹@ù\E©gl]ºæÿ‡0‘q#5…ÒÚ¥¾m€„¥5 #-+±ÚÄ2È$Ìyt.g—û-ÒÚH®“Ám32sƒo2ÂÊ³¦
-¤W8•ÕvÎËNëÎJ‡Áõ5p¦í`xºß¼…RD€oDü„ì4“]{K#»³6À˜ÊmrMÄÚ(Ô¤qÛX –SÍfa“»7’¹%—,"`‘Á?“YCä{=SŠíÀùa”ÿ‘L­gØa.Ü0E&S™0«2ka'{ÎŒ÷0v3È+“ƒ¨m÷™~¸¼¼jÓ¤ç}goÜfBAì'³t”¯SãÑs0É}kÓÕÉ „\9:«Àï%ŸÄ0½H@<s™!í5‚Äl…j‚ÿ[2sƒòßÒ £#i%EøDÒv›°Ö¤Ş^åh‰»xm)•
-ShŸ²_MpÑ+—î¯ãHÕ^£³øy£µâ2?U+÷øeMë™[‰d±M¿Xçu¨ŠÍÑh&€±³•—Æá‰ûh·N,rıx)oM¦ÿIwŞ­¤®ÚôGU,xÆ©åŒçùõëíúäüèò²w}ÖÒÚöéÅğ¤ÿWïæ¢7Ü¢HŸä¯[“D“|©«ºşådŠu½•j	õáÏ4k°ÙT¨6 ¬ïã”»¬×Ø¶r'¸=Ç?cXn"mf‘¼’õ†sÔk'å$k
-2Q=_*ÒUé®Û¦Ùú5s‹ºq§IÍµÍ<?Òƒt¸x÷‘4ŸÕÕİâm},âEj6µ²ÍŠ¿F¼Ô“™È3=MY"ÀLàèı÷¬J>!Ğ®I¨é46B/õiŸ¨zÌOqV1«ã:9ºˆT9ó¿ ¨¿h]4™ŒıláÙe¡æŸÇåúªTAÓAĞİÍÙG¯>{H#Ùÿ8¶r‡ÆœÄãÅRŸû
-<|$ûËerÓŞ^b\÷¾h8ê6—7×ùÔAJ-¿tÖÑ*ƒÂãYp±_©5Ö“‚B©‡F¥µk=V;ª¡Äë	Ì„íòÿa'rğÖ¥¿ÿ.ó¶q×<ÚØ ß«àf²ô§`¾†Oœt9­5³­ØŒŸêVjùîupÜÓK>'ŠwÛrT(ûmvHç¹PÇc~ıc»)‚ı÷wo`½ÛëÔ'Œ0#O‡­—£ÅæDoÅö›ÃÂ¨‹930eñ.K…¶Æ[É‰H~A3`–åÊñKlO'n6Óå÷ãAB.Éx²Z,šÖµşlõ®NZÿµ¯lT
+xœ•X[SÛH}÷¯˜¢ê«lªd/P!óÄÅ6€Yìl²U¼Œ¥–=‹¬ÑjF6Î¯ßÓ=’mLbó%)‚eÍL_NŸ>=¿ŸÔéÍYëßÖâ¿å¸µ¯öÕÑÁAçğÃÑÑGü¶¯Jj¥ø~Şê|8<8zÿImşÑê)üÃÛÍºıO¼ÎÉ¾ø°|ü‘kå­Óa«³ÿ>¨ÍÿaÅ¡¼:L`NûcçÓ¡üşû%e3…_ÓÖoÃËº»ïŸ^÷nŞªá?¿|o0ÕY¦F•399§ì<§Ò©„b“šO´W~Bë\é4µe¢F•Yûhò±
+ßª‘Îñ#ÓyL5”'òA%–œÊ­Wnbça;ã”ÎJÒ	6µÓ©ñ’®Új£×OØ&©HåôäÕœè1RS›Ã.;'X¤ãGå­¢i‘Ù‘‹TœÊ½Ã‘ÇÍõÂ©BÃpíkaPéSöMsª*”Í³<å—§Ø@¥Úd®£Nòíê8¶Uî5VÄ™u°6ÓÎ³~òÆ©â£F•G0F6	tMüÄ+gÄ3×yqÒ¯Nı»ÿõ^ú×_‡WıÛ­öõËÄ"ÜyN1‚‚Pñ±¡óì›ÂË‘}ŠB&kg`^„‰Rgò-Ş¦§x¢ó1©ÑDp®¼â|:üŒÉõB“Ï¬‰9Síã	BB:l#RÊÆl!–4Yàı°9Ğçğ¥Ò8Ae”Œ©TlÚ¢£>—vÊ¶:’'†\³¨*K†j½•¬/JJŒb¼
+ fÚt$›´½;R	ĞÕQß8~ûô‘EÊáQRÚB(ChåtJ e‘’ÔÎ'G/-uwLp6º„[¶ğÆæ®‹¶ZXÒÔä	"„ãµ ¿.Š¨şX.Ã›àS¤àºV1‡Æ«l Ô+‡ ãp=–uŸ¿«ÁÄP– ¾&Àˆ™qŞæ(S/–Y¯m¶…Cj8;#Ê€zV†™y$|’çS;#Ù*(õ#á[ .ƒ¥çtñz˜ÿ²€^”ÂÜ–°Şæ5p˜«<kN7ÂUUîª’8Ú‰­F>­²€ç®&‚x)DZQc¦½ºÊ„QçQ#lèˆvÆb\‹)YUØ…7w«cğè,ëÜÍñšÔGYe$n…E¹ëˆPÁ‚ÜµŠp”¥Õ›Q¹@õ3¾Âû[ä|¸š†s¢Ä­Åº@2fÈ›ĞÄØ7ÓŠÁ—HİbÓšjJjx:ÖYÜ¼Ã="¡cÙU5®€D™PVSÎvVÆÑôTdÑ¯Ù5W2L’J@ªòj:¢2´„°¯á£¼=°'5—•@£¥/P©W'WÛP(W|ól>ÎBë|=‰s£şÖ¿ÿru{Á{Øş}×ÛêÖ9I›KBç4â`³y÷xv‰´­›©æÆ¬ Ö‹»¯«kgüœ¡ƒ–Ùt&MyÛ-Ğ¶È›Xüb¾p6õsÎ‘óUbl(—íÁ/ÌT½½ÛêœCˆC§tå-êË ¨Ã™Ñ’úeZvİË€Ôğ0Á‹egja¤Ä1‚¥_ôYQ»á¦]4LÔ¢ÒïÎ?£nƒ•Î—UìA
+	xdhIËĞ±+y
+ ppèX?AÂ†ÿU‘Á]¦g[HßB˜§T)©7Nl\–qu/M~Ö%#ñuŞ x0ÂS®÷{a®|)–vdQ›dg¼V›½q«Øae“¢43ñP³~¬ã¨ÕŞ$Ù°…ÜXİ=T—äá(¯y$wihgüyƒHv¦ÀXõ‰=³w™Ñ§š£(Ô™é¸O."´$W+‡%
+W6İ:Z6s<œÀB¹™”‘!í——íà­Lú1gÓ¦)ËqáEÏtÃôµ«ÃµWº«ö&¬“ö8é{¹¢ŞSvùUëTÊZêÃÑ{‰‡lCğíŠµ{vÕ¿hc"V!ô\tJç Å{<ì“ãù)ş`G×…Œpa 0mz‰×))­¸k¾šzO{—W·çŠøôëÕõùVÇ.¡İ ŠÔˆ€KYu²%ó"ŠÍC7xøY+Hê(D.Z#¡‡·¬¯î¬óã’^ı£ŒêÊebGQÍ.ğ¯
+9H^£¢sbKiÚ”J/<]Õ?»‡a ¼qÛQ9£‡·u+•*ãWÙ¿Ñp~¾mkî°
+˜‹œ69j¨0Ğ5HŠEÊDPî <MW¬Z½[jr©SÊÇP¥ÔX®Öuf€Æ`†tŒ¹+Z>áêXÕ2ı=ªy ã~rwµœ*vGõ™ YñR#—ìŠXjj²åöJùôóœí‚œ_w€™õ[{¤hDşåÁğ¿=æ,aWÈb´ÒŠ¦šsÁ±ÒeD·H½PX2ÛoµtDŒ¢äX¤³_İßÚƒ¹ò»¸”ûAçğˆP[¥' ZGõóRØªV&á¦€X›Xz¹`à<Z›±(ÌÜñv3Ü¸9c±3|‘å
+Òl‰ºœ¶_d‚	Ê¦¸°!4N"_eâ¨Ç`ŞA0d<«`Nætmo¨ ‘á±Œ«9ƒÏqâ˜r dv;hN+“,óî†]_ßDj­@#õ¬Ê#ŒÎ—˜.¾Gêæì.R·tcÕE-ùš#Tà†L‡w®S4¾h¤0¯­VŞ£œv8ÒhÕ‘Í+'t…YËñUPpV{~fic«‚¸Á	¡8+$áU±à	ÉåË¦z}“8»<¹¾îİ^ôêÍâüjpÖÿ«wÕìèƒ§Ï×E!Ê™©¯ˆÀg¶¯ãJ % dTùúî5:­C•#¸3¼×Ùã6ıeVjI¶Ø~éR¡ı÷¦®Ã½KàwÄÛäqVÉ~ƒ¹ÂRÈ±x¥€8Æ”Ô³l¡ª´M#ß¥ú5Hgµ7HEÎInN
+Öñ˜)Ã·Çj£Øù*­fƒúÖÂ‰ÌiÄó.+ş:òVÏ”¿c°A€™›ÀÄ‡ïY}B ›bÿğvP¥	Öú/<ùê (r³ºM£¼Œ	åÔ½BÍ}!*šLŞœ LÎwY$Ô#?¶óàg©…†×AĞ|Í@ÍÑ«GßD:ıê©ÄP©ã0sk¾°á!ƒe=ß˜¾ºXî{ƒ¯×ÃP)·½ïC5öî¶
+“ô|bÁÃRÑ?µ»¡Ç4CbŒçÆÍRpÕõY‘
+¥šnÕãDí(=¡—Š×c¾ğ»äÿ5Îä^¬«>¾{'SåáÔƒƒ}ÖÕ¹—aÈ•;}Ÿ ³9¯5Á­Hßì<;`Ñ[T¿*ù"|ÉU¸İ#Ê2á§+¼ücÔTÁáû‡·°B½Ûo×7€0z»ÍÖËÕ_3I%r±»Àn!,»ı<sŸ²lõkÄµ6ÕcóRèq­¯òMŸÜ‚UhÇ ¦3;Eßü±¢<hÃ5şÕfÁ´Ş°õg«wsÖúˆF¬
 endstream
 endobj
 
@@ -179,28 +176,28 @@ xref
 0000001578 00000 n 
 0000001851 00000 n 
 0000002089 00000 n 
-0000002539 00000 n 
-0000003272 00000 n 
-0000004287 00000 n 
-0000004347 00000 n 
-0000004583 00000 n 
-0000010839 00000 n 
-0000011135 00000 n 
-0000011871 00000 n 
-0000011923 00000 n 
-0000012021 00000 n 
-0000012124 00000 n 
-0000012230 00000 n 
-0000013782 00000 n 
-0000014087 00000 n 
-0000014177 00000 n 
-0000014505 00000 n 
-0000014949 00000 n 
-0000015595 00000 n 
-0000018415 00000 n 
+0000002544 00000 n 
+0000003245 00000 n 
+0000004260 00000 n 
+0000004320 00000 n 
+0000004556 00000 n 
+0000010743 00000 n 
+0000011039 00000 n 
+0000011775 00000 n 
+0000011827 00000 n 
+0000011925 00000 n 
+0000012028 00000 n 
+0000012134 00000 n 
+0000013686 00000 n 
+0000013991 00000 n 
+0000014081 00000 n 
+0000014409 00000 n 
+0000014860 00000 n 
+0000015489 00000 n 
+0000018277 00000 n 
 
 trailer
-<</Size 27/Info 20 0 R/Root 1 0 R/ID[<4A17EC7A4B64774F824ACF8D0B278334><0888142BF20ED4919D4F9B3162783620>]>>
+<</Size 27/Info 20 0 R/Root 1 0 R/ID[<4A17EC7A4B64774F824ACF8D0B278334><CC51715943A9FF58E29E8678A4195195>]>>
 startxref
-18760
+18622
 %%EOF
