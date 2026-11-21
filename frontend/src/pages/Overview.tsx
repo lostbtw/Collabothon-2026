@@ -156,12 +156,6 @@ type TaxComponent = Forecast["components"][number] & { date: string };
 
 function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean; open: boolean; onToggle: () => void }) {
   const estimate = c.label.endsWith(ESTIMATE);
-  const steps = c.breakdown ?? [];
-  const rule = c.evidence?.find((e) => e.kind === "rule");
-  const sources = (c.evidence ?? []).filter((e) => e.kind !== "rule");
-  const formula = c.schedule?.split(": ").slice(1).join(": ") ?? "";
-  const due = c.schedule?.split(": ")[0];
-  const bold = (op: string) => (op === "equals" ? "medium" : "");
   return (
     <div style={first ? undefined : { borderTop: "1px solid var(--border)" }}>
       <div role="button" tabIndex={0} aria-expanded={open} onClick={onToggle}
@@ -181,46 +175,82 @@ function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean;
           <span style={{ display: "inline-block", transform: open ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform .15s" }}>›</span>
         </span>
       </div>
-      {open && (
-        <div className="stack" style={{ gap: 16, padding: "0 28px 20px 72px" }}>
-          {steps.length === 0 && formula && (
-            <div className="stack" style={{ gap: 6 }}>
-              <span className="caption t3">How we got this number</span>
-              <span className="small">{formula}</span>
+      {open && <TaxDetails c={c} />}
+    </div>
+  );
+}
+
+const PANEL_TITLE: React.CSSProperties = { fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-3)" };
+const NUM: React.CSSProperties = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" };
+const SOURCE = /^(.*), (\d{4}-\d{2}-\d{2}), (.*)$/;
+
+function PanelPart({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <span style={PANEL_TITLE}>{title}</span>
+      {children}
+    </div>
+  );
+}
+
+function TaxDetails({ c }: { c: TaxComponent }) {
+  const steps = (c.breakdown ?? []).filter((s) => s.op !== "note");
+  const notes = (c.breakdown ?? []).filter((s) => s.op === "note");
+  const last = steps.length - 1;
+  const rule = c.evidence?.find((e) => e.kind === "rule");
+  const sources = (c.evidence ?? []).filter((e) => e.kind !== "rule");
+  const formula = c.schedule?.split(": ").slice(1).join(": ") ?? "";
+  const due = c.schedule?.split(": ")[0];
+  return (
+    <div className="stack" style={{ gap: 20, margin: "0 0 16px 72px", padding: "16px 20px", background: "var(--page)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
+      {(steps.length > 0 || formula) && (
+        <PanelPart title="How we got this number">
+          {steps.length === 0 ? <span className="small">{formula}</span> : (
+            <div className="stack" style={{ gap: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+              {steps.map((s, i) => {
+                const total = i === last;
+                return (
+                  <div key={i} className="hstack" style={{ gap: 12, padding: "10px 14px", borderTop: i ? "1px solid var(--border)" : undefined, background: total ? "var(--accent-soft)" : undefined }}>
+                    <span style={{ width: 20, height: 20, flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "var(--pill)", background: OP_SIGN[s.op] ? "var(--sunken)" : "transparent", color: "var(--text-2)", fontSize: 13 }}>{OP_SIGN[s.op]}</span>
+                    <span className="grow" style={{ fontSize: 14, fontWeight: total ? 600 : 400, color: total ? "var(--text)" : "var(--text-2)" }}>{s.label}</span>
+                    {s.amount && <span style={{ ...NUM, fontSize: total ? 16 : 14, fontWeight: total ? 600 : 500, color: total ? "var(--accent)" : "var(--text)" }}>{formatMoney(s.amount)}</span>}
+                  </div>
+                );
+              })}
             </div>
           )}
-          {steps.length > 0 && (
-          <div className="stack" style={{ gap: 6 }}>
-            <span className="caption t3">How we got this number</span>
-            {steps.map((s, i) => s.op === "note"
-              ? <span key={i} className="small t2">{s.label}</span>
-              : (
-                <div key={i} className="hstack" style={{ gap: 12, ...(s.op === "equals" ? { paddingTop: 6, borderTop: "1px solid var(--border)" } : {}) }}>
-                  <span className="t3" style={{ width: 12, textAlign: "center" }}>{OP_SIGN[s.op]}</span>
-                  <span className={`small grow ${bold(s.op)}`}>{s.label}</span>
-                  {s.amount && <span className={`small ${bold(s.op)}`} style={{ fontVariantNumeric: "tabular-nums" }}>{formatMoney(s.amount)}</span>}
-                </div>
-              ))}
+          {notes.map((n, i) => <span key={i} className="small t3">ⓘ {n.label}</span>)}
+        </PanelPart>
+      )}
+      {due && (
+        <PanelPart title="Why this date">
+          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 16 }}>
+            <span className="small t3">Payment date</span>
+            <span className="small medium">{shortDate(c.date)}</span>
+            <span className="small t3">Deadline</span>
+            <span className="small">{due.charAt(0).toUpperCase() + due.slice(1)}</span>
+            {rule && <><span className="small t3">Rule</span><span className="small t2">{rule.label}</span></>}
           </div>
-          )}
-          {due && (
-            <div className="stack" style={{ gap: 2 }}>
-              <span className="caption t3">Why this date</span>
-              <span className="small t2">Due on the {due}. Payment date: {shortDate(c.date)}.</span>
-              {rule && <span className="small t2">Rule: {rule.label}</span>}
-            </div>
-          )}
-          {sources.length > 0 && (
-            <div className="stack" style={{ gap: 6 }}>
-              <span className="caption t3">Based on</span>
-              <span className="hstack" style={{ gap: 6, flexWrap: "wrap" }}>
-                {sources.map((e) => e.url
-                  ? <Link key={e.id} to={e.url} className="chip neutral">{e.label}</Link>
-                  : <span key={e.id} className="chip neutral">{e.label}</span>)}
-              </span>
-            </div>
-          )}
-        </div>
+        </PanelPart>
+      )}
+      {sources.length > 0 && (
+        <PanelPart title={`Based on ${sources.length} ${sources.length === 1 ? "item" : "items"}`}>
+          <div className="stack" style={{ gap: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+            {sources.map((e, i) => {
+              const m = SOURCE.exec(e.label);
+              const row = (
+                <span className="hstack" style={{ gap: 12, padding: "9px 14px", borderTop: i ? "1px solid var(--border)" : undefined }}>
+                  <span className="chip neutral" style={{ height: 20, fontSize: 11 }}>{e.kind === "document" ? "Invoice" : "Payment"}</span>
+                  <span className="small medium grow">{m ? m[1] : e.label}</span>
+                  {m && <span className="small t3">{shortDate(m[2])}</span>}
+                  {m && <span className="small" style={{ ...NUM, minWidth: 110, textAlign: "right" }}>{m[3]}</span>}
+                  {e.url && <span className="t3" aria-hidden>›</span>}
+                </span>
+              );
+              return e.url ? <Link key={e.id} to={e.url} style={{ color: "inherit", textDecoration: "none" }}>{row}</Link> : <div key={e.id}>{row}</div>;
+            })}
+          </div>
+        </PanelPart>
       )}
     </div>
   );
