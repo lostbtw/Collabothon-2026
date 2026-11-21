@@ -83,7 +83,6 @@ def mcp_url() -> str:
 
 
 def guardrails_url() -> str:
-    """NeMo Guardrails server in front of the chat (deploy/guardrails/), without /v1. Empty: no check (local, tests)."""
     return os.environ.get("ORDO_GUARDRAILS_URL", "")
 
 
@@ -92,7 +91,6 @@ def guardrails_config() -> str:
 
 
 def guardrails_token() -> str:
-    """Bearer token for the guardrails' kube-rbac-proxy: by default the model's (ServiceAccount cfo-app)."""
     return os.environ.get("ORDO_GUARDRAILS_API_KEY") or llm_token()
 
 

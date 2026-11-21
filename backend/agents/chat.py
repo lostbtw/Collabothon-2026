@@ -1,4 +1,4 @@
-"""The chat: guardrails first, then read-only tools and number-checked answers; money requests become inbox cards."""
+"""The chat: read-only tools, number-checked answers. It never moves money: such requests become inbox cards."""
 import calendar
 import re
 import uuid
@@ -374,7 +374,7 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
     session_id = session_id or f"chat_{uuid.uuid4().hex[:10]}"
     trace_id = None
     verdict = guardrails.check(message, agent="chat", company_id=company, session_id=session_id)
-    message = verdict.text  # masked when needed: the model, the history and any inbox card see only this text
+    message = verdict.text
     if verdict.blocked:
         remember(conn, session_id, company, message, guardrails.REFUSAL)
         return _reply(session_id, company, guardrails.REFUSAL, guardrail=verdict.note())

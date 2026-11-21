@@ -1,4 +1,3 @@
-"""NeMo Guardrails in front of the chat: masks IBANs, card numbers and tax ids and refuses off-topic messages."""
 import logging
 import os
 import re
@@ -16,7 +15,6 @@ MASKED = re.compile(r"<(" + "|".join(KINDS) + r")>")
 REFUSAL = ("I can only help with your company's money: cash, the forecast, costs, clients, invoices and the cards in "
            "your inbox. I do not give investment advice.")
 
-# The server's patterns (deploy/guardrails/), for when it does not answer; longest first so an IBAN stays whole.
 LOCAL_PATTERNS = [
     ("IBAN_CODE", re.compile(r"\b[A-Z]{2} ?\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b")),
     ("IBAN_CODE", re.compile(r"\b\d{2}(?: ?\d{4}){6}\b")),
@@ -35,8 +33,8 @@ def local_mask(text: str) -> str:
 
 @dataclass(frozen=True)
 class Verdict:
-    status: str  # off | passed | modified | blocked | unavailable
-    text: str  # the only text that may go further: to the model, the history, an inbox card
+    status: str
+    text: str
     rail: str | None = None
     masked: list[str] = field(default_factory=list)
 
@@ -72,7 +70,6 @@ def client() -> httpx.Client:
 
 
 def check(message: str, *, http: httpx.Client | None = None, **tags: Any) -> Verdict:
-    """Never raises; without an answer the model is not allowed. The trace holds the masked text only."""
     if not settings.guardrails_url():
         return Verdict("off", message)
     with tracing.span("chat.guardrails") as step:
@@ -101,7 +98,7 @@ def _ask(message: str, http: httpx.Client | None) -> Verdict:
         return Verdict("passed", message)
     if status == "modified" and isinstance(content, str) and content.strip():
         return _verdict("modified", content)
-    if status == "blocked":  # content is the server's refusal, not the message
+    if status == "blocked":
         return _verdict("blocked", local_mask(message), body.get("rail"))
     log.warning("guardrails answered %r, the chat answers without the model", status)
     return _verdict("unavailable", local_mask(message))

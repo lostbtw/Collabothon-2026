@@ -332,25 +332,17 @@ ogx_off() {
   echo "OK   the agents run their own tool loop again"
 }
 
-# NeMo Guardrails in front of the chat (#31): the TrustyAI operator runs the server from deploy/guardrails/;
-# the chat in ordo-api checks every message there once ConfigMap ordo-guardrails-client exists.
 guardrails() {
-  # limits.yaml gives the server its memory limit (the NemoGuardrails CR has no resources field).
   oc apply -f "$HERE/limits.yaml" -f "$GUARDRAILS/nemo-guardrails.yaml"
-  # The operator never updates a Service it made: one made before auth was on still points past the proxy.
-  if [[ "$(oc -n "$NS" get service ordo-guardrails -o jsonpath='{.spec.ports[0].port}' 2>/dev/null || true)" == 80 ]]; then
-    oc -n "$NS" delete service/ordo-guardrails route/ordo-guardrails --ignore-not-found
-  fi
   wait_for "the Deployment ordo-guardrails" 120 oc -n "$NS" get deployment/ordo-guardrails
   oc -n "$NS" rollout status deployment/ordo-guardrails --timeout=300s
-  check_guardrails rails || return 1 # the server works before the chat depends on it
+  check_guardrails rails || return 1
   oc apply -f "$APP/guardrails-config.yaml" -f "$APP/api.yaml"
   oc -n "$NS" rollout restart deployment/ordo-api
   oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
   check_guardrails
 }
 
-# The rails (IBAN masked, investment advice blocked, the five tool questions pass) and then the chat through them.
 check_guardrails() {
   if oc -n "$NS" exec -i deployment/ordo-api -c api -- python - "$@" <"$GUARDRAILS/check_guardrails.py"; then
     echo "OK   NeMo Guardrails mask IBANs, card numbers and tax ids and refuse investment advice${1:+ (rails only)}"
@@ -360,7 +352,6 @@ check_guardrails() {
   fi
 }
 
-# The chat without the guardrails (the server stays up).
 guardrails_off() {
   oc -n "$NS" delete configmap ordo-guardrails-client --ignore-not-found
   oc -n "$NS" rollout restart deployment/ordo-api

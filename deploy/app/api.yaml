@@ -55,8 +55,6 @@ spec:
             - configMapRef:
                 name: ordo-ogx
                 optional: true
-            # ORDO_GUARDRAILS_URL (deploy/app/guardrails-config.yaml). Optional: without it the chat runs
-            # without NeMo Guardrails.
             - configMapRef:
                 name: ordo-guardrails-client
                 optional: true

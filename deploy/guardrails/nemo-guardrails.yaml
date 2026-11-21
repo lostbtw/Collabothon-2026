@@ -1,14 +1,3 @@
-# NeMo Guardrails in front of the chat (#31). The TrustyAI operator (already Managed in the DataScienceCluster)
-# runs the server; the chat (backend/agents/guardrails.py) sends each owner message to POST /v1/checks before
-# anything reaches gpt-oss-20b, and uses what comes back:
-#   passed   -> the message unchanged
-#   modified -> the message with IBANs, card numbers and tax ids replaced by <IBAN_CODE>, <CREDIT_CARD>, <TAX_ID>
-#   blocked  -> investment advice or not about the company's finances: the chat refuses, no model call
-# Masking runs first, so the topic check (gpt-oss-20b itself) never sees the raw values either.
-# Auth on (kube-rbac-proxy): callers send a token that may `get` services in cfo-ai, i.e. ServiceAccount
-# cfo-app's (Secret llm-token). In-cluster: https://ordo-guardrails.cfo-ai.svc.cluster.local (service CA).
-# The operator also makes a Route; it ends at the same proxy, so it needs the same token.
-# setup.sh guardrails applies this file and runs check-guardrails.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,7 +7,6 @@ metadata:
     app.kubernetes.io/part-of: ordo
 data:
   config.yaml: |
-    # The model the topic check asks: the cluster's gpt-oss-20b through its token-protected port (never :8080).
     models:
       - type: main
         engine: openai
@@ -31,19 +19,14 @@ data:
     rails:
       config:
         sensitive_data_detection:
-          # Presidio (spaCy en_core_web_lg is inside the image). IBAN_CODE and CREDIT_CARD have built-in
-          # recognizers that check the IBAN checksum and the card's Luhn digit; the patterns below also catch
-          # the forms they miss. (?-i:...) keeps letters upper-case: Presidio matches case-insensitively.
           recognizers:
             - name: iban_digits
               supported_language: en
               supported_entity: IBAN_CODE
               patterns:
-                # PL/DE-style IBAN with or without spaces, also with a wrong checksum: PL61 1090 1014 0000 0712 1981 2874
                 - name: iban_digits
                   regex: '(?-i:\b[A-Z]{2} ?\d{2}(?:[ ]?\d{4}){3,7}(?:[ ]?\d{1,3})?\b)'
                   score: 0.8
-                # Polish account number (NRB), the IBAN without "PL": 61 1090 1014 0000 0712 1981 2874
                 - name: nrb
                   regex: '\b\d{2}(?:[ ]?\d{4}){6}\b'
                   score: 0.8
@@ -51,7 +34,6 @@ data:
               supported_language: en
               supported_entity: CREDIT_CARD
               patterns:
-                # 16 digits in fours, or 15 digits 4-6-5 (Amex), with or without spaces or dashes
                 - name: card_16
                   regex: '\b\d{4}(?:[ -]?\d{4}){3}\b'
                   score: 0.6
@@ -62,15 +44,12 @@ data:
               supported_language: en
               supported_entity: TAX_ID
               patterns:
-                # Polish NIP: 1234567890, 123-456-78-90, 123-45-67-890, optionally with "PL"
                 - name: nip
                   regex: '(?-i:\b(?:PL ?)?(?:\d{3}-?\d{3}-?\d{2}-?\d{2}|\d{3}-\d{2}-\d{2}-\d{3})\b)'
                   score: 0.7
-                # German VAT id (USt-IdNr.): DE123456789
                 - name: ust_idnr
                   regex: '(?-i:\bDE ?\d{9}\b)'
                   score: 0.7
-                # German tax number (Steuernummer): 12/345/67890, 123/456/7890
                 - name: steuernummer
                   regex: '\b\d{2,3}/\d{3}/\d{4,5}\b'
                   score: 0.7
@@ -85,9 +64,7 @@ data:
         flows:
           - mask sensitive data on input
           - self check input
-  # The image's start script requires this file. No dialog flows: the chat only uses the input rails.
-  rails.co: |
-    # Input rails only, see config.yaml.
+  rails.co: ""
   prompts.yml: |
     prompts:
       - task: self_check_input
@@ -133,17 +110,13 @@ spec:
       configMaps:
         - ordo-guardrails-chat
       default: true
-  # No caBundleConfig: the operator adds the OpenShift service CA (which signs the model's :8443 certificate)
-  # to SSL_CERT_FILE on its own.
   env:
-    # Bearer token for gpt-oss-20b: ServiceAccount cfo-app, the same token the app uses (deploy/models/llm-client.yaml).
     - name: LLM_TOKEN
       valueFrom:
         secretKeyRef:
           name: llm-token
           key: token
 ---
-# Who may call the guardrails: the app's ServiceAccount.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -152,9 +125,6 @@ metadata:
   labels:
     app.kubernetes.io/part-of: ordo
 rules:
-  # The operator's proxy config (ConfigMap ordo-guardrails-rbac-proxy-config) names the service under
-  # `resourceName`, a key kube-rbac-proxy ignores (it reads `name`), so the check it makes is "get services" with
-  # no name: a resourceNames list here would never match. Reading Service objects in cfo-ai reveals nothing secret.
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get"]

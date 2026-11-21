@@ -2,10 +2,11 @@
 import json
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.agents import chat
+from backend.agents import chat, guardrails
 from backend.agents.guardrails import REFUSAL
 from backend.api import contract
 from backend.api.app import create_app
@@ -168,14 +169,8 @@ def test_a_request_the_model_already_put_in_the_inbox_is_not_put_there_twice(wit
     assert "I cannot move money" in answer["answer"] and answer["guardrail"]["blocked"]
 
 
-
 @pytest.fixture
 def guarded(monkeypatch):
-    """A stand-in for the guardrails server: `verdicts` maps a message to its /v1/checks answer (default: passed)."""
-    import httpx
-
-    from backend.agents import guardrails
-
     verdicts: dict[str, dict] = {}
     seen: list[str] = []
 
@@ -200,7 +195,7 @@ def test_investment_advice_is_refused_without_a_model_call(with_model, guarded, 
     verdicts, _ = guarded
     verdicts["Which stock should I buy?"] = {"status": "blocked", "content": "I'm sorry, I can't respond to that.",
                                              "rail": "self check input"}
-    app, model = with_model()  # a model with no turns: any call to it would fail the test
+    app, model = with_model()
     with app:
         answer = ask(app, "Which stock should I buy?")
 
@@ -233,7 +228,7 @@ def test_a_masked_payment_request_becomes_an_inbox_card_without_the_iban(demo, g
 
     card = Store(db).get("recommendation", answer["created_recommendation_id"])
     assert "<IBAN_CODE>" in card["evidence"][0]["excerpt"] and "1090" not in json.dumps(card)
-    assert answer["guardrail"]["blocked"]  # chat cannot move money: that guardrail is the one shown
+    assert answer["guardrail"]["blocked"]
 
 
 @pytest.mark.parametrize("question, tool, arguments, company", [
@@ -266,5 +261,5 @@ def test_without_the_guardrails_the_chat_answers_without_the_model(with_model, g
         answer = ask(app, raw)
 
     assert model.requests == []
-    assert [t["tool"] for t in answer["tool_calls"]] == ["get_cash_position"]  # the deterministic answer
+    assert [t["tool"] for t in answer["tool_calls"]] == ["get_cash_position"]
     assert stored_user_messages(db, answer["session_id"]) == ["How much cash do I have? My card is <CREDIT_CARD>"]

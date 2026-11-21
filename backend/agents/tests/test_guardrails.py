@@ -1,4 +1,3 @@
-"""guardrails.check against a stand-in for the NeMo Guardrails server's POST /v1/checks."""
 import json
 
 import httpx
@@ -8,7 +7,6 @@ from backend.agents import guardrails
 
 
 def server(answer):
-    """An httpx client whose server answers every request with `answer(request body)`; records what it got."""
     seen: list[dict] = []
 
     def handle(request: httpx.Request) -> httpx.Response:

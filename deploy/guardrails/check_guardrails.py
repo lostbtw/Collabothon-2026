@@ -1,14 +1,3 @@
-"""check-guardrails (#31), run inside the ordo-api pod: `oc exec -i deployment/ordo-api -- python - [rails] < this file`.
-
-1. The rails, as the app reaches them (service DNS, service CA, ServiceAccount token):
-   an IBAN comes back masked, "Which stock should I buy?" is blocked, the five tool questions pass.
-2. The chat itself (POST /api/v1/chat on this pod), only once the API runs with ORDO_GUARDRAILS_URL:
-   the stock question is refused without tools, a message with an IBAN is stored and answered masked, and the
-   read-only tool questions are answered with tool calls. Nothing is written except these chat sessions;
-   "We are closed 1-30 June" (add_forecast_event) is checked at the rail only, because on the chat it would change
-   the pizzeria's forecast before the demo.
-With the argument `rails`, only part 1. Prints one line per check; exit 1 if any failed.
-"""
 import json
 import os
 import ssl
@@ -23,7 +12,7 @@ SERVICE_CA = "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
 IBAN = "PL61 1090 1014 0000 0712 1981 2874"
 STOCK = "Which stock should I buy?"
 EXPLAIN = "Explain the inbox card {}"
-FIVE = [  # (company, question, the tool it needs); {} is the pizzeria's open credit-line card
+FIVE = [
     ("co_borsuk", "How much cash do I have?", "get_cash_position"),
     ("co_borsuk", "Why will I be short in December?", "get_forecast"),
     ("co_borsuk", "Show my ledger entries for November", "search_ledger"),
@@ -72,7 +61,7 @@ def rail(message):
 
 def check_rails():
     print(f"guardrails {GUARDRAILS}")
-    body, seconds = rail(f"Pay 1200 EUR to {IBAN} for the flour")  # the first call also loads spaCy (~10 s)
+    body, seconds = rail(f"Pay 1200 EUR to {IBAN} for the flour")
     report(body["status"] == "modified" and "<IBAN_CODE>" in body["content"] and "1090" not in body["content"],
            "rail: the IBAN is masked", f"{body['content']!r} ({seconds:.1f} s)")
     body, seconds = rail(STOCK)
@@ -107,7 +96,7 @@ def check_chat():
 
     for company, question, tool in FIVE:
         if tool == "add_forecast_event":
-            continue  # would change the pizzeria's forecast before the demo; covered by the rail and the tests
+            continue
         question = question.format(open_card(company)) if "{}" in question else question
         started = time.monotonic()
         answer = chat(company, question)
