@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 import psycopg
 
+from backend import tracing
 from backend.db.events import new_event, publish
 from backend.db.store import Store
 from backend.pipeline.normalise.fx import StandInRates, to_base
@@ -165,15 +166,20 @@ def handle(conn: psycopg.Connection, event: dict, extract: Extract, *, rates: An
                                                   "message": "The file of this item is not stored"})
         return "failed"
     db.set_status(raw, company_id, "processing")
-    fields = extract(data, raw["content_type"])
-    company = db.company(company_id)
-    document = build(raw, fields, company, submitted_by=db.submitted_by(company_id, raw),
-                     rates=rates if rates is not None else StandInRates(), created_at=now_iso())
-    publish(conn, new_event("document.extracted", company_id, extracted_payload(document), producer=PRODUCER,
-                            correlation_id=event.get("correlation_id") or raw["id"], causation_id=event["id"]),
-            commit=False)
-    db.store.add("document", document, company_id=company_id)
-    db.set_status(raw, company_id, "processed")
+    with tracing.span("raw_item.extract", {"raw_item_id": raw["id"], "kind": raw["kind"],
+                                           "content_type": raw["content_type"]}) as root:
+        tracing.tag(raw_item_id=raw["id"], company_id=company_id, kind=raw["kind"])
+        fields = extract(data, raw["content_type"])
+        company = db.company(company_id)
+        document = build(raw, fields, company, submitted_by=db.submitted_by(company_id, raw),
+                         rates=rates if rates is not None else StandInRates(), created_at=now_iso())
+        tracing.tag(document_id=document["id"], status=document["status"])
+        tracing.outputs(root, extracted_payload(document))
+        publish(conn, new_event("document.extracted", company_id, extracted_payload(document), producer=PRODUCER,
+                                correlation_id=event.get("correlation_id") or raw["id"], causation_id=event["id"]),
+                commit=False)
+        db.store.add("document", document, company_id=company_id)
+        db.set_status(raw, company_id, "processed")
     return "extracted"
 
 
