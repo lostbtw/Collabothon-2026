@@ -16,11 +16,12 @@ describe("all payments", () => {
     const jan = list.find((p) => p.id === "doc_rcpt412")!;
     expect(jan).toMatchObject({ name: "ElektroMarkt Polska S.A.", paidBy: "Jan, own card", doc: "receipt", amount: { amount: "-1299.00", currency: "PLN" }, transaction: null });
     expect(typeOf(jan).label).toBe("Equipment");
-    expect(list.find((p) => p.id === "txn_731")).toMatchObject({ paidBy: "Company card", doc: "on_file" });
+    expect(list.find((p) => p.id === "txn_731")).toMatchObject({ paidBy: "Card ·4417 (PLN)", doc: "on_file" });
     expect(list.find((p) => p.id === "txn_s_sklepik")).toMatchObject({ name: "Sklepik.pl", doc: "missing" });
-    expect(list.find((p) => p.id === "txn_s_tax1120")).toMatchObject({ paidBy: "Company account", doc: "not_needed" });
-    expect(list.find((p) => p.id === "txn_s_kadr1110")).toMatchObject({ paidBy: "Paid to us" });
-    expect(list.find((p) => p.id === "txn_s_rail")).toMatchObject({ paidBy: "Owner's card" });
+    expect(list.find((p) => p.id === "txn_s_tax1120")).toMatchObject({ paidBy: "PLN account", doc: "not_needed" });
+    expect(list.find((p) => p.id === "txn_s_kadr1110")).toMatchObject({ paidBy: "Into PLN account" });
+    expect(list.find((p) => p.id === "txn_s_rail")).toMatchObject({ paidBy: "Owner's card ·9021" });
+    expect(filterPayments(list, { account: "acc_eur" }).every((p) => p.account?.id === "acc_eur")).toBe(true);
     expect(list.map((p) => p.date)).toEqual([...list.map((p) => p.date)].sort().reverse());
   });
 

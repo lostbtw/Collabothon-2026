@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api, rawContentUrl } from "../../api/client";
 import type { Approval, Category, OrdoDocument, Recommendation } from "../../api/types.gen";
 import { Icon } from "../../components/Icon";
-import { CloseButton, StatusLabel } from "../../components/ui";
+import { CloseButton, SimButton, StatusLabel } from "../../components/ui";
 import { useCompany } from "../../lib/company";
 import { longDate } from "../../lib/dates";
 import { formatMoney } from "../../lib/money";
@@ -148,9 +148,10 @@ function Decide({ p, card }: { p: Payment; card: Recommendation }) {
       <StatusLabel level="approval_required" />
       <span>{paid ? [paid.headline, paid.detail].filter(Boolean).join(". ") : card.title}</span>
       {error && <span className="small bad" role="alert">Not done: {error}</span>}
-      <button type="button" className="primary" style={{ alignSelf: "flex-start" }} disabled={busy} onClick={approve}>
-        {busy ? "Working…" : card.type === "reimburse_employee" && p.match?.payer?.name ? `Pay ${firstName(p.match.payer.name)} back (simulated)` : approveLabel(card)}
-      </button>
+      <span style={{ alignSelf: "flex-start" }}>
+        <SimButton busy={busy} what={card.proposed_action?.preview} onClick={approve}
+          label={card.type === "reimburse_employee" && p.match?.payer?.name ? `Pay ${firstName(p.match.payer.name)} back` : approveLabel(card)} />
+      </span>
     </div>
   );
 }

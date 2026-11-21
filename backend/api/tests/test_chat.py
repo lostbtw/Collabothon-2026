@@ -63,7 +63,8 @@ def test_asking_chat_to_move_money_creates_an_inbox_card_instead(demo, db):
 def test_no_execution_or_decision_tool_is_reachable_from_chat():
     names = set(chat.CHAT_TOOLS)
     assert names == {"get_cash_position", "get_forecast", "search_ledger", "explain_recommendation",
-                     "add_forecast_event", "get_fx_exposure", "request_action", "run_readonly_sql"}
+                     "add_forecast_event", "get_fx_exposure", "request_action", "run_readonly_sql",
+                     "get_clients", "get_month_costs"}  # both read only
     assert not {n for n in names if "execute" in n or "decide" in n or "approve" in n}
 
 

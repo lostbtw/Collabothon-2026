@@ -18,7 +18,7 @@ import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
 import type { ChatAnswer, Person, Settings } from "./client";
 import {
-  BALANCE_HISTORY, CHAT_HISTORY, PEOPLE, PEOPLE_COSTS, RULES, SAMPLE_APPROVALS, SAMPLE_COUNTERPARTIES, SAMPLE_RECOMMENDATIONS, SAMPLE_TRANSACTIONS,
+  BALANCE_HISTORY, CHAT_HISTORY, MONTHLY_EXTRA, PEOPLE, PEOPLE_COSTS, RULES, SAMPLE_APPROVALS, SAMPLE_COUNTERPARTIES, SAMPLE_RECOMMENDATIONS, SAMPLE_TRANSACTIONS,
   SETTINGS, SUBSCRIPTIONS, SUMMARY_BY_MONTH, SUMMARY_KPIS, clientsFor, readUpload,
 } from "./sample";
 import type {
@@ -171,7 +171,12 @@ function mockAnswer(message: string, forecast: Forecast): Pick<ChatAnswer, "answ
   if (/hire|developer/i.test(message)) return reply(CHAT_HISTORY[0].detail[3].content, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" });
   if (/cost/i.test(message)) return reply(CHAT_HISTORY[1].detail[1].content, { kind: "external", id: "2026-10", label: "October by type", url: "/money?month=2026-10" });
   if (/owe/i.test(message)) return reply(CHAT_HISTORY[2].detail[1].content, { kind: "external", id: "clients", label: "Clients", url: "/money/clients" });
-  if (/bonus|afford/i.test(message)) return reply(CHAT_HISTORY[5].detail[1].content, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" });
+  if (/bonus|afford/i.test(message)) {
+    // Like the real agent: the forecast, the accounts and every payment the answer leans on.
+    const accounts = fixtures.accounts.filter((a) => a.company_id === "co_borsuk").map((a) => ({ kind: "external" as const, id: a.id, label: `Account ${a.name}`, url: `/accounts/${a.id}` }));
+    const lines = SAMPLE_TRANSACTIONS.filter((t) => t.amount_base.amount.startsWith("-")).map((t) => ({ kind: "transaction" as const, id: t.id, label: `${t.counterparty_name_raw}, ${t.booking_date}, ${formatMoney(t.amount_base)}`, url: `/transactions/${t.id}` }));
+    return reply(CHAT_HISTORY[5].detail[1].content, ...accounts, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" }, ...lines);
+  }
   return reply(
     `Sample answer. The lowest point is ${formatMoney(forecast.min_balance.amount, { decimals: false })} on ${shortDate(forecast.min_balance.date)}${forecast.first_negative_date ? `; the balance first goes below zero on ${shortDate(forecast.first_negative_date)}` : ""}.`,
     { kind: "forecast", id: forecast.id, label: "45-day forecast", url: "/" },
@@ -301,7 +306,14 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     } else result = { items: [], totals: { staff: { amount: "0.00", currency: "PLN" }, social_security: { amount: "0.00", currency: "PLN" }, share_of_costs: 0 } };
   }
   else if (method === "GET" && path === "/clients") { onlyBorsuk(company, "clients"); result = clientsFor(q.get("month") ?? "2026-10"); }
-  else if (method === "GET" && path === "/subscriptions") { onlyBorsuk(company, "subscriptions"); result = SUBSCRIPTIONS; }
+  else if (method === "GET" && path === "/subscriptions") {
+    onlyBorsuk(company, "subscriptions");
+    if (q.get("scope") === "all") {
+      const items = [...SUBSCRIPTIONS.items, ...MONTHLY_EXTRA];
+      const total = items.reduce((t, i) => t + BigInt(i.monthly.amount.replace(".", "")), 0n);
+      result = { items, monthly_total: { amount: `${total / 100n}.${String(total % 100n).padStart(2, "0")}`, currency: "PLN" } };
+    } else result = SUBSCRIPTIONS;
+  }
   else if (path === "/settings" && (method === "GET" || method === "PATCH")) {
     onlyBorsuk(company, "settings");
     if (method === "PATCH") {

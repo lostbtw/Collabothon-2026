@@ -165,3 +165,25 @@ def test_late_clients_get_a_reminder_to_approve_once(demo, db):
     assert card["type"] == "chase_receivable" and card["control_level"] == "approval_required" and card["execution_mode"] == "simulated"
     assert card["proposed_action"]["kind"] == "send_email_draft" and card["evidence"]
     assert receivables.chase_late_clients(db, "co_borsuk") == []  # one open reminder per invoice
+
+
+def test_monthly_payments_include_rent_and_staff_and_follow_the_month(demo, db):
+    Store(db).put("transaction", line("txn_t_rent9", "2026-09-14", "-2460.00", "BIURO NA PIOTRKOWSKIEJ", "rent_office"), company_id="co_borsuk")
+    got = demo.get("/api/v1/subscriptions", params={**BORSUK, "scope": "all", "month": "2026-10"}).json()
+    by_name = {i["name"]: i for i in got["items"]}
+    assert by_name["BIURO NA PIOTRKOWSKIEJ"]["monthly"]["amount"] == "2460.00" and by_name["BIURO NA PIOTRKOWSKIEJ"]["paid_in_month"] is True
+    assert "CHMURA POLSKA" in by_name and by_name["CHMURA POLSKA"]["category"] == "cloud_hosting"
+    later = demo.get("/api/v1/subscriptions", params={**BORSUK, "scope": "all", "month": "2026-11"}).json()
+    assert {i["name"]: i for i in later["items"]}["BIURO NA PIOTRKOWSKIEJ"]["paid_in_month"] is False  # not paid yet in November
+    assert demo.get("/api/v1/subscriptions", params={**BORSUK, "month": "Nov"}).status_code == 422
+
+
+@pytest.mark.parametrize("question,expect", [
+    ("Who still owes us?", "Clients owe you"),
+    ("Why are costs up?", "Costs in 2026-11 so far"),
+    ("Can I afford a December bonus?", "lowest expected balance"),
+])
+def test_the_suggested_questions_get_an_answer_with_sources(demo, question, expect):
+    got = demo.post("/api/v1/chat", json={"message": question, "company_id": "co_borsuk"}).json()
+    assert expect in got["answer"]
+    assert got["evidence"]

@@ -171,6 +171,59 @@ def match_document(ctx: Context, company: str, doc: dict, correlation: str | Non
     _save_match(ctx, company, doc, result, correlation, causation)
 
 
+def rematch(ctx: Context, company: str) -> int:
+    """Run the matcher once over all of a company's open documents and bank lines together, and replace the pairings
+    the current rules see differently. Matches made before a matcher fix stay as they were otherwise (one month's
+    invoice holding the next month's transfer left invoices "unpaid" and the forecast wrong). The owner's decisions
+    stay; system decisions and suggestions may change. Idempotent: a second run changes nothing. Returns the
+    number of documents whose pairing changed."""
+    s = ctx.store
+    info, people, accounts = _company_inputs(ctx, company)
+    matches = s.list("match", company_id=company)
+    by_owner = [m for m in matches if m["status"] in ("confirmed", "auto_confirmed", "rejected")
+                and (m.get("decided_by") or {}).get("role") != "system"]
+    locked_docs = {m["document_id"] for m in by_owner}
+    locked_lines = {m["transaction_id"] for m in by_owner if m.get("transaction_id") and m["status"] != "rejected"}
+    docs = [d for d in s.list("document", company_id=company)
+            if d.get("status") not in ("duplicate", "rejected") and d["id"] not in locked_docs]
+    lines = [{**t, "match_status": "unmatched"} for t in s.list("transaction", company_id=company) if t["id"] not in locked_lines]
+    if not docs:
+        return 0
+    results = run_matching(docs, lines, company=info, people=people, accounts=accounts, now=ctx.now(),
+                           as_of=info.get("as_of_date"), senders={d["id"]: sender_of(ctx, d) for d in docs})
+    by_id = {d["id"]: d for d in docs}
+    touched: set[str] = set()
+    changed = 0
+    for result in results:
+        new = result["match"]
+        doc = by_id[new["document_id"]]
+        previous = _existing_match(ctx, doc["id"])
+        if previous and previous.get("transaction_id") == new["transaction_id"] and previous["match_type"] == new["match_type"]:
+            continue
+        if not previous and missing.is_unpaid_question(new) and missing.not_yet_due(doc, info.get("as_of_date")):
+            continue  # a payable not due yet: the forecast's, not a question (#43)
+        if previous:
+            touched.add(previous.get("transaction_id") or "")
+            # The open card about the old pairing names the old bank line: retire it, the new pairing gets its own.
+            for card in s.list("recommendation", company_id=company, status=["new", "seen"], subject_id=previous["id"]):
+                s.put("recommendation", {**card, "status": "superseded"}, company_id=company)
+        _save_match(ctx, company, doc, result, None, None)
+        touched.add(new["transaction_id"] or "")
+        changed += 1
+    # A line one document gave up may have been taken by another in this same pass: set every touched line from the
+    # final pairings, not from the order the documents were saved in.
+    final = {m["transaction_id"]: m for m in s.list("match", company_id=company) if m.get("transaction_id") and m["status"] != "rejected"}
+    for txn_id in touched - {""}:
+        txn = s.get("transaction", txn_id)
+        if not txn:
+            continue
+        m = final.get(txn_id)
+        status = ("matched" if m["status"] in ("auto_confirmed", "confirmed") else "suggested") if m else "unmatched"
+        if txn.get("match_status") != status:
+            s.put("transaction", {**txn, "match_status": status}, company_id=company)
+    return changed
+
+
 def sweep(ctx: Context, company: str) -> dict:
     """Periodic pass (#43): flag bank lines without a document, ask about purchase documents that became due."""
     s = ctx.store

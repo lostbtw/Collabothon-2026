@@ -1,7 +1,7 @@
 // Settings: everything Ordo needs to know about the company, and what it may do.
 // Company, alerts, people and rules come from the settings endpoints role 1 is adding; accounts and
 // sources from the connectors. A section whose data the backend does not send yet says so.
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api, exportUrl, type Person, type Rule, type Settings as SettingsData } from "../api/client";
 import type { Account, Source } from "../api/types.gen";
@@ -18,8 +18,8 @@ import { parseAmount } from "./inbox/model";
 import { Avatar } from "../components/ui";
 
 const SECTIONS = [
-  ["company", "Company"], ["accounts", "Bank accounts and cards"], ["invoices", "Invoices and receipts"], ["people", "People"],
-  ["sorting", "How Ordo sorts costs"], ["autonomy", "What Ordo may do"], ["alerts", "Alerts"], ["data", "Your data"],
+  ["company", "Company"], ["accounts", "Accounts and cards"], ["invoices", "Invoices"], ["people", "People"],
+  ["sorting", "Sorting costs"], ["autonomy", "What Ordo may do"], ["alerts", "Alerts"], ["data", "Your data"],
 ] as const;
 const none = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
 
@@ -33,7 +33,7 @@ export function Settings() {
   ]), [companyId, refresh, reload]);
   const [settings, accounts, sources, people, rules] = state.data ?? [null, null, null, null, null];
   const again = () => setReload((n) => n + 1);
-  const active = hash.replace("#", "") || "company";
+  const active = useActiveSection(hash.replace("#", "") || "company", Boolean(state.data));
   return (
     <>
       <PageHead title="Settings" sub="Everything Ordo needs to know about your company, and what it may do." />
@@ -56,6 +56,30 @@ export function Settings() {
       </div>
     </>
   );
+}
+
+/** The section the owner is reading: the last one whose top has scrolled past the upper third of the window. */
+function useActiveSection(initial: string, ready: boolean): string {
+  const [active, setActive] = useState(initial);
+  useEffect(() => { setActive(initial); }, [initial]);
+  useEffect(() => {
+    if (!ready) return;
+    const onScroll = () => {
+      const line = window.innerHeight / 3;
+      let current = SECTIONS[0][0] as string;
+      for (const [id] of SECTIONS) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= line) current = id;
+      }
+      // At the very bottom the last section is the one being read, even if it is short.
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) current = SECTIONS[SECTIONS.length - 1][0];
+      setActive(current);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [ready]);
+  return active;
 }
 
 function Section({ id, title, sub, children }: { id: string; title: string; sub: string; children: ReactNode }) {

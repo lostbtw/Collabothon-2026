@@ -7,7 +7,7 @@ import { api } from "../api/client";
 import { resetMockState } from "../api/mock";
 import { groupChats, whenLabel } from "../components/AskOrdo";
 import { monthFigures, monthRange } from "../lib/costTypes";
-import { ByClientView, ByPersonView, ByTypeView, PaymentsView, SubscriptionsView } from "./Money";
+import { ByClientView, ByPersonView, ByTypeView, MonthlyView, PaymentsView } from "./Money";
 import { CashCard, WhereItWent } from "./Overview";
 import { TodoView } from "./Todo";
 import { buildPayments } from "./money/payments";
@@ -63,11 +63,13 @@ describe("Money", () => {
     expect(html).toContain("about 162,450 PLN");
     expect(html).toContain("Currency risk");
   });
-  it("subscriptions: what repeats, what is paid twice and what went up", async () => {
-    const html = render(<SubscriptionsView data={(await api.subscriptions("co_borsuk"))!} />);
-    expect(html).toContain("2,700 PLN");
-    expect(html).toContain("TaskPilot, by Jan and Marta");
-    expect(html).toContain("Chmura Polska, +12%");
+  it("monthly payments: grouped by type, what is not paid yet, what is paid twice or went up", async () => {
+    const html = render(<MonthlyView data={(await api.subscriptions("co_borsuk", "2026-11", "all"))!} month="2026-11" />);
+    expect(html).toContain("Staff");
+    expect(html).toContain("Tools &amp; hosting");
+    expect(html).toContain("Not paid yet in November");
+    expect(html).toContain("TaskPilot paid twice");
+    expect(html).toContain("Chmura Polska +12%");
     expect(html).toContain("saves 89 PLN a month");
   });
   it("all payments: the list and the panel of the selected payment", async () => {
@@ -87,12 +89,12 @@ describe("To-do", () => {
   it("shows the decisions, the gap with its options and the month close", async () => {
     const [inbox, forecast, recs, approvals, activity] = await Promise.all([api.inbox("co_borsuk"), api.forecast("co_borsuk"), api.recommendations("co_borsuk"), api.approvals("co_borsuk"), api.activity("co_borsuk")]);
     const html = render(<TodoView items={inbox.items} forecast={forecast} recs={recs.items} approvals={approvals.items} activity={activity.items}
-      month="2026-10" summary={await october()} transactions={(await api.transactions("co_borsuk")).items} people={await api.peopleCosts("co_borsuk", "2026-10")} />, "/todo");
+      month="2026-10" summary={await october()} people={await api.peopleCosts("co_borsuk", "2026-10")} />, "/todo");
     expect(html).toContain("Needs your OK");
     expect(html).toContain("Cash runs short from 30 Nov to 7 Dec");
     expect(html).toContain("Options, cheapest first");
-    expect(html).toContain("Send reminder (simulated)");
-    expect(html).toContain("Apply (simulated)");
+    expect(html).toContain('Send reminder<span class="sim-tag">simulated</span>');
+    expect(html).toContain('Apply<span class="sim-tag">simulated</span>');
     expect(html).toContain("Close October");
     expect(html).toContain("94% done");
     expect(html).toContain("SIMULATED · SIM-PD-2026-0398");

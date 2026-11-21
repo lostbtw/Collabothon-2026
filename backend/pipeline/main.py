@@ -19,7 +19,7 @@ from backend.db.store import Store
 from backend.settings import database_url
 
 from .counterparty import model_chooser
-from .handlers import HANDLERS, PRODUCER, Context, default_rates, sweep
+from .handlers import HANDLERS, PRODUCER, Context, default_rates, rematch, sweep
 
 log = logging.getLogger("ordo.pipeline")
 MAX_ATTEMPTS = 3
@@ -127,12 +127,27 @@ def sweep_all(conn: psycopg.Connection) -> None:
         log.exception("pipeline: sweep failed")
 
 
+def rematch_all(conn: psycopg.Connection) -> None:
+    """Once at start: re-pair every company's documents and bank lines with the current matcher (handlers.rematch)."""
+    try:
+        ctx = make_context(conn)
+        for (company,) in conn.execute("select id from companies").fetchall():
+            changed = rematch(ctx, company)
+            if changed:
+                log.info("pipeline: re-matched %s documents of %s", changed, company)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        log.exception("pipeline: re-match failed")
+
+
 def run(argv: list[str]) -> int:
     logging.basicConfig(level=logging.INFO)
     with psycopg.connect(database_url(), autocommit=False) as conn:
         listener = psycopg.connect(database_url(), autocommit=True)
         listener.execute("listen outbox")
         log.info("pipeline: listening (normaliser, matcher)")
+        rematch_all(conn)
         last_sweep = 0.0
         while True:
             for consumer in ("normaliser", "matcher"):  # normaliser first: its output feeds the matcher

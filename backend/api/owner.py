@@ -23,6 +23,8 @@ from backend.finance.settings import DEFAULT_PAYMENT_DAYS
 
 SUBSCRIPTION_CATEGORIES = {"software_subscriptions", "cloud_hosting"}
 NOT_COSTS = {"reimbursements", "owner_private"}
+# Spending that varies by nature: repeats only count as a monthly payment when a recurring series says so.
+VARIABLE = {"travel", "meals_representation", "equipment", "other", "marketing_ads"}
 DEFAULT_PAY_TYPE = {"owner": "board_fee", "employee": "salary", "contractor": "invoice"}
 PART_LABEL = {"salaries": "salary", "contractors": "invoice", "social_security": "social security", "other": "not explained"}
 CATEGORIES = {"revenue_services", "salaries", "contractors", "social_security", "taxes", "rent_office",
@@ -370,20 +372,45 @@ def _payer(t: dict, accounts: dict[str, dict]) -> dict[str, str]:
     return {"kind": "account", "label": acc.get("name") or "Company account"}
 
 
-def subscriptions(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """Tools and services paid every month: bank lines of subscription categories seen in two months or more (or
-    in a recurring series), plus such receipts people paid with their own cards."""
+def _months_back(month: str, n: int) -> list[str]:
+    """The `n` months up to and including `month`, oldest first."""
+    year, mon = (int(x) for x in month.split("-"))
+    out = []
+    for _ in range(n):
+        out.append(f"{year}-{mon:02d}")
+        year, mon = (year - 1, 12) if mon == 1 else (year, mon - 1)
+    return out[::-1]
+
+
+def subscriptions(conn: psycopg.Connection, company_id: str, month: str | None = None, scope: str = "subscriptions") -> dict[str, Any]:
+    """What the company pays every month, seen from `month` (default: the as-of month).
+
+    scope "subscriptions": tools and services (subscription categories); scope "all": every payment that repeats,
+    rent, salaries, contractors and taxes included. A payment repeats when it went to the same name in at least two
+    of the three months up to `month` (or belongs to a recurring series). Receipts people paid with their own cards
+    count too. `monthly` is what was paid in `month`, or the last month's amount when it is not paid yet
+    (`paid_in_month` false)."""
     s = Store(conn)
-    base = _company(conn, company_id)["base_currency"]
+    company = _company(conn, company_id)
+    base = company["base_currency"]
+    month = month or company["as_of_date"][:7]
+    window = _months_back(month, 3)
     accounts = {a["id"]: a for a in s.list("account", company_id=company_id)}
     counterparties = {c["id"]: c for c in s.list("counterparty", company_id=company_id)}
-    payments: dict[str, list[dict]] = defaultdict(list)  # key -> {month, amount, payer, original, series}
+    team = people(conn, company_id)
+    wanted = (lambda cat: cat in SUBSCRIPTION_CATEGORIES) if scope != "all" else (lambda cat: cat not in NOT_COSTS)
+    payments: dict[str, list[dict]] = defaultdict(list)
     names: dict[str, str] = {}
     category: dict[str, str] = {}
     for t in s.list("transaction", company_id=company_id):
+        if t["booking_date"][:7] not in window or _out(t) == 0:
+            continue
         cp = counterparties.get(t.get("counterparty_id") or "") or {}
-        cat = t.get("category") or cp.get("default_category")
-        if cat not in SUBSCRIPTION_CATEGORIES or _out(t) == 0:
+        cat = t.get("category") or cp.get("default_category") or "other"
+        if cat == "other":
+            person = person_of(t, team, counterparties)
+            cat = ("contractors" if person["role"] == "contractor" else "salaries") if person else cat
+        if not wanted(cat):
             continue
         name = cp.get("name") or t.get("counterparty_name_raw") or t["description"]
         k = _plain(name)
@@ -399,7 +426,7 @@ def subscriptions(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
         if not d or m["status"] == "rejected" or m.get("paid_by") not in ("employee_private", "owner_private"):
             continue
         cat = (d.get("category_suggestion") or {}).get("category")
-        if cat not in SUBSCRIPTION_CATEGORIES:
+        if not cat or not wanted(cat) or (d.get("issue_date") or "")[:7] not in window:
             continue
         k = _plain(d["seller"]["name"])
         names.setdefault(k, d["seller"]["name"])
@@ -414,22 +441,28 @@ def subscriptions(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     items, total = [], Decimal(0)
     for k, ps in payments.items():
         months = sorted({p["month"] for p in ps if p["month"]})
-        if len(months) < 2 and not any(p["series"] or p["recurring"] for p in ps):
+        scheduled = any(p["series"] or p["recurring"] for p in ps)
+        if len(months) < 2 and not scheduled:
             continue
-        latest = [p for p in ps if p["month"] == months[-1]]
-        previous = [p for p in ps if len(months) > 1 and p["month"] == months[-2]]
+        if category[k] in VARIABLE and not scheduled:
+            continue  # a restaurant or a shop seen twice is not a monthly payment
+        paid_now = month in months
+        latest_month = month if paid_now else months[-1]
+        latest = [p for p in ps if p["month"] == latest_month]
+        earlier = [m_ for m_ in months if m_ < latest_month]
+        previous = [p for p in ps if earlier and p["month"] == earlier[-1]]
         monthly = sum((p["amount"] for p in latest), Decimal(0))
         before = sum((p["amount"] for p in previous), Decimal(0)) if previous else None
         payers = list({p["payer"]["label"]: p["payer"] for p in latest}.values())
         flags = []
-        if before and monthly > before * Decimal("1.01") and len(payers) == 1:
+        if before and monthly > before * Decimal("1.01") and len(payers) == 1 and category[k] not in VARIABLE:
             flags.append("price_up")
-        if len(payers) > 1:
+        if len(payers) > 1 and category[k] in SUBSCRIPTION_CATEGORIES:
             flags.append("paid_twice")
         if any(p.get("private") or p["payer"]["label"] == "Owner's private card" for p in latest):
             flags.append("paid_privately")
         item = {"counterparty_id": next((cid for cid, c in counterparties.items() if _plain(c["name"]) == k), k),
-                "name": names[k], "category": category[k], "monthly": money(monthly, base),
+                "name": names[k], "category": category[k], "monthly": money(monthly, base), "paid_in_month": paid_now,
                 "original": latest[0]["original"] if len(latest) == 1 else None,
                 "paid_by": payers, "flags": flags, "series_ids": sorted({p["series"] for p in ps if p["series"]})}
         if before is not None:
@@ -483,13 +516,17 @@ def balance_history(conn: psycopg.Connection, company_id: str, days: int = 91) -
     for acc in accounts:
         if acc["currency"] not in rates:
             continue
-        reported_on = date.fromisoformat((acc.get("balance_at") or company["as_of_date"])[:10])
-        mine = [t for t in lines if t["account_id"] == acc["id"]]
-        for n in range(days):
+        reported_on = (acc.get("balance_at") or company["as_of_date"])[:10]
+        booked: dict[str, Decimal] = defaultdict(Decimal)  # what each day added to this account, up to the report
+        for t in lines:
+            if t["account_id"] == acc["id"] and t["booking_date"] <= reported_on:
+                booked[t["booking_date"]] += amount_of(t["amount"])
+        # Walk back from the report: the balance at the end of a day is the reported balance minus what came later.
+        later = sum((v for d, v in booked.items() if d > (start + timedelta(days=days - 1)).isoformat()), Decimal(0))
+        for n in range(days - 1, -1, -1):
             day = start + timedelta(days=n)
-            # balance at the end of `day` = reported balance - everything booked after `day` up to the report
-            later = sum((amount_of(t["amount"]) for t in mine if day.isoformat() < t["booking_date"] <= reported_on.isoformat()), Decimal(0))
             totals[day] += (amount_of(acc["balance"]) - later) * rates[acc["currency"]]
+            later += booked.get(day.isoformat(), Decimal(0))
     points, last = [], None
     for day in sorted(totals):
         value = money(totals[day], base)["amount"]

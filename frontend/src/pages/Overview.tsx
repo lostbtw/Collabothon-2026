@@ -5,8 +5,8 @@ import { api, type AccountsResponse, type BalanceHistory, type LedgerSummary } f
 import type { Approval, Forecast, Recommendation, Transaction } from "../api/types.gen";
 import { useAsk } from "../components/AskOrdo";
 import { CashChart } from "../components/CashChart";
-import { Change, MonthSelect, PageHead, Skeleton, StatusLabel, Tile } from "../components/ui";
-import { compareAmounts, isZero, lastFullMonth, monthFigures, monthOnly, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
+import { Change, MonthSelect, PageHead, SimButton, Skeleton, StatusLabel, Tile } from "../components/ui";
+import { compareAmounts, isZero, monthFigures, monthOnly, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
 import { useLive } from "../lib/live";
@@ -28,7 +28,7 @@ export function Overview() {
   const today = useToday();
   const refresh = useRefreshKey();
   const [month, setMonth] = useState<string | null>(null);
-  const shown = month ?? lastFullMonth(today);
+  const shown = month ?? today.slice(0, 7);
   const [flash, setFlash] = useState(false);
   useLive((e) => { if (e.type === "forecast.updated") { setFlash(true); setTimeout(() => setFlash(false), 4000); } });
 
@@ -152,7 +152,7 @@ export function TodoRow({ item }: { item: TodoItem }) {
         {error && <span className="small bad" role="alert">Not done: {error}</span>}
       </div>
       {done ? <span className="simulated pulse">SIMULATED · {done.execution.reference}</span>
-        : p.kind === "approve" && item.rec ? <button type="button" className="primary" disabled={busy} onClick={() => approve(item.rec!)}>{busy ? "Working…" : p.label}</button>
+        : p.kind === "approve" && item.rec ? <SimButton label={p.label} busy={busy} what={item.rec.proposed_action?.preview} onClick={() => approve(item.rec!)} />
         : <button type="button" onClick={() => navigate(p.to ?? `/todo#${item.id}`)}>{p.kind === "details" ? "See details" : p.label}</button>}
     </div>
   );
@@ -256,7 +256,9 @@ function Explained({ f, month, summary, transactions, names }: { f: MonthFigures
 
 function CashSection({ history, forecast, flash }: { history: BalanceHistory | null; forecast: Forecast | null; flash: boolean }) {
   const ask = useAsk();
-  const alert = forecast?.alerts.find((a) => a.type === "cash_gap");
+  // The first forecast day after the lowest point when the balance is not negative any more.
+  const recovers = forecast && forecast.min_balance.amount.amount.startsWith("-")
+    ? forecast.points.find((p) => p.date > forecast.min_balance.date && !p.balance.startsWith("-"))?.date ?? null : null;
   const weeks = forecast ? Math.round(forecast.horizon_days / 7) : 6;
   return (
     <section className="section" id="cash">
@@ -267,6 +269,7 @@ function CashSection({ history, forecast, flash }: { history: BalanceHistory | n
         </div>
         {history && <span className="legend"><i />In the bank</span>}
         {forecast && <span className="legend"><i className="dashed" />Expected</span>}
+        {forecast?.points.some((p) => p.low && p.high) && <span className="legend"><b className="legend-band" />Could be</span>}
         <button type="button" onClick={() => ask.open("What if I hire a developer for 15,000 PLN a month from January?")}>Add a plan</button>
       </div>
       <div className="card stack">
@@ -274,7 +277,7 @@ function CashSection({ history, forecast, flash }: { history: BalanceHistory | n
         {forecast && (
           <p className="small t2">
             Lowest point: {whole(forecast.min_balance.amount)} on {shortDate(forecast.min_balance.date)}.
-            {alert?.date_to ? ` Back above zero on ${shortDate(alert.date_to)}.` : ""}
+            {recovers ? ` Back above zero on ${shortDate(recovers)}.` : ""}
           </p>
         )}
       </div>
@@ -282,7 +285,10 @@ function CashSection({ history, forecast, flash }: { history: BalanceHistory | n
   );
 }
 
-/** Said wherever a month is summed from the bank lines because its payments are not in the books yet. */
+/** Plain words for a month summed from bank payments because they are not in the books yet. */
+export const FROM_BANK_TEXT = "These totals come straight from your bank account. Their invoices aren't checked yet, so they're not in the books.";
+
+/** Said wherever a month is summed from the bank payments. */
 export function FromBank() {
-  return <span className="chip warn" title="Summed from the bank lines. These payments are not matched to invoices and booked yet.">From the bank, not checked yet</span>;
+  return <span className="chip warn" title={FROM_BANK_TEXT}>Straight from the bank</span>;
 }

@@ -51,6 +51,7 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
             <text x={m.todayX + 6} y={m.plot.top - 4} className="chart-tick">Today</text>
           </g>
         )}
+        {m.band && <path d={m.band} className="chart-band" />}
         {m.past && <path d={m.past} className="chart-line" />}
         {m.future && <path d={m.future} className="chart-line expected" />}
         {hover && (
@@ -70,6 +71,7 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
         <div className="chart-tip" style={{ left: `${Math.min(86, Math.max(14, (hover.x / m.w) * 100))}%` }}>
           <div className="caption t3">{shortDate(hover.date)} · {hover.expected ? "expected" : "in the bank"}</div>
           <div className="medium">{whole(hover.balance)}</div>
+          {hover.low && hover.high && <div className="caption t3">could be {whole(hover.low)} to {whole(hover.high)}</div>}
           {hover.events.map((ev) => <div key={ev.id} className="caption">{ev.label}: {whole(ev.amount)}</div>)}
         </div>
       )}

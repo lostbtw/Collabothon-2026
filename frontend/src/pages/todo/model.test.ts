@@ -25,10 +25,10 @@ describe("To-do", () => {
     expect(gap.gap!.options.map(costLabel)).toEqual(["Free", "Free", "About 317 PLN"]);
   });
 
-  it("approves a simple action in one click and opens the rest first; suggestions link to the payments", async () => {
+  it("every prepared action has its approve button; suggestions link to the payments", async () => {
     const todo = await load();
-    expect(todo.needsOk[0].primary).toEqual({ kind: "approve", label: "Pay back (simulated)" });
-    expect(todo.needsOk[2].primary.kind).toBe("details");
+    expect(todo.needsOk[0].primary).toEqual({ kind: "approve", label: "Pay back" });
+    expect(todo.needsOk[2].primary).toEqual({ kind: "approve", label: "Fix the rate" });
     expect(todo.check[1].primary).toEqual({ kind: "link", label: "Check", to: "/money/payments?month=2026-10&doc=missing" });
     expect(todo.needsOk[0].summary).toBe("Jan paid for a monitor with his own card and sent the receipt.");
   });

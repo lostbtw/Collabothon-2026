@@ -105,6 +105,19 @@ export function Avatar({ text }: { text: string }) {
   return <span className="avatar" aria-hidden="true">{text}</span>;
 }
 
+/** A button that runs an action in the sandbox bank. It says so with a small tag (product rule: the word
+ * "simulated" on the button), and its tooltip says what will happen. */
+export function SimButton({ label, onClick, busy, disabled, primary = true, what }: {
+  label: string; onClick: () => void; busy?: boolean; disabled?: boolean; primary?: boolean; what?: string | null;
+}) {
+  return (
+    <button type="button" className={primary ? "primary" : undefined} disabled={busy || disabled} onClick={onClick}
+      title={what ?? "Runs in the test bank only. No real money moves."}>
+      {busy ? "Working…" : label}<span className="sim-tag">simulated</span>
+    </button>
+  );
+}
+
 /** A row's chevron, pointing to where its details are. */
 export function Chevron() {
   return <span className="chev" aria-hidden="true"><Icon name="chevronRight" size={16} /></span>;
