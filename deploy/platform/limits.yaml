@@ -13,4 +13,4 @@ spec:
         memory: 256Mi
       default:
         cpu: "1"
-        memory: 1Gi
+        memory: 3Gi

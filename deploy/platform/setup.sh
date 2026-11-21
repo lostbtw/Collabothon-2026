@@ -6,6 +6,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 APP="$ROOT/deploy/app"
 OBS="$ROOT/deploy/observability"
+GUARDRAILS="$ROOT/deploy/guardrails"
 UWM_NS=openshift-user-workload-monitoring
 DSC=default-dsc
 MODEL_JOB=gpt-oss-20b-metrics
@@ -329,6 +330,33 @@ ogx_off() {
   oc -n "$NS" delete configmap ordo-ogx --ignore-not-found
   ogx_restart_agents
   echo "OK   the agents run their own tool loop again"
+}
+
+guardrails() {
+  oc apply -f "$HERE/limits.yaml" -f "$GUARDRAILS/nemo-guardrails.yaml"
+  wait_for "the Deployment ordo-guardrails" 120 oc -n "$NS" get deployment/ordo-guardrails
+  oc -n "$NS" rollout status deployment/ordo-guardrails --timeout=300s
+  check_guardrails rails || return 1
+  oc apply -f "$APP/guardrails-config.yaml" -f "$APP/api.yaml"
+  oc -n "$NS" rollout restart deployment/ordo-api
+  oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
+  check_guardrails
+}
+
+check_guardrails() {
+  if oc -n "$NS" exec -i deployment/ordo-api -c api -- python - "$@" <"$GUARDRAILS/check_guardrails.py"; then
+    echo "OK   NeMo Guardrails mask IBANs, card numbers and tax ids and refuse investment advice${1:+ (rails only)}"
+  else
+    echo "FAIL guardrails: see oc -n $NS logs deployment/ordo-guardrails -c nemo-guardrails" >&2
+    return 1
+  fi
+}
+
+guardrails_off() {
+  oc -n "$NS" delete configmap ordo-guardrails-client --ignore-not-found
+  oc -n "$NS" rollout restart deployment/ordo-api
+  oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
+  echo "OK   the chat runs without NeMo Guardrails"
 }
 
 db_fixtures() {
@@ -796,6 +824,9 @@ case "$stage" in
   ogx) ogx ;;
   check-ogx) check_ogx ;;
   ogx-off) ogx_off ;;
+  guardrails) guardrails ;;
+  check-guardrails) check_guardrails "$@" ;;
+  guardrails-off) guardrails_off ;;
   check-m1) check_m1 ;;
   monitoring) monitoring ;;
   check-monitoring) check_monitoring ;;
@@ -808,7 +839,7 @@ case "$stage" in
   check-workbench) check_workbench ;;
   stop-workbench) stop_workbench ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

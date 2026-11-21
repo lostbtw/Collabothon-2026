@@ -82,6 +82,18 @@ def mcp_url() -> str:
     return os.environ.get("ORDO_MCP_URL", "")
 
 
+def guardrails_url() -> str:
+    return os.environ.get("ORDO_GUARDRAILS_URL", "")
+
+
+def guardrails_config() -> str:
+    return os.environ.get("ORDO_GUARDRAILS_CONFIG", "ordo-chat")
+
+
+def guardrails_token() -> str:
+    return os.environ.get("ORDO_GUARDRAILS_API_KEY") or llm_token()
+
+
 def mcp_allowed_hosts() -> list[str]:
     """Host headers the MCP server answers to, besides localhost (the Service's names on the cluster)."""
     return [h.strip() for h in os.environ.get("ORDO_MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]

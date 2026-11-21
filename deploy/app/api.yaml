@@ -55,6 +55,9 @@ spec:
             - configMapRef:
                 name: ordo-ogx
                 optional: true
+            - configMapRef:
+                name: ordo-guardrails-client
+                optional: true
           env:
             - name: ORDO_DATABASE_URL
               valueFrom:

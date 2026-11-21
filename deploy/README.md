@@ -25,6 +25,7 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `ordo-finance` | `ordo-backend` | Books the Ledger from decided Matches and recomputes the forecast after every change (debounced 2 s per company) |
 | `ordo-mcp` | `ordo-backend` | The agents' tools as an MCP server, in-cluster only at `http://ordo-mcp.cfo-ai.svc.cluster.local:8000/mcp`; also OGX's way to the model (`/model/v1`) |
 | `ordo-ogx` (OGXServer) | OGX `rh` distribution | OGX in front of the model; runs the agents' tool loop and calls `ordo-mcp` (only after `setup.sh ogx`) |
+| `ordo-guardrails` (NemoGuardrails) | TrustyAI NeMo Guardrails server | Masks IBANs, card numbers and tax ids and refuses off-topic questions before the chat calls the model (only after `setup.sh guardrails`) |
 | `ordo-bank` | `ordo-sim` | The Sandbox Bank, in-cluster only at `http://ordo-bank.cfo-ai.svc.cluster.local:8081` |
 | `postgresql` | `rhel9/postgresql-16` | The database |
 | `gpt-oss-20b-predictor`, `docling-serve` | see `deploy/models/` | The model and OCR |
@@ -51,6 +52,7 @@ deploy/platform/setup.sh redeploy
 | `check-m1` | The chat answers with text from gpt-oss-20b |
 | `verify` | Postgres and the raw volume work from a pod, every container has requests and limits, no secret value is in Git |
 | `check-ogx` | One chat question goes through OGX; prints the model OGX used, each tool it called over MCP and the answer |
+| `check-guardrails [rails]` | The rails mask an IBAN, block "Which stock should I buy?" and let the five tool questions pass; then (without `rails`) the chat refuses the stock question, stores and answers an IBAN message masked, and answers the read-only tool questions |
 | `check-monitoring` | Prometheus scrapes gpt-oss-20b, its vLLM metrics are queryable, every rule in `deploy/observability/prometheus-rules.yaml` evaluates without errors; lists the alerts firing in `cfo-ai` |
 
 ## OGX + MCP
@@ -68,6 +70,26 @@ OGX reaches the model through `ordo-mcp` (`/model/v1`), not directly: OGX hands 
 `deploy/platform/setup.sh ogx-off` switches the agents back; OGX and `ordo-mcp` stay up.
 
 Where to look: `oc -n cfo-ai logs deployment/ordo-mcp` shows every tool call OGX made; `oc -n cfo-ai logs deployment/ordo-api | grep ogx` shows each run.
+
+## NeMo Guardrails
+
+```bash
+deploy/platform/setup.sh guardrails
+```
+
+This starts the NeMo Guardrails server through the TrustyAI operator (`NemoGuardrails` CR `ordo-guardrails`, config `ordo-chat` in `deploy/guardrails/nemo-guardrails.yaml`), checks its rails, then creates ConfigMap `ordo-guardrails-client`, restarts `ordo-api` and checks the chat through them.
+
+From then on the chat sends every owner message to the server's `POST /v1/checks` before anything else sees it:
+
+- **Masking** (Presidio, offline): IBANs (also the Polish 26-digit form and ones with a wrong checksum), card numbers and tax ids (NIP, German USt-IdNr and Steuernummer) become `<IBAN_CODE>`, `<CREDIT_CARD>`, `<TAX_ID>`. The model, the OGX run, the chat history and any inbox card get only the masked text, and the MLflow trace `chat.guardrails` records only that.
+- **Topic rail** (`self check input`, asked of gpt-oss-20b after masking, about 1 s): investment advice and anything that is not about the company's finances is refused without a model call or a tool. The answer's `guardrail` field is `{blocked: true, reason}`, which the chat panel shows.
+- **No answer from the server**: that turn is masked locally with the same patterns and answered without the model.
+
+The server is in-cluster behind kube-rbac-proxy (`https://ordo-guardrails.cfo-ai.svc.cluster.local`); the operator's Route ends at the same proxy. Callers need a token that may `get` services in `cfo-ai`; the app uses ServiceAccount `cfo-app` (Secret `llm-token`). Two quirks of the RHOAI 3.5 operator, both handled in the manifest and `setup.sh`: the CR has no resources field, so the server's 3 Gi memory limit comes from LimitRange `ordo-defaults` (spaCy's model was OOMKilled at 1 Gi); and the proxy's access check carries no service name, so the Role cannot be narrowed to one Service.
+
+`deploy/platform/setup.sh guardrails-off` switches the chat back to running without the check; the server stays up. The first check after a server start takes about 10 s (spaCy loads), the rest about 1 s.
+
+Where to look: `oc -n cfo-ai logs deployment/ordo-guardrails -c nemo-guardrails` shows every check and the topic rail's answer.
 
 ## Monitoring
 

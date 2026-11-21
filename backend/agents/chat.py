@@ -9,7 +9,7 @@ from typing import Any
 import psycopg
 
 from backend import tracing
-from backend.agents import liquidity, tools
+from backend.agents import guardrails, liquidity, tools
 from backend.agents.llm import run_tool_loop
 from backend.agents.numbers import unexpected_numbers
 from backend.agents.sql import VIEWS, run_readonly_sql
@@ -360,6 +360,12 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
             "events such as closed days. Try one of the suggested questions."), [], [], None, None
 
 
+def _reply(session_id: str, company: str, text: str, **fields: Any) -> dict[str, Any]:
+    return {"session_id": session_id, "answer": text, "evidence": [], "table": None, "tool_calls": [],
+            "created_recommendation_id": None, "guardrail": None, "trace_id": None,
+            "suggested_questions": SUGGESTED.get(company, SUGGESTED["co_borsuk"])} | fields
+
+
 def answer(conn: psycopg.Connection, company: str, message: str, session_id: str | None, model: Any) -> dict[str, Any]:
     trace: list[dict[str, Any]] = []
     created = guardrail = table = None
@@ -367,6 +373,13 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
     text = evidence = None
     session_id = session_id or f"chat_{uuid.uuid4().hex[:10]}"
     trace_id = None
+    verdict = guardrails.check(message, agent="chat", company_id=company, session_id=session_id)
+    message = verdict.text
+    if verdict.blocked:
+        remember(conn, session_id, company, message, guardrails.REFUSAL)
+        return _reply(session_id, company, guardrails.REFUSAL, guardrail=verdict.note())
+    if not verdict.model_allowed:
+        model = None
     if model is not None:
         with tracing.span("chat.turn", {"message": message, "session_id": session_id}) as step:
             tracing.tag(agent="chat", company_id=company, session_id=session_id)
@@ -402,14 +415,5 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
         created = created or fallback_created
         guardrail = guardrail or fallback_guardrail
     remember(conn, session_id, company, message, text)
-    return {
-        "session_id": session_id,
-        "answer": text,
-        "evidence": evidence or [],
-        "table": table,
-        "tool_calls": trace,
-        "created_recommendation_id": created,
-        "guardrail": guardrail,
-        "trace_id": trace_id,
-        "suggested_questions": SUGGESTED.get(company, SUGGESTED["co_borsuk"]),
-    }
+    return _reply(session_id, company, text, evidence=evidence or [], table=table, tool_calls=trace,
+                  created_recommendation_id=created, guardrail=guardrail or verdict.note(), trace_id=trace_id)
