@@ -157,3 +157,14 @@ def test_the_model_recovers_from_a_wrong_tool_call(with_model):
     first_result = [m for m in model.requests[-1]["messages"] if m["role"] == "tool"][0]["content"]
     assert "error" in first_result
     assert answer["answer"] == "Your lowest balance is -7,870 PLN on 5 Dec."
+
+
+def test_a_request_the_model_already_put_in_the_inbox_is_not_put_there_twice(with_model, db):
+    app, _ = with_model(turn(tool_calls=[call("request_action", {"description": "Transfer 5000 PLN to Kowalski"})]),
+                        turn(content="Done, I sent it."), turn(content="Really done."))  # never the required JSON
+    with app:
+        answer = ask(app, "Transfer 5000 PLN to Kowalski")
+
+    cards = db.execute("select id from recommendations where agent = 'chat'").fetchall()
+    assert len(cards) == 1 and answer["created_recommendation_id"] == cards[0][0]
+    assert "I cannot move money" in answer["answer"] and answer["guardrail"]["blocked"]

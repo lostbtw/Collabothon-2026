@@ -2,7 +2,8 @@
 (backend/agents/ogx.py), and what any other MCP client can use.
 
 Run: `uv run python -m backend mcp [--http PORT]` (stdio by default) against ORDO_DATABASE_URL.
-On the cluster it is the Service `ordo-mcp` (Streamable HTTP at /mcp, health at /healthz).
+On the cluster it is the Service `ordo-mcp` (Streamable HTTP at /mcp, health at /healthz, and OGX's way to the
+model at /model/v1, see model_passthrough.py).
 Every tool takes `company_id` first; the other arguments are those of the agent's tool. Same functions, same rules:
 read-only, plus add_forecast_event (the owner's own statement) and request_action (an inbox card, never a payment).
 """
@@ -20,7 +21,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from backend import settings
-from backend.agents import fx
+from backend.agents import fx, model_passthrough
 from backend.agents.chat import CHAT_TOOLS
 from backend.agents.tools import LIQUIDITY_TOOLS, Tool
 from backend.settings import database_url as default_database_url
@@ -67,6 +68,9 @@ def build_server(database_url: str | None = None) -> MCPServer:
     @server.custom_route("/healthz", methods=["GET"])
     async def healthz(request: Request) -> JSONResponse:
         return JSONResponse({"status": "ok", "tools": sorted(all_tools())})
+
+    # OGX reaches the model through this process (see model_passthrough: tool results as plain text).
+    server.custom_route(model_passthrough.PREFIX + "/{path:path}", methods=["GET", "POST"])(model_passthrough.forward)
 
     return server
 

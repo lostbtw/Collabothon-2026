@@ -293,9 +293,17 @@ ogx_restart_agents() {
 }
 
 ogx() {
-  oc patch datasciencecluster default-dsc --type=merge -p '{"spec":{"components":{"ogx":{"managementState":"Managed"}}}}'
+  # OGX replaces the Llama Stack operator and refuses to install next to it (Red Hat's migration: remove it first).
+  if oc get crd llamastackdistributions.llamastack.io >/dev/null 2>&1 &&
+    [[ -n "$(oc get llamastackdistributions -A -o name 2>/dev/null)" ]]; then
+    echo "FAIL the cluster still runs Llama Stack servers; migrate them to OGXServer before enabling OGX" >&2
+    return 1
+  fi
+  oc patch datasciencecluster default-dsc --type=merge \
+    -p '{"spec":{"components":{"llamastackoperator":{"managementState":"Removed"},"ogx":{"managementState":"Managed"}}}}'
   wait_for "the OGXServer resource type" 300 oc get crd ogxservers.ogx.io
-  oc -n redhat-ods-applications wait pod -l name=ogx-k8s-operator --for=condition=Ready --timeout=300s
+  wait_for "the OGX operator pod" 300 oc -n redhat-ods-applications wait pod \
+    -l app.kubernetes.io/name=ogx-k8s-operator --for=condition=Ready --timeout=30s
   ogx_database
   oc apply -f "$APP/mcp.yaml"
   oc -n "$NS" rollout status deployment/ordo-mcp --timeout=300s

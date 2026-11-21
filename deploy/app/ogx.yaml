@@ -1,5 +1,6 @@
 # OGX server (OpenShift AI) in front of the model: it runs the agents' tool loop and calls Ordo's tools over MCP.
-# Needs the OGX Operator (DataScienceCluster spec.components.ogx = Managed) and the database "ogx";
+# Needs the OGX Operator (DataScienceCluster spec.components.ogx = Managed, llamastackoperator = Removed), the
+# database "ogx" and ordo-mcp (deploy/app/mcp.yaml);
 # `deploy/platform/setup.sh ogx` does both, applies this file and switches the agents over.
 apiVersion: ogx.io/v1beta1
 kind: OGXServer
@@ -10,15 +11,17 @@ metadata:
     app.kubernetes.io/part-of: ordo
 spec:
   distribution:
-    name: rh-dev
+    name: rh
   workload:
     replicas: 1
     storage:
       size: 5Gi
     overrides:
       env:
+        # The model, through ordo-mcp's pass-through: OGX sends a tool's result as text parts, which the gpt-oss chat
+        # handler of our vLLM refuses; the pass-through makes it plain text (backend/agents/model_passthrough.py).
         - name: VLLM_URL
-          value: https://gpt-oss-20b-predictor.cfo-ai.svc.cluster.local:8443/v1
+          value: http://ordo-mcp.cfo-ai.svc.cluster.local:8000/model/v1
         - name: INFERENCE_MODEL
           value: gpt-oss-20b
         - name: VLLM_API_TOKEN
@@ -26,9 +29,6 @@ spec:
             secretKeyRef:
               name: llm-token
               key: token
-        # The model's certificate is signed by the cluster's service CA, which every pod has.
-        - name: VLLM_TLS_VERIFY
-          value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
         - name: POSTGRES_HOST
           value: postgresql.cfo-ai.svc.cluster.local
         - name: POSTGRES_PORT

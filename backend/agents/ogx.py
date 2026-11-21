@@ -47,15 +47,18 @@ def model_id(client: Any) -> str:
 
 
 def _parse(text: str | None) -> Any:
+    """JSON from the model's text: also inside a code fence, with raw line breaks in strings, or after a few words."""
     if not text:
         return None
     text = text.strip()
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()
-    try:
-        return json.loads(text)
-    except ValueError:
-        return None
+    for candidate in (text, text[text.find("{"):text.rfind("}") + 1]):
+        try:
+            return json.loads(candidate, strict=False)
+        except ValueError:
+            continue
+    return None
 
 
 def _result(item: Any) -> Any:
@@ -65,7 +68,8 @@ def _result(item: Any) -> Any:
     return parsed if parsed is not None else {"text": getattr(item, "output", None) or ""}
 
 
-def request(company: str, messages: list[dict[str, Any]], tool_names: list[str], *, max_calls: int, client: Any) -> Any:
+def request(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
+            max_calls: int, client: Any) -> Any:
     """One Responses call: OGX runs the whole loop and calls only `tool_names` on the Ordo MCP server."""
     system = " ".join(m["content"] for m in messages if m["role"] == "system")
     turns = [{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in ("user", "assistant")]
@@ -75,6 +79,7 @@ def request(company: str, messages: list[dict[str, Any]], tool_names: list[str],
         input=turns,
         tools=[{"type": "mcp", "server_label": SERVER_LABEL, "server_url": settings.mcp_url(),
                 "require_approval": "never", "allowed_tools": tool_names}],
+        text={"format": {"type": "json_schema", "name": "final_answer", "schema": final_schema, "strict": False}},
         max_tool_calls=max_calls, temperature=0.2, store=False)
 
 
@@ -84,7 +89,8 @@ def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], fin
     """(final JSON or None, every tool result), like `llm.run_tool_loop`.
     None when OGX could not be asked at all: the caller then runs its own loop."""
     try:
-        response = request(company, messages, tool_names, max_calls=max_calls, client=client or default_client())
+        response = request(company, messages, tool_names, final_schema, max_calls=max_calls,
+                           client=client or default_client())
     except Exception as exc:
         log.warning("OGX did not answer, using the in-process loop: %s", exc)
         return None
@@ -107,7 +113,7 @@ def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], fin
     answer = _parse(response.output_text)
     problems = ["the answer is not JSON"] if answer is None else [e.message for e in Draft202012Validator(final_schema).iter_errors(answer)]
     if problems:
-        log.warning("OGX answer does not match the schema: %s", "; ".join(problems)[:300])
+        log.warning("OGX answer does not match the schema: %s | %r", "; ".join(problems)[:300], (response.output_text or "")[:200])
         return None, results
     log.info("OGX ran %d tool call(s) over MCP: %s", len(calls), ", ".join(c["tool"] for c in calls))
     return answer, results

@@ -56,6 +56,16 @@ def test_ogx_runs_the_loop_and_the_tools_come_back_as_results(cluster):
     assert request["tools"] == [{"type": "mcp", "server_label": "ordo", "server_url": "http://ordo-mcp:8000/mcp",
                                  "require_approval": "never", "allowed_tools": ["get_cash_position", "get_forecast"]}]
     assert '"co_borsuk"' in request["instructions"] and request["input"] == [MESSAGES[1]]
+    assert request["text"]["format"]["schema"] == SCHEMA  # OGX is asked for the agent's JSON shape
+
+
+def test_an_answer_with_words_around_the_json_is_still_read(cluster):
+    server = Ogx([mcp_call("get_cash_position", {"company_id": "co_borsuk"}, {"total": "5"})],
+                 'Here it is:\n{"answer": "You have 5.\nThat is all."}')
+
+    answer, _ = ogx.run("co_borsuk", MESSAGES, ["get_cash_position"], SCHEMA, max_calls=6, client=server)
+
+    assert answer == {"answer": "You have 5.\nThat is all."}
 
 
 def test_a_tool_called_for_another_company_drops_the_run(cluster):
