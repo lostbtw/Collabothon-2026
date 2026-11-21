@@ -1,6 +1,7 @@
 """Outbox handlers of the consumer group `finance` (contracts/events.md).
 
-    match.decided          book the Ledger entries of a confirmed purchase Match, emit ledger.entry.approved (#27)
+    match.decided          book the Ledger entries of a confirmed (or auto-confirmed) purchase Match, emit
+                           ledger.entry.approved (#27)
     transaction.ingested   mark the company: its forecast is recomputed 2 s after the last such event (#28)
     ledger.entry.approved  same
     execution.simulated    same
@@ -18,7 +19,7 @@ import psycopg
 from backend.db.events import new_event, publish
 from backend.db.store import Store
 
-from .ledger import entries_for_match
+from .ledger import DECIDED, entries_for_match
 
 log = logging.getLogger("ordo.finance")
 PRODUCER = "finance"
@@ -60,8 +61,8 @@ def on_match_decided(conn: psycopg.Connection, event: dict[str, Any]) -> list[st
     if match is None:
         log.warning("finance: %s refers to unknown match %s", event["id"], payload["match_id"])
         return []
-    if payload.get("status") != "confirmed" or match.get("status") != "confirmed":
-        return []  # rejected: nothing is booked
+    if payload.get("status") not in DECIDED or match.get("status") != payload.get("status"):
+        return []  # rejected (or decided differently since): nothing is booked
     company = event.get("company_id") or s.company_of("match", match["id"])
     document = s.get("document", match["document_id"])
     transaction = s.get("transaction", match["transaction_id"]) if match.get("transaction_id") else None

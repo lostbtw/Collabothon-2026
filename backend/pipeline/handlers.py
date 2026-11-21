@@ -6,7 +6,10 @@
                                     `extractor`, backend/pipeline/extract/worker.py), not here
   matcher     document.extracted    dedupe (document.duplicate_detected), then match + who paid (match.suggested)
               transaction.ingested  a new bank line may pay documents that had none yet (match.suggested)
-              match.decided         bank line status follows the decision; alias learning arrives with #41
+              match.decided         bank line status follows the decision; a confirmation teaches the alias (#41)
+
+The matcher also emits `match.decided` (status auto_confirmed, approval_id null) when it auto-confirms a Match,
+so the finance engine books it like an owner's confirmation (contracts/events.md).
 
 Handlers get a `Context` (see main.py for the Postgres one, tests use an in-memory one), so the logic does not
 depend on the database driver. Writes are idempotent: one Match per document (same id on re-match), the Store
@@ -135,6 +138,8 @@ def _save_match(ctx: Context, company: str, doc: dict, result: dict, correlation
             old = s.get("transaction", previous["transaction_id"])
             if old:
                 s.put("transaction", {**old, "match_status": "unmatched"}, company_id=company)
+    newly_auto_confirmed = match["status"] == "auto_confirmed" and not (
+        previous and previous["status"] == "auto_confirmed" and previous.get("transaction_id") == match["transaction_id"])
     s.put("match", match, company_id=company)
     if match["transaction_id"]:
         txn = s.get("transaction", match["transaction_id"])
@@ -145,6 +150,9 @@ def _save_match(ctx: Context, company: str, doc: dict, result: dict, correlation
     if flags != doc.get("flags"):
         s.put("document", {**doc, "flags": flags}, company_id=company)
     ctx.publish("match.suggested", company, match_suggested_payload(match), correlation, causation)
+    if newly_auto_confirmed:  # decided by rule, not by the owner: the finance engine books it (contracts/events.md)
+        ctx.publish("match.decided", company, {"match_id": match["id"], "status": "auto_confirmed", "approval_id": None},
+                    correlation, causation)
 
 
 def match_document(ctx: Context, company: str, doc: dict, correlation: str | None, causation: str | None) -> None:
@@ -259,7 +267,7 @@ def on_match_decided(ctx: Context, event: dict) -> None:
     txn = s.get("transaction", match["transaction_id"])
     if txn is None:
         return
-    confirmed = event["payload"]["status"] == "confirmed"
+    confirmed = event["payload"]["status"] in ("confirmed", "auto_confirmed")
     txn = {**txn, "match_status": "matched" if confirmed else "unmatched"}
     document = s.get("document", match["document_id"]) if confirmed else None
     if document:

@@ -110,3 +110,26 @@ def test_the_summary_the_app_shows_rises_by_242_90_when_the_hero_receipt_is_appr
     assert before["vat_lost_ytd"] == {"amount": "0.00", "currency": "PLN"}
     assert after["vat_lost_ytd"] == {"amount": "242.90", "currency": "PLN"}
     assert after == engine.ledger_kpis(db, "co_borsuk")
+def test_an_auto_confirmed_match_is_booked_from_the_matchers_event(db):
+    """contracts/events.md: the matcher emits match.decided (auto_confirmed, approval_id null) for PixelBoard."""
+    load_fixtures(db)
+    db.execute("delete from ledger_entries")
+    db.commit()
+    publish(db, new_event("match.decided", "co_borsuk",
+                          {"match_id": "mat_pixel11", "status": "auto_confirmed", "approval_id": None},
+                          producer="pipeline"))
+    process_pending(db)
+
+    (expense,) = booked(db, "mat_pixel11").values()
+    assert (expense["type"], expense["approval_id"]) == ("expense", None)
+
+
+def test_an_event_that_no_longer_matches_the_match_books_nothing(db):
+    load_fixtures(db)
+    db.execute("delete from ledger_entries")
+    db.commit()
+    publish(db, new_event("match.decided", "co_borsuk",
+                          {"match_id": "mat_412", "status": "auto_confirmed", "approval_id": None}, producer="pipeline"))
+    process_pending(db)
+
+    assert booked(db) == {}

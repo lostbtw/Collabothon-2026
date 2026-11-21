@@ -41,6 +41,18 @@ def test_a_rejected_match_books_nothing():
     assert entries_for_match({**MAT_412, "status": "rejected"}, DOC_412, "apr_1") == []
 
 
+def test_an_auto_confirmed_subscription_is_booked_without_an_approval():
+    """PixelBoard: auto-confirmed by rule (known recurring series), no owner approval to point to."""
+    match, document = fixture("match", "mat_pixel11"), fixture("document", "doc_pixel11")
+    (expense,) = entries_for_match(match, document, None,
+                                   transaction={"id": "txn_731", "booking_date": "2026-11-20"})
+
+    assert (expense["status"], expense["approval_id"], expense["paid_by"]) == ("approved", None, "company_account")
+    assert expense["amount_base"]["currency"] == "PLN"
+    assert expense["cash_date"] == "2026-11-20"
+    LedgerEntry.model_validate(expense)
+
+
 def test_a_purchase_paid_from_the_company_account_books_only_the_expense():
     match = confirmed(MAT_412, paid_by="company_account", payer=None, transaction_id="txn_9",
                       consequences={"vat_deductible": True, "vat_amount": {"amount": "242.90", "currency": "PLN"},
