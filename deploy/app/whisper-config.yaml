@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ordo-whisper-client
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+data:
+  ORDO_WHISPER_URL: http://whisper.cfo-ai.svc.cluster.local:8000/v1
+  ORDO_WHISPER_MODEL: deepdml/faster-whisper-large-v3-turbo-ct2

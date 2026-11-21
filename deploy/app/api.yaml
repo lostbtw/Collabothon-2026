@@ -56,6 +56,9 @@ spec:
             - configMapRef:
                 name: ordo-guardrails-client
                 optional: true
+            - configMapRef:
+                name: ordo-whisper-client
+                optional: true
           env:
             - name: ORDO_DATABASE_URL
               valueFrom:
@@ -77,6 +80,12 @@ spec:
                 secretKeyRef:
                   name: sandbox-bank-token
                   key: BANK_TOKEN
+            - name: ORDO_WHISPER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: whisper-api-key
+                  key: API_KEY
+                  optional: true
           readinessProbe:
             httpGet:
               path: /api/v1/health

@@ -23,7 +23,9 @@ SECRET_VALUES=(
   "llm-token token"
   "ordo-grafana GF_SECURITY_ADMIN_PASSWORD"
   "ordo-grafana GRAFANA_DB_PASSWORD"
+  "whisper-api-key API_KEY"
 )
+WHISPER="$ROOT/deploy/models"
 
 wait_for() {
   local what="$1" seconds="$2"
@@ -79,6 +81,7 @@ secrets() {
 
   create_random_secret github-webhook WebHookSecretKey
   create_random_secret sandbox-bank-token BANK_TOKEN
+  create_random_secret whisper-api-key API_KEY
   grafana_secret
 }
 
@@ -353,6 +356,23 @@ guardrails_off() {
   oc -n "$NS" rollout restart deployment/ordo-api
   oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
   echo "OK   the chat runs without NeMo Guardrails"
+}
+
+whisper() {
+  create_random_secret whisper-api-key API_KEY
+  oc apply -f "$WHISPER/whisper.yaml"
+  oc -n "$NS" rollout status deployment/whisper --timeout=1800s
+  oc apply -f "$APP/whisper-config.yaml" -f "$APP/api.yaml"
+  oc -n "$NS" rollout restart deployment/ordo-api
+  oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
+  check_whisper
+}
+
+check_whisper() {
+  if ! oc -n "$NS" exec -i deployment/ordo-api -c api -- python - <"$WHISPER/check_whisper.py"; then
+    echo "FAIL whisper: see oc -n $NS logs deployment/whisper (and -c fetch-model for the download)" >&2
+    return 1
+  fi
 }
 
 db_fixtures() {
@@ -970,6 +990,8 @@ case "$stage" in
   tag-demo) tag_demo ;;
   app) app ;;
   db-fixtures) db_fixtures ;;
+  whisper) whisper ;;
+  check-whisper) check_whisper ;;
   ogx) ogx ;;
   check-ogx) check_ogx ;;
   ogx-off) ogx_off ;;
@@ -989,7 +1011,7 @@ case "$stage" in
   stop-workbench) stop_workbench ;;
   smoke) smoke ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|whisper|check-whisper|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

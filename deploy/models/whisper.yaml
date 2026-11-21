@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: whisper
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: whisper
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: whisper-nonroot
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: whisper
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:nonroot-v2
+subjects:
+  - kind: ServiceAccount
+    name: whisper
+    namespace: cfo-ai
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisper-models
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: whisper
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: whisper
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: whisper
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: whisper
+      annotations:
+        openshift.io/required-scc: nonroot-v2
+    spec:
+      serviceAccountName: whisper
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: fetch-model
+          image: ghcr.io/speaches-ai/speaches@sha256:1d4f852ff5b148d675bcd751f414835c0bcef2541c1df8ffdeb43714968aafe6
+          command:
+            - python
+            - -c
+            - |
+              import os
+              from huggingface_hub import snapshot_download
+
+              patterns = ["config.json", "preprocessor_config.json", "model.bin", "tokenizer.json", "vocabulary.*", "README.md"]
+              required = ["model.bin", "tokenizer.json", "README.md"]
+              models = dict.fromkeys([os.environ["WHISPER_MODEL"], *os.environ.get("WHISPER_MODELS", "").split()])
+              for model in models:
+                  try:
+                      path = snapshot_download(model, allow_patterns=patterns, local_files_only=True)
+                      missing = [name for name in required if not os.path.exists(os.path.join(path, name))]
+                      if missing:
+                          raise FileNotFoundError(", ".join(missing))
+                      print(f"{model}: in the cache", flush=True)
+                  except Exception:
+                      snapshot_download(model, allow_patterns=patterns)
+                      print(f"{model}: downloaded", flush=True)
+          env:
+            - name: HF_HOME
+              value: /home/ubuntu/.cache/huggingface
+            - name: WHISPER_MODEL
+              value: deepdml/faster-whisper-large-v3-turbo-ct2
+            - name: WHISPER_MODELS
+              value: deepdml/faster-whisper-large-v3-turbo-ct2 Systran/faster-whisper-large-v3 Systran/faster-whisper-medium
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: models
+              mountPath: /home/ubuntu/.cache/huggingface
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      containers:
+        - name: whisper
+          image: ghcr.io/speaches-ai/speaches@sha256:1d4f852ff5b148d675bcd751f414835c0bcef2541c1df8ffdeb43714968aafe6
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: WHISPER__INFERENCE_DEVICE
+              value: cpu
+            - name: WHISPER__COMPUTE_TYPE
+              value: int8
+            - name: WHISPER__CPU_THREADS
+              value: "8"
+            - name: WHISPER__TTL
+              value: "-1"
+            - name: ENABLE_UI
+              value: "false"
+            - name: LOG_LEVEL
+              value: info
+            - name: HF_HOME
+              value: /home/ubuntu/.cache/huggingface
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: WHISPER_MODEL
+              value: deepdml/faster-whisper-large-v3-turbo-ct2
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: whisper-api-key
+                  key: API_KEY
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          startupProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - |
+                  import os, urllib.error, urllib.request
+
+                  request = urllib.request.Request(
+                      f"http://127.0.0.1:8000/api/ps/{os.environ['WHISPER_MODEL']}", method="POST",
+                      headers={"Authorization": f"Bearer {os.environ['API_KEY']}"})
+                  try:
+                      urllib.request.urlopen(request, timeout=110)
+                  except urllib.error.HTTPError as error:
+                      if error.code != 409:
+                          raise
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 120
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - |
+                  import json, os, sys, urllib.request
+
+                  request = urllib.request.Request(
+                      "http://127.0.0.1:8000/api/ps", headers={"Authorization": f"Bearer {os.environ['API_KEY']}"})
+                  sys.exit(os.environ["WHISPER_MODEL"] not in json.load(urllib.request.urlopen(request, timeout=5))["models"])
+            periodSeconds: 10
+            timeoutSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: models
+              mountPath: /home/ubuntu/.cache/huggingface
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "2"
+              memory: 3Gi
+            limits:
+              cpu: "8"
+              memory: 8Gi
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: whisper-models
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: whisper
+spec:
+  selector:
+    app.kubernetes.io/name: whisper
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
