@@ -216,8 +216,12 @@ app() {
       exit 1
     fi
   done
-  oc apply -f "$APP/config.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml" -f "$APP/extractor.yaml"
-  for name in ordo-api ordo-web ordo-pipeline ordo-extractor; do
+  if ! secret_exists ordo-mailbox; then
+    echo "note: no secret ordo-mailbox, the invoices mailbox is not read (see deploy/secrets.example.yaml)" >&2
+  fi
+  oc apply -f "$APP/config.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml" -f "$APP/extractor.yaml" \
+    -f "$APP/connectors.yaml"
+  for name in ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors; do
     oc -n "$NS" rollout status "deployment/$name" --timeout=300s
   done
 }
