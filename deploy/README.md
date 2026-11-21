@@ -21,6 +21,7 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `ordo-connectors` | `ordo-backend` | Polls the Sandbox Bank, the invoices mailbox and the NBP rates |
 | `ordo-pipeline` | `ordo-backend` | Normalises and matches |
 | `ordo-extractor` | `ordo-backend` | Reads photos and PDFs through docling-serve and gpt-oss-20b |
+| `ordo-agents` | `ordo-backend` | Turns new Matches and forecasts into inbox cards (ingestion, liquidity, receivables agents) |
 | `ordo-bank` | `ordo-sim` | The Sandbox Bank, in-cluster only at `http://ordo-bank.cfo-ai.svc.cluster.local:8081` |
 | `postgresql` | `rhel9/postgresql-16` | The database |
 | `gpt-oss-20b-predictor`, `docling-serve` | see `deploy/models/` | The model and OCR |
