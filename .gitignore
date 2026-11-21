@@ -11,6 +11,9 @@
 *.wsdl
 pizzeria-amalfi-bank-statement-*.csv
 /materials/
+# except our own filled project card, shown in the README
+!docs/project-card/*.pdf
+!docs/project-card/*.png
 
 # secrets
 .env
