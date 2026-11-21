@@ -61,6 +61,11 @@ spec:
                 secretKeyRef:
                   name: llm-token
                   key: token
+            - name: ORDO_BANK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sandbox-bank-token
+                  key: BANK_TOKEN
           readinessProbe:
             httpGet:
               path: /api/v1/health

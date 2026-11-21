@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordo-bank
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-bank
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-sim:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"bank\")].image"}]'
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ordo-bank
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: ordo-bank
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      containers:
+        - name: bank
+          image: ordo-sim:latest
+          ports:
+            - name: http
+              containerPort: 8081
+          env:
+            - name: BANK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sandbox-bank-token
+                  key: BANK_TOKEN
+            - name: BANK_AUTOLOAD_DIR
+              value: /opt/app-root/src/sim/scenario/out
+            - name: BANK_AUTOLOAD_CSV
+              value: /data/pizzeria/statement.csv
+            - name: BANK_AUTOLOAD_ACCOUNT
+              value: acc_pizzeria
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: pizzeria
+              mountPath: /data/pizzeria
+              readOnly: true
+      volumes:
+        - name: pizzeria
+          configMap:
+            name: bank-pizzeria-csv
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordo-bank
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-bank
+spec:
+  selector:
+    app.kubernetes.io/name: ordo-bank
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
