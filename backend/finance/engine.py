@@ -9,7 +9,6 @@ actions; the finance consumer calls it after new bank lines and approved Ledger 
     4. store the forecast and emit `forecast.updated`; unchanged inputs (same `inputs_hash`) do nothing
 """
 import logging
-import re
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -124,65 +123,16 @@ def _keys(party: dict) -> list[str]:
     return [k for k in (party.get("counterparty_id"), name_key(party.get("name"))) if k]
 
 
-def _plain_key(text: str | None) -> str:
-    return name_key(re.sub(r"\(SAMPLE\)", "", text or "", flags=re.I))
-
-
-def _same_name(a: str, b: str) -> bool:
-    """One folded name contains the other as whole words: "jan nowak it" and "jan nowak"."""
-    return bool(a and b) and (f" {a} " in f" {b} " or f" {b} " in f" {a} ")
-
-
-# An open invoice overdue by more than this, with no payment found, stays out of the daily forecast: putting it on
-# the next business day made old, already-paid invoices move hundreds of thousands in one day.
-STALE_DAYS = 60
-
-
-def _paid_by_amount_and_name(s: Store, company_id: str, documents: list[dict], settled: dict, counterparties: dict,
-                             as_of: str) -> set[str]:
-    """Invoices the matcher did not pair with a bank line, but that a bank line clearly pays: same amount, a name
-    that contains the other ("Jan Nowak IT" / "JAN NOWAK"), booked on or after the issue date. One line per invoice."""
-    lines = [t for t in s.list("transaction", company_id=company_id) if t["booking_date"] <= as_of]
-    used: set[str] = {m["transaction_id"] for m in settled.values() if m.get("transaction_id")}
-
-    key, same = _plain_key, _same_name
-
-    found: set[str] = set()
-    for doc in sorted(documents, key=lambda d: d.get("issue_date") or ""):
-        if doc["id"] in settled or not doc.get("issue_date"):
-            continue
-        party = _party(doc)
-        name = key((counterparties.get(party.get("counterparty_id") or "") or {}).get("name") or party.get("name"))
-        gross = doc["totals"].get("gross_base") or doc["totals"]["gross"]
-        sign = Decimal(1) if doc.get("direction") == "sale" else Decimal(-1)
-        want = sign * Decimal(gross["amount"])
-        for t in lines:
-            if t["id"] in used or t["booking_date"] < doc["issue_date"] or Decimal(t["amount_base"]["amount"]) != want:
-                continue
-            cp = counterparties.get(t.get("counterparty_id") or "") or {}
-            if same(name, key(cp.get("name"))) or same(name, key(t.get("counterparty_name_raw"))):
-                used.add(t["id"])
-                found.add(doc["id"])
-                break
-    return found
-
-
 def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[str]]:
     """Open invoices known on the as-of date, and the keys of every client paid by invoice."""
     documents = [d for d in s.list("document", company_id=company["id"]) if d.get("status") not in ("duplicate", "rejected")]
     matches = s.list("match", company_id=company["id"])
-    # An invoice with a bank line matched to it is paid, also while the owner has not checked the match yet
-    # ("suggested"): the money is on the account. Counting it as open made every old invoice "arrive" on the next
-    # business day (hundreds of thousands on one day in the demo data).
-    settled = {m["document_id"]: m for m in matches if m.get("status") in SETTLED | {"suggested"} and m.get("transaction_id")}
+    # For cash, a document matched to a bank line is paid: the money already moved, confirmed by the owner or not.
+    # Waiting for it again would count it twice (with role 3's `suggested` matches, every sales invoice of the year
+    # looked open). Only a match the owner rejected leaves the document open.
+    settled = {m["document_id"]: m for m in matches if m.get("transaction_id") and m.get("status") != "rejected"}
     private = {m["document_id"] for m in matches if m.get("paid_by") in ("employee_private", "owner_private")}
     counterparties = {c["id"]: c for c in s.list("counterparty", company_id=company["id"])}
-    paid_by_line = _paid_by_amount_and_name(s, company["id"], documents, settled, counterparties, as_of)
-    # Suppliers paid on a monthly schedule (a recurring series): the series already forecasts their next payment,
-    # so their open invoice is not counted a second time.
-    on_schedule = {_plain_key((counterparties.get(t.get("counterparty_id") or "") or {}).get("name") or t.get("counterparty_name_raw"))
-                   for t in s.list("transaction", company_id=company["id"])
-                   if t.get("recurring_series_id") and Decimal(t["amount_base"]["amount"]) < 0}
 
     delays: dict[str, list[int]] = {}
     for doc in documents:  # how late each client paid before: payment booking date - due date
@@ -201,19 +151,15 @@ def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[st
         if doc.get("direction") == "sale":
             invoice_keys.update(keys)
         issued = doc.get("issue_date") or doc.get("sale_date")
-        if not issued or issued > as_of or doc["id"] in settled or doc["id"] in paid_by_line or not keys:
+        if not issued or issued > as_of or doc["id"] in settled or not keys:
             continue
         payment = doc.get("payment") or {}
-        if doc.get("direction") == "purchase" and any(_same_name(_plain_key(party.get("name")), k) for k in on_schedule):
-            continue
         if doc.get("direction") == "purchase" and (payment.get("paid") or doc["id"] in private
                                                    or payment.get("method") in ("card", "cash")):
             continue  # already paid, or owed to a person (that debt is in the Ledger)
         if doc.get("direction") not in ("sale", "purchase"):
             continue
         due = doc.get("due_date") or (date.fromisoformat(issued) + timedelta(days=DEFAULT_PAYMENT_DAYS)).isoformat()
-        if (date.fromisoformat(as_of) - date.fromisoformat(due)).days > STALE_DAYS:
-            continue  # long overdue with no payment found: doubtful, not money that moves tomorrow
         delay = 0
         if doc["direction"] == "sale":
             seen = next((delays[k] for k in keys if k in delays), None)

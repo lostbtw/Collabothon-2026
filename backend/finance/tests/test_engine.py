@@ -175,3 +175,27 @@ def test_the_pizzeria_from_the_database_with_the_june_closure(db):
 def pizzeria_expected() -> str:
     from backend.finance.forecast import build_forecast
     return build_forecast(**pizzeria(), events=[CLOSED_JUNE], horizon_days=60)["min_balance"]["amount"]["amount"]
+
+
+def test_an_invoice_whose_payment_is_in_the_bank_is_not_expected_again(labs_db):
+    """Role 3 leaves most matches `suggested` until the owner confirms them; the money has moved all the same.
+    Found with the full scenario: every sales invoice of the year was expected as a future receipt (1.27 m PLN)."""
+    s = Store(labs_db)
+    june = next(t for t in s.list("transaction", company_id="co_borsuk") if t["description"] == "FV 2026/10/041")
+    s.put("document", {"id": "doc_paid_june", "company_id": "co_borsuk", "direction": "sale", "status": "extracted",
+                       "number": "2026/06/042", "issue_date": "2026-06-30", "due_date": "2026-07-14",
+                       "buyer": {"name": "Meblostyl sp. z o.o. (SAMPLE)", "counterparty_id": None},
+                       "totals": {"gross": {"amount": "36408.00", "currency": "PLN"}}}, company_id="co_borsuk")
+
+    def expected():
+        company = engine._company(labs_db, "co_borsuk")
+        items, _ = engine._open_items(s, company, company["as_of_date"])
+        return {i["id"] for i in items}
+
+    assert "doc_paid_june" in expected()  # no match yet: open
+    s.put("match", {"id": "mat_paid_june", "match_type": "sales_invoice_payment", "document_id": "doc_paid_june",
+                    "transaction_id": june["id"], "status": "suggested"}, company_id="co_borsuk")
+    assert "doc_paid_june" not in expected()  # suggested, not confirmed: paid all the same
+    s.put("match", {"id": "mat_paid_june", "match_type": "sales_invoice_payment", "document_id": "doc_paid_june",
+                    "transaction_id": june["id"], "status": "rejected"}, company_id="co_borsuk")
+    assert "doc_paid_june" in expected()  # the owner said no: open again

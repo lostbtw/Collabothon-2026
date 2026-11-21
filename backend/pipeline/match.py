@@ -6,6 +6,7 @@ descending score one document to one bank line (threshold 0.55), fills who paid 
 | score | condition | status | control level |
 |---|---|---|---|
 | >= 0.90 | bank line in a known recurring series AND no tax consequence | auto_confirmed | analysed_autonomously |
+| >= 0.90 | KSeF invoice (FA(3) XML, confidence 1.0) paid to the cent AND no tax consequence | auto_confirmed | analysed_autonomously |
 | >= 0.90 | otherwise | suggested (one-click confirm) | approval_required |
 | 0.55-0.90 | | suggested, with reasons and alternatives | approval_required |
 | < 0.55 / no line | | document_no_transaction Match (#25) | recommendation |
@@ -14,7 +15,8 @@ Beyond the spec's table: when a cross-currency card line states its original amo
 equal the invoice's gross for the full 0.35; within 1.00 (an OCR misread) it scores 0.25; further off is no match.
 Without it, two invoices from the same foreign seller in the same week both fit the spread band and tie.
 
-`recurring_series_id` is set by role 4's forecast engine; until it is, nothing auto-confirms (safe default).
+`recurring_series_id` is set by role 4's forecast engine. The KSeF rule keeps a year of history from asking the owner
+about every invoice that the bank paid exactly; photos, PDFs and foreign-currency lines still ask.
 Undo of an auto-confirmation = reject through the match decision endpoint (#42).
 """
 import re
@@ -32,6 +34,7 @@ CARD_LAG = (-1, 5)
 TRANSFER_GRACE_DAYS = 30
 SYSTEM = {"role": "system", "person_id": None, "name": "rule: auto-confirm >= 0.90 for known recurring series",
           "email": None}
+SYSTEM_KSEF = {**SYSTEM, "name": "rule: auto-confirm >= 0.90 for a KSeF invoice paid to the cent"}
 
 _LEGAL = {"sp", "z", "o", "sa", "s", "a", "inc", "ltd", "llc", "gmbh", "pty", "ag", "co", "com", "sample",
           "spolka", "spółka", "akcyjna", "the"}
@@ -163,6 +166,11 @@ def score_pair(doc: dict, txn: dict, accounts: dict) -> tuple[float, list[dict]]
 
 # ---------- assignment and routing ----------
 
+def _evidence(reasons: list[dict]) -> float:
+    """The uncapped sum of a pair's reason weights: what ranks candidate pairs."""
+    return round(sum(r["weight"] for r in reasons), 4)
+
+
 def run_matching(documents: list[dict], transactions: list[dict], *, company: dict, people: list[dict],
                  accounts: list[dict], now: str, as_of: str | None = None,
                  senders: dict | None = None) -> list[dict]:
@@ -184,7 +192,10 @@ def run_matching(documents: list[dict], transactions: list[dict], *, company: di
             s, reasons = score_pair(doc, txn, by_account)
             if s >= THRESHOLD:
                 candidates.append((s, di, ti, reasons))
-    candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
+    # Rank by the evidence before the 1.0 cap: an invoice's own payment (amount + date + its number in the title)
+    # and next month's payment of the same amount both reach the cap, and the tie handed each monthly invoice the
+    # following month's line. The shown score stays capped.
+    candidates.sort(key=lambda c: (-_evidence(c[3]), -c[0], c[1], c[2]))
 
     taken_doc, taken_txn, chosen = set(), set(), {}
     for s, di, ti, reasons in candidates:
@@ -211,14 +222,33 @@ def run_matching(documents: list[dict], transactions: list[dict], *, company: di
             "score": s, "reasons": reasons, "status": "suggested",
             "decided_by": None, "decided_at": None, "created_at": now,
         }, doc, txn, company=company, people=people, accounts=company_accounts, sender_email=senders.get(doc["id"]))
-        auto = s >= AUTO and txn.get("recurring_series_id") and not has_tax_consequence(match["consequences"])
+        rule = auto_rule(s, doc, txn, reasons, match["consequences"])
+        auto = rule is not None
         if auto:
-            match.update(status="auto_confirmed", decided_by=SYSTEM, decided_at=now)
+            match.update(status="auto_confirmed", decided_by=rule, decided_at=now)
         alternatives = [{"transaction_id": lines[t]["id"], "score": sc}
                         for sc, d, t, _ in candidates if d == di and t != ti][:3]
         results.append({"match": match, "control_level": "analysed_autonomously" if auto else "approval_required",
                         "alternatives": alternatives})
     return results
+
+
+def is_exact_ksef(doc: dict, reasons: list[dict]) -> bool:
+    """A KSeF FA(3) invoice (parsed, not read by a model) that the bank line pays to the cent."""
+    extraction = doc.get("extraction") or {}
+    return (doc.get("channel") == "ksef" and extraction.get("method") == "xml_parse"
+            and extraction.get("confidence") == 1.0 and any(r["rule"] == "amount_exact" for r in reasons))
+
+
+def auto_rule(score: float, doc: dict, txn: dict, reasons: list[dict], consequences: dict) -> dict | None:
+    """The system decider when the pair auto-confirms (table in the module docstring), else None."""
+    if score < AUTO or has_tax_consequence(consequences):
+        return None
+    if txn.get("recurring_series_id"):
+        return SYSTEM
+    if is_exact_ksef(doc, reasons):
+        return SYSTEM_KSEF
+    return None
 
 
 def match_suggested_payload(match: dict) -> dict:
