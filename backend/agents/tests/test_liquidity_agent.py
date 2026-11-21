@@ -205,7 +205,7 @@ def test_the_template_card_is_stored_before_the_model_is_asked(db, world):
 
     on_forecast_updated(db, updated("fc_20261121a"), model=SlowModel(final("x" * 10, "y" * 20, ["a", "b"])))
 
-    assert seen_while_model_runs[0] == ["rec_cl_fc_20261121a"]
+    assert len(seen_while_model_runs[0]) == 1 and seen_while_model_runs[0][0].startswith("rec_cl_fc_20261121a_")
 
 
 def test_the_limit_and_the_stress_case_on_the_card_come_from_the_engine(db, world, monkeypatch):
@@ -221,3 +221,18 @@ def test_the_limit_and_the_stress_case_on_the_card_come_from_the_engine(db, worl
     assert card["proposed_action"]["params"]["limit"] == money("50000.00")
     calculation = {row["label"]: row["value"] for row in card["explanation"]["calculation"]}
     assert calculation["Stress case (Nordwind pays 21 Dec)"] == "-46,072.20 PLN on 21 Dec"
+
+
+def test_a_new_limit_on_the_same_alert_replaces_the_open_card_and_the_same_numbers_keep_it(db, world, monkeypatch):
+    from backend.finance import engine
+
+    on_forecast_updated(db, updated("fc_20261121a"), model=None)
+    assert on_forecast_updated(db, updated("fc_20261121a"), model=None) is None
+    old = cards(world)[0]
+
+    monkeypatch.setattr(engine, "credit_line", lambda conn, company: {"limit": {"amount": "50000.00", "currency": "PLN"}})
+    new_id = on_forecast_updated(db, updated("fc_20261121a"), model=None)
+    assert new_id and new_id != old["id"]
+    statuses = {r["id"]: r["status"] for r in cards(world)}
+    assert statuses[old["id"]] == "superseded"
+    assert statuses[new_id] == "new"

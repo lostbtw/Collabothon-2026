@@ -1,4 +1,6 @@
 """Liquidity agent: one credit-line card per cash-gap alert. Template first; the model may reword it, number-checked."""
+import hashlib
+import json
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -163,7 +165,7 @@ def template_recommendation(company: str, facts: dict[str, Any], at: str) -> dic
     total_cost = _money(Decimal(facts["interest"]["amount"]) + Decimal(facts["fee"]["amount"]), currency)
     forecast_id = facts["forecast"]["forecast_id"]
     return {
-        "id": f"rec_cl_{forecast_id}",
+        "id": f"rec_cl_{forecast_id}_{_short_hash(signature(facts))}",
         "company_id": company,
         "agent": "liquidity",
         "type": "credit_line",
@@ -194,7 +196,7 @@ def template_recommendation(company: str, facts: dict[str, Any], at: str) -> dic
             "kind": "apply_credit_line",
             "params": {"limit": limit, "tenor_days": 60, "bank": facts["prices"].get("bank", "Commerzbank"),
                        "product": facts["prices"].get("product"),
-                       "alert": {"date_from": alert["date_from"], "max_shortfall": alert["max_shortfall"]}},
+                       "alert": signature(facts)},
             "preview": f"SIMULATED: sends a credit-line application for {fmt_money(limit, cents=False)} / 60 days to the "
                        f"Commerzbank. No real bank is contacted.",
         },
@@ -234,6 +236,17 @@ def _open_credit_lines(s: Store, company: str) -> list[dict[str, Any]]:
             if r["type"] == "credit_line"]
 
 
+def _short_hash(value: Any) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()[:8]
+
+
+def signature(facts: dict[str, Any]) -> dict[str, Any]:
+    """The numbers that make a credit-line card: a change in any of them replaces the open card."""
+    alert = facts["alert"]
+    return {"date_from": alert["date_from"], "max_shortfall": alert["max_shortfall"],
+            "stress_shortfall": facts["stress_shortfall"], "limit": facts["limit"]}
+
+
 def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: Any = _DEFAULT) -> str | None:
     """Handler for `forecast.updated`. Returns the id of the card created, or None."""
     company = event["company_id"]
@@ -241,10 +254,9 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
     if facts is None:
         return None
     s = Store(conn)
-    signature = {"date_from": facts["alert"]["date_from"], "max_shortfall": facts["alert"]["max_shortfall"]}
     open_credit_lines = _open_credit_lines(s, company)
-    if any(r["proposed_action"]["params"].get("alert") == signature for r in open_credit_lines):
-        return None  # same alert, card already in the inbox
+    if any(r["proposed_action"]["params"].get("alert") == signature(facts) for r in open_credit_lines):
+        return None  # same numbers, card already in the inbox
 
     card = template_recommendation(company, facts, event["occurred_at"])
     for old in open_credit_lines:
