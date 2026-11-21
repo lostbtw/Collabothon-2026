@@ -1,5 +1,4 @@
-"""Re-matching data an older matcher paired: each monthly invoice gets its own month's transfer back, owner decisions
-stay, stale cards are retired, and a second run changes nothing."""
+"""Re-matching an older matcher's pairs: each invoice gets its own month's transfer, owner decisions stay, idempotent."""
 from backend.db.fixtures import load_fixtures
 from backend.db.store import Store
 from backend.pipeline.handlers import rematch
@@ -8,7 +7,6 @@ from backend.pipeline.tests.test_match import MonthlyInvoicesOfTheSameAmount as 
 
 
 def shifted_match(month: int, txn_month: int) -> dict:
-    """What the old matcher saved: the invoice of `month` holding the transfer of `txn_month`."""
     return {"id": f"mat_aw_{month:02d}", "match_type": "document_transaction", "document_id": f"doc_aw_{month:02d}",
             "transaction_id": f"txn_aw_{txn_month:02d}", "score": 1.0, "reasons": [], "paid_by": "company_account",
             "consequences": {"vat_deductible": True}, "status": "suggested"}
@@ -38,7 +36,7 @@ def test_shifted_pairings_are_put_right_once(db):
     assert [own_line(s, m) for m in (4, 5, 6)] == ["txn_aw_04", "txn_aw_05", "txn_aw_06"]
     assert all(s.get("transaction", f"txn_aw_{m:02d}")["match_status"] in ("suggested", "matched") for m in (4, 5, 6))
     assert s.get("recommendation", "rec_old_card")["status"] == "superseded"
-    assert rematch(ctx, "co_borsuk") == 0  # idempotent
+    assert rematch(ctx, "co_borsuk") == 0
 
 
 def test_an_owner_decision_is_kept(db):
@@ -52,5 +50,5 @@ def test_an_owner_decision_is_kept(db):
     rematch(make_context(db), "co_borsuk")
     db.commit()
 
-    assert own_line(s, 4) == "txn_aw_05"  # the owner confirmed it: Ordo does not overrule
-    assert own_line(s, 5) is None  # its own transfer is held by that decision; an earlier one cannot pay it
+    assert own_line(s, 4) == "txn_aw_05"
+    assert own_line(s, 5) is None

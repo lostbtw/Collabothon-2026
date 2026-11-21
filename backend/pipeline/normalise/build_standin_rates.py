@@ -1,11 +1,4 @@
-"""Build standin_rates.json: the NBP table the pipeline uses until role 2's NBP connector (#34) lands.
-
-Rates come from role 4's scenario (sim/scenario/bank_2026.py `mid_rate`), the rate its card lines are priced with,
-on its bank days (weekdays without Polish holidays), so foreign documents match the scenario's bank lines.
-They are real NBP table A rates (sim/scenario/nbp_rates.json); after 20 Nov 2026 the last one is repeated.
-
-    python backend/pipeline/normalise/build_standin_rates.py      # rewrites standin_rates.json (deterministic)
-"""
+"""Build standin_rates.json from the scenario's real NBP rates on its bank days: `python backend/pipeline/normalise/build_standin_rates.py`."""
 import importlib.util
 import json
 import sys

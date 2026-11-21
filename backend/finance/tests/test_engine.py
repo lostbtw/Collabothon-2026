@@ -1,4 +1,4 @@
-"""Seam: database -> recompute -> stored Forecast + forecast.updated (#28). Needs the test database."""
+"""Seam: database -> recompute -> stored Forecast + forecast.updated. Needs the test database."""
 import json
 from decimal import Decimal
 
@@ -16,7 +16,7 @@ from backend.pipeline.normalise.bank import transaction_id
 
 from .data import CLOSED_JUNE, PIZZERIA_CSV, SCENARIO, bank_lines, borsuk, pizzeria, scenario_documents
 
-SALES = [  # the story's open sales invoices on 21 Nov (role 4 scenario)
+SALES = [
     ("doc_fv_2026_10_042", "2026/10/042", "Meblostyl sp. z o.o. (SAMPLE)", None, "36900.00", "PLN", "2026-10-31",
      "2026-11-27"),
     ("doc_fv_2026_10_044", "2026/10/044", "Nordwind Logistik GmbH (SAMPLE)", "cp_nordwind", "18400.00", "EUR",
@@ -32,9 +32,8 @@ def events(db, type):
 
 @pytest.fixture
 def labs_db(db):
-    """Borsuk Labs in the database: bank lines, open sales invoices, Nordwind's delay, 10 approved debts."""
     seed(db)
-    for p in json.loads((SCENARIO / "people.json").read_text(encoding="utf-8")):  # the full team (role 4 scenario)
+    for p in json.loads((SCENARIO / "people.json").read_text(encoding="utf-8")):
         db.execute("insert into people (id, company_id, name, email, role) values (%s, %s, %s, %s, %s) "
                    "on conflict do nothing", (p["id"], p["company_id"], p["name"], p["email"], p["role"]))
     db.commit()
@@ -48,9 +47,9 @@ def labs_db(db):
     s.put("counterparty", {"id": "cp_nordwind", "company_id": "co_borsuk", "name": "Nordwind Logistik GmbH (SAMPLE)",
                            "kind": "customer", "typical_payment_delay_days": 23}, company_id="co_borsuk")
     scenario = {d["number"]: d for d in scenario_documents()}
-    story = {"2026/10/041", "2026/10/042", "2026/10/043", "2026/10/044"}  # stored below with their story ids
+    story = {"2026/10/041", "2026/10/042", "2026/10/043", "2026/10/044"}
 
-    def totals(number, gross, ccy):  # net and VAT from the scenario's invoice; Lakeshore 2026/11/045 has none
+    def totals(number, gross, ccy):
         t = {"gross": {"amount": gross, "currency": ccy}}
         if number in scenario:
             t |= {"net": scenario[number]["totals"]["net"], "vat": scenario[number]["totals"]["vat"]}
@@ -63,7 +62,7 @@ def labs_db(db):
                            "totals": totals(number, gross, ccy)}, company_id="co_borsuk")
     paid = [("doc_fv_2026_10_041", "Piekarnia Złoty Kłos sp. z o.o. (SAMPLE)", "8610.00", "2026-11-04", "FV 2026/10/041"),
             ("doc_fv_2026_10_043", "Kadrownia sp. z o.o. (SAMPLE)", "4920.00", "2026-11-15", "ZAPLATA ZA FV 2026/10/043")]
-    for id_, buyer, gross, due, reference in paid:  # October invoices already paid in November (matched)
+    for id_, buyer, gross, due, reference in paid:
         line = next(t for t in data["transactions"] if t["description"] == reference)
         s.put("document", {"id": id_, "company_id": "co_borsuk", "direction": "sale", "status": "approved",
                            "number": id_[7:].replace("_", "/"), "issue_date": "2026-10-31", "due_date": due,
@@ -72,7 +71,7 @@ def labs_db(db):
         s.put("match", {"id": f"mat_{id_}", "match_type": "sales_invoice_payment", "document_id": id_,
                         "transaction_id": line["id"], "status": "confirmed"}, company_id="co_borsuk")
     transaction_ids = {t["id"] for t in data["transactions"]}
-    for doc in scenario_documents():  # the rest of the books: history is paid and matched, none of it is open
+    for doc in scenario_documents():
         if doc["number"] in story:
             continue
         doc = dict(doc)
@@ -142,7 +141,7 @@ def test_input_events_are_debounced_per_company(labs_db):
     on_inputs_changed(labs_db, event)
     seen = DIRTY["co_borsuk"][0]
 
-    assert recompute_due(labs_db, now=seen + 1.0) == []          # within 2 s: wait for more events
+    assert recompute_due(labs_db, now=seen + 1.0) == []
     assert recompute_due(labs_db, now=seen + 3.0) == ["co_borsuk"]
     assert events(labs_db, "forecast.updated")[-1]["causation_id"] == event["id"]
     assert DIRTY == {}
@@ -170,7 +169,7 @@ def test_a_credit_line_scenario_closes_the_gap_on_the_base_forecast(labs_db):
     low = min(Decimal(p["balance"]) + (30000 if p["date"] >= "2026-11-28" else 0) for p in base["points"])
     assert Decimal(what_if["min_balance"]["amount"]["amount"]) == low
     assert any(c["kind"] == "scenario_action" for c in what_if["components"])
-    assert engine.latest_base(labs_db, "co_borsuk")["id"] == base["id"]  # a scenario is never the base
+    assert engine.latest_base(labs_db, "co_borsuk")["id"] == base["id"]
     Forecast.model_validate(what_if)
 
 
@@ -190,7 +189,7 @@ def test_the_pizzeria_from_the_database_with_the_june_closure(db):
 
     forecast = engine.recompute(db, "co_amalfi")
 
-    assert forecast["opening_balance"]["amount"] == "1691.15"   # back from the bank's year-end balance
+    assert forecast["opening_balance"]["amount"] == "1691.15"
     assert forecast["min_balance"]["date"] == "2025-07-03"
     assert forecast["min_balance"]["amount"]["amount"] == pizzeria_expected()
 
@@ -201,8 +200,6 @@ def pizzeria_expected() -> str:
 
 
 def test_an_invoice_whose_payment_is_in_the_bank_is_not_expected_again(labs_db):
-    """Role 3 leaves most matches `suggested` until the owner confirms them; the money has moved all the same.
-    Found with the full scenario: every sales invoice of the year was expected as a future receipt (1.27 m PLN)."""
     s = Store(labs_db)
     june = next(t for t in s.list("transaction", company_id="co_borsuk") if t["description"] == "FV 2026/10/041")
     s.put("document", {"id": "doc_paid_june", "company_id": "co_borsuk", "direction": "sale", "status": "extracted",
@@ -215,10 +212,10 @@ def test_an_invoice_whose_payment_is_in_the_bank_is_not_expected_again(labs_db):
         items, _ = engine._open_items(s, company, company["as_of_date"])
         return {i["id"] for i in items}
 
-    assert "doc_paid_june" in expected()  # no match yet: open
+    assert "doc_paid_june" in expected()
     s.put("match", {"id": "mat_paid_june", "match_type": "sales_invoice_payment", "document_id": "doc_paid_june",
                     "transaction_id": june["id"], "status": "suggested"}, company_id="co_borsuk")
-    assert "doc_paid_june" not in expected()  # suggested, not confirmed: paid all the same
+    assert "doc_paid_june" not in expected()
     s.put("match", {"id": "mat_paid_june", "match_type": "sales_invoice_payment", "document_id": "doc_paid_june",
                     "transaction_id": june["id"], "status": "rejected"}, company_id="co_borsuk")
-    assert "doc_paid_june" in expected()  # the owner said no: open again
+    assert "doc_paid_june" in expected()

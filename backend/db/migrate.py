@@ -10,7 +10,6 @@ REFERENCE_TABLES = {"schema_migrations", "outbox_subscription"}
 
 
 def migrate(conn: psycopg.Connection) -> list[str]:
-    """Apply pending migrations in one transaction each. Returns the names applied (empty when up to date)."""
     conn.execute(
         "create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())"
     )

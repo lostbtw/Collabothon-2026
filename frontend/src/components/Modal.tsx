@@ -2,7 +2,6 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CloseButton } from "./ui";
 
-/** A centred dialog over a dimmed page; Escape or a click outside closes it. */
 export function Modal({ title, head, onClose, footer, children, wide }: {
   title: string; head?: ReactNode; onClose: () => void; footer?: ReactNode; children: ReactNode; wide?: boolean;
 }) {
@@ -38,7 +37,6 @@ export function Modal({ title, head, onClose, footer, children, wide }: {
   );
 }
 
-/** A titled block inside a modal. */
 export function ModalSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="modal-section">

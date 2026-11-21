@@ -12,8 +12,6 @@ from backend.db.store import Store
 
 
 class ApiError(Exception):
-    """Raise to answer with the standard error shape {"error": {"code", "message"}}."""
-
     def __init__(self, status: int, code: str, message: str):
         self.status, self.code, self.message = status, code, message
 
@@ -36,7 +34,6 @@ def store(c: psycopg.Connection = Depends(conn)) -> Store:
 
 
 def company_id(c: psycopg.Connection = Depends(conn), company_id: str | None = Query(None)) -> str:
-    """?company_id=, default the first company (openapi conventions)."""
     known = [co["id"] for co in companies(c)]
     if company_id is None:
         if not known:
@@ -63,7 +60,6 @@ def new_id(prefix: str) -> str:
 
 
 def owner_of(c: psycopg.Connection, company: str) -> dict[str, Any]:
-    """PersonRef of the company's owner: the person who makes every Decision in this single-user build."""
     row = c.execute(
         "select id, name, email from people where company_id = %s and role = 'owner' order by id limit 1", (company,)
     ).fetchone()

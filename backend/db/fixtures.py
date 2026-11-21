@@ -10,7 +10,6 @@ from backend.db.store import Store
 
 FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "fixtures"
 
-# parents first, so children can look their company up
 ORDER = [
     "source", "account", "counterparty", "sync_run", "raw_item", "document", "transaction",
     "match", "ledger_entry", "forecast", "recommendation", "approval",

@@ -1,5 +1,4 @@
-"""The chat's free SQL tool. Four independent guards: guard() (one SELECT, LIMIT <= 200), READ ONLY tx with
-3 s timeout, role ordo_readonly (v_* views only), views filtered to the asking company."""
+"""The chat's free SQL tool: one SELECT, a read-only 3 s transaction, role ordo_readonly, company-filtered views."""
 import re
 from decimal import Decimal
 from typing import Any
@@ -19,7 +18,6 @@ class UnsafeQuery(ValueError):
 
 
 def guard(sql: str) -> str:
-    """The query to run, or UnsafeQuery."""
     text = _COMMENTS.sub(" ", sql or "").strip()
     if text.endswith(";"):
         text = text[:-1].rstrip()
@@ -48,7 +46,6 @@ def _plain(value: Any) -> Any:
 
 
 def run_readonly_sql(conn: psycopg.Connection, company: str, sql: str) -> dict[str, Any]:
-    """{"columns", "rows", "sql"} or {"error", "sql"}."""
     try:
         query = guard(sql)
     except UnsafeQuery as exc:

@@ -14,7 +14,6 @@ import { Toasts } from "./Toasts";
 const FOLDED_KEY = "ordo.sidebar.folded";
 const savedFolded = (): boolean => { try { return window.localStorage.getItem(FOLDED_KEY) === "1"; } catch { return false; } };
 
-/** The shell: three places and Settings on the left (foldable to icons), the page on the right, Ask Ordo over everything. */
 export function Layout() {
   const { companyId, setCompanyId, companies } = useCompany();
   const refresh = useRefreshKey();
@@ -62,7 +61,6 @@ export function Layout() {
           </nav>
           <span className="grow" />
           <NavItem to="/settings" icon="gear" label="Settings" folded={folded} />
-          {/* Switching data is still possible with ?mock=1 or ?mock=0 in the address; the owner does not need a button. */}
           {folded ? <span className="sidebar-note folded-note" title={note}>Sim</span> : <p className="sidebar-note">{note}</p>}
         </aside>
         <main className="main">

@@ -1,4 +1,4 @@
-"""Seam: the ledger and forecast endpoints on the engine's data (#29). Needs the test database."""
+"""Seam: the ledger and forecast endpoints on the engine's data. Needs the test database."""
 import json
 from decimal import Decimal
 
@@ -17,7 +17,7 @@ from .test_engine import labs_db  # noqa: F401  (fixture: Borsuk Labs in the dat
 
 WAITS_FOR_ROLE_5 = pytest.mark.xfail(
     reason="role 5 wires GET /forecast/latest to engine.latest(); until then a fresh database has no forecast (404)")
-PATHS = [  # (method, template, url, request) for the 8 paths of #29
+PATHS = [
     ("get", "/ledger", "/ledger", {}),
     ("get", "/ledger/summary", "/ledger/summary", {}),
     pytest.param("get", "/forecast/latest", "/forecast/latest", {}, marks=WAITS_FOR_ROLE_5),
@@ -57,18 +57,18 @@ def test_forecast_by_id_and_export(api):
     assert by_id.status_code == 200 and by_id.json()["inputs_hash"] == forecast["inputs_hash"]
     assert contract.errors(by_id.json(), contract.response_schema("get", "/forecast/{id}", 200)) == []
     export = borsuk(api, "get", "/ledger/export")
-    assert export.status_code == 200 and export.content[:2] == b"PK"  # a zip
+    assert export.status_code == 200 and export.content[:2] == b"PK"
 
 
 def test_latest_is_the_engines_forecast_even_after_a_fixture_from_the_future(labs_db):  # noqa: F811
-    fixture = read("forecast")[0]  # generated_at 2026-11-21T10:15:03Z: later than the real clock in the demo
+    fixture = read("forecast")[0]
     Store(labs_db).add("forecast", fixture, company_id="co_borsuk")
 
     forecast = engine.latest(labs_db, "co_borsuk")
 
     assert forecast["id"] != fixture["id"]
     assert engine.latest_base(labs_db, "co_borsuk")["id"] == forecast["id"]
-    assert engine.latest(labs_db, "co_borsuk")["id"] == forecast["id"]  # unchanged inputs: same forecast
+    assert engine.latest(labs_db, "co_borsuk")["id"] == forecast["id"]
     assert all(c["evidence"] for c in forecast["components"])
 
 
@@ -91,7 +91,7 @@ def test_ledger_kpis(labs_db):  # noqa: F811
 
     kpis = engine.ledger_kpis(labs_db, "co_borsuk")
 
-    assert kpis["vat_lost_ytd"] == {"amount": "242.90", "currency": "PLN"}  # only this year
+    assert kpis["vat_lost_ytd"] == {"amount": "242.90", "currency": "PLN"}
     assert kpis["reimbursements_owed"] == {"amount": "5169.00", "currency": "PLN"}
     forecast = engine.latest(labs_db, "co_borsuk")
     taxes = Decimal(0)
@@ -100,7 +100,7 @@ def test_ledger_kpis(labs_db):  # noqa: F811
             each = Decimal(c["amount_base"]["amount"]) / len(c["dates"])
             taxes += each * sum(1 for d in c["dates"] if "2026-11-21" < d <= "2026-12-21")
     assert kpis["tax_due_next_30d"] == {"amount": f"{abs(taxes):.2f}", "currency": "PLN"}
-    assert abs(taxes) == Decimal("33899.33")  # VAT 14,300.00 on 25 Nov, ZUS 13,300.33 on 15 Dec, CIT 4,007.00 + PIT-4 2,292.00 on 21 Dec
+    assert abs(taxes) == Decimal("33899.33")
     schema = contract.response_schema("get", "/ledger/summary", 200)["properties"]["kpis"]
     assert contract.errors(kpis, schema) == []
 

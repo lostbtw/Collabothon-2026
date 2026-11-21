@@ -55,7 +55,6 @@ def answer(action, reference, reason):
 
 
 def only(document_id, monkeypatch, change=lambda a: a):
-    """Assess just one invoice, so one scripted answer is one judgement."""
     real = engine.fx_assessments
     monkeypatch.setattr(engine, "fx_assessments", lambda conn, company_id: [
         change(a) for a in real(conn, company_id) if a["document_id"] == document_id])
@@ -150,7 +149,7 @@ def test_the_model_is_asked_once_per_set_of_numbers_and_new_numbers_replace_the_
     assert len(fx.on_forecast_updated(labs_db, updated(), model=model)) == 1
     assert fx.on_forecast_updated(labs_db, updated(), model=model) == [] and len(model.requests) == 1
     monkeypatch.undo()
-    only(LAKESHORE, monkeypatch, lambda a: {**a, "spot": "4.1000"})  # the dollar moved: new numbers
+    only(LAKESHORE, monkeypatch, lambda a: {**a, "spot": "4.1000"})
     assert len(fx.on_forecast_updated(labs_db, updated(), model=model)) == 1
     assert sorted((r["type"], r["status"]) for r in fx_cards(labs_db)) == [("fx_hedge", "new"), ("info", "superseded")]
 

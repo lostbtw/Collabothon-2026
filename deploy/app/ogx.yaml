@@ -1,7 +1,4 @@
-# OGX server (OpenShift AI) in front of the model: it runs the agents' tool loop and calls Ordo's tools over MCP.
-# Needs the OGX Operator (DataScienceCluster spec.components.ogx = Managed, llamastackoperator = Removed), the
-# database "ogx" and ordo-mcp (deploy/app/mcp.yaml);
-# `deploy/platform/setup.sh ogx` does both, applies this file and switches the agents over.
+# Needs the OGX Operator, the database "ogx" and ordo-mcp; `deploy/platform/setup.sh ogx` sets them up and applies this.
 apiVersion: ogx.io/v1beta1
 kind: OGXServer
 metadata:
@@ -18,8 +15,7 @@ spec:
       size: 5Gi
     overrides:
       env:
-        # The model, through ordo-mcp's pass-through: OGX sends a tool's result as text parts, which the gpt-oss chat
-        # handler of our vLLM refuses; the pass-through makes it plain text (backend/agents/model_passthrough.py).
+        # Through ordo-mcp's pass-through: our vLLM's gpt-oss handler refuses tool results made of text parts.
         - name: VLLM_URL
           value: http://ordo-mcp.cfo-ai.svc.cluster.local:8000/model/v1
         - name: INFERENCE_MODEL

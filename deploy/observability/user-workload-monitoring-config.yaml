@@ -1,5 +1,4 @@
-# The Prometheus that monitors user projects. 48 h instead of the default 24 h, so Saturday's runs are still there on
-# demo morning. Storage is the pod's emptyDir: a restart of prometheus-user-workload-0 starts the history again.
+# 48 h retention so Saturday's runs are still there on demo morning; emptyDir, so a pod restart loses the history.
 apiVersion: v1
 kind: ConfigMap
 metadata:

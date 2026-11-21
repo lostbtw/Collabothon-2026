@@ -17,13 +17,11 @@ import { approveLabel, costLabel } from "./model";
 
 export const AGENT: Record<string, string> = { ingestion: "Documents", liquidity: "Cash", tax: "Tax", fx: "FX Shield", chat: "Ask Ordo" };
 
-/** "Added 2 h ago" on the API's clock; the date and time until that clock is known. */
 export function Added({ at }: { at: string }) {
   const now = useNow(60_000);
   return <>Added {now === null ? dateTime(at) : ago(at, now)}</>;
 }
 
-/** A recommendation: the point and its key numbers first; why, how, sources and what happens behind "Show full description". */
 export function RecModal({ rec, decision, onClose, approval, footer: given, extra }: {
   rec: Recommendation; decision?: Decision; onClose: () => void; approval?: Approval | null; footer?: ReactNode; extra?: ReactNode;
 }) {
@@ -100,7 +98,6 @@ export function RecModal({ rec, decision, onClose, approval, footer: given, extr
 
 const isFree = (amount: string) => /^-?0+(\.0+)?$/.test(amount);
 
-/** The engine's numbers for a recommendation, as a row of facts; the secondary ones only in the full description. */
 function RecFigures({ rec, full }: { rec: Recommendation; full: boolean }) {
   const i = rec.impact;
   const facts: [string, ReactNode, string?][] = [];

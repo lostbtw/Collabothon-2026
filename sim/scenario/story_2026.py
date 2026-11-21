@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Borsuk Labs (SAMPLE): People list, story items after the as-of date, and the story check.
-
-Writes:
-  out/people.json       People per Company (role 5 seeds them), same fields as backend/db/seed_data/people.json
-  out/story_items.json  the known future cash items of the liquidity story, as of 21 Nov 2026
-Then checks that the bank closing balances plus these items reproduce the story table (spec #4).
-Stops with an error if a check fails. No randomness: the output is byte-identical on every run.
-
-Usage: python3 sim/scenario/story_2026.py
-"""
+"""Borsuk Labs (SAMPLE): People, story items after the as-of date, and the check that they reproduce the story table."""
 import json
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -18,8 +9,7 @@ from world import ACCOUNTS, AS_OF, COMPANY_ID, OUT, PEOPLE, PERSON, RATES
 
 CENT = Decimal("0.01")
 
-# Story table (spec #4). The story rounds its EUR conversions (3,100 EUR = 13,670; 18,400 EUR = 81,100),
-# so the exact values differ by up to ~45 PLN. The spec says: if they differ, change the script, not the engine.
+# The story rounds its EUR conversions, so values differ by up to ~45 PLN; if they differ, change the script, not the engine.
 STORY = [
     (date(2026, 11, 21), "Opening: 24,730 PLN + 3,100 EUR", Decimal("38400")),
     (date(2026, 11, 25), "VAT for October", Decimal("24100")),
@@ -28,18 +18,15 @@ STORY = [
     (date(2026, 12, 5), "Coworking, SaaS, card purchases (lowest)", Decimal("-7870")),
     (date(2026, 12, 7), "Nordwind pays 18,400 EUR", Decimal("73230")),
 ]
-STRESS_LOW = Decimal("-28170")   # Nordwind pays 21 Dec instead of 7 Dec
+STRESS_LOW = Decimal("-28170")
 LOW_BEFORE_LIVE_RECEIPT = Decimal("-6571")
-TOLERANCE = Decimal("50")        # PLN, covers the story's rounding of EUR amounts
+TOLERANCE = Decimal("50")
 
 
 def m(amount, currency="PLN"):
     return {"amount": f"{Decimal(amount):.2f}", "currency": currency}
 
 
-# Reimbursements owed on 30 Nov: 10 receipts paid with private cards = 5,169.00 PLN.
-# M1: document in the person's own name / no company NIP; M2: document made out to the company.
-# The live receipt (1,299 PLN, doc_rcpt412) arrives during the demo and moves the low from -6,571 to -7,870.
 RECEIPTS = [
     ("doc_rcpt412", "per_jan", "2026-11-20", "ElektroMarkt Polska S.A. (SAMPLE)", "Monitor 27 cali QHD", "1299.00",
      "M1", False, True),
@@ -91,8 +78,6 @@ def story_items():
     add("si_bankfee_11", "2026-12-01", "recurring", "OPLATA ZA PROWADZENIE RACHUNKU 11/2026", "", "-39.00")
     add("si_codeharbor_12", "2026-12-03", "recurring", "CODEHARBOR.IO 420.00 USD, bought 2 Dec on card *4417",
         "CODEHARBOR INC (SAMPLE)", "-420.00", "USD")
-    # The rest of the story's 5,701 for 1-5 Dec: daily card purchases. The forecast engine must derive
-    # this from weekday averages; it is pinned here so the story adds up.
     known = Decimal("2460.00") + Decimal("39.00") + Decimal("420.00") * RATES["USD"]
     add("si_cards_1_5_dec", "2026-12-05", "estimate", "Card purchases 1-5 Dec (weekday average)", "",
         f"-{Decimal('5701') - known:.2f}")
@@ -118,7 +103,6 @@ def opening_pln():
 
 
 def run(items, nordwind_date=None, skip=()):
-    """Daily balances from the as-of date. Within a day, money out goes first ("hit first")."""
     balance, low, ends = opening_pln(), (opening_pln(), AS_OF), {AS_OF: opening_pln()}
     day = AS_OF + timedelta(days=1)
     while day <= date(2026, 12, 31):

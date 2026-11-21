@@ -14,7 +14,7 @@ AS_OF = date(2025, 5, 15)
     ("closed the whole of July", ("2025-07-01", "2025-07-31")),
     ("We are closed in June", ("2025-06-01", "2025-06-30")),
     ("Wir haben den ganzen Juni geschlossen", ("2025-06-01", "2025-06-30")),
-    ("closed all of March", ("2026-03-01", "2026-03-31")),  # March has passed: next year's
+    ("closed all of March", ("2026-03-01", "2026-03-31")),
 ])
 def test_a_month_or_a_range_of_days(message, period):
     assert _closed_period(message, AS_OF) == period

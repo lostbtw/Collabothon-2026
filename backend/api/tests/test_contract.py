@@ -6,7 +6,6 @@ from backend.db.fixtures import load_fixtures
 
 BORSUK = {"company_id": "co_borsuk"}
 
-# (method, openapi path, concrete url, request kwargs, expected status)
 CALLS = [
     ("get", "/health", "/health", {}, 200),
     ("get", "/companies", "/companies", {}, 200),
@@ -56,7 +55,7 @@ CALLS = [
     ("get", "/chat/sessions/{id}", "/chat/sessions/chat_nope", {"params": BORSUK}, 404),
     ("get", "/balance/history", "/balance/history", {"params": BORSUK}, 200),
 ]
-STREAM = "/events/stream"  # tested in test_events_stream
+STREAM = "/events/stream"
 
 
 @pytest.fixture

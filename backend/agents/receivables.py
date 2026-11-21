@@ -15,7 +15,6 @@ def _month_of(conn: psycopg.Connection, company: str) -> str:
 
 
 def chase_late_clients(conn: psycopg.Connection, company: str, at: str | None = None) -> list[str]:
-    """Create the missing reminder cards. Returns the ids created."""
     late_days = owner.settings(conn, company)["alerts"]["late_client_days"]
     s = Store(conn)
     open_for = {r.get("subject", {}).get("id") for r in s.list("recommendation", company_id=company, type="chase_receivable",
@@ -58,5 +57,4 @@ def chase_late_clients(conn: psycopg.Connection, company: str, at: str | None = 
 
 
 def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any]) -> list[str]:
-    """Handler for `forecast.updated`: the forecast was recomputed, so open invoices may have become late."""
     return chase_late_clients(conn, event["company_id"], event.get("occurred_at"))

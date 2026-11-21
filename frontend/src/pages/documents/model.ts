@@ -5,7 +5,6 @@ import { shortDate } from "../../lib/dates";
 import { formatMoney } from "../../lib/money";
 import { parseAmount } from "../inbox/model";
 
-/** Below this the field is highlighted and the owner is asked to check it. */
 export const LOW_CONFIDENCE = 0.92;
 
 export const firstName = (name?: string | null): string => (name ?? "").split(" ")[0] || "an employee";
@@ -14,7 +13,6 @@ export const words = (s: string): string => s.replaceAll("_", " ");
 export type FieldKey = "gross" | "vat" | "issue_date" | "seller_tax_id" | "buyer_tax_id";
 export type Field = { key: FieldKey; label: string; value: string; input: string; low: boolean; missing?: boolean };
 
-/** The fields the owner sees and may correct. `input` is what the edit box starts with. */
 export function fields(d: OrdoDocument): Field[] {
   const conf = d.extraction.field_confidence ?? {};
   const low = (k: string) => typeof conf[k] === "number" && conf[k] < LOW_CONFIDENCE;
@@ -28,17 +26,12 @@ export function fields(d: OrdoDocument): Field[] {
   ];
 }
 
-/**
- * The PATCH body: only the blocks that changed (a block such as `buyer` is sent whole). Returns an error text instead when an entry is not valid.
- * Amounts stay decimal strings (parseAmount), never floating point.
- */
 export function buildPatch(d: OrdoDocument, edits: Record<FieldKey, string>): { patch: DocumentPatch | null; error: string | null } {
   const patch: DocumentPatch = {};
   for (const f of fields(d)) {
     const typed = edits[f.key].trim();
     if (typed === f.input) continue;
     if (f.key === "gross" || f.key === "vat") {
-      // VAT may be zero; a total may not.
       const amount = f.key === "vat" && /^0+([.,]0{1,2})?$/.test(typed) ? "0.00" : parseAmount(typed);
       if (amount === null) return { patch: null, error: `${f.label}: enter an amount such as 1299.00.` };
       patch.totals = { ...(patch.totals ?? d.totals), [f.key]: { amount, currency: d.totals.gross.currency } };
@@ -51,7 +44,6 @@ export function buildPatch(d: OrdoDocument, edits: Record<FieldKey, string>): { 
   return { patch: Object.keys(patch).length ? patch : null, error: null };
 }
 
-/** The who-paid banner: one headline, one consequence. */
 export function whoPaid(m: Match | undefined): { headline: string; detail: string | null } | null {
   if (!m) return null;
   const who = firstName(m.payer?.name);
@@ -65,7 +57,6 @@ export function whoPaid(m: Match | undefined): { headline: string; detail: strin
   return { headline, detail: owed ? `The company owes ${firstName(m.consequences.reimbursement_to?.name ?? m.payer?.name)} ${formatMoney(owed)}.` : null };
 }
 
-/** One short line per thing the owner should know about this document. */
 export function flagNotes(d: OrdoDocument, m: Match | undefined): string[] {
   const notes: string[] = [];
   const has = (f: OrdoDocument["flags"][number]) => d.flags.includes(f);

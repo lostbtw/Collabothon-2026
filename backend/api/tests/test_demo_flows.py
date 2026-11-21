@@ -27,7 +27,6 @@ def test_the_hero_flow_runs_end_to_end_inside_the_time_budget(api, db):
 
 @pytest.fixture
 def drive(db):
-    """One round of the agents and finance processes, as they run by themselves on the cluster."""
     def one_round():
         agents.process_pending(db)
         finance.process_pending(db)
@@ -39,7 +38,6 @@ def drive(db):
 def test_the_liquidity_flow_runs_end_to_end_through_the_real_engine_and_executor(api, drive):
     run = liquidity_flow(api, drive=drive, timeout=5)
 
-    # The pizzeria's -21.8k low needs its full bank history (the cluster's data); the fixtures hold a few lines.
     on_fixtures = [s for s in run.steps if s.name != "pizzeria: low about -21.8k"]
     assert [s.name for s in on_fixtures if not s.ok] == [], run.report()
     assert len(on_fixtures) == 6

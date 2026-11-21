@@ -1,17 +1,4 @@
-"""Polish tax payments as forecast components (#48). Pure: plain inputs in, components out. No database, no LLM.
-
-Rules (the same for every company in this build; rates in settings.py):
-
-  VAT (JPK_V7M)  month; due 25th of the next month; output VAT - deductible input VAT; a negative result is carried
-                 forward to the next month. Only VAT in PLN counts (export, reverse charge: neutral).
-  CIT advance    month; due 20th of the next month; 9% x profit since 1 January - advances already due this year.
-  PIT-4          month salaries are paid; due 20th of the next month; per person, 12% (32% above 120,000 PLN a year).
-  ZUS            month salaries are paid; due 15th of the next month; employer + employee + health share.
-
-A due date on a weekend or a Polish public holiday moves to the next business day. Gross pay is inferred from the net
-pay seen in the bank. A month that is not closed (its last day is not before the as-of date) is estimated for VAT and
-CIT as the mean of the last closed months; PIT-4 and ZUS use the month's salaries as given.
-"""
+"""Polish tax payments (VAT, CIT advance, PIT-4, ZUS) as forecast components; an open month is estimated from closed ones."""
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -50,7 +37,6 @@ def _ordinal(n: int) -> str:
 
 
 def pln_unit(base: str, rates: dict[str, Decimal]) -> Decimal:
-    """Base-currency units per 1 PLN: 1 for PLN; else rates['PLN'] if present; else 1 / DEMO_DAY_RATES_PLN[base]."""
     if base == "PLN":
         return Decimal(1)
     if "PLN" in rates:
@@ -59,13 +45,11 @@ def pln_unit(base: str, rates: dict[str, Decimal]) -> Decimal:
 
 
 def due_date(day_of_month: int, year: int, month: int) -> date:
-    """The payment for period (year, month): `day_of_month` of the NEXT month, moved with on_or_after(..., "PL")."""
     y, m = add_months(year, month, 1)
     return on_or_after(day_in_month(y, m, day_of_month), "PL")
 
 
 def gross_from_net(net: Decimal, p: Decimal = Decimal(1)) -> Decimal:
-    """Monthly gross pay from net pay (inverse of the employee formula), quantized to 0.01."""
     net = Decimal(net)
     keep = 1 - settings.ZUS_EMPLOYEE
     factor = keep * (1 - settings.HEALTH_RATE - settings.PIT_RATE)
@@ -77,9 +61,6 @@ def gross_from_net(net: Decimal, p: Decimal = Decimal(1)) -> Decimal:
 
 
 def pit4_advance(gross: Decimal, ytd_base_before: Decimal, p: Decimal = Decimal(1)) -> tuple[Decimal, Decimal]:
-    """(advance, base) for one person and month. base = round(gross*(1-ZUS_EMPLOYEE) - PIT_COSTS_PLN*p) to whole
-    units. The part of base above PIT_THRESHOLD_PLN*p (counting ytd_base_before) is taxed at PIT_RATE_HIGH.
-    advance = round(tax - PIT_REDUCTION_PLN*p) to whole units, never below 0."""
     base = _whole(Decimal(gross) * (1 - settings.ZUS_EMPLOYEE) - settings.PIT_COSTS_PLN * p)
     threshold = settings.PIT_THRESHOLD_PLN * p
     high = min(base, max(ZERO, Decimal(ytd_base_before) + base - threshold))
@@ -90,15 +71,12 @@ def pit4_advance(gross: Decimal, ytd_base_before: Decimal, p: Decimal = Decimal(
 
 
 def zus_payment(gross: Decimal) -> Decimal:
-    """gross*(ZUS_EMPLOYER+ZUS_EMPLOYEE) + HEALTH_RATE*gross*(1-ZUS_EMPLOYEE), quantized to 0.01."""
     gross = Decimal(gross)
     total = gross * (settings.ZUS_EMPLOYER + settings.ZUS_EMPLOYEE) + settings.HEALTH_RATE * gross * (1 - settings.ZUS_EMPLOYEE)
     return total.quantize(CENT, ROUND_HALF_UP)
 
 
 def tax_document(doc: dict) -> dict | None:
-    """The tax view of a Document (contract shape), or None when it does not count (status duplicate/rejected,
-    no issue_date and no sale_date, no totals.net)."""
     if doc.get("status") in ("duplicate", "rejected"):
         return None
     day = doc.get("sale_date") or doc.get("issue_date")
@@ -168,9 +146,6 @@ def _component(tax: str, y: int, m: int, due: date, amount: Decimal, base: str, 
 
 def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decimal],
                    documents: list[dict], salaries: list[dict]) -> list[dict]:
-    """Forecast components (kind tax / social_security, one date each) for every VAT, CIT advance, PIT-4 and ZUS
-    payment due in (as_of, end]. `documents` are tax_document() results. `salaries` are
-    {"day": date, "key": str, "name": str, "net": Decimal (positive, base currency), "evidence": EvidenceLink|None}."""
     p = pln_unit(base, rates)
 
     output_vat: dict[str, Decimal] = defaultdict(Decimal)
@@ -178,7 +153,7 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     lost_vat: dict[str, Decimal] = defaultdict(Decimal)
     revenue: dict[str, Decimal] = defaultdict(Decimal)
     purchase_net: dict[str, Decimal] = defaultdict(Decimal)
-    month_docs: dict[str, list[tuple[Decimal, Decimal, dict]]] = defaultdict(list)  # (net, vat, doc), all in base
+    month_docs: dict[str, list[tuple[Decimal, Decimal, dict]]] = defaultdict(list)
 
     for doc in documents:
         net_money = doc["net"]
@@ -203,7 +178,6 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             continue
         month_docs[month].append((net, vat, doc))
 
-    # Salaries: gross per person and month, PIT-4 advances with the year-to-date base of each person.
     paid: dict[str, list[dict]] = defaultdict(list)
     for s in salaries:
         if Decimal(s["net"]) > 0:
@@ -212,7 +186,7 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     gross_sum: dict[str, Decimal] = {}
     pit_sum: dict[str, Decimal] = {}
     zus_sum: dict[str, Decimal] = {}
-    ytd_base: dict[tuple[str, str], Decimal] = defaultdict(Decimal)  # (year, person key) -> base before this month
+    ytd_base: dict[tuple[str, str], Decimal] = defaultdict(Decimal)
     for month in sorted(paid):
         year = month[:4]
         gross_sum[month] = pit_sum[month] = zus_sum[month] = ZERO
@@ -253,7 +227,6 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     def in_window(due: date) -> bool:
         return as_of < due <= end
 
-    # VAT
     carry = ZERO
     for y, m in months:
         key = _month_key(y, m)
@@ -279,7 +252,6 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                 docs = []
             out.append(_component("vat", y, m, due, amount, base, schedule, not is_closed, _evidence("vat", docs)))
 
-    # CIT advance
     ytd = ZERO
     advances = ZERO
     for y, m in months:
@@ -301,7 +273,6 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             docs = [(net, d) for net, _, d in month_docs[key]] if is_closed else []
             out.append(_component("cit", y, m, due, due_amount, base, schedule, not is_closed, _evidence("cit", docs)))
 
-    # PIT-4 and ZUS: the month's salaries as given.
     for month in sorted(paid):
         y, m = int(month[:4]), int(month[5:])
         people = len(paid[month])

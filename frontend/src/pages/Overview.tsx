@@ -35,7 +35,6 @@ export function Overview() {
     none(api.accounts(companyId)), none(api.forecast(companyId)), none(api.balanceHistory(companyId)), none(api.inbox(companyId)),
   ]), [companyId, refresh]);
   const figures = useApi(() => monthAndBefore(companyId, shown), [companyId, shown, refresh]);
-  // The bank lines are only for "Biggest ones": they load on their own and never hold the page up.
   const lines = useApi(() => Promise.all([none(api.transactions(companyId)), none(api.counterparties(companyId))]), [companyId, refresh]);
 
   const [accounts, forecast, history, inbox] = now.data ?? [null, null, null, null];
@@ -114,7 +113,6 @@ function TodoCard({ items, forecast, loading }: { items: Recommendation[] | null
   );
 }
 
-/** One to-do: label, what it is and one button; the one line why shows on hover. Approving here runs the same action as on To-do. */
 export function TodoRow({ item }: { item: TodoItem }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -150,7 +148,6 @@ export function TodoRow({ item }: { item: TodoItem }) {
 
 const ESTIMATE = " (estimate)";
 
-/** Every tax and social-security payment the forecast expects, with the engine's formula behind each amount. */
 export function TaxSection({ forecast, dueIn30, loading }: { forecast: Forecast | null; dueIn30: Money | null; loading?: boolean }) {
   const taxes = (forecast?.components ?? [])
     .flatMap((c) => (c.kind === "tax" || c.kind === "social_security") && c.dates?.[0] ? [{ ...c, date: c.dates[0] }] : [])
@@ -252,7 +249,6 @@ export function WhereItWent({ f, month, summary }: { f: MonthFigures; month: str
 
 function Explained({ f, month, summary, transactions, names }: { f: MonthFigures; month: string; summary: LedgerSummary; transactions: Transaction[]; names: Record<string, string> }) {
   const explained = 100 - percent(f.unexplained.amount, f.costs.amount);
-  // The biggest payments of the month that still have no type or no invoice.
   const open = transactions
     .filter((t) => t.booking_date.startsWith(month) && t.amount_base.amount.startsWith("-") && (t.category === "other" || t.match_status === "missing_document"))
     .sort((a, b) => compareAmounts(a.amount_base.amount, b.amount_base.amount)).slice(0, 3);
@@ -286,7 +282,6 @@ function Explained({ f, month, summary, transactions, names }: { f: MonthFigures
 
 function CashSection({ history, forecast, flash }: { history: BalanceHistory | null; forecast: Forecast | null; flash: boolean }) {
   const ask = useAsk();
-  // The first forecast day after the lowest point when the balance is not negative any more.
   const recovers = forecast && forecast.min_balance.amount.amount.startsWith("-")
     ? forecast.points.find((p) => p.date > forecast.min_balance.date && !p.balance.startsWith("-"))?.date ?? null : null;
   const weeks = forecast ? Math.round(forecast.horizon_days / 7) : 6;

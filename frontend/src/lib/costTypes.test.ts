@@ -29,7 +29,6 @@ describe("month figures for the Overview", () => {
     expect(f.leftOver.amount).toBe("7200.00");
     expect(f.fixed.amount).toBe("83760.00");
     expect(f.unexplained.amount).toBe("7800.00");
-    // A reimbursement is a debt to a person, not a second cost.
     expect(f.types.map((t) => t.type.key)).toEqual(["staff", "taxes", "tools", "travel", "equipment", "office", "services", "unexplained"]);
     expect(f.types[0].amount.amount).toBe("67200.00");
   });

@@ -1,20 +1,4 @@
-"""Event handlers of the pipeline process (role 3). Consumer groups from backend/db/migrations/001_init.sql:
-
-  normaliser  raw_item.received     bank line -> Transaction (transaction.ingested);
-                                    FA(3) XML / inFakt JSON -> Document (document.extracted);
-                                    photos and PDFs are read by role 1's extractor worker (consumer
-                                    `extractor`, backend/pipeline/extract/worker.py), not here
-  matcher     document.extracted    dedupe (document.duplicate_detected), then match + who paid (match.suggested)
-              transaction.ingested  a new bank line may pay documents that had none yet (match.suggested)
-              match.decided         bank line status follows the decision; a confirmation teaches the alias (#41)
-
-The matcher also emits `match.decided` (status auto_confirmed, approval_id null) when it auto-confirms a Match,
-so the finance engine books it like an owner's confirmation (contracts/events.md).
-
-Handlers get a `Context` (see main.py for the Postgres one, tests use an in-memory one), so the logic does not
-depend on the database driver. Writes are idempotent: one Match per document (same id on re-match), the Store
-ignores repeated Transactions and Documents.
-"""
+"""Event handlers of the pipeline process: the normaliser and the matcher consumer groups; every write is idempotent."""
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Callable, Protocol
@@ -40,22 +24,20 @@ class Store(Protocol):
 @dataclass
 class Context:
     store: Store
-    publish: Callable[[str, str, dict, str | None, str | None], None]  # (type, company, payload, correlation, causation)
-    company: Callable[[str], dict]  # company id -> {"id", "tax_id", "as_of_date", "base_currency"}
-    people: Callable[[str], list[dict]]  # company id -> PersonRefs (+ extra addresses as more entries)
-    raw_bytes: Callable[[dict], bytes | None]  # RawItem -> file content (XML), or None
-    rates: Any = None  # NBP rates (fx.py); StandInRates until the NBP connector (#34) lands
+    publish: Callable[[str, str, dict, str | None, str | None], None]
+    company: Callable[[str], dict]
+    people: Callable[[str], list[dict]]
+    raw_bytes: Callable[[dict], bytes | None]
+    rates: Any = None
     now: Callable[[], str] = lambda: datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    choose: Callable[[str, list[str]], str | None] | None = None  # model picks from an enum (D-09); None = rules only
+    choose: Callable[[str, list[str]], str | None] | None = None
 
-
-# ---------- normaliser ----------
 
 def on_raw_item_received(ctx: Context, event: dict) -> None:
     s = ctx.store
     raw = s.get("raw_item", event["payload"]["raw_item_id"])
     if raw is None or raw["kind"] not in ("bank_transaction", "ksef_invoice_xml", "accounting_invoice"):
-        return  # e-mails, photos and uploads: role 1's extractor worker; FX tables: nothing to do
+        return
     company = event["company_id"]
     correlation = event.get("correlation_id") or raw["id"]
     try:
@@ -93,8 +75,6 @@ def _extracted_payload(doc: dict) -> dict:
             "seller": doc["seller"]["name"], "flags": doc.get("flags", [])}
 
 
-# ---------- matcher ----------
-
 def _company_inputs(ctx: Context, company: str):
     info = ctx.company(company)
     accounts = ctx.store.list("account", company_id=company)
@@ -102,7 +82,6 @@ def _company_inputs(ctx: Context, company: str):
 
 
 def raw_sender(ctx: Context, raw: dict) -> str | None:
-    """RawItem metadata `forwarded_by` (e-mail) or `submitted_by` (upload form), else the parent e-mail's `from`."""
     meta = raw.get("metadata") or {}
     found = meta.get("forwarded_by") or meta.get("from") or meta.get("submitted_by")
     if found:
@@ -112,7 +91,6 @@ def raw_sender(ctx: Context, raw: dict) -> str | None:
 
 
 def sender_of(ctx: Context, doc: dict) -> str | None:
-    """Who forwarded the document: its RawItem's sender, else the document's `submitted_by`."""
     for raw_id in doc.get("raw_item_ids") or []:
         found = raw_sender(ctx, ctx.store.get("raw_item", raw_id) or {})
         if found and "@" in found:
@@ -132,8 +110,8 @@ def _save_match(ctx: Context, company: str, doc: dict, result: dict, correlation
     if previous:
         if previous["status"] in ("confirmed", "auto_confirmed", "rejected") and \
                 (previous.get("decided_by") or {}).get("role") != "system":
-            return  # the owner already decided this document
-        match = {**match, "id": previous["id"]}  # one Match per document: re-matching replaces it
+            return
+        match = {**match, "id": previous["id"]}
         if previous.get("transaction_id") and previous["transaction_id"] != match["transaction_id"]:
             old = s.get("transaction", previous["transaction_id"])
             if old:
@@ -150,7 +128,7 @@ def _save_match(ctx: Context, company: str, doc: dict, result: dict, correlation
     if flags != doc.get("flags"):
         s.put("document", {**doc, "flags": flags}, company_id=company)
     ctx.publish("match.suggested", company, match_suggested_payload(match), correlation, causation)
-    if newly_auto_confirmed:  # decided by rule, not by the owner: the finance engine books it (contracts/events.md)
+    if newly_auto_confirmed:
         ctx.publish("match.decided", company, {"match_id": match["id"], "status": "auto_confirmed", "approval_id": None},
                     correlation, causation)
 
@@ -159,7 +137,7 @@ def match_document(ctx: Context, company: str, doc: dict, correlation: str | Non
     info, people, accounts = _company_inputs(ctx, company)
     txns = ctx.store.list("transaction", company_id=company, match_status=["unmatched", "missing_document"])
     previous = _existing_match(ctx, doc["id"])
-    if previous and previous.get("transaction_id"):  # its own line stays a candidate when re-matching
+    if previous and previous.get("transaction_id"):
         own = ctx.store.get("transaction", previous["transaction_id"])
         if own and own not in txns:
             txns.append({**own, "match_status": "unmatched"})
@@ -167,16 +145,11 @@ def match_document(ctx: Context, company: str, doc: dict, correlation: str | Non
                             as_of=info.get("as_of_date"), senders={doc["id"]: sender_of(ctx, doc)})
     if missing.is_unpaid_question(result["match"]) and missing.not_yet_due(doc, info.get("as_of_date")) \
             and not _existing_match(ctx, doc["id"]):
-        return  # unpaid and not due yet: a payable for the forecast, not a question (#43); the sweep asks later
+        return
     _save_match(ctx, company, doc, result, correlation, causation)
 
 
 def rematch(ctx: Context, company: str) -> int:
-    """Run the matcher once over all of a company's open documents and bank lines together, and replace the pairings
-    the current rules see differently. Matches made before a matcher fix stay as they were otherwise (one month's
-    invoice holding the next month's transfer left invoices "unpaid" and the forecast wrong). The owner's decisions
-    stay; system decisions and suggestions may change. Idempotent: a second run changes nothing. Returns the
-    number of documents whose pairing changed."""
     s = ctx.store
     info, people, accounts = _company_inputs(ctx, company)
     matches = s.list("match", company_id=company)
@@ -201,17 +174,15 @@ def rematch(ctx: Context, company: str) -> int:
         if previous and previous.get("transaction_id") == new["transaction_id"] and previous["match_type"] == new["match_type"]:
             continue
         if not previous and missing.is_unpaid_question(new) and missing.not_yet_due(doc, info.get("as_of_date")):
-            continue  # a payable not due yet: the forecast's, not a question (#43)
+            continue
         if previous:
             touched.add(previous.get("transaction_id") or "")
-            # The open card about the old pairing names the old bank line: retire it, the new pairing gets its own.
             for card in s.list("recommendation", company_id=company, status=["new", "seen"], subject_id=previous["id"]):
                 s.put("recommendation", {**card, "status": "superseded"}, company_id=company)
         _save_match(ctx, company, doc, result, None, None)
         touched.add(new["transaction_id"] or "")
         changed += 1
-    # A line one document gave up may have been taken by another in this same pass: set every touched line from the
-    # final pairings, not from the order the documents were saved in.
+    # A line one document gave up may be taken by another in this pass: set every touched line from the final pairings.
     final = {m["transaction_id"]: m for m in s.list("match", company_id=company) if m.get("transaction_id") and m["status"] != "rejected"}
     for txn_id in touched - {""}:
         txn = s.get("transaction", txn_id)
@@ -225,7 +196,6 @@ def rematch(ctx: Context, company: str) -> int:
 
 
 def sweep(ctx: Context, company: str) -> dict:
-    """Periodic pass (#43): flag bank lines without a document, ask about purchase documents that became due."""
     s = ctx.store
     as_of = ctx.company(company).get("as_of_date")
     counts = {"missing_document": 0, "no_document_needed": 0, "asked": 0}
@@ -272,7 +242,6 @@ def on_document_extracted(ctx: Context, event: dict) -> None:
 
 
 def _retire_match(ctx: Context, company: str, document_id: str) -> None:
-    """A copy that stopped being the golden record gives up its open Match (the golden one is matched instead)."""
     previous = _existing_match(ctx, document_id)
     if previous and previous["status"] == "suggested":
         ctx.store.put("match", {**previous, "status": "rejected", "decided_at": ctx.now(),
@@ -285,7 +254,6 @@ def _retire_match(ctx: Context, company: str, document_id: str) -> None:
 
 
 def on_transaction_ingested(ctx: Context, event: dict) -> None:
-    """A new bank line can pay a document that had none (card lines book a day or two after the receipt)."""
     s = ctx.store
     company = event["company_id"]
     txn = s.get("transaction", event["payload"]["transaction_id"])
@@ -298,7 +266,7 @@ def on_transaction_ingested(ctx: Context, event: dict) -> None:
         previous = _existing_match(ctx, doc["id"])
         if previous is None or (previous["status"] == "suggested"
                                 and previous["match_type"] == "document_no_transaction"):
-            waiting.append(doc)  # an open question, or a payable not due yet (#43) that this line may pay
+            waiting.append(doc)
     if not waiting:
         return
     info, people, accounts = _company_inputs(ctx, company)
@@ -311,7 +279,6 @@ def on_transaction_ingested(ctx: Context, event: dict) -> None:
 
 
 def on_match_decided(ctx: Context, event: dict) -> None:
-    """The bank line follows the owner's decision; a confirmation also teaches the bank spelling as an alias (#41)."""
     s = ctx.store
     company = event["company_id"]
     match = s.get("match", event["payload"]["match_id"])

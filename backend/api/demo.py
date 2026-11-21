@@ -20,7 +20,7 @@ from backend.settings import database_url
 
 HERO_BUDGET_SECONDS = 30
 PIZZERIA_JUNE_LOW = Decimal("-21800")
-PIZZERIA_JUNE_TOLERANCE = Decimal("1500")  # "about -21.8k"
+PIZZERIA_JUNE_TOLERANCE = Decimal("1500")
 
 
 @dataclass
@@ -66,12 +66,10 @@ def _wait(fetch, until, timeout: float = 10.0, every: float = 0.25):
 
 
 def hero(api: httpx.Client, conn: psycopg.Connection, company: str = "co_borsuk") -> Run:
-    """Hero flow: Jan forwards a receipt photo; the reimbursement card appears; the owner approves; the forecast moves."""
     run = Run("M3 hero flow")
     tag = uuid.uuid4().hex[:6]
     before = api.get("/forecast/latest", params={"company_id": company}).json()["id"]
 
-    # Stand-in for the mailbox, extraction and who-paid steps.
     raw = {**copy.deepcopy(next(r for r in read("raw_item") if r["id"] == "raw_mail412a1")), "id": f"raw_hero{tag}",
            "idempotency_key": uuid.uuid4().hex + uuid.uuid4().hex}
     document = {**copy.deepcopy(next(d for d in read("document") if d["id"] == "doc_rcpt412")), "id": f"doc_hero{tag}",
@@ -117,7 +115,6 @@ def hero(api: httpx.Client, conn: psycopg.Connection, company: str = "co_borsuk"
 
 
 def _latest(api: httpx.Client, company: str) -> dict:
-    """The latest base forecast, or {} while the company has none."""
     response = api.get("/forecast/latest", params={"company_id": company})
     return response.json() if response.status_code == 200 else {}
 
@@ -149,7 +146,6 @@ def _drive_wait(fetch: Callable[[], Any], until: Callable[[Any], bool], drive: C
 
 
 def liquidity_flow(api: httpx.Client, *, drive: Callable[[], Any] = _no_drive, timeout: float = 60.0) -> Run:
-    """Liquidity flow over HTTP only. Decides the credit-line card: rerun only on reloaded demo data."""
     run = Run("M4 liquidity flow")
     company = "co_borsuk"
     forecast = _latest(api, company)

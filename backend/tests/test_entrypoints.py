@@ -28,7 +28,6 @@ def test_unknown_entrypoint_is_refused():
 
 
 def test_every_process_that_traces_imports_the_tracing_module():
-    """`--check` only imports a process; a name its `run` uses but never imports fails on the cluster at start."""
     import ast
     import importlib
     from pathlib import Path

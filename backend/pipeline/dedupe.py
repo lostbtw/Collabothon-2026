@@ -1,17 +1,4 @@
-"""Duplicate detection and golden record (ticket #40, spec #3 "Dedup"). Deterministic, no LLM.
-
-The same purchase can arrive as KSeF XML, a PDF by e-mail and a phone photo. One copy is kept as the golden
-record; the others get `status = duplicate` and `duplicate_of = <golden id>` and stay as evidence.
-
-- D1 strong: same seller tax id (or seller name similarity > 0.6) and the same invoice number.
-- D2 fuzzy: name similarity > 0.75, gross within 1.00, same issue date, same currency, and not two different
-  invoice numbers.
-- D3 file: identical file content (sha256) is dropped at RawItem level, before any reading.
-
-Golden priority: KSeF XML > accounting API > PDF > photo; ties go to the earlier copy. Every merge is done by the
-system on its own (control level `analysed_autonomously`) and is reported through `document.duplicate_detected`,
-so it shows in "What I did on my own" and can be undone.
-"""
+"""Duplicate detection and golden record: one copy per purchase is kept, the others become `duplicate` evidence."""
 import re
 
 from .match import name_similarity
@@ -21,10 +8,7 @@ STRONG_NAME = 0.6
 FUZZY_NAME = 0.75
 
 
-# ---------- D3: identical files ----------
-
 def drop_identical_files(raw_items: list[dict]) -> tuple[list[dict], list[dict]]:
-    """(kept, dropped): a RawItem whose sha256 was already seen is dropped (the first one fetched stays)."""
     seen, kept, dropped = set(), [], []
     for item in sorted(raw_items, key=lambda r: (r.get("fetched_at") or "", r["id"])):
         digest = item.get("sha256")
@@ -37,8 +21,6 @@ def drop_identical_files(raw_items: list[dict]) -> tuple[list[dict], list[dict]]
     return kept, dropped
 
 
-# ---------- D1 / D2 ----------
-
 def _number(doc) -> str:
     return re.sub(r"[^A-Za-z0-9]", "", doc.get("number") or "").upper()
 
@@ -48,7 +30,6 @@ def _nip(doc) -> str:
 
 
 def duplicate_reason(a: dict, b: dict) -> str | None:
-    """Why `a` and `b` are the same purchase ("D1 ..." / "D2 ..."), or None."""
     if a["company_id"] != b["company_id"] or a.get("direction") != b.get("direction"):
         return None
     num_a, num_b = _number(a), _number(b)
@@ -68,8 +49,6 @@ def duplicate_reason(a: dict, b: dict) -> str | None:
 
 
 def priority(doc: dict) -> int:
-    """Lower is better: KSeF XML 0, accounting API 1, e-mailed PDF 2, photo or upload-form file 3 (the form is
-    used for phone photos; the Document does not say whether the uploaded file was a photo or a PDF)."""
     channel = doc.get("channel")
     method = (doc.get("extraction") or {}).get("method")
     if channel == "ksef" or method == "xml_parse":
@@ -82,21 +61,11 @@ def priority(doc: dict) -> int:
 
 
 def _rank(doc: dict):
-    """Best copy first: channel priority, then the more confident extraction, then the earlier one."""
     confidence = (doc.get("extraction") or {}).get("confidence")
     return priority(doc), -(confidence if confidence is not None else 0.0), doc.get("created_at") or "", doc["id"]
 
 
-# ---------- clustering ----------
-
 def deduplicate(documents: list[dict]) -> dict:
-    """Group documents into purchases and pick the golden record of each.
-
-    Returns {"documents": updated copies (golden ones untouched, others status duplicate + duplicate_of),
-             "merges": [{"document_id", "duplicate_of", "reason", "control_level"}] (one per duplicate),
-             "clusters": [[golden id, duplicate ids...], ...]}.
-    Documents a person already rejected are left alone.
-    """
     active = [d for d in documents if d.get("status") != "rejected"]
     clusters: list[list[dict]] = []
     reason_of: dict[str, str] = {}
@@ -128,12 +97,6 @@ def deduplicate(documents: list[dict]) -> dict:
 
 
 def add_document(new: dict, existing: list[dict]) -> dict:
-    """Live path: one new Document against the company's existing ones.
-
-    Returns {"documents": the new document and any existing ones that changed, "merges": [...],
-             "golden_changed": old golden id if the new copy outranks it (e.g. KSeF XML after a photo), else None}.
-    A changed golden record means its Match must be re-run on the new golden (role 5 re-points the card).
-    """
     pool = [d for d in existing if d["company_id"] == new["company_id"] and d.get("status") != "rejected"]
     hit = next((d for d in pool if duplicate_reason(new, d)), None)
     if hit is None:
@@ -151,5 +114,4 @@ def add_document(new: dict, existing: list[dict]) -> dict:
 
 
 def duplicate_detected_payload(merge: dict) -> dict:
-    """Small payload for the `document.duplicate_detected` event (contracts/events.md)."""
     return {"document_id": merge["document_id"], "duplicate_of": merge["duplicate_of"], "reason": merge["reason"]}

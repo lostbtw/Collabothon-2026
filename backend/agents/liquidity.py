@@ -52,7 +52,6 @@ def earliest_gap(forecast: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def gap_end(forecast: dict[str, Any], alert: dict[str, Any]) -> str:
-    """Last day of the gap; a null date_to means it lasts to the forecast's end."""
     if alert.get("date_to"):
         return alert["date_to"]
     last_day = date.fromisoformat(forecast["as_of_date"]) + timedelta(days=forecast.get("horizon_days") or 0)
@@ -60,7 +59,6 @@ def gap_end(forecast: dict[str, Any], alert: dict[str, Any]) -> str:
 
 
 def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[str, Any] | None:
-    """Every number the card shows, from the engine tools. None when there is no gap to act on."""
     f = tools.get_forecast(conn, company, forecast_id)
     if "error" in f:
         return None
@@ -241,14 +239,12 @@ def _short_hash(value: Any) -> str:
 
 
 def signature(facts: dict[str, Any]) -> dict[str, Any]:
-    """The numbers that make a credit-line card: a change in any of them replaces the open card."""
     alert = facts["alert"]
     return {"date_from": alert["date_from"], "max_shortfall": alert["max_shortfall"],
             "stress_shortfall": facts["stress_shortfall"], "limit": facts["limit"]}
 
 
 def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: Any = _DEFAULT) -> str | None:
-    """Handler for `forecast.updated`. Returns the id of the card created, or None."""
     company = event["company_id"]
     facts = facts_for(conn, company, event["payload"].get("forecast_id"))
     if facts is None:
@@ -256,7 +252,7 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
     s = Store(conn)
     open_credit_lines = _open_credit_lines(s, company)
     if any(r["proposed_action"]["params"].get("alert") == signature(facts) for r in open_credit_lines):
-        return None  # same numbers, card already in the inbox
+        return None
 
     card = template_recommendation(company, facts, event["occurred_at"])
     for old in open_credit_lines:

@@ -1,14 +1,4 @@
-"""Bank connector (#22): polls the PSD2-shaped Sandbox Bank (contracts/bank-sim-api.md) for booked lines.
-
-Cursor: `<bookingDate>|<entryReference>` of the last line stored (the format of contracts/fixtures/source.json);
-a bare `E000000731` is accepted too. Each poll asks for the lines after that reference (the delta), page by page.
-A cursor pointing at a line we never stored (the invented ones in contracts/fixtures) is ignored and the source is
-read from the beginning (base.py checks it against raw_items).
-Idempotency key: sha256 of `bank:<account id>:<entryReference>`. RawItem kind `bank_transaction`, payload = the
-booked line exactly as the bank sent it (role 3's normaliser reads it).
-
-Environment: ORDO_BANK_URL (default http://localhost:8081), ORDO_BANK_TOKEN (default demo-token, a Secret on the cluster).
-"""
+"""Bank connector: polls the PSD2-shaped Sandbox Bank for the booked lines after the cursor's entryReference."""
 from __future__ import annotations
 
 import os
@@ -37,7 +27,6 @@ def make_client(timeout: float = 10.0) -> httpx.Client:
 
 
 def reference_of(cursor: str | None) -> str | None:
-    """`2026-11-21|E000000731` or `E000000731` -> `E000000731`; anything else -> None (start from the beginning)."""
     if not cursor:
         return None
     ref = cursor.rsplit("|", 1)[-1].strip()
@@ -45,8 +34,6 @@ def reference_of(cursor: str | None) -> str | None:
 
 
 def account_for_source(conn: psycopg.Connection, source: dict[str, Any]) -> str:
-    """The bank account a source polls: the Account whose source_id is this source (the same link role 3 uses),
-    else `config_public.account_id`, else the naming convention src_bank_<x> -> acc_<x>."""
     row = conn.execute("select id from accounts where doc->>'source_id' = %s order by id limit 1",
                        (source["id"],)).fetchone()
     conn.commit()
@@ -91,7 +78,6 @@ class BankConnector(Connector):
         return FetchResult(items=items, cursor=new_cursor, more=more)
 
     def _page(self, after: str | None, limit: int) -> tuple[list[dict[str, Any]], bool]:
-        """One page of booked lines after `after`, and whether another page follows."""
         params: dict[str, Any] = {"bookingStatus": "booked", "limit": limit}
         if after:
             params["entryReferenceFrom"] = after

@@ -1,7 +1,4 @@
-"""In-memory state of the Sandbox Bank: accounts, booked lines, as-of dates, simulated executions.
-
-No persistence on purpose: the bank is rebuilt from the seed accounts and the organisers' CSV on start.
-"""
+"""In-memory state of the Sandbox Bank, rebuilt from the seed accounts and the CSVs on every start."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,10 +7,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 CENT = Decimal("0.01")
 
-# Booking rate used ONLY for the closing balance of an account that holds lines in another currency
-# (the organisers' pizzeria CSV books the Swiss tranches as CHF inside a EUR account).
-# Calibrated so the pizzeria's year-end balance matches the organisers' sheet (33,266.35 EUR).
-# The booked lines themselves keep the CHF quirk as-is; the normaliser in the pipeline must fix it.
+# Booking rate only for the closing balance of the pizzeria's CHF lines in its EUR account (year-end 33,266.35 EUR).
 BOOKING_RATES: dict[tuple[str, str], Decimal] = {("CHF", "EUR"): Decimal("1.043583")}
 
 
@@ -43,7 +37,6 @@ class Line:
             "remittanceInformationUnstructured": self.remittance,
             "proprietaryBankTransactionCode": self.code,
         }
-        # Berlin Group naming: money out -> the counterparty is the creditor, money in -> the debtor
         party, account = ("creditorName", "creditorAccount") if self.amount < 0 else ("debtorName", "debtorAccount")
         if self.counterparty_name:
             out[party] = self.counterparty_name
@@ -62,10 +55,8 @@ class Account:
     name: str
     owner_name: str
     cash_account_type: str = "CACC"
-    opening_balance: Decimal | None = Decimal("0.00")  # None = no balance reported (private card)
+    opening_balance: Decimal | None = Decimal("0.00")
     lines: list[Line] = field(default_factory=list)
-    # Known balance after all loaded lines (role 4's scenario gives closing balances, not opening ones).
-    # When set, loading lines derives the opening balance from it, so the two can never disagree.
     closing_target: Decimal | None = None
 
     def __post_init__(self) -> None:
@@ -89,16 +80,12 @@ class Account:
 
 
 def in_currency(line: Line, currency: str) -> Decimal:
-    """A line's amount in the account currency (the pizzeria's CHF lines at the booking rate)."""
     if line.currency == currency:
         return line.amount
     return line.amount * BOOKING_RATES.get((line.currency, currency), Decimal(1))
 
 
 def seed_accounts() -> dict[str, Account]:
-    """Invented accounts. Borsuk Labs: IBANs and closing balances (as of 21 Nov 2026) from role 4's scenario,
-    sim/scenario/world.py, whose bank CSVs are sim/scenario/out/bank_acc_<id>.csv. Ids follow
-    contracts/fixtures/account.json. The IBANs' check digits 00 make them invalid on purpose."""
     accounts = [
         Account("acc_pln", "PL00999900000000000000010001", "PLN", "Company account PLN (SAMPLE)",
                 "BORSUK LABS SP Z O O (SAMPLE)", closing_target=Decimal("24730.15")),
@@ -107,7 +94,7 @@ def seed_accounts() -> dict[str, Account]:
         Account("acc_owner", "PL00999900000000000000090021", "PLN", "Owner's private card (SAMPLE)",
                 "Tomasz Borsuk (SAMPLE)", cash_account_type="CARD", opening_balance=None),
         Account("acc_pizzeria", "DE00 0000 0000 0000 0000 00", "EUR", "Pizzeria Amalfi business account (SAMPLE)",
-                "Lucia Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),  # same as backend/db/seed_data/people.json
+                "Lucia Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),
     ]
     return {a.resource_id: a for a in accounts}
 
@@ -121,7 +108,6 @@ class Store:
     def reset(self) -> None:
         self.__init__()
 
-    # ---- balances ----
     def closing_balance(self, account: Account) -> Decimal | None:
         if account.opening_balance is None:
             return None
@@ -132,13 +118,11 @@ class Store:
     def reference_date(self, account: Account) -> date | None:
         return max((ln.booking_date for ln in account.lines), default=None)
 
-    # ---- lines ----
     def add_line(self, account: Account, **kw) -> Line:
         ln = Line(entry_reference=account.next_reference(), **kw)
         account.lines.append(ln)
         return ln
 
-    # ---- simulated executions ----
     def new_reference(self, kind: str) -> str:
         self._counters[kind] = self._counters.get(kind, 0) + 1
         return f"SIM-{kind}-{self._counters[kind]:04d}"

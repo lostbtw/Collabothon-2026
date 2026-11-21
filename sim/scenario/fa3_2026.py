@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-"""Borsuk Labs (SAMPLE) invoices as KSeF FA(3) XML, issued 1 Dec 2025 - 31 Oct 2026.
-
-Takes the invoice data that bank_2026.py attaches to the bank lines, so amounts and dates always
-agree with the bank CSVs. Adds the invoices that have no bank line: October sales still open on
-21 Nov (Meblostyl, Nordwind) and 6 cash purchases (M8).
-
-Only Polish sellers and Borsuk Labs' own sales invoices are FA(3). Foreign vendors (SaaS, Lingua
-Bridge, EUR card purchases) and private receipts are not KSeF invoices, so they are not here.
-
-Two November invoices (ElektroMarkt laptop, Biurosfera) also come from KSeF, as duplicates (M5)
-of their e-mailed PDFs.
-
-Usage: python3 sim/scenario/fa3_2026.py [--xsd DIR]
-  --xsd DIR  validate every file with xmllint against the FA(3) schema in DIR
-             (schemat.xsd from https://crd.gov.pl/wzor/2025/06/25/13775/, with its imports)
-Output: out/fa3/<YYYY-MM>/<id>.xml and out/fa3_index.json
-"""
+"""Borsuk Labs (SAMPLE) invoices as KSeF FA(3) XML: `python3 sim/scenario/fa3_2026.py [--xsd DIR]` writes out/fa3/."""
 import json
 import shutil
 import subprocess
@@ -38,7 +22,6 @@ BORSUK = {"name": "Borsuk Labs sp. z o.o. (SAMPLE)", "nip": NIP,
 
 
 def nip(n):
-    """Invented 999-prefixed NIP with a valid check digit."""
     while True:
         digits = f"999{n:06d}"
         check = sum(w * int(d) for w, d in zip((6, 5, 7, 2, 3, 4, 5, 6, 7), digits)) % 11
@@ -47,7 +30,6 @@ def nip(n):
         n += 1
 
 
-# Bank name -> party: (invoice name, NIP or None, street, city, line on the invoice, VAT rate, number prefix)
 _PARTIES = [
     ("COWORKING PIOTRKOWSKA SP Z O O (SAMPLE)", "Coworking Piotrkowska sp. z o.o. (SAMPLE)", None,
      "ul. Piotrkowska 990", "90-999 Łódź", "Najem stanowiska biurowego", "23", None),
@@ -96,7 +78,6 @@ _PARTIES = [
      "00-995 Warszawa", "Usługa hotelowa", "8", "HC"),
     ("DRUKARNIA PIKSEL (SAMPLE)", "Drukarnia Piksel (SAMPLE)", None, "ul. Drukarska 910", "90-990 Łódź",
      "Druk materiałów reklamowych", "23", "DP"),
-    # Clients (Borsuk Labs sells to them).
     ("PIEKARNIA ZLOTY KLOS SP Z O O (SAMPLE)", "Piekarnia Złoty Kłos sp. z o.o. (SAMPLE)", None,
      "ul. Chlebowa 990", "95-999 Zgierz", "Utrzymanie i rozwój sklepu internetowego", "23", None),
     ("KADROWNIA SP Z O O (SAMPLE)", "Kadrownia sp. z o.o. (SAMPLE)", None, "ul. Kadrowa 980", "90-989 Łódź",
@@ -107,24 +88,19 @@ _PARTIES = [
 PARTIES = {key: {"name": name, "nip": fixed or nip(1000 + 37 * i), "addr": (street, city), "country": "PL",
                  "line": line, "rate": rate, "prefix": prefix}
            for i, (key, name, fixed, street, city, line, rate, prefix) in enumerate(_PARTIES)}
-# EU client: services to an EU business, VAT settled by the buyer (np II, art. 100(1)(4), reverse charge).
 PARTIES["NORDWIND LOGISTIK GMBH (SAMPLE)"] = {
     "name": "Nordwind Logistik GmbH (SAMPLE)", "vat_eu": ("DE", "000000000"), "country": "DE",
     "addr": ("Hafenstraße 999", "20999 Hamburg"), "line": "Software development services", "rate": "np II"}
 
-# Invoices with no bank line.
 EXTRA = [
-    # October sales still open on 21 Nov (story items si_meblostyl and si_nordwind, and the project invoice).
     {"direction": "sale", "pay": "transfer", "party": "MEBLOSTYL SP Z O O (SAMPLE)", "number": "2026/10/042",
      "issue": date(2026, 10, 31), "due": date(2026, 11, 27), "gross": Decimal("36900.00")},
     {"direction": "sale", "pay": "transfer", "party": "NORDWIND LOGISTIK GMBH (SAMPLE)", "number": "2026/10/044",
      "issue": date(2026, 10, 15), "due": date(2026, 11, 14), "gross": Decimal("18400.00"), "currency": "EUR"},
-    # One-off project, open on 21 Nov and due after the forecast horizon: October's rule-based VAT is 14,300 (#48).
     {"direction": "sale", "pay": "transfer", "party": "KADROWNIA SP Z O O (SAMPLE)", "number": "2026/10/040",
      "issue": date(2026, 10, 20), "due": date(2027, 1, 20), "gross": Decimal("73856.37"),
      "line": "Wdrożenie modułu kadrowego (projekt)"},
 ] + [
-    # M8: document without bank line, not from an employee (paid in cash from the office float).
     {"direction": "purchase", "pay": "cash", "party": "DRUKARNIA PIKSEL (SAMPLE)", "issue": day, "paid": day,
      "gross": Decimal(gross), "line": line, "messiness": ["M8"]}
     for day, gross, line in [
@@ -143,7 +119,7 @@ def collect(book):
     docs = []
     for d in book.docs + EXTRA:
         if not (FIRST <= d["issue"] <= LAST or d.get("ksef")):
-            continue  # other November documents are PDFs and photos (november_2026.py)
+            continue
         d = dict(d)
         bank = d.get("bank")
         if bank:
@@ -161,7 +137,7 @@ def collect(book):
     per_day = defaultdict(int)
     for d in docs:
         party = PARTIES[d["party"]]
-        if not d.get("number"):  # retail invoices: per-seller counter
+        if not d.get("number"):
             counters[d["party"]] += 1
             d["number"] = f"FV/{party['prefix']}/{counters[d['party']]:05d}/{d['issue']:%m/%Y}"
         per_day[d["issue"]] += 1

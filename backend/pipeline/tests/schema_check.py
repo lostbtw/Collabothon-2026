@@ -1,5 +1,4 @@
-"""Validate a dict against a contract schema. Same JSON Schema subset and rules as
-contracts/validate_fixtures.py (stdlib only), packaged as a function for tests."""
+"""Validate a dict against a contract schema, with the same rules as contracts/validate_fixtures.py."""
 import json
 import re
 from pathlib import Path
@@ -63,7 +62,6 @@ def _check(v, sch, cur, path, errs):
 
 
 def schema_errors(value: dict, schema_name: str) -> list[str]:
-    """`schema_name` like "transaction" -> errors against contracts/schemas/transaction.schema.json."""
     name = f"{schema_name}.schema.json"
     errs: list[str] = []
     _check(value, _load(name), name, schema_name, errs)

@@ -10,7 +10,6 @@ import { MatchRedirect } from "./pages/Redirects";
 import { Settings } from "./pages/Settings";
 import { Todo } from "./pages/Todo";
 
-/** Old links (evidence in agent cards, toasts, bookmarks) land on the new places. */
 function To({ path }: { path: (p: Record<string, string | undefined>) => string }) {
   return <Navigate to={path(useParams())} replace />;
 }

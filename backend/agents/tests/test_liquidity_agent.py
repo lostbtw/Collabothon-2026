@@ -35,7 +35,6 @@ def cards(s):
     return [r for r in s.list("recommendation", company_id="co_borsuk") if r["agent"] == "liquidity"]
 
 
-
 def tool_call(name, arguments, id="call_1"):
     return SimpleNamespace(id=id, type="function", function=SimpleNamespace(name=name, arguments=json.dumps(arguments)))
 
@@ -59,7 +58,6 @@ class FakeModel:
 
 def final(title, summary, why):
     return turn(content=json.dumps({"title": title, "summary": summary, "why": why}))
-
 
 
 def test_borsuk_alert_without_a_model_gives_the_template_credit_line_card(db, world):
@@ -89,17 +87,15 @@ def test_borsuk_alert_without_a_model_gives_the_template_credit_line_card(db, wo
 
 
 def test_a_gap_still_open_when_the_forecast_ends_gives_a_card_up_to_the_forecasts_last_day(db, world):
-    # Regression: an open-ended gap (date_to null) crashed the agent.
     open_ended = forecast_fixture()
     open_ended["id"] = "fc_open_gap"
-    open_ended["inputs_hash"] += "-open-gap"  # forecasts are unique by inputs_hash
+    open_ended["inputs_hash"] += "-open-gap"
     open_ended["alerts"][0]["date_to"] = None
     assert world.add("forecast", open_ended)
 
     on_forecast_updated(db, updated("fc_open_gap"), model=None)
 
     [card] = cards(world)
-    # as_of_date 2026-11-21 + horizon_days 45 = 5 Jan, the forecast's last day: 36 days from 30 Nov
     assert card["summary"].startswith("From 30 Nov until at least 5 Jan, when the forecast ends, the accounts will be")
     estimated_cost = next(row for row in card["explanation"]["calculation"] if row["label"] == "Estimated cost")
     assert " x 36 days x " in estimated_cost["formula"]
@@ -192,7 +188,7 @@ def test_a_model_answer_in_the_wrong_shape_gets_one_corrective_retry(db, world):
 
     [card] = cards(world)
     assert card["explanation"]["why"] == ["Salaries of 58,000 PLN leave on 30 Nov", "Nordwind pays late"]
-    assert "why" in model.requests[-1]["messages"][-1]["content"]  # the retry names the problem
+    assert "why" in model.requests[-1]["messages"][-1]["content"]
 
 
 def test_the_template_card_is_stored_before_the_model_is_asked(db, world):

@@ -1,9 +1,4 @@
-"""One package, five processes: `python -m backend <api|connectors|pipeline|agents|mcp> [--check]`.
-
-Each process lives in its owner's folder as `backend/<folder>/main.py` with a `run(argv)` function.
-Until the owner adds it, the entrypoint is a placeholder that starts and exits cleanly.
-`--check` imports the process and exits without serving (used by CI and the readiness probe).
-"""
+"""One package, five processes: `python -m backend <api|connectors|pipeline|agents|mcp> [--check]`, each in `backend/<folder>/main.py`."""
 import argparse
 import importlib
 import importlib.util

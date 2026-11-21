@@ -1,9 +1,4 @@
-"""Tests for the Borsuk Labs demo scenario (#15).
-
-Run from the repo root:  python3 -m unittest discover -s sim/scenario/tests -v
-or with pytest:          python -m pytest sim/scenario
-Set FA3_XSD=<folder with schemat.xsd and its imports> to also validate the FA(3) files with xmllint.
-"""
+"""Tests for the Borsuk Labs demo scenario; FA3_XSD=<schema folder> also validates the FA(3) files."""
 import filecmp
 import json
 import os
@@ -15,10 +10,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent.parent  # sim/scenario
+HERE = Path(__file__).resolve().parent.parent
 COMMITTED = HERE / "out"
 SCRIPTS = ["bank_2026.py", "story_2026.py", "fa3_2026.py", "november_2026.py", "release_2026.py"]
-NOT_GENERATED = {"pizzeria-amalfi-bank-statement-2025-v6.csv"}  # organisers' file, git-ignored
+NOT_GENERATED = {"pizzeria-amalfi-bank-statement-2025-v6.csv"}
 
 
 def generate(out):
@@ -61,7 +56,7 @@ class Scenario(unittest.TestCase):
         sys.path.insert(0, str(HERE))
         try:
             import story_2026
-            story_2026.check(story_2026.story_items(), self.load("people.json"))  # SystemExit on failure
+            story_2026.check(story_2026.story_items(), self.load("people.json"))
         finally:
             sys.path.remove(str(HERE))
 

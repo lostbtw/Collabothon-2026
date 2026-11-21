@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 
-/** A link to an address the app does not have (an old bookmark or a typo). */
 export function NotBuiltYet() {
   const { pathname, search } = useLocation();
   return (

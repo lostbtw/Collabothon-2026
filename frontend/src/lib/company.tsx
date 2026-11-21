@@ -6,7 +6,6 @@ type CompanyState = { companyId: string; setCompanyId: (id: string) => void; com
 const CompanyContext = createContext<CompanyState>({ companyId: DEFAULT_COMPANY_ID, setCompanyId: () => {}, companies: null });
 const KEY = "ordo.company";
 
-/** The selected company, remembered for the browser tab so a reload stays on it. */
 function remembered(): string {
   try {
     return window.sessionStorage.getItem(KEY) ?? DEFAULT_COMPANY_ID;
@@ -24,7 +23,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     try {
       window.sessionStorage.setItem(KEY, id);
     } catch {
-      // No sessionStorage: the choice lasts until the next reload.
     }
   };
   return <CompanyContext.Provider value={{ companyId, setCompanyId, companies }}>{children}</CompanyContext.Provider>;
@@ -32,13 +30,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
 export const useCompany = () => useContext(CompanyContext);
 
-/** The selected company's record, once loaded. */
 export function useCompanyInfo(): Company | null {
   const { companyId, companies } = useCompany();
   return companies?.find((c) => c.id === companyId) ?? null;
 }
 
-/** "Today" for the selected company: the day its data is seen on (the demo day), else the laptop's date. */
 export function useToday(): string {
   return useCompanyInfo()?.as_of_date ?? new Date().toISOString().slice(0, 10);
 }

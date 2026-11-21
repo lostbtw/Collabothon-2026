@@ -1,4 +1,4 @@
-"""The outbox consumer library (#35) against the real tables (migrations of #20)."""
+"""The outbox consumer library against the real tables."""
 import threading
 import time
 
@@ -20,7 +20,6 @@ def emit(db, type_="transaction.ingested", **payload):
     return event
 
 
-# ---------- acceptance ----------
 def test_a_delivery_is_handled_once_and_marked_done(db):
     event = emit(db)
     seen = []
@@ -28,16 +27,16 @@ def test_a_delivery_is_handled_once_and_marked_done(db):
     assert [e["id"] for e in seen] == [event["id"]] and seen[0]["occurred_at"].endswith("Z")
     assert delivery(db, event["id"], "finance") == ("done", 1)
     assert queue.process_pending(db, "finance", seen.append) == 0
-    assert delivery(db, event["id"], "matcher") == ("pending", 0)  # every consumer group has its own delivery
+    assert delivery(db, event["id"], "matcher") == ("pending", 0)
 
 
 def test_two_workers_never_take_the_same_delivery(db, db_url):
     first, second = emit(db), emit(db)
     with psycopg.connect(db_url) as other:
-        mine = queue.claim(db, "finance")  # holds the row lock: not committed yet
+        mine = queue.claim(db, "finance")
         theirs = queue.claim(other, "finance")
         assert {mine[0]["id"], theirs[0]["id"]} == {first["id"], second["id"]}
-        assert queue.claim(other, "finance") is None  # nothing else is free
+        assert queue.claim(other, "finance") is None
         other.rollback()
     db.rollback()
 
@@ -45,8 +44,8 @@ def test_two_workers_never_take_the_same_delivery(db, db_url):
 def test_a_claimed_delivery_waits_for_its_retry_time(db):
     emit(db)
     queue.claim(db, "finance", retry_after_seconds=60)
-    db.commit()  # the worker died after claiming
-    assert queue.claim(db, "finance") is None  # locked until the retry time
+    db.commit()
+    assert queue.claim(db, "finance") is None
     db.rollback()
 
 
@@ -66,11 +65,10 @@ def test_a_handler_failing_three_times_ends_dead_and_its_raw_item_failed(db):
     assert delivery(db, event["id"], "normaliser") == ("dead", 3)
     doc = db.execute("select doc from raw_items where id = 'raw_q1'").fetchone()[0]
     assert doc["processing_status"] == "failed" and doc["error"]["message"] == "unreadable receipt"
-    assert queue.process_pending(db, "normaliser", broken, retry_after_seconds=0) == 0  # dead stays dead
+    assert queue.process_pending(db, "normaliser", broken, retry_after_seconds=0) == 0
 
 
 def test_a_failed_attempt_writes_nothing_and_the_retry_writes_once(db):
-    """Done only after the handler committed: a crash rolls its writes back, re-delivery writes exactly once."""
     db.execute("create table if not exists q_test (event_id text primary key)")
     db.commit()
     event = emit(db)
@@ -82,7 +80,6 @@ def test_a_failed_attempt_writes_nothing_and_the_retry_writes_once(db):
         if len(calls) == 1:
             raise RuntimeError("crash after writing")
 
-    # retry_after_seconds=0: the retry comes in the same pass; the crashed attempt's insert was rolled back
     assert queue.process_pending(db, "finance", handler, retry_after_seconds=0) == 1
     assert calls == [event["id"], event["id"]]
     assert db.execute("select count(*) from q_test").fetchone()[0] == 1
@@ -91,7 +88,6 @@ def test_a_failed_attempt_writes_nothing_and_the_retry_writes_once(db):
     db.commit()
 
 
-# ---------- options ----------
 def test_first_types_are_taken_first(db):
     later = emit(db, "forecast.updated", forecast_id="fc_1")
     urgent = emit(db, "match.suggested", match_id="mat_1")
@@ -122,7 +118,7 @@ def test_wait_wakes_up_on_a_new_event(db, db_url):
         queue.wait(listener, timeout=10)
         assert time.monotonic() - started < 5
         started = time.monotonic()
-        queue.wait(listener, timeout=0.5)  # nothing new: returns at the timeout
+        queue.wait(listener, timeout=0.5)
         assert time.monotonic() - started >= 0.4
     finally:
         listener.close()

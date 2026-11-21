@@ -1,6 +1,4 @@
-"""The pipeline process's handlers, end to end on an in-memory store and event bus (no Postgres needed).
-Run from the repo root:  python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""The pipeline process's handlers end to end on an in-memory store and event bus (no Postgres needed)."""
 import copy
 import unittest
 from pathlib import Path
@@ -19,8 +17,6 @@ FILTERS = {"transaction": ("account_id", "external_id", "match_status"), "docume
 
 
 class MemoryStore:
-    """Same interface and idempotency as backend/db/store.py, in memory."""
-
     def __init__(self):
         self.rows: dict[str, dict[str, tuple[str | None, dict]]] = {}
 
@@ -64,8 +60,6 @@ class MemoryStore:
 
 
 class Pipeline:
-    """Store + event bus: published events are delivered to the pipeline's own handlers, like the outbox."""
-
     def __init__(self):
         self.store = MemoryStore()
         self.events: list[dict] = []
@@ -99,7 +93,6 @@ class Pipeline:
         self.run()
 
     def extracted(self, doc):
-        """What role 1's extractor does: store the Document and announce it."""
         self.store.add("document", doc, company_id=COMPANY)
         self.publish("document.extracted", COMPANY, {"document_id": doc["id"]}, doc["raw_item_ids"][0])
         self.run()
@@ -124,7 +117,7 @@ class HeroFlow(unittest.TestCase):
         self.p.store.add("raw_item", RAW["raw_mail412"], company_id=COMPANY)
         self.p.store.add("raw_item", RAW["raw_mail412a1"], company_id=COMPANY)
         doc = copy.deepcopy(DOCS["doc_rcpt412"])
-        doc["submitted_by"] = None  # who paid must come from the forwarding address, not the extractor
+        doc["submitted_by"] = None
         self.p.extracted(doc)
         self.match = self.p.store.list("match", document_id="doc_rcpt412")[0]
 
@@ -139,7 +132,7 @@ class HeroFlow(unittest.TestCase):
     def test_role_5_turns_it_into_the_pay_jan_back_card(self):
         try:
             from backend.agents.ingestion import recommendation_for_match
-        except ImportError as exc:  # role 5's dependencies (psycopg, fastapi) are installed in CI, maybe not here
+        except ImportError as exc:
             self.skipTest(f"role 5 code not importable here: {exc}")
         doc = self.p.store.get("document", "doc_rcpt412")
         rec = recommendation_for_match(self.p.store, COMPANY, self.match, doc, "2026-11-21T10:15:00Z")
@@ -172,7 +165,6 @@ class BankLines(unittest.TestCase):
         self.assertEqual(p.types().count("transaction.ingested"), 1)
 
     def test_auto_confirmed_subscription_is_announced_as_decided_once(self):
-        """contracts/events.md: an auto-confirmed Match emits match.decided so the finance engine books it."""
         p = Pipeline()
         txn = dict(fixture("transaction")[0], match_status="unmatched", recurring_series_id="ser_pixelboard")
         p.store.add("transaction", txn, company_id=COMPANY)
@@ -183,14 +175,14 @@ class BankLines(unittest.TestCase):
         self.assertEqual([e["payload"] for e in decided],
                          [{"match_id": match["id"], "status": "auto_confirmed", "approval_id": None}])
         self.assertEqual(p.store.get("transaction", txn["id"])["match_status"], "matched")
-        p.publish("document.extracted", COMPANY, {"document_id": "doc_pixel11"}, "raw_x")  # re-matched later
+        p.publish("document.extracted", COMPANY, {"document_id": "doc_pixel11"}, "raw_x")
         p.run()
         self.assertEqual(len([e for e in p.events if e["type"] == "match.decided"]), 1)
 
     def test_card_line_arriving_after_the_receipt(self):
         p = Pipeline()
         doc = copy.deepcopy(DOCS["doc_rcpt412"])
-        doc["payment"]["card_last4"] = "4417"  # paid with the company card
+        doc["payment"]["card_last4"] = "4417"
         p.extracted(doc)
         first = p.store.list("match", document_id="doc_rcpt412")[0]
         self.assertEqual(first["match_type"], "document_no_transaction")
@@ -208,7 +200,7 @@ class BankLines(unittest.TestCase):
     def test_unreadable_line_is_marked_failed(self):
         p = Pipeline()
         raw = copy.deepcopy(RAW["raw_bank731"])
-        raw["payload"]["transactionAmount"] = {"amount": "-10.00", "currency": "CHF"}  # no rate in the reference
+        raw["payload"]["transactionAmount"] = {"amount": "-10.00", "currency": "CHF"}
         p.receive_raw(raw)
         stored = p.store.get("raw_item", "raw_bank731")
         self.assertEqual((stored["processing_status"], stored["error"]["code"]), ("failed", "normalise_failed"))
@@ -234,7 +226,6 @@ class Duplicates(unittest.TestCase):
         p = Pipeline()
         p.receive_raw(ksef_raw())
         xml_doc = p.store.list("document")[0]
-        # start again with the PDF arriving first
         p = Pipeline()
         pdf = copy.deepcopy(xml_doc)
         pdf.update(id="doc_mail0417", channel="email", raw_item_ids=["raw_mail0417a1"],
@@ -260,7 +251,7 @@ class Decisions(unittest.TestCase):
         p.publish("match.decided", COMPANY, {"match_id": match["id"], "status": "rejected", "approval_id": "apr_1"})
         p.run()
         self.assertEqual(p.store.get("transaction", match["transaction_id"])["match_status"], "unmatched")
-        p.publish("document.extracted", COMPANY, {"document_id": "doc_pixel11"})  # e.g. after a correction
+        p.publish("document.extracted", COMPANY, {"document_id": "doc_pixel11"})
         p.run()
         self.assertEqual(p.store.get("match", match["id"])["status"], "rejected")
 

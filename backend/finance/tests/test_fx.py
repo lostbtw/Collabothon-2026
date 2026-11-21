@@ -1,8 +1,4 @@
-"""Seam: FX Shield (#47): open foreign-currency invoices -> downside, hedge terms and the company's own figures.
-Pure, plus the engine on the test database. Rates: backend/finance/data/nbp_history_3y.json (NBP table A, 3 years).
-There is no profit per deal and no fixed threshold of "large": the model judges against these facts (backend/agents/fx.py).
-The Borsuk Labs demo data is only an example; these tests pin what the code gives on it, so a change cannot move it
-unnoticed."""
+"""Seam: FX Shield on open foreign-currency invoices -> downside, hedge terms and the company's own figures."""
 import json
 from datetime import date
 
@@ -59,14 +55,14 @@ def test_three_years_of_nbp_rates_end_the_day_before_the_as_of_date():
 
 def test_the_company_facts_are_month_by_month_because_money_in_varies(labs, labs_forecast):
     facts = fx.company_facts(labs, labs_forecast)
-    assert [m["month"] for m in facts["months"]] == [f"2026-{m:02d}" for m in range(1, 11)]  # full months only
+    assert [m["month"] for m in facts["months"]] == [f"2026-{m:02d}" for m in range(1, 11)]
     assert (facts["months"][8]["money_in"], facts["months"][9]["money_in"]) == (pln("60147.00"), pln("149478.00"))
     assert facts["money_in_strongest_month"] == pln("167845.50")
     assert {r["id"]: r["amount"] for r in facts["references"]} == {
         "money_in_weakest_month": pln("60147.00"), "money_in_median_month": pln("116005.50"),
         "money_out_median_month": pln("118288.61"), "cash_today": pln("38401.15")}
     assert facts["lowest_forecast_balance"] == {"date": "2026-12-04", "amount": pln("-13178.34")}
-    assert [t for t in labs["transactions"] if t.get("transaction_type") == "internal"]  # own transfers: not counted
+    assert [t for t in labs["transactions"] if t.get("transaction_type") == "internal"]
 
 
 def test_lakeshore_facts(labs, labs_forecast):
@@ -96,14 +92,14 @@ def test_nordwind_facts_paid_in_16_days_into_a_forecast_already_below_zero(labs,
     assert a["lowest_balance_after_payment_with_bad_case"]["balance"] == pln("-3467.94")
     assert (a["already_negative_after_payment"], a["bad_case_takes_balance_below_zero"]) == (True, True)
     assert (a["hedge"]["ratio"], a["hedge"]["value_date"], a["hedge"]["notional"]) == \
-        ("0.8", "2026-12-07", {"amount": "14720.00", "currency": "EUR"})  # a late client: 80% on the expected date
+        ("0.8", "2026-12-07", {"amount": "14720.00", "currency": "EUR"})
 
 
 def test_a_large_euro_purchase(labs, labs_forecast):
     a = assess_all(labs, labs_forecast, [item("doc_salami", "payable", "200000.00", "EUR", "2027-01-20")])["doc_salami"]
     assert (a["horizon_days"], a["scenarios"]) == (60, 713)
     assert (a["covered"], a["net_amount"]) == ({"amount": "3100.00", "currency": "EUR"},
-                                               {"amount": "196900.00", "currency": "EUR"})  # the EUR account pays part
+                                               {"amount": "196900.00", "currency": "EUR"})
     assert (a["expected_shortfall"], shares(a)["money_in_weakest_month"]) == (pln("-19254.93"), "32.0")
     assert (a["hedge"]["sell_currency"], a["hedge"]["buy_currency"], a["hedge"]["forward_rate"]) == ("PLN", "EUR", "4.4232")
 
@@ -126,11 +122,11 @@ def test_a_company_with_another_base_currency_and_no_history_is_assessed_by_the_
                             "opening_balance": {"amount": "50000.00", "currency": "EUR"}}],
               "transactions": [], "rates": {"EUR": "1", "USD": "0.9114"},
               "open_items": [item("doc_us", "receivable", "40000.00", "USD", "2027-01-05")]}
-    histories = {"USD": engine.fx_history(None, "USD", "EUR", AS_OF)}  # cross rates from the NBP PLN rates
+    histories = {"USD": engine.fx_history(None, "USD", "EUR", AS_OF)}
     (a,) = fx.assess_company(inputs, histories, build_forecast(**inputs))
     assert (a["value_today_base"], a["horizon_days"], a["scenarios"]) == ({"amount": "36456.00", "currency": "EUR"}, 45, 724)
     assert (a["hedge"]["sell_currency"], a["hedge"]["buy_currency"], a["hedge"]["forward_rate"]) == ("USD", "EUR", "0.9087")
-    assert a["company"]["months"] == []  # no bank lines yet: the only reference is the cash held
+    assert a["company"]["months"] == []
     assert [r["id"] for r in a["loss_vs_references"]] == ["cash_today"]
 
 
@@ -154,8 +150,6 @@ def test_fx_exposure_matches_the_contract_and_has_no_verdict_before_fx_shield_ju
 
 
 def book_forward(db, rate=None):
-    """Lakeshore's forward as the Sandbox Bank booked it: an executed fx_hedge card and its approval (the owner may
-    have edited the rate)."""
     from backend.db.store import Store
     s = Store(db)
     s.put("approval", {"id": "apr_fx", "subject_type": "recommendation", "subject_id": "rec_fx_lake",

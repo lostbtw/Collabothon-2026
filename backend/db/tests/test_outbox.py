@@ -1,4 +1,4 @@
-"""Seam: the outbox table as role 2's queue code and every consumer see it."""
+"""Seam: the outbox table as backend/queue and every consumer see it."""
 import json
 from pathlib import Path
 

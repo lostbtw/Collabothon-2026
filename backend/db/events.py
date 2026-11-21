@@ -22,7 +22,6 @@ def new_event(type: str, company_id: str, payload: dict[str, Any], *, producer: 
 
 
 def publish(conn: psycopg.Connection, event: dict[str, Any], *, commit: bool = True) -> bool:
-    """Append an event; a repeated id is ignored. Returns True when stored."""
     cur = conn.execute(
         """insert into outbox (id, type, company_id, correlation_id, causation_id, producer, payload, occurred_at)
            values (%s, %s, %s, %s, %s, %s, %s, %s) on conflict (id) do nothing""",
@@ -35,7 +34,6 @@ def publish(conn: psycopg.Connection, event: dict[str, Any], *, commit: bool = T
 
 
 def events_after(conn: psycopg.Connection, seq: int, company_id: str | None = None, limit: int = 100) -> list[tuple[int, dict[str, Any]]]:
-    """(seq, envelope) pairs with seq greater than the given one, oldest first."""
     rows = conn.execute(
         """select seq, id, type, occurred_at, company_id, correlation_id, causation_id, producer, payload
            from outbox where seq > %s and (%s::text is null or company_id = %s) order by seq limit %s""",

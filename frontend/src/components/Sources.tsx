@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { EvidenceLink } from "../api/types.gen";
 
-/** How many sources show as chips before "+N more". */
 export const VISIBLE_SOURCES = 3;
 
 const KIND_LABEL: Record<EvidenceLink["kind"], string> = {
@@ -14,7 +13,6 @@ const KIND_LABEL: Record<EvidenceLink["kind"], string> = {
 const KIND_ORDER: EvidenceLink["kind"][] = ["forecast", "forecast_component", "recommendation", "document", "match", "transaction",
   "ledger_entry", "fx_rate", "rule", "raw_item", "sql", "external"];
 
-/** Links can be absolute (the backend's own host); inside the app they open as app routes. */
 export function appPath(url: string): string {
   try {
     return url.startsWith("/") ? url : new URL(url).pathname + new URL(url).search;
@@ -23,7 +21,6 @@ export function appPath(url: string): string {
   }
 }
 
-/** Sources grouped by kind, in a fixed order; account links count as payments' context and go under "Accounts". */
 export function groupSources(links: EvidenceLink[]): { label: string; links: EvidenceLink[] }[] {
   const isAccount = (l: EvidenceLink) => /\/accounts\//.test(l.url ?? "");
   const groups = new Map<string, EvidenceLink[]>();

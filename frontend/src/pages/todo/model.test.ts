@@ -11,7 +11,6 @@ describe("To-do", () => {
   it("lists owner decisions and single advice: three to approve, four to check", async () => {
     const todo = await load();
     expect(todo.needsOk.map((i) => i.id)).toEqual(["rec_412", "gap", "rec_fx01"]);
-    // FX Shield's "no need to hedge" is advice (control level recommendation): it is shown under To check.
     expect(todo.check.map((i) => i.id)).toEqual(["rec_fx02", "rec_private01", "rec_missing01", "rec_vatname01"]);
     expect(todo.count).toBe(7);
   });

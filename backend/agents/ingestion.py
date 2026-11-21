@@ -1,7 +1,4 @@
-"""Inbox cards from Matches and taxes, template text only. Card per Match:
-  not suggested -> none | reimbursement owed -> reimburse_employee | PL-PRIV-01 / possible_private -> mark_private
-  score < 0.55 -> missing_document | VAT lost, score >= 0.90 -> request_company_invoice | else -> confirm_match
-  Each upcoming tax payment -> tax_reserve."""
+"""Inbox cards from Matches and upcoming tax payments, template text only."""
 import calendar
 from datetime import date, timedelta
 from decimal import Decimal
@@ -40,7 +37,6 @@ def _link(kind: str, id: str, label: str) -> dict[str, str]:
 
 
 def _pay_run(issued: str) -> str:
-    """The next payment run: the last business day of the month the document was issued in."""
     d = date.fromisoformat(issued[:10])
     last = date(d.year, d.month, calendar.monthrange(d.year, d.month)[1])
     while last.weekday() >= 5:
@@ -56,7 +52,6 @@ def _what(document: dict[str, Any]) -> str:
 
 
 def _candidates(s: Store, company: str, document: dict[str, Any], match: dict[str, Any]) -> list[dict[str, Any]]:
-    """Other unmatched bank lines of about the document's amount (within the 4.5% card spread), nearest date first."""
     gross = document.get("totals", {}).get("gross_base")
     if not gross:
         return []
@@ -197,7 +192,6 @@ def recommendation_for_match(s: Store, company: str, match: dict[str, Any], docu
 
 
 def on_match_suggested(conn: psycopg.Connection, event: dict[str, Any]) -> str | None:
-    """Handler for `match.suggested`. Idempotent: one open card per (type, subject). Returns the new card's id."""
     s = Store(conn)
     match = s.get("match", event["payload"]["match_id"])
     if match is None:
@@ -212,7 +206,6 @@ def on_match_suggested(conn: psycopg.Connection, event: dict[str, Any]) -> str |
 
 
 def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any]) -> list[str]:
-    """Handler for `forecast.updated`: a tax_reserve card for each upcoming tax payment in the new forecast."""
     s = Store(conn)
     forecast = s.get("forecast", event["payload"]["forecast_id"])
     if forecast is None:

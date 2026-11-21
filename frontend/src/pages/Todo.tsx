@@ -113,7 +113,6 @@ export function TodoView({ items, forecast, recs, approvals, activity, month, su
   );
 }
 
-/** One to-do: its title, its badge and one fact (the one the list is sorted by), and the action. The rest is in its details. */
 function TodoRow({ item, sort, open: startOpen }: { item: TodoItem; sort: TodoSort; open?: boolean }) {
   const [open, setOpen] = useState(Boolean(startOpen));
   useEffect(() => { if (startOpen) setOpen(true); }, [startOpen]);
@@ -143,7 +142,6 @@ function TodoRow({ item, sort, open: startOpen }: { item: TodoItem; sort: TodoSo
   );
 }
 
-/** A coming cash gap: when, how bad, and the prepared ways to close it, cheapest first. */
 function GapCard({ item, onNotNow, target }: { item: TodoItem; onNotNow: () => void; target: string }) {
   const gap = item.gap!;
   return (
@@ -189,7 +187,6 @@ function GapOption({ rec, first, open: startOpen }: { rec: Recommendation; first
   );
 }
 
-/** Month close: when every cost has a type and an invoice, the month can go to the accountant. */
 function CloseMonth({ month, summary, people, toCheck, openReimbursements }: { month: string; summary: LedgerSummary | null; people: PeopleCosts | null; toCheck: number; openReimbursements: number }) {
   const currency = useCompanyInfo()?.base_currency ?? "PLN";
   const [sent, setSent] = useState(false);
@@ -224,7 +221,6 @@ function CloseMonth({ month, summary, people, toCheck, openReimbursements }: { m
   );
 }
 
-/** What was done lately, in two lists: what the owner approved, and what Ordo did on its own. Each opens its details. */
 function DoneRecently({ activity, approvals, recs }: { activity: ActivityItem[]; approvals: Approval[]; recs: Recommendation[] }) {
   const { approved, alone } = doneRecently(activity, approvals, recs, 4);
   const [tab, setTab] = useState<"you" | "ordo">(approved.length || !alone.length ? "you" : "ordo");

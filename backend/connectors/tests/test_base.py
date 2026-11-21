@@ -1,4 +1,4 @@
-"""The connector base (#21) against the real tables from #20."""
+"""The connector base against the real tables."""
 import hashlib
 from datetime import UTC, datetime, timedelta
 
@@ -19,8 +19,6 @@ SOURCE = {
 
 
 class FakeBank(Connector):
-    """Serves `pages` in order; an entry that is an exception is raised instead of returned."""
-
     connector = "bank_psd2"
     key_prefix = "bank"
 
@@ -75,19 +73,17 @@ def raw_items(db) -> list[dict]:
     return Store(db).list("raw_item", source_id=SOURCE["id"])
 
 
-# ---------- acceptance 1: running twice creates nothing new ----------
 def test_second_run_creates_no_new_raw_items(db, source):
     first = run(db, FakeBank(source, [page("E000000001", "E000000002")]))
     assert first["status"] == "success" and first["items_new"] == 2
 
-    # the source "forgets" the cursor and serves the same lines again: the unique key must stop them
     db.execute("update sources set doc = jsonb_set(doc, '{cursor}', 'null') where id = %s", (SOURCE["id"],))
     db.commit()
     second = run(db, FakeBank(source, [page("E000000001", "E000000002")]))
     assert second["status"] == "success"
     assert (second["items_fetched"], second["items_new"], second["items_duplicate"]) == (2, 0, 2)
     assert len(raw_items(db)) == 2
-    assert len(events(db, "raw_item.received")) == 2  # no event for a duplicate
+    assert len(events(db, "raw_item.received")) == 2
 
 
 def test_items_cursor_and_events_are_written(db, source):
@@ -104,9 +100,8 @@ def test_items_cursor_and_events_are_written(db, source):
     received = events(db, "raw_item.received")
     assert received[0]["company_id"] == "co_borsuk"
     assert {e["payload"]["raw_item_id"] for e in received} == {i["id"] for i in raw_items(db)}
-    assert all(e["correlation_id"] == e["payload"]["raw_item_id"] for e in received)  # events.md rule 2
+    assert all(e["correlation_id"] == e["payload"]["raw_item_id"] for e in received)
 
-    # the next run starts from the stored cursor
     bank2 = FakeBank(source, [page()])
     run(db, bank2)
     assert bank2.cursors_asked == ["E000000002"]
@@ -141,7 +136,7 @@ def test_source_status_and_times_on_success(db, source):
     src = stored_source(db)
     assert src["status"] == "connected" and src["last_error"] is None
     assert src["last_success_at"] == src["last_synced_at"] == "2026-11-21T10:14:02Z"
-    assert src["next_run_at"] == "2026-11-21T10:15:02Z"  # + poll_interval_seconds
+    assert src["next_run_at"] == "2026-11-21T10:15:02Z"
     assert result["started_at"] == "2026-11-21T10:14:00Z" and result["duration_ms"] == 2000
     started = events(db, "sync.run.started")
     finished = events(db, "sync.run.finished")
@@ -150,7 +145,6 @@ def test_source_status_and_times_on_success(db, source):
                                       "status": "success", "items_new": 1}
 
 
-# ---------- acceptance 2: a failing fetch ends the run with an error and sets the source status ----------
 def test_retries_three_times_then_degraded(db, source):
     waited: list[float] = []
     down = [ConnectorError("bank timed out")] * 4
@@ -160,7 +154,7 @@ def test_retries_three_times_then_degraded(db, source):
     assert result["error"] == {"code": "fetch_failed", "message": "bank timed out", "retryable": True}
     src = stored_source(db)
     assert src["status"] == "degraded" and src["last_error"]["message"] == "bank timed out"
-    assert src.get("last_success_at") is None  # never succeeded
+    assert src.get("last_success_at") is None
     assert events(db, "sync.run.finished")[0]["payload"]["status"] == "failed"
     assert events(db, "sync.run.finished")[0]["payload"]["error"] == "bank timed out"
 
@@ -192,7 +186,7 @@ def test_failure_after_a_committed_page_is_partial_and_resumes(db, source):
     down = [ConnectorError("gone")] * 4
     result = run(db, FakeBank(source, [page("E000000001", more=True), *down]))
     assert result["status"] == "partial" and result["items_new"] == 1
-    assert stored_source(db)["cursor"] == "E000000001"  # what was committed stays
+    assert stored_source(db)["cursor"] == "E000000001"
     bank = FakeBank(source, [page("E000000002")])
     run(db, bank)
     assert bank.cursors_asked == ["E000000001"]
@@ -200,7 +194,6 @@ def test_failure_after_a_committed_page_is_partial_and_resumes(db, source):
 
 
 def test_a_page_is_all_or_nothing(db, source, monkeypatch):
-    """Items, their events and the cursor share one transaction: if the event cannot be written, nothing is."""
     real_publish = base.publish
 
     def failing_publish(conn, event, commit=True):
@@ -213,10 +206,9 @@ def test_a_page_is_all_or_nothing(db, source, monkeypatch):
     assert result["status"] == "failed" and result["error"]["code"] == "store_failed"
     assert raw_items(db) == []
     assert stored_source(db)["cursor"] is None and stored_source(db)["items_total"] == 0
-    assert Store(db).get("sync_run", result["id"])["status"] == "failed"  # not left "running"
+    assert Store(db).get("sync_run", result["id"])["status"] == "failed"
 
 
-# ---------- manual trigger and concurrency ----------
 def test_adopts_the_run_created_by_the_sync_now_button(db, source):
     manual = {"id": "run_manual01", "source_id": SOURCE["id"], "connector": "bank_psd2", "trigger": "manual",
               "started_at": "2026-11-21T10:00:00Z", "status": "running"}

@@ -1,4 +1,4 @@
-"""Seam: bank lines + open invoices + Ledger + owner events -> Forecast (#28). Pure, no database."""
+"""Seam: bank lines + open invoices + Ledger + owner events -> Forecast. Pure, no database."""
 from decimal import Decimal
 
 import pytest
@@ -31,11 +31,10 @@ def labs():
 
 @needs_csv
 def test_pizzeria_on_15_may_with_the_june_closure_predicts_the_july_gap(pizza):
-    assert len(pizza["transactions"]) == 1125  # the whole year is ingested; only lines up to 15 May are used
+    assert len(pizza["transactions"]) == 1125
     forecast = build_forecast(**pizza, events=[CLOSED_JUNE], horizon_days=60)
 
     low = forecast["min_balance"]
-    # Polish tax rules for every company: the pizzeria no longer matches its German history
     assert (low["date"], amount(low["amount"])) == ("2025-07-03", Decimal("-22813.26"))
     Forecast.model_validate(forecast)
 
@@ -52,13 +51,13 @@ def test_the_tax_office_is_split_into_its_separate_series(pizza):
     ids = recurring_series_ids(**{k: pizza[k] for k in ("company", "accounts", "transactions", "rates")})
     tax_office = {ids[t["id"]] for t in pizza["transactions"]
                   if t["id"] in ids and "Tax Office" in (t["counterparty_name_raw"] or "")}
-    assert len(tax_office) >= 2  # monthly wage tax and quarterly trade tax are separate series
+    assert len(tax_office) >= 2
 
 
 def test_borsuk_labs_cash_gap_from_30_november(labs):
     forecast = build_forecast(**labs)
 
-    assert forecast["opening_balance"] == {"amount": "38401.15", "currency": "PLN"}  # 24,730.15 + 3,100 EUR x 4.41
+    assert forecast["opening_balance"] == {"amount": "38401.15", "currency": "PLN"}
     assert forecast["first_negative_date"] == "2026-11-30"
     (gap,) = forecast["alerts"]
     assert gap["type"] == "cash_gap" and gap["severity"] == "critical" and gap["date_from"] == "2026-11-30"
@@ -66,9 +65,9 @@ def test_borsuk_labs_cash_gap_from_30_november(labs):
     assert "2026-12-01" <= low["date"] <= "2026-12-06"
     assert Decimal("-16000") < amount(low["amount"]) < Decimal("-9000")
     at_low = point(forecast, low["date"])
-    assert Decimal(at_low["low"]) < amount(low["amount"]) < Decimal(at_low["high"])  # the band surrounds the line
+    assert Decimal(at_low["low"]) < amount(low["amount"]) < Decimal(at_low["high"])
     widths = [Decimal(p["high"]) - Decimal(p["low"]) for p in forecast["points"]]
-    assert widths[0] == 0 and widths == sorted(widths)  # no uncertainty today, more every day after
+    assert widths[0] == 0 and widths == sorted(widths)
     Forecast.model_validate(forecast)
 
 
@@ -110,7 +109,7 @@ def test_recurring_bank_lines_carry_a_series_id(labs):
     assert {"COWORKING PIOTRKOWSKA SP Z O O (SAMPLE)", "JAN KOWALSKI (SAMPLE)", "ZAKLAD UBEZPIECZEN SPOLECZNYCH",
             "CODEHARBOR INC (SAMPLE)"} <= names
     tax_series = {s for name, s in series_of if name == "URZAD SKARBOWY LODZ-POLESIE"}
-    assert len(tax_series) == 3  # PIT-4, CIT-5 and VAT-7 are three series, not one average
+    assert len(tax_series) == 3
 
 
 def test_an_announced_extra_outflow_is_its_own_component(labs):

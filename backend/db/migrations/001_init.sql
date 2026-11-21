@@ -1,9 +1,4 @@
--- Ordo database, first cut. Owner: role 5.
---
--- Every contract entity is stored whole in `doc` (jsonb, exactly the shape of contracts/schemas/<entity>.schema.json),
--- so a schema change in contracts/ needs no migration. The other columns are generated from `doc` and exist only
--- to filter and to enforce the idempotency keys of contracts/events.md. `company_id` is a plain column because
--- some entities (match, approval, transaction, raw item, sync run) do not carry it in their JSON.
+-- Every entity is stored whole in `doc` (its contract shape); the other columns only filter and enforce idempotency keys.
 
 create table companies (
   id            text primary key,
@@ -21,7 +16,6 @@ create table people (
   role       text not null check (role in ('owner', 'employee', 'contractor'))
 );
 
--- Extra addresses a Person sends from (the real phone used in the live demo). Filled only from a Secret at seed time.
 create table person_addresses (
   address   text primary key,
   person_id text not null references people(id)
@@ -143,7 +137,6 @@ create table approvals (
   decided_at   text generated always as (doc->>'decided_at') stored
 );
 
--- Queue (D-07, contracts/events.md): one outbox table, one delivery row per (event, consumer), LISTEN/NOTIFY.
 create table outbox (
   id             text primary key,
   type           text not null,
@@ -166,7 +159,6 @@ create table outbox_delivery (
 );
 create index outbox_delivery_pending on outbox_delivery (consumer, status) where status = 'pending';
 
--- Which consumer group receives which event type (from the table in contracts/events.md). Reference data.
 create table outbox_subscription (
   consumer   text not null,
   event_type text not null,
@@ -190,7 +182,6 @@ create function outbox_fan_out() returns trigger language plpgsql as $$
 begin
   insert into outbox_delivery (event_id, consumer)
     select new.id, s.consumer from outbox_subscription s where s.event_type = new.type;
-  -- every event also goes to the browser (SSE)
   insert into outbox_delivery (event_id, consumer) values (new.id, 'sse');
   perform pg_notify('outbox', new.id);
   return new;

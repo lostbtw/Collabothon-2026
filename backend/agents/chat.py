@@ -44,7 +44,6 @@ MONTHS |= {"czerwca": 6, "czerwiec": 6, "lipca": 7, "juni": 6, "juli": 7, "dezem
 MONEY_WORDS = re.compile(r"\b(transfer|pay|send|wire|approve|execute|book|przelew|zapłać|überweis\w*|zahle)\b", re.I)
 
 
-
 def get_cash_position(conn: psycopg.Connection, company: str) -> dict[str, Any]:
     base = conn.execute("select base_currency from companies where id = %s", (company,)).fetchone()[0]
     accounts = Store(conn).list("account", company_id=company)
@@ -76,7 +75,6 @@ def explain_recommendation(conn: psycopg.Connection, company: str, recommendatio
 
 def add_forecast_event(conn: psycopg.Connection, company: str, label: str, date_from: str, date_to: str,
                        effect: str = "no_variable_flows", amount: dict | None = None) -> dict[str, Any]:
-    """The owner's own statement (control level: owner's own action); nothing is executed."""
     event, forecast = store_forecast_event(conn, company, {"label": label, "date_from": date_from, "date_to": date_to,
                                                            "effect": effect, "amount": amount, "source": "owner_chat"})
     return {"event": event, "forecast_id": forecast["id"] if forecast else None,
@@ -124,7 +122,6 @@ def _month_before(month: str) -> str:
 
 
 def get_clients(conn: psycopg.Connection, company: str, month: str | None = None) -> dict[str, Any]:
-    """What each client paid in the month and what they still owe, with days late (owner.clients)."""
     month = month or _as_of(conn, company).isoformat()[:7]
     data = owner.clients(conn, company, month, persist_delays=False)
     clients = [{"name": c["name"], "paid_in_month": c["paid_in_month"], "still_owes": c["open_total_base"],
@@ -136,7 +133,6 @@ def get_clients(conn: psycopg.Connection, company: str, month: str | None = None
 
 
 def get_month_costs(conn: psycopg.Connection, company: str, month: str | None = None) -> dict[str, Any]:
-    """Costs of a month by category next to the month before, from the bank payments (owner.bank_summary)."""
     month = month or _as_of(conn, company).isoformat()[:7]
     before = _month_before(month)
 
@@ -191,7 +187,6 @@ HISTORY_TURNS = 6
 
 
 def history(conn: psycopg.Connection, session_id: str, company: str) -> list[dict[str, str]]:
-    """The session's last turns as chat messages (user and assistant text only)."""
     rows = conn.execute(
         """select role, content from (select role, content, seq from chat_messages
            where session_id = %s and company_id = %s order by seq desc limit %s) t order by seq""",
@@ -205,7 +200,6 @@ def remember(conn: psycopg.Connection, session_id: str, company: str, question: 
     conn.commit()
 
 
-
 def _now() -> str:
     from backend.api.deps import now_iso
 
@@ -217,7 +211,6 @@ def _as_of(conn: psycopg.Connection, company: str) -> date:
 
 
 def _closed_period(message: str, as_of: date) -> tuple[str, str] | None:
-    """"1-30 June" -> that range; "in June" -> the whole month, the next one from the as-of date."""
     m = re.search(r"(\d{1,2})\s*[-–—]\s*(\d{1,2})\.?\s+([A-Za-zÀ-ž]+)", message)
     if m and m.group(3).lower() in MONTHS:
         month, first, last = MONTHS[m.group(3).lower()], int(m.group(1)), int(m.group(2))
@@ -237,7 +230,6 @@ def _closed_period(message: str, as_of: date) -> tuple[str, str] | None:
 
 
 def _evidence(results: list[Any]) -> list[dict[str, Any]]:
-    """Evidence links for whatever the tools returned."""
     links: list[dict[str, Any]] = []
 
     def add(link):
@@ -267,7 +259,6 @@ def _component_evidence(conn: psycopg.Connection, forecast_id: str) -> list[dict
 
 
 def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple[str, list, list, str | None, dict | None]:
-    """(answer, evidence, tool trace, created card id, guardrail) without a model."""
     text = message.lower()
     period = _closed_period(message, _as_of(conn, company))
     if period and re.search(r"closed|close|zamkni|geschlossen|holiday|urlaub|wakacje", text):
@@ -404,7 +395,6 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
             tracing.outputs(step, {"outcome": outcome, "answer": text, "tool_calls": trace,
                                    "created_recommendation_id": created})
     if text is None and created:
-        # The model already made the card; do not make a second one.
         card = Store(conn).get("recommendation", created) or {}
         text = (f"I cannot move money from the chat. I put this in your inbox: \"{card.get('title', 'your request')}\". "
                 "It runs only after you approve it, in simulation.")

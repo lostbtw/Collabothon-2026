@@ -1,15 +1,4 @@
-"""Ledger entries from a decided Match (#27, D-20). Pure functions: no database, no LLM (D-02).
-
-The finance engine is the only writer of Ledger entries. When the owner confirms a Match for a purchase, it books
-what the Match's `consequences` call for, directly as approved:
-
-    expense                  always: the cost, gross in the base currency; `vat.deductible` false = VAT lost
-    reimbursement_liability  when someone paid privately (`reimbursement_owed`): the company owes the employee or
-                             the owner (`reimbursement_to`), paid out with the next pay run
-
-A rejected Match, a duplicate, a sales payment or a reimbursement payout books nothing here.
-Entry ids come from the Match (`led_<match>_exp`, `led_<match>_reimb`), so booking the same Match again is a no-op.
-"""
+"""Ledger entries from a decided Match, booked as approved: the expense and, when someone paid privately, the debt to them."""
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
@@ -24,7 +13,6 @@ CATEGORIES = {
 
 
 def money(amount: Decimal | str, currency: str) -> dict[str, str]:
-    """Money as in the contracts: decimal string with 2 places plus currency (hard rule 6)."""
     return {"amount": f"{Decimal(amount):.2f}", "currency": currency}
 
 
@@ -33,12 +21,10 @@ def negative(m: dict[str, str]) -> dict[str, str]:
 
 
 def shown(m: dict[str, str]) -> str:
-    """'1,299.00 PLN' for explanations."""
     return f"{abs(Decimal(m['amount'])):,.2f} {m['currency']}"
 
 
 def next_pay_run(day: date) -> date:
-    """Last business day (Mon-Fri) of the month of `day`: when salaries and reimbursements are paid."""
     first_next = (day.replace(day=28) + timedelta(days=4)).replace(day=1)
     last = first_next - timedelta(days=1)
     while last.weekday() >= 5:
@@ -46,7 +32,7 @@ def next_pay_run(day: date) -> date:
     return last
 
 
-DECIDED = ("confirmed", "auto_confirmed")  # by the owner, or by rule for a known recurring series (no approval)
+DECIDED = ("confirmed", "auto_confirmed")
 
 
 def should_book(match: dict[str, Any], document: dict[str, Any] | None) -> bool:
@@ -57,7 +43,6 @@ def should_book(match: dict[str, Any], document: dict[str, Any] | None) -> bool:
 def entries_for_match(match: dict[str, Any], document: dict[str, Any] | None, approval_id: str | None, *,
                       transaction: dict[str, Any] | None = None,
                       counterparties: list[dict[str, Any]] = ()) -> list[dict[str, Any]]:
-    """The approved Ledger entries a confirmed purchase Match calls for; [] when it calls for none."""
     if not should_book(match, document):
         return []
     company = document.get("company_id") or match.get("company_id")

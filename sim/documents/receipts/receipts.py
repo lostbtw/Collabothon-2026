@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""Printable SAMPLE receipts and their ground truth (ticket #16). Stdlib only.
-
-    python sim/documents/receipts/receipts.py            # writes sim/documents/receipts/out/
-
-Outputs:
-- out/print_sheet.html : all receipts (with copies) on A4, cut along the dashed lines. Print at 100% scale.
-- out/<id>.html        : one receipt per file.
-- receipts_truth.json  : the values a reader should extract, per receipt (committed; role 1 evaluates against it).
-
-Every receipt carries SAMPLE in the seller line, a footer and a diagonal watermark (D-18). Totals and VAT are
-computed here (VAT included in the price, Polish fiscal-receipt style), so the printout and the truth agree.
-"""
+"""Printable SAMPLE receipts and their ground truth: `python sim/documents/receipts/receipts.py` writes out/."""
 import html
 import json
 from decimal import ROUND_HALF_UP, Decimal
@@ -26,7 +15,6 @@ def q(x: Decimal) -> Decimal:
 
 
 def pl(x: Decimal) -> str:
-    """1299.00 -> '1299,00' (Polish receipts use a decimal comma)."""
     return format(q(x), "f").replace(".", ",")
 
 
@@ -35,7 +23,6 @@ def nip_dashed(nip: str) -> str:
 
 
 def compute(receipt: dict, rates: dict) -> dict:
-    """Line totals, VAT per letter (from gross), grand total."""
     lines, by_letter = [], {}
     for item in receipt["items"]:
         qty, unit = Decimal(item["quantity"]), Decimal(item["unit_price"])
@@ -53,7 +40,6 @@ def compute(receipt: dict, rates: dict) -> dict:
 
 
 def truth(receipt: dict, c: dict) -> dict:
-    """Ground truth in the Document field names role 1 extracts (contracts/schemas/document.schema.json)."""
     return {
         "id": receipt["id"],
         "purpose": receipt["purpose"],

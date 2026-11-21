@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Validate every fixture against its JSON Schema. Stdlib only (no jsonschema package needed),
-supports the subset of JSON Schema used in contracts/schemas: type, required, properties,
-additionalProperties, items, minItems, enum, pattern, minimum/maximum, oneOf, $ref (local files + #/$defs).
-Usage: python3 contracts/validate_fixtures.py        (exit code 1 on any error)
-Fixture naming: fixtures/<schema_name>.json holds a JSON array of examples for schemas/<schema_name>.schema.json
-"""
+"""Validate fixtures/<name>.json against schemas/<name>.schema.json with stdlib only; exit 1 on any error."""
 import json, re, sys
 from pathlib import Path
 

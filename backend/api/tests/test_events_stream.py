@@ -43,4 +43,4 @@ def test_stream_relays_new_outbox_events_after_the_replay(client, db, monkeypatc
     with client.stream("GET", "/api/v1/events/stream", params={"company_id": "co_borsuk", "max_events": 1}) as r:
         events = read_events(r, 1)
 
-    assert events[0]["type"] == "forecast.updated"  # only events written after connecting are relayed
+    assert events[0]["type"] == "forecast.updated"

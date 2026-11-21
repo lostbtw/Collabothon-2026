@@ -17,7 +17,6 @@ BANK_TOKEN = "test-bank-token"
 
 @pytest.fixture(autouse=True)
 def sandbox_bank(monkeypatch):
-    """In-process Sandbox Bank for approved actions; yields its TestClient."""
     import backend.executor.simulated as executor
 
     with TestClient(create_bank(BankStore(), token=BANK_TOKEN)) as bank:
@@ -28,7 +27,6 @@ def sandbox_bank(monkeypatch):
 
 @pytest.fixture
 def client(db, db_url):
-    """The API on an empty, seeded test database."""
     seed(db)
     with TestClient(create_app(database_url=db_url)) as c:
         yield c

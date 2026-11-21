@@ -1,9 +1,4 @@
-"""Loader for the organisers' bank statement (German online-banking CSV, ';' separated, newest line first).
-
-Profile commerzbank_csv columns: Account Number;Booking Date;Value Date;Transaction Type;Payment Reference;
-Beneficiary/Payer;Counterparty Account;Bank Code;Amount;Currency;Info. Dates are dd.mm.yy, amounts use a decimal comma.
-The CHF lines inside the EUR account are kept exactly as they are in the file.
-"""
+"""Loader for the organisers' bank statement (German online-banking CSV, ';' separated, newest first); CHF lines kept as-is."""
 from __future__ import annotations
 
 import csv
@@ -43,7 +38,6 @@ def _code(transaction_type: str) -> str:
 
 
 def parse_commerzbank_csv(raw: bytes) -> tuple[str | None, list[Line]]:
-    """Return (iban of the file's account, lines in chronological order with increasing entry references)."""
     reader = csv.DictReader(io.StringIO(_decode(raw)), delimiter=";")
     missing = REQUIRED - set(reader.fieldnames or [])
     if missing:
@@ -59,8 +53,6 @@ def parse_commerzbank_csv(raw: bytes) -> tuple[str | None, list[Line]]:
         parsed.append((booking, idx, row))
     if not parsed:
         raise CsvError("no data rows")
-    # The file is newest first. Chronological order, and within one day the reverse of the file order,
-    # so entry references only grow and hidden future lines always have the higher references.
     parsed.sort(key=lambda t: (t[0], -t[1]))
     iban = parsed[0][2]["Account Number"].strip() or None
     lines = [

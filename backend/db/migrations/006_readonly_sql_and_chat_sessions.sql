@@ -1,5 +1,4 @@
--- The chat's free SQL tool (5.7b) reads only these 6 views, as role ordo_readonly, for one company at a time:
--- run_readonly_sql sets ordo.company_id for its transaction and every view filters on it.
+-- The chat's SQL tool reads only these views, as role ordo_readonly, each filtered to ordo.company_id.
 create view v_ledger as
   select id, doc->>'date' as date, doc->>'type' as type, doc->>'category' as category,
          (doc->'amount_base'->>'amount')::numeric as amount_base, doc->'amount_base'->>'currency' as currency,
@@ -40,8 +39,7 @@ create view v_forecast_components as
     and f.scenario_of is null
     and f.seq = (select max(seq) from forecasts g where g.company_id = f.company_id and g.scenario_of is null);
 
--- A role that can read the views and nothing else. Roles are cluster-wide; creating one needs CREATEROLE, so on a
--- cluster where the app user lacks it the DBA runs this block once (the SQL tool refuses to run without the role).
+-- Creating a role needs CREATEROLE; where the app user lacks it, the DBA runs this block once.
 do $$
 begin
   if not exists (select 1 from pg_roles where rolname = 'ordo_readonly') then
@@ -60,7 +58,6 @@ begin
   end if;
 end $$;
 
--- Chat history per session, so a follow-up question carries the previous turns (5.7b).
 create table chat_messages (
   session_id text not null,
   company_id text not null,

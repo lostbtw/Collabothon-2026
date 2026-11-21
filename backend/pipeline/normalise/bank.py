@@ -1,13 +1,4 @@
-"""Bank line (PSD2-shaped JSON in a RawItem) -> Transaction (contracts/schemas/transaction.schema.json).
-
-Rules (spec #3, ticket #23):
-- The account-currency amount is the cash truth (`amount_base`).
-- A card line in the account currency that names a foreign amount ("45.00 USD") keeps that as
-  `original_amount` and stores the implied rate (rule `bank_actual`).
-- A line whose currency differs from the account currency (the pizzeria's CHF lines in a EUR account)
-  is converted with the rate written in the reference text, rounded to cents per line, and flagged
-  `currency_mismatch_fixed` + `rate_from_reference_text` (DQ-01).
-"""
+"""Bank line (PSD2-shaped JSON in a RawItem) -> Transaction; the account-currency amount is the cash truth."""
 import re
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -18,12 +9,10 @@ class NormaliseError(ValueError):
     """The RawItem cannot become a Transaction; the caller marks it `failed` with this message."""
 
 
-# "(4166.67 CHF @ 1.050 EUR/CHF)": 1 CHF = 1.050 EUR
 RATE_IN_REFERENCE = re.compile(
     r"\(\s*(?P<foreign_amount>\d+(?:\.\d+)?)\s*(?P<foreign>[A-Z]{3})\s*@\s*(?P<rate>\d+(?:\.\d+)?)"
     r"\s*(?P<base>[A-Z]{3})\s*/\s*(?P<quote>[A-Z]{3})\s*\)"
 )
-# "... 45.00 USD KARTA *4417"
 FOREIGN_AMOUNT = re.compile(r"(?<![\d.,])(?P<amount>\d+(?:[.,]\d{1,2})?)\s+(?P<currency>[A-Z]{3})\b")
 CARD_LAST4 = re.compile(r"\*\s?(\d{4})\b")
 ISO_CURRENCIES = {
@@ -61,7 +50,6 @@ def _code(value) -> str:
 
 
 def transaction_type(code: str, amount: Decimal, text: str) -> str:
-    """Map the bank's proprietary code to the contract enum, refining direct debits by payee."""
     code = _code(code)
     lowered = text.lower()
     kind = _TYPE_BY_CODE.get(code)
@@ -76,7 +64,6 @@ def transaction_type(code: str, amount: Decimal, text: str) -> str:
 
 
 def transaction_id(account_id: str, external_id: str) -> str:
-    """Deterministic id, so normalising the same bank line twice gives the same Transaction."""
     account_part = account_id[4:] if account_id.startswith("acc_") else account_id
     return "txn_" + re.sub(r"[^A-Za-z0-9]+", "_", f"{account_part}_{external_id}").strip("_")
 
@@ -88,10 +75,6 @@ def _iban(party) -> str | None:
 
 
 def normalise_bank_line(raw_item: dict, account: dict) -> dict:
-    """Turn one `bank_transaction` RawItem into a Transaction dict that validates against the contract.
-
-    `account` needs `id` and `currency` (contracts/schemas/account.schema.json).
-    """
     line = raw_item.get("payload") or {}
     for field in ("entryReference", "bookingDate", "transactionAmount"):
         if not line.get(field):
@@ -128,7 +111,6 @@ def normalise_bank_line(raw_item: dict, account: dict) -> dict:
                 "rule": "bank_actual",
             }
     else:
-        # DQ-01: the statement booked a foreign amount on this account; the rate is in the reference text.
         match = RATE_IN_REFERENCE.search(description)
         if not match or match["base"] != account_ccy or match["quote"] != line_ccy or match["foreign"] != line_ccy:
             raise NormaliseError(
@@ -172,7 +154,7 @@ def normalise_bank_line(raw_item: dict, account: dict) -> dict:
         "original_amount": original_amount,
         "counterparty_name_raw": name or None,
         "counterparty_account": iban,
-        "counterparty_id": None,  # resolved later (#41)
+        "counterparty_id": None,
         "description": description,
         "transaction_type": transaction_type(
             line.get("proprietaryBankTransactionCode"), amount, f"{name or ''} {description}"
@@ -180,15 +162,14 @@ def normalise_bank_line(raw_item: dict, account: dict) -> dict:
         "card_last4": card,
         "balance_after": money(balance["amount"], balance["currency"]) if balance else None,
         "status": "booked",
-        "category": None,  # set later (#41)
-        "recurring_series_id": None,  # set by the finance engine (role 4)
+        "category": None,
+        "recurring_series_id": None,
         "match_status": "unmatched",
         "data_quality": data_quality,
     }
 
 
 def _foreign_amount_in_text(text: str, account_ccy: str):
-    """Find "45.00 USD" in a card line's text when the currency is not the account currency."""
     for m in FOREIGN_AMOUNT.finditer(text):
         ccy = m["currency"]
         if ccy in ISO_CURRENCIES and ccy != account_ccy:
@@ -199,7 +180,6 @@ def _foreign_amount_in_text(text: str, account_ccy: str):
 
 
 def transaction_ingested_payload(txn: dict) -> dict:
-    """Small payload for the `transaction.ingested` event (contracts/events.md). Amount is in account currency."""
     return {
         "transaction_id": txn["id"],
         "account_id": txn["account_id"],

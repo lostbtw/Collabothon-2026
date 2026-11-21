@@ -5,7 +5,6 @@ from backend.db.store import Store
 
 
 def merge_copy(db, *, reason: str | None):
-    """An e-mailed PDF copy of the hero receipt, merged into the photo the way role 3's pipeline does it."""
     golden = next(d for d in read("document") if d["id"] == "doc_rcpt412")
     copy = {**golden, "id": "doc_rcpt412pdf", "raw_item_ids": ["raw_mail412pdf"], "channel": "email",
             "status": "duplicate", "duplicate_of": "doc_rcpt412"}

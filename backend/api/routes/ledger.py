@@ -1,4 +1,4 @@
-"""Ledger, its summary and the CSV export (role 4's data, served by role 5)."""
+"""Ledger, its summary and the CSV export."""
 import csv
 import io
 import json
@@ -47,7 +47,6 @@ GROUP_KEYS = {
 @router.get("/ledger/summary")
 def ledger_summary(company: str = Depends(company_id), group_by: str = "category", from_: str | None = Query(None, alias="from"),
                    to: str | None = None, basis: str = "ledger", s: Store = Depends(store), c: psycopg.Connection = Depends(conn)):
-    """Sums of non-void entries in from/to; `basis=bank` sums bank lines per category instead."""
     base = base_currency(c, company)
     entries = [e for e in _entries(s, company, from_, to) if e["status"] != "void"]
     if basis == "bank":
@@ -84,7 +83,6 @@ LEDGER_COLUMNS = ["id", "date", "cash_date", "type", "category", "amount", "curr
 
 @router.get("/ledger/export")
 def ledger_export(company: str = Depends(company_id), s: Store = Depends(store)):
-    """Everything as CSV in one zip: the ledger flat, every other entity as id + JSON."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:
         out = io.StringIO()

@@ -37,7 +37,6 @@ def get_forecast(conn: psycopg.Connection, company: str, forecast_id: str | None
 
 
 def list_overdue_receivables(conn: psycopg.Connection, company: str) -> dict[str, Any]:
-    """Receivables the forecast expects late, with the client's name when it is a known counterparty."""
     forecast = latest_forecast(conn, company)
     if forecast is None:
         return {"items": []}
@@ -57,7 +56,6 @@ def list_overdue_receivables(conn: psycopg.Connection, company: str) -> dict[str
 def run_scenario(conn: psycopg.Connection, company: str, credit_line_limit: str | None = None,
                  from_date: str | None = None, shift_receivable: dict | None = None,
                  shift_payable: dict | None = None) -> dict[str, Any]:
-    """What-if, as POST /forecast/scenario."""
     engine = _engine()
     if engine and hasattr(engine, "scenario"):
         body: dict[str, Any] = {}

@@ -1,14 +1,4 @@
-"""What-if scenarios, the stress case and credit-line sizing on a Forecast (#44). Pure: a forecast in, numbers out.
-
-Everything is computed from the forecast's own points and components; there is no company name, date or amount in
-this module. The rules (how much later the stress receivable comes, the sizing step) are in settings.py.
-
-    with_changes(f, body)   POST /forecast/scenario: credit_line {limit, from}, shift_receivable {document_id,
-                            new_date}, shift_payable {component_id, days}
-    stress_of(f)            the largest receivable from a late payer comes STRESS_EXTRA_DAYS later still; its low is
-                            measured before that money arrives (payments due the same day go first)
-    credit_line_size(f, s)  the worst shortfall of the forecast and its stress case, rounded up to SIZING_STEP
-"""
+"""What-if scenarios, the stress case and credit-line sizing, computed from a forecast's own points and components."""
 import copy
 from datetime import date, timedelta
 from decimal import ROUND_CEILING, Decimal
@@ -25,7 +15,6 @@ def _money(value: Decimal, currency: str) -> dict[str, str]:
 
 
 def _add(points: list[dict], start: str, end: str | None, delta: Decimal) -> None:
-    """Add `delta` to every balance from `start` (inclusive) to `end` (exclusive; None = to the horizon)."""
     for p in points:
         if p["date"] >= start and (end is None or p["date"] < end):
             for k in LINES:
@@ -34,7 +23,6 @@ def _add(points: list[dict], start: str, end: str | None, delta: Decimal) -> Non
 
 
 def _move(points: list[dict], amount: Decimal, old: str, new: str) -> None:
-    """A flow of `amount` that was on `old` happens on `new` instead."""
     if new > old:
         _add(points, old, new, -amount)
     elif new < old:
@@ -59,7 +47,6 @@ def _finish(f: dict) -> dict:
 
 
 def with_changes(base: dict, body: dict[str, Any]) -> dict:
-    """The base forecast with the scenario's changes applied (not stored; no id or scenario_of set here)."""
     f = copy.deepcopy(base)
     currency = f["base_currency"]
     evidence = [{"kind": "forecast", "id": base["id"], "label": "Base forecast", "url": f"/forecast/{base['id']}"}]
@@ -97,14 +84,12 @@ def with_changes(base: dict, body: dict[str, Any]) -> dict:
 
 
 def late_receivable(f: dict) -> dict | None:
-    """The largest expected receivable from a client who pays late (confidence below LATE_CONFIDENCE)."""
     late = [c for c in f["components"]
             if c["kind"] == "known_receivable" and c["dates"] and c["confidence"] < LATE_CONFIDENCE]
     return max(late, key=lambda c: Decimal(c["amount_base"]["amount"]), default=None)
 
 
 def client_of(component: dict) -> str:
-    """'Invoice 2026/10/044 Example Client GmbH, 18,400.00 EUR' -> 'Example'."""
     words = component["label"].split()
     if words and words[0].lower() == "invoice" and len(words) > 2:
         words = words[2:]
@@ -112,7 +97,6 @@ def client_of(component: dict) -> str:
 
 
 def stress_of(f: dict) -> dict[str, Any]:
-    """{label, date, balance, ...}: the low when the largest late receivable comes STRESS_EXTRA_DAYS later."""
     currency = f["base_currency"]
     receivable = late_receivable(f)
     if receivable is None:
@@ -134,7 +118,6 @@ def stress_of(f: dict) -> dict[str, Any]:
 
 
 def credit_line_size(f: dict, stress: dict | None = None) -> dict[str, Any]:
-    """The limit that covers the worst shortfall of the forecast and its stress case, rounded up to SIZING_STEP."""
     currency = f["base_currency"]
     stress = stress or stress_of(f)
     worst = min(Decimal(f["min_balance"]["amount"]["amount"]), Decimal(stress["balance"]["amount"]))

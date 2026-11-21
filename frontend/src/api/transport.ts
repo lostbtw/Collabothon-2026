@@ -20,7 +20,6 @@ export function withoutSampleMarks<T>(value: T): T {
   return value;
 }
 
-/** Mock errors carry an HTTP status; make them the same ApiError live mode throws. */
 function asApiError(e: unknown): never {
   const status = (e as { status?: unknown })?.status;
   throw typeof status === "number" && !(e instanceof ApiError) ? new ApiError(status, (e as Error).message) : e;
@@ -33,15 +32,12 @@ function withQuery(path: string, query?: Query): string {
   return qs ? `${path}?${qs}` : path;
 }
 
-// Live reads are shared and kept for a short while: two parts of a page asking for the same list make one request,
-// and going back to a page shows it at once. Any write, and every requestRefresh(), empties the cache.
 const FRESH_MS = 30_000;
 const cache = new Map<string, { at: number; value: Promise<unknown> }>();
 export function clearCache(): void {
   cache.clear();
 }
 
-/** One function for every call. Mock and live differ only here. */
 export async function http<T>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, opts: { query?: Query; body?: unknown } = {}): Promise<T> {
   const url = withQuery(path, opts.query);
   if (API_MODE === "mock") return mockRequest<T>(method, url, opts.body).then(withoutSampleMarks).catch(asApiError);
@@ -51,7 +47,7 @@ export async function http<T>(method: "GET" | "POST" | "PATCH" | "DELETE", path:
     if (hit && Date.now() - hit.at < FRESH_MS) return hit.value.then((v) => structuredClone(v) as T);
     const value = send<T>(method, url, opts.body);
     cache.set(url, { at: Date.now(), value });
-    value.catch(() => cache.delete(url)); // a failed read is asked again next time
+    value.catch(() => cache.delete(url));
     return value.then((v) => structuredClone(v));
   }
   return send<T>(method, url, opts.body);
@@ -69,7 +65,6 @@ async function send<T>(method: "GET" | "POST" | "PATCH" | "DELETE", url: string,
   return withoutSampleMarks((await res.json()) as T);
 }
 
-/** A multipart upload (a receipt photo or PDF). */
 export async function httpForm<T>(path: string, form: FormData, query?: Query): Promise<T> {
   const url = withQuery(path, query);
   if (API_MODE === "mock") {
@@ -83,10 +78,6 @@ export async function httpForm<T>(path: string, form: FormData, query?: Query): 
   return (await res.json()) as T;
 }
 
-/**
- * A call to an endpoint the backend has promised but may not serve yet (role 1 is adding them).
- * "Not there" (404, 405, 501) becomes null, so the screen can say so instead of failing.
- */
 export async function optional<T>(call: Promise<T>): Promise<T | null> {
   try {
     return await call;

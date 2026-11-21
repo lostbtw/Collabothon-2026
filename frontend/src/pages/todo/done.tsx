@@ -15,7 +15,6 @@ export const CHANNEL_LABEL: Record<OrdoDocument["channel"], string> = { ksef: "E
 
 export type ActivityDetail = { kind: "document"; data: DocumentDetail } | { kind: "match"; match: Match } | null;
 
-/** What stands behind one of Ordo's steps: the merged copies of a document, or the reasons of a match. */
 export async function loadDetail(item: ActivityItem): Promise<ActivityDetail> {
   if (item.subject?.type === "document") return { kind: "document", data: await api.document(item.subject.id) };
   if (item.subject?.type === "match") {
@@ -28,7 +27,6 @@ export async function loadDetail(item: ActivityItem): Promise<ActivityDetail> {
 export const titleOf = (d: Done): string => (d.level === "approved" ? d.text : headline(d.text));
 const clock = (iso: string) => dateTime(iso).split(", ")[1] ?? "";
 
-/** One line of the log. `full` (the Activity page) adds the clock time and the status label. */
 export function LogLine({ d, onOpen, full }: { d: Done; onOpen: (d: Done) => void; full?: boolean }) {
   const who = d.level === "approved" ? (d.saidNo ? "no" : "you") : "ordo";
   return (
@@ -54,7 +52,6 @@ export function LogLine({ d, onOpen, full }: { d: Done; onOpen: (d: Done) => voi
 
 type Undo = { kind: ReturnType<typeof undoKind>; busy: boolean; done: string | null; error: string | null; run: () => void };
 
-/** Undo of an approved action (reversed in the test bank) or of a match Ordo made on its own (the match is rejected). */
 function useUndo(d: Done): Undo {
   const kind = undoKind(d);
   const [busy, setBusy] = useState(false);
@@ -97,7 +94,6 @@ function UndoResult({ undo }: { undo: Undo }) {
   return null;
 }
 
-/** The details of a log line, with Undo where it is possible. */
 export function DoneModal({ done, onClose }: { done: Done; onClose: () => void }) {
   const undo = useUndo(done);
   const [detail, setDetail] = useState<ActivityDetail | undefined>(done.activity ? undefined : null);
@@ -116,7 +112,6 @@ export function DoneModal({ done, onClose }: { done: Done; onClose: () => void }
   );
 }
 
-/** One of Ordo's own steps: what happened, what stands behind it, and where it came from. */
 export function OrdoDetails({ done, detail }: { done: Done; detail: ActivityDetail | undefined }) {
   const a = done.activity;
   return (

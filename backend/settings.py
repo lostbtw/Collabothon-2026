@@ -1,9 +1,4 @@
-"""Runtime settings, read from the environment (OpenShift ConfigMap / Secret). No secrets in Git.
-
-Locally, put them in `.env` at the repo root (git-ignored); it is read at import, without overriding variables
-that are already set. The model variables use the cluster's names (LLM_BASE_URL, LLM_TOKEN, LLM_MODEL, D-12);
-ORDO_LLM_* overrides them.
-"""
+"""Runtime settings from the environment (OpenShift ConfigMap / Secret), or from `.env` at the repo root locally."""
 import os
 import ssl
 from pathlib import Path
@@ -39,7 +34,7 @@ def database_url() -> str:
 
 
 def llm_base_url() -> str:
-    """OpenAI-compatible endpoint of the vLLM model served on the team's cluster (hard rule 1: never a hosted API)."""
+    """OpenAI-compatible endpoint of the vLLM model served on the team's cluster, never a hosted API."""
     return _first("ORDO_LLM_BASE_URL", "LLM_BASE_URL", default="http://localhost:8000/v1")
 
 
@@ -48,7 +43,6 @@ def llm_model() -> str:
 
 
 def llm_token() -> str:
-    """Bearer token of the model endpoint (OpenShift Secret cfo-app-token); 'EMPTY' for an endpoint without auth."""
     return _first("ORDO_LLM_API_KEY", "LLM_TOKEN", default="EMPTY")
 
 
@@ -64,7 +58,6 @@ def llm_verify() -> ssl.SSLContext | bool:
 
 
 def ogx_url() -> str:
-    """OpenAI-compatible endpoint of the cluster's OGX server, with /v1. Empty: the agents run their own tool loop."""
     return os.environ.get("ORDO_OGX_URL", "")
 
 
@@ -73,12 +66,10 @@ def ogx_token() -> str:
 
 
 def ogx_model() -> str:
-    """The model's id in OGX ('<provider>/<model>'). Empty: found by asking OGX for its models."""
     return os.environ.get("ORDO_OGX_MODEL", "")
 
 
 def mcp_url() -> str:
-    """Where OGX reaches Ordo's MCP server (Streamable HTTP, ends in /mcp)."""
     return os.environ.get("ORDO_MCP_URL", "")
 
 
@@ -95,10 +86,8 @@ def guardrails_token() -> str:
 
 
 def mcp_allowed_hosts() -> list[str]:
-    """Host headers the MCP server answers to, besides localhost (the Service's names on the cluster)."""
     return [h.strip() for h in os.environ.get("ORDO_MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
 
 def sse_replay_fixtures() -> bool:
-    """Replay contracts/fixtures/event.json to every new SSE client (skeleton mode). Off on the cluster once real events flow."""
     return os.environ.get("ORDO_SSE_REPLAY_FIXTURES", "1") != "0"

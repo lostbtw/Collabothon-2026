@@ -1,8 +1,4 @@
-"""Photos and PDFs from role 1's extractor worker into the matcher (#25 with #17). Role 1's real code builds the
-Document (extract/document.py `build_document` for the model answer, extract/worker.py `build` for the envelope);
-the pipeline then runs dedupe, match and who paid on its `document.extracted`. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Photos and PDFs from the extractor worker into the matcher: dedupe, match and who paid on `document.extracted`."""
 import copy
 import unittest
 from datetime import date
@@ -14,12 +10,12 @@ from backend.pipeline.tests.test_pipeline_handlers import COMPANY, RAW, Pipeline
 try:
     from backend.pipeline.extract.document import build_document
     from backend.pipeline.extract.worker import build
-except ImportError:  # role 1's dependencies (httpx, psycopg) are installed in CI, maybe not here
+except ImportError:
     build = None
 
 BORSUK = {"id": COMPANY, "tax_id": "9990000014", "base_currency": "PLN"}
 JAN = {"person_id": "per_jan", "name": "Jan Kowalski (SAMPLE)", "email": "jan@borsuk-labs.sample", "role": "employee"}
-HERO = {  # what gpt-oss answers for the hero receipt (same as role 1's test answer)
+HERO = {
     "doc_type": "receipt", "number": "PARAGON 004512/11/2026", "issue_date": "2026-11-20", "sale_date": None,
     "due_date": None,
     "seller": {"name": "ElektroMarkt Polska S.A. (SAMPLE)", "tax_id": "9990000043", "country": "PL", "address": None},
@@ -75,7 +71,6 @@ class EmailedPhotoOfTheHeroReceipt(unittest.TestCase):
 @unittest.skipIf(build is None, "role 1's extractor worker needs httpx and psycopg")
 class UploadFromNobodyKnown(unittest.TestCase):
     def test_a_paid_receipt_becomes_the_question_at_once(self):
-        """#43: a card receipt is paid, so it is never held back as a payable that is not due yet."""
         p = Pipeline()
         raw = copy.deepcopy(RAW["raw_mail412a1"])
         raw.update(id="raw_up1", kind="upload", source_id="src_upload", parent_raw_item_id=None,

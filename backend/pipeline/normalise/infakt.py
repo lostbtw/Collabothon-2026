@@ -1,8 +1,4 @@
-"""inFakt invoice JSON (accounting API, the company's own SALES invoices) -> Document.
-
-Assumption to check against the sandbox (#38): inFakt API v3 sends money as integers in grosze
-(12300 = 123.00). Strings with a decimal point are taken as units, so either form parses.
-"""
+"""inFakt invoice JSON (the company's own sales invoices) -> Document; money as integer grosze or decimal units."""
 from decimal import Decimal
 
 from .fx import to_base
@@ -22,7 +18,6 @@ def _amount(value) -> Decimal | None:
 
 
 def parse_infakt(invoice: dict, raw_item: dict, company: dict, rates=None) -> dict:
-    """`company` needs `id`, `name`, `tax_id`; it is the seller on its own sales invoices."""
     currency = invoice.get("currency") or "PLN"
     gross = money(_amount(invoice["gross_price"]), currency)
     issue_date = invoice.get("invoice_date")

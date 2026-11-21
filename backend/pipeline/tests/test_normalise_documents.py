@@ -1,4 +1,4 @@
-"""Ticket #23: FA(3) XML and inFakt JSON -> Documents, PL-FX-01 conversion."""
+"""FA(3) XML and inFakt JSON -> Documents, PL-FX-01 conversion."""
 import unittest
 from pathlib import Path
 
@@ -49,19 +49,19 @@ class Fa3Invoice(unittest.TestCase):
         doc = parse_fa3(usd_invoice("2026-11-19"), RAW, BORSUK, rates=StandInRates())
         self.assertEqual(schema_errors(doc, "document"), [])
         expected = next(d for d in fixture("document") if d["id"] == "doc_pixel11")["totals"]
-        self.assertEqual(doc["totals"]["gross_base"], expected["gross_base"])  # 45.00 x 4.0170 = 180.77 PLN
+        self.assertEqual(doc["totals"]["gross_base"], expected["gross_base"])
         self.assertEqual(doc["totals"]["fx"], expected["fx"])
         self.assertEqual(doc["flags"], ["foreign_currency", "reverse_charge"])
 
     def test_rate_lookup_skips_the_weekend(self):
-        rates = StandInRates({("USD", "2026-11-20"): ("3.9500", "226/A/NBP/2026")})  # Friday
-        doc = parse_fa3(usd_invoice("2026-11-23"), RAW, BORSUK, rates=rates)  # Monday
+        rates = StandInRates({("USD", "2026-11-20"): ("3.9500", "226/A/NBP/2026")})
+        doc = parse_fa3(usd_invoice("2026-11-23"), RAW, BORSUK, rates=rates)
         self.assertEqual(doc["totals"]["fx"]["rate_date"], "2026-11-20")
         self.assertEqual(doc["totals"]["fx"]["source"], "NBP table A 226/A/NBP/2026")
         self.assertEqual(doc["totals"]["gross_base"], {"amount": "177.75", "currency": "PLN"})
 
     def test_missing_rate_leaves_gross_base_empty_with_warning(self):
-        doc = parse_fa3(usd_invoice("2024-06-03"), RAW, BORSUK, rates=StandInRates())  # before the table
+        doc = parse_fa3(usd_invoice("2024-06-03"), RAW, BORSUK, rates=StandInRates())
         self.assertIsNone(doc["totals"]["gross_base"])
         self.assertEqual(len(doc["extraction"]["warnings"]), 1)
         self.assertEqual(schema_errors(doc, "document"), [])
@@ -76,7 +76,7 @@ class InfaktInvoice(unittest.TestCase):
         "number": "FV 12/11/2026", "kind": "vat", "currency": "PLN",
         "invoice_date": "2026-11-10", "sale_date": "2026-11-10", "payment_date": "2026-11-24",
         "payment_method": "transfer", "status": "sent",
-        "net_price": 3000000, "tax_price": 690000, "gross_price": 3690000,  # grosze
+        "net_price": 3000000, "tax_price": 690000, "gross_price": 3690000,
         "client_company_name": "Meblostyl sp. z o.o. (SAMPLE)", "client_tax_code": "9990000043",
         "client_street": "ul. Fikcyjna", "client_street_number": "3", "client_post_code": "00-002",
         "client_city": "Kraków", "client_country": "PL",

@@ -1,4 +1,4 @@
-"""Documents and Matches (role 3's data, served by role 5)."""
+"""Documents and Matches."""
 from typing import Any
 
 import psycopg
@@ -39,7 +39,6 @@ def get_document(id: str, s: Store = Depends(store)):
 
 @router.patch("/documents/{id}")
 def correct_document(id: str, patch: dict[str, Any] = Body(...), c: psycopg.Connection = Depends(conn)):
-    """The owner corrects extracted fields; stored as an Approval with the changes."""
     s = Store(c)
     document = get_or_404(s, "document", id)
     unknown = set(patch) - EDITABLE
@@ -57,10 +56,9 @@ def correct_document(id: str, patch: dict[str, Any] = Body(...), c: psycopg.Conn
                                decision="approved_with_changes", changes=patch)
     s.put("document", updated)
     category = (patch.get("category_suggestion") or {}).get("category") if isinstance(patch.get("category_suggestion"), dict) else None
-    if category:  # the owner changed the type: remember it for this seller (owner.learn_rule)
+    if category:
         party = updated["buyer"] if updated.get("direction") == "sale" else updated["seller"]
         owner.learn_rule(c, document["company_id"], party.get("name"), party.get("counterparty_id"), category)
-    # Re-run the matcher on the corrected document.
     publish(c, new_event("document.extracted", document["company_id"],
                          {"document_id": id, "status": updated["status"], "gross": updated["totals"]["gross"],
                           "seller": updated["seller"]["name"], "flags": updated.get("flags", [])},

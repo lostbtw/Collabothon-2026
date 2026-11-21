@@ -1,4 +1,4 @@
-"""Accounts, Transactions, Counterparties (role 2 and 3's data, served by role 5)."""
+"""Accounts, Transactions, Counterparties."""
 from decimal import Decimal
 
 import psycopg

@@ -19,7 +19,7 @@ def test_an_mcp_client_lists_and_calls_the_tools(db, db_url):
     names, result = anyio.run(scenario)
 
     assert names == set(all_tools())
-    assert {"get_cash_position", "run_scenario", "get_fx_case"} <= names  # chat, liquidity agent, FX Shield
+    assert {"get_cash_position", "run_scenario", "get_fx_case"} <= names
     assert not result.is_error
     assert "fc_20261121a" in result.content[0].text
 

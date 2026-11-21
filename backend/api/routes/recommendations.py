@@ -1,4 +1,4 @@
-"""Inbox, Recommendations, Decisions, Approvals and the "What I did on my own" feed (role 5)."""
+"""Inbox, Recommendations, Decisions, Approvals and the "What I did on my own" feed."""
 from typing import Any
 
 import psycopg
@@ -65,14 +65,12 @@ COPY_NAME = {"ksef": "KSeF invoice", "accounting_api": "inFakt invoice", "email"
 
 
 def _merge_events(c: psycopg.Connection, company: str) -> dict[str, tuple[str, dict]]:
-    """Latest `document.duplicate_detected` per duplicate document: (occurred_at, payload)."""
     rows = c.execute("select occurred_at, payload from outbox where company_id = %s "
                      "and type = 'document.duplicate_detected' order by seq", (company,)).fetchall()
     return {payload["document_id"]: (at.strftime("%Y-%m-%dT%H:%M:%SZ"), payload) for at, payload in rows}
 
 
 def duplicate_items(s: Store, c: psycopg.Connection, company: str) -> list[dict[str, Any]]:
-    """Duplicates the pipeline merged on its own: one golden record kept, the other copy marked duplicate."""
     events = _merge_events(c, company)
     items = []
     for doc in s.list("document", company_id=company, status="duplicate"):
@@ -98,7 +96,6 @@ def duplicate_items(s: Store, c: psycopg.Connection, company: str) -> list[dict[
 @router.get("/activity")
 def activity(company: str = Depends(company_id), since: str | None = None, s: Store = Depends(store),
              c: psycopg.Connection = Depends(conn)):
-    """What the agents did alone; undo = reject via /matches/{id}/decision."""
     items = duplicate_items(s, c, company)
     for m in s.list("match", company_id=company, status="auto_confirmed"):
         reason = "; ".join(r["detail"] for r in m.get("reasons", [])[:2])

@@ -1,9 +1,3 @@
-# Grafana for the team: the model and GPU from Prometheus, the data flow from the outbox tables in Postgres.
-# Applied by `setup.sh grafana`, which also creates the secret ordo-grafana and the read-only database role
-# grafana_ro, and loads the dashboards in deploy/observability/dashboards/ into ConfigMap grafana-dashboards.
-#
-# Prometheus is read through Thanos Querier with the token of ServiceAccount grafana, which may read all cluster
-# metrics (cluster-monitoring-view): the GPU metrics carry namespace nvidia-gpu-operator, not cfo-ai.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -91,7 +85,6 @@ data:
         updateIntervalSeconds: 30
         options:
           path: /etc/grafana/dashboards
-  # Empty, so Grafana does not log an error for each missing provisioning directory at start.
   plugins.yaml: |
     apiVersion: 1
     apps: []

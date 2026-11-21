@@ -1,5 +1,4 @@
-// Ask Ordo: a chat panel that slides in over any page, with the company's past chats on the left.
-// Past chats come from GET /chat/sessions; until the backend serves it, the panel keeps this tab's chats.
+// Ask Ordo: a chat panel over any page, with the company's past chats (GET /chat/sessions, else this tab's) on the left.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type ChatAnswer, type ChatSession } from "../api/client";
@@ -10,13 +9,11 @@ import { Icon } from "./Icon";
 import { Sources } from "./Sources";
 import { CloseButton } from "./ui";
 
-/** Same as --t-exit in styles/app.css. */
 const EXIT_MS = 160;
 
 const AskContext = createContext<{ open: (draft?: string) => void }>({ open: () => {} });
 export const useAsk = () => useContext(AskContext);
 
-/** Suggested questions per demo company; the first list for any other company. */
 export const SUGGESTIONS: Record<string, string[]> = {
   co_borsuk: ["Why are costs up?", "Who still owes us?", "Can I afford a December bonus?"],
   co_amalfi: ["We are closed for all of June", "How much cash do I have?", "What are my biggest costs?"],
@@ -24,14 +21,12 @@ export const SUGGESTIONS: Record<string, string[]> = {
 
 export function AskProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{ open: boolean; draft: string; leaving?: boolean }>({ open: false, draft: "" });
-  // Closing plays the exit (slide back to the side the button is on) before the panel leaves the page.
   const close = useCallback(() => {
     setState((s) => ({ ...s, leaving: true }));
     setTimeout(() => setState({ open: false, draft: "" }), EXIT_MS);
   }, []);
   const [params, setParams] = useSearchParams();
   const open = useCallback((draft = "") => setState({ open: true, draft }), []);
-  // Old links to /chat arrive as ?ask=1.
   useEffect(() => {
     if (params.get("ask") === "1") {
       open();
@@ -73,7 +68,6 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Server chats first (they carry the history), then chats of this tab the server does not know.
   const chats: Chat[] = useMemo(() => {
     const fromServer = (server ?? []).map((s) => ({ id: s.session_id, title: s.title, lastAt: s.last_at, lines: local[s.session_id]?.lines ?? null }));
     const known = new Set(fromServer.map((c) => c.id));
@@ -109,7 +103,6 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
       });
       setCurrent(id);
       setReload((n) => n + 1);
-      // Chat can propose a to-do or record a plan: let the screens re-read.
       if (answer.created_recommendation_id || answer.tool_calls?.length) requestRefresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -159,7 +152,6 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
   );
 }
 
-/** `onLeave` runs when the owner follows an evidence link, so the page it opens is not hidden behind the panel. */
 export function Thread({ lines, pending, error, onLeave }: { lines: Line[]; pending: string | null; error: string | null; onLeave?: () => void }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView?.({ block: "end" }); }, [lines.length, pending, error]);
@@ -210,7 +202,6 @@ export function Composer({ busy, onSend, initial = "" }: { busy: boolean; onSend
     setMessage("");
     if (box.current) box.current.style.height = "auto";
   }
-  // Enter sends, Shift+Enter makes a new line.
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -226,14 +217,12 @@ export function Composer({ busy, onSend, initial = "" }: { busy: boolean; onSend
   );
 }
 
-// Monday-based weeks, so "Last week" means the calendar week before this one.
 const weekStart = (iso: string): string => {
   const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
   return d.toISOString().slice(0, 10);
 };
 
-/** Today / Yesterday / This week / Last week / Earlier, newest group first. */
 export function groupChats<T extends { lastAt: string }>(chats: T[], today: string): [string, T[]][] {
   const groups = new Map<string, T[]>();
   for (const c of chats) {
@@ -245,7 +234,6 @@ export function groupChats<T extends { lastAt: string }>(chats: T[], today: stri
   return [...groups.entries()];
 }
 
-/** "10:42" today and yesterday, "Fri" within two weeks, "13 Nov" before that. */
 export function whenLabel(iso: string, today: string): string {
   const ago = daysBetween(iso.slice(0, 10), today);
   if (ago <= 1) return iso.length > 10 ? iso.slice(11, 16) : "";

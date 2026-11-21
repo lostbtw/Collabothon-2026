@@ -77,7 +77,7 @@ def test_people_list_and_add(demo):
 def test_a_person_can_be_edited_and_the_email_is_what_identifies_a_sender(demo):
     changed = demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"email": "Phone.Jan@Gmail.example"})
     assert changed.status_code == 200 and changed.json()["email"] == "phone.jan@gmail.example"
-    assert changed.json()["name"] == "Jan Kowalski (SAMPLE)" and changed.json()["card_last4"] == ["7730"]  # the rest is kept
+    assert changed.json()["name"] == "Jan Kowalski (SAMPLE)" and changed.json()["card_last4"] == ["7730"]
     again = demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"name": "Jan K.", "card_last4": ["1111"],
                                                                      "statement_names": ["jan k"]})
     assert again.json() | {"id": "x"} == {"id": "x", "name": "Jan K.", "email": "phone.jan@gmail.example", "role": "employee",
@@ -89,7 +89,7 @@ def test_a_person_can_be_edited_and_the_email_is_what_identifies_a_sender(demo):
     assert demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"role": "boss"}).status_code == 422
     assert demo.patch("/api/v1/people/per_jan", params=BORSUK, json={"name": " "}).status_code == 422
     assert demo.patch("/api/v1/people/per_nobody", params=BORSUK, json={"name": "X"}).status_code == 404
-    assert demo.patch("/api/v1/people/per_amalfi_owner", params=BORSUK, json={"name": "X"}).status_code == 404  # other company
+    assert demo.patch("/api/v1/people/per_amalfi_owner", params=BORSUK, json={"name": "X"}).status_code == 404
 
 
 def test_changing_a_bank_lines_type_teaches_a_rule_the_pipeline_uses(demo, db):
@@ -101,7 +101,7 @@ def test_changing_a_bank_lines_type_teaches_a_rule_the_pipeline_uses(demo, db):
     assert changed.status_code == 200 and changed.json()["category"] == "owner_private"
     rules = demo.get("/api/v1/rules", params=BORSUK).json()["items"]
     assert [(r["raw"], r["counterparty_name"], r["category"]) for r in rules] == [("KOSZYK 24 LODZ", "Koszyk 24 (SAMPLE)", "owner_private")]
-    assert s.get("counterparty", "cp_koszyk")["default_category"] == "owner_private"  # categorise() reads it first
+    assert s.get("counterparty", "cp_koszyk")["default_category"] == "owner_private"
 
     assert demo.delete(f"/api/v1/rules/{rules[0]['id']}", params=BORSUK).status_code == 204
     assert demo.get("/api/v1/rules", params=BORSUK).json()["items"] == []
@@ -118,9 +118,9 @@ def test_costs_per_person_come_from_the_bank_lines_that_name_them(demo):
     got = demo.get("/api/v1/people/costs", params={**BORSUK, "month": "2026-10"}).json()
     by_id = {p["person_id"]: p for p in got["items"]}
     assert by_id["per_jan"]["paid"] == {"amount": "5800.00", "currency": "PLN"}
-    assert by_id["per_jan"]["owed"] == {"amount": "1299.00", "currency": "PLN"}  # the monitor receipt, not paid back yet
+    assert by_id["per_jan"]["owed"] == {"amount": "1299.00", "currency": "PLN"}
     assert by_id["per_jan"]["receipts_owed"] == 1
-    assert by_id["per_anna"]["paid"]["amount"] == "10800.00"  # her statement name WRONA DESIGN
+    assert by_id["per_anna"]["paid"]["amount"] == "10800.00"
     assert got["totals"]["social_security"]["amount"] == "9200.00"
     assert got["totals"]["staff"]["amount"] == "25800.00"
     assert 0 < got["totals"]["share_of_costs"] < 1
@@ -181,7 +181,7 @@ def test_late_clients_get_a_reminder_to_approve_once(demo, db):
     card = Store(db).get("recommendation", created[0])
     assert card["type"] == "chase_receivable" and card["control_level"] == "approval_required" and card["execution_mode"] == "simulated"
     assert card["proposed_action"]["kind"] == "send_email_draft" and card["evidence"]
-    assert receivables.chase_late_clients(db, "co_borsuk") == []  # one open reminder per invoice
+    assert receivables.chase_late_clients(db, "co_borsuk") == []
 
 
 def test_monthly_payments_include_rent_and_staff_and_follow_the_month(demo, db):
@@ -191,7 +191,7 @@ def test_monthly_payments_include_rent_and_staff_and_follow_the_month(demo, db):
     assert by_name["BIURO NA PIOTRKOWSKIEJ"]["monthly"]["amount"] == "2460.00" and by_name["BIURO NA PIOTRKOWSKIEJ"]["paid_in_month"] is True
     assert "CHMURA POLSKA" in by_name and by_name["CHMURA POLSKA"]["category"] == "cloud_hosting"
     later = demo.get("/api/v1/subscriptions", params={**BORSUK, "scope": "all", "month": "2026-11"}).json()
-    assert {i["name"]: i for i in later["items"]}["BIURO NA PIOTRKOWSKIEJ"]["paid_in_month"] is False  # not paid yet in November
+    assert {i["name"]: i for i in later["items"]}["BIURO NA PIOTRKOWSKIEJ"]["paid_in_month"] is False
     assert demo.get("/api/v1/subscriptions", params={**BORSUK, "month": "Nov"}).status_code == 422
 
 
@@ -209,7 +209,7 @@ def test_the_suggested_questions_get_an_answer_with_sources(demo, question, expe
 def test_big_answers_are_compressed_but_the_event_stream_is_not(demo, monkeypatch):
     listed = demo.get("/api/v1/transactions", params=BORSUK, headers={"Accept-Encoding": "gzip"})
     assert listed.headers.get("content-encoding") == "gzip"
-    assert listed.json()["items"]  # the client still reads it as JSON
+    assert listed.json()["items"]
     monkeypatch.setenv("ORDO_SSE_REPLAY_FIXTURES", "1")
     with demo.stream("GET", "/api/v1/events/stream", params={**BORSUK, "max_events": 1}, headers={"Accept-Encoding": "gzip"}) as stream:
         assert stream.headers.get("content-encoding") is None

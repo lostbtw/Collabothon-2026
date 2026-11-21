@@ -1,4 +1,4 @@
-"""Sources, sync runs, raw items and the fallback upload (role 2's data, served by role 5)."""
+"""Sources, sync runs, raw items and the fallback upload."""
 import hashlib
 
 import psycopg
@@ -27,7 +27,6 @@ def list_sources(company: str = Depends(company_id), s: Store = Depends(store)):
 
 @router.post("/sources/{id}/sync", status_code=202)
 def sync_now(id: str, s: Store = Depends(store)):
-    """Records a manual run. Role 2's connector service picks it up (replaced by its real trigger)."""
     source = get_or_404(s, "source", id)
     latest = s.list("sync_run", source_id=id, limit=1)
     if latest and latest[0]["status"] == "running":
@@ -71,7 +70,6 @@ async def upload(
     company: str = Depends(company_id),
     c: psycopg.Connection = Depends(conn),
 ):
-    """Fallback only: the file becomes a RawItem of kind `upload` and enters the normal pipeline."""
     data = await file.read()
     digest = hashlib.sha256(data).hexdigest()
     item = {

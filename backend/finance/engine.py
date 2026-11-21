@@ -1,13 +1,4 @@
-"""The finance engine's database side (#28): `recompute(conn, company_id) -> Forecast`.
-
-Role 5 calls it through backend/api/ports.py (`finance_engine().recompute`) after owner events and executed
-actions; the finance consumer calls it after new bank lines and approved Ledger entries (backend/finance/main.py).
-
-    1. read the company's data up to its as-of date (D-21)
-    2. build the forecast with the pure function backend/finance/forecast.py
-    3. write `recurring_series_id` onto the bank lines of detected series (role 3 auto-confirms only those)
-    4. store the forecast and emit `forecast.updated`; unchanged inputs (same `inputs_hash`) do nothing
-"""
+"""The finance engine's database side: `recompute(conn, company_id)` stores a new forecast when its inputs changed."""
 import json
 import logging
 from datetime import UTC, date, datetime, timedelta
@@ -28,12 +19,12 @@ from .settings import (BUFFER_MONTHS, BUFFER_ROUND, BUFFER_SHARE, DEFAULT_PAYMEN
                        EVENT_TAIL_DAYS, FX_HISTORY_DAYS, FX_MIN_HISTORY, HORIZON_DAYS)
 from .tax import tax_document
 
-try:  # role 2's NBP connector (#34): stored table A rates
+try:
     from backend.connectors.nbp import rate_on
 except ImportError:  # pragma: no cover
     rate_on = None
 
-try:  # role 2's stored NBP tables (#34); FX Shield falls back to the committed 3-year file without them
+try:
     from backend.connectors.nbp import history as nbp_history
 except ImportError:  # pragma: no cover
     nbp_history = None
@@ -48,7 +39,6 @@ SETTLED = {"confirmed", "auto_confirmed"}
 
 
 def _pln_per_unit(conn: psycopg.Connection | None, currency: str, on: date) -> tuple[Decimal, str] | None:
-    """PLN for 1 unit: the stored NBP table A rate of `on` (or the last one before), else the demo-day rate."""
     if currency == "PLN":
         return Decimal(1), "PLN"
     found = rate_on(conn, currency, on, "booking_day") if (conn is not None and rate_on) else None
@@ -60,7 +50,6 @@ def _pln_per_unit(conn: psycopg.Connection | None, currency: str, on: date) -> t
 
 
 def rates_for(base: str, currencies: set[str], on: date, conn: psycopg.Connection | None = None) -> dict[str, Decimal]:
-    """Base-currency units per 1 unit of each currency the company holds or invoices in."""
     rates = {base: Decimal(1)}
     base_pln = _pln_per_unit(conn, base, on)
     for currency in sorted(currencies - {base}):
@@ -71,7 +60,6 @@ def rates_for(base: str, currencies: set[str], on: date, conn: psycopg.Connectio
 
 
 def horizon_for(as_of: str, events: list[dict]) -> int:
-    """The default horizon, longer when an owner event ends late: the event and what follows it stay visible."""
     last_end = max((e["date_to"] for e in events), default=None)
     if last_end is None:
         return HORIZON_DAYS
@@ -81,7 +69,6 @@ def horizon_for(as_of: str, events: list[dict]) -> int:
 
 def safety_buffer_for(transactions: list[dict], accounts: list[dict], rates: dict[str, Decimal],
                       as_of: str) -> Decimal | None:
-    """A share of the average monthly outflows of the last full months before the as-of date, rounded up."""
     liquid = {a["id"] for a in accounts if a.get("include_in_liquidity")}
     first = date.fromisoformat(as_of).replace(day=1)
     months = []
@@ -109,11 +96,6 @@ def _company(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
 
 
 def _accounts(accounts: list[dict], transactions: list[dict]) -> list[dict]:
-    """Accounts with `opening_balance` = the balance before the first bank line we hold.
-
-    The bank reports `balance` at `balance_at`; going back from it over the lines up to that moment is exact even
-    when the stored `opening_balance` refers to another set of lines.
-    """
     out = []
     for acc in accounts:
         bal = acc.get("balance")
@@ -136,18 +118,15 @@ def _keys(party: dict) -> list[str]:
 
 
 def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[str]]:
-    """Open invoices known on the as-of date, and the keys of every client paid by invoice."""
     documents = [d for d in s.list("document", company_id=company["id"]) if d.get("status") not in ("duplicate", "rejected")]
     matches = s.list("match", company_id=company["id"])
-    # For cash, a document matched to a bank line is paid: the money already moved, confirmed by the owner or not.
-    # Waiting for it again would count it twice (with role 3's `suggested` matches, every sales invoice of the year
-    # looked open). Only a match the owner rejected leaves the document open.
+    # A document matched to a bank line is paid for cash; only a match the owner rejected leaves it open.
     settled = {m["document_id"]: m for m in matches if m.get("transaction_id") and m.get("status") != "rejected"}
     private = {m["document_id"] for m in matches if m.get("paid_by") in ("employee_private", "owner_private")}
     counterparties = {c["id"]: c for c in s.list("counterparty", company_id=company["id"])}
 
     delays: dict[str, list[int]] = {}
-    for doc in documents:  # how late each client paid before: payment booking date - due date
+    for doc in documents:
         m = settled.get(doc["id"])
         if doc.get("direction") == "sale" and m and doc.get("due_date"):
             txn = s.get("transaction", m["transaction_id"])
@@ -168,7 +147,7 @@ def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[st
         payment = doc.get("payment") or {}
         if doc.get("direction") == "purchase" and (payment.get("paid") or doc["id"] in private
                                                    or payment.get("method") in ("card", "cash")):
-            continue  # already paid, or owed to a person (that debt is in the Ledger)
+            continue
         if doc.get("direction") not in ("sale", "purchase"):
             continue
         due = doc.get("due_date") or (date.fromisoformat(issued) + timedelta(days=DEFAULT_PAYMENT_DAYS)).isoformat()
@@ -186,8 +165,6 @@ def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[st
 
 
 def fx_locks(s: Store, company_id: str) -> dict[str, dict[str, str]]:
-    """{document id: {rate, ratio, reference}} of every FX forward the owner approved and the Sandbox Bank booked
-    (an executed fx_hedge card, #47): that share of the invoice no longer moves with the rate."""
     locks = {}
     for r in s.list("recommendation", company_id=company_id, agent="fx", status="executed_simulated"):
         subject = (r.get("subject") or {}).get("id")
@@ -196,7 +173,7 @@ def fx_locks(s: Store, company_id: str) -> dict[str, dict[str, str]]:
             continue
         params = dict(action.get("params") or {})
         approval = s.get("approval", r["approval_id"]) if r.get("approval_id") else None
-        for path, value in ((approval or {}).get("changes") or {}).items():  # the owner may have edited the action
+        for path, value in ((approval or {}).get("changes") or {}).items():
             if path.startswith("proposed_action.params."):
                 params[path.removeprefix("proposed_action.params.")] = value
         reference = ((approval or {}).get("execution") or {}).get("reference") or r["id"]
@@ -205,7 +182,6 @@ def fx_locks(s: Store, company_id: str) -> dict[str, dict[str, str]]:
 
 
 def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """Everything the pure forecast needs, read from the database."""
     s = Store(conn)
     company = _company(conn, company_id)
     as_of = company["as_of_date"]
@@ -242,21 +218,10 @@ def latest_base(conn: psycopg.Connection, company_id: str) -> dict[str, Any] | N
 
 
 def latest(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """GET /forecast/latest: the engine's current forecast (the stored one when nothing changed, so no new event).
-
-    Never a stale stand-in: a fixture forecast loaded for the demo is replaced by the first recompute.
-    """
     return recompute(conn, company_id)
 
 
 def ledger_kpis(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """KPIs of GET /ledger/summary (openapi: reimbursements_owed, vat_lost_ytd, documents_missing, tax_due_next_30d).
-
-    vat_lost_ytd        non-deductible VAT on approved Ledger entries dated in the as-of date's year (VAT lost this year)
-    reimbursements_owed approved debts to the team (reimbursement_liability) minus what was paid out (reimbursement_payout)
-    documents_missing   bank lines that wait for a document
-    tax_due_next_30d    tax and social-security payments in the forecast within 30 days after the as-of date
-    """
     s = Store(conn)
     company = _company(conn, company_id)
     base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
@@ -297,7 +262,6 @@ def _write_series_ids(s: Store, transactions: list[dict], ids: dict[str, str], c
 
 def recompute(conn: psycopg.Connection, company_id: str, *, correlation_id: str | None = None,
               causation_id: str | None = None) -> dict[str, Any]:
-    """The company's current base forecast: a new one when its inputs changed, else the stored one."""
     s = Store(conn)
     inputs = load_inputs(conn, company_id)
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -305,7 +269,7 @@ def recompute(conn: psycopg.Connection, company_id: str, *, correlation_id: str 
     stored = conn.execute("select doc from forecasts where company_id = %s and inputs_hash = %s",
                           (company_id, forecast["inputs_hash"])).fetchone()
     if stored:
-        return stored[0]  # same inputs: same numbers, no event
+        return stored[0]
 
     ids = recurring_series_ids(**{k: inputs[k] for k in ("company", "accounts", "transactions", "rates", "own_keys")})
     changed = _write_series_ids(s, inputs["transactions"], ids, company_id)
@@ -323,11 +287,6 @@ def recompute(conn: psycopg.Connection, company_id: str, *, correlation_id: str 
 
 
 def scenario(conn: psycopg.Connection, company_id: str, body: dict[str, Any]) -> dict[str, Any]:
-    """POST /forecast/scenario: the latest stored base forecast with the request applied, stored with `scenario_of`.
-
-    credit_line {limit, from}, shift_receivable {document_id, new_date}, shift_payable {component_id, days}
-    (backend/finance/scenarios.py). A scenario is never the base forecast.
-    """
     base = latest_base(conn, company_id) or recompute(conn, company_id)
     result = with_changes(base, body)
     now = datetime.now(UTC)
@@ -338,19 +297,14 @@ def scenario(conn: psycopg.Connection, company_id: str, body: dict[str, Any]) ->
 
 
 def stress(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """The stress case of the latest base forecast: {label, date, balance, receivable_component_id, extra_days}."""
     return stress_of(latest_base(conn, company_id) or recompute(conn, company_id))
 
 
 def credit_line(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """The credit line that covers the worst case: {limit, shortfall, basis, rule, stress}."""
     return credit_line_size(latest_base(conn, company_id) or recompute(conn, company_id))
 
 
-# ---------- FX Shield (#47) ----------
 def fx_history_pln(conn: psycopg.Connection | None, currency: str, as_of: date) -> dict[str, str]:
-    """{day: PLN per unit}: the NBP tables the connector stored, or the committed 3-year file when fewer than
-    FX_MIN_HISTORY of them fall in the 3 years before the as-of date."""
     stored: dict[str, str] = {}
     if conn is not None and nbp_history is not None:
         stored = dict(nbp_history(conn, currency, as_of - timedelta(days=FX_HISTORY_DAYS + 1)))
@@ -360,7 +314,6 @@ def fx_history_pln(conn: psycopg.Connection | None, currency: str, as_of: date) 
 
 
 def fx_history(conn: psycopg.Connection | None, currency: str, base: str, as_of: date) -> dict[str, str]:
-    """{day: base-currency units per unit}. NBP quotes PLN per unit; another base divides by its own PLN rate."""
     if base == "PLN":
         return fx_history_pln(conn, currency, as_of)
     base_pln = fx_history_pln(conn, base, as_of)
@@ -369,7 +322,6 @@ def fx_history(conn: psycopg.Connection | None, currency: str, base: str, as_of:
 
 
 def fx_assessments(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
-    """FX Shield's numbers for every open foreign-currency invoice of the company (fx.assess_company)."""
     inputs = load_inputs(conn, company_id)
     company = inputs["company"]
     base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
@@ -383,12 +335,9 @@ EXPOSURE_FIELDS = ("document_id", "direction", "amount", "value_today_base", "ex
 
 
 def fx_exposure(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """GET /fx/exposure (contracts/openapi.yaml): one item per open foreign-currency invoice. The verdict is what FX
-    Shield decided (its card): a hedge (`hedged` once approved), no hedge, or already covered; no verdict yet when
-    the invoice has not been judged."""
     cards: dict[str, dict[str, Any]] = {}
     mine = Store(conn).list("recommendation", company_id=company_id, agent="fx")
-    for r in sorted(mine, key=lambda r: r["created_at"]):  # the newest card of an invoice wins
+    for r in sorted(mine, key=lambda r: r["created_at"]):
         subject = (r.get("subject") or {}).get("id")
         if subject and r["status"] in ("new", "seen", "approved", "executed_simulated", "expired"):
             cards[subject] = r
@@ -402,6 +351,6 @@ def fx_exposure(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
             item["verdict"] = "hedged" if card["status"] in ("approved", "executed_simulated") else "hedge_proposed"
         elif card:
             item["verdict"] = "not_worth_it"
-        shown = card if card and card["status"] != "expired" else None  # an ignored invoice has no card to open
+        shown = card if card and card["status"] != "expired" else None
         items.append({**item, "recommendation_id": shown["id"] if shown else None})
     return {"items": items}

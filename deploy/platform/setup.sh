@@ -11,7 +11,6 @@ UWM_NS=openshift-user-workload-monitoring
 DSC=default-dsc
 MODEL_JOB=gpt-oss-20b-metrics
 ORDO_RULES=(ordo-model ordo-workloads)
-# What Grafana's read-only database role may read (deploy/observability/dashboards/).
 GRAFANA_TABLES="outbox, outbox_delivery, outbox_subscription, recommendations, sources, sync_runs, companies"
 IMAGES=(backend sim web)
 M1_QUESTION="How much cash do we have today, and what is the next large payment?"
@@ -271,7 +270,6 @@ app() {
   done
 }
 
-# OGX + MCP: OGX (OpenShift AI) runs the agents' tool loop and calls Ordo's tools on the ordo-mcp Service.
 ogx_ready() {
   [[ "$(oc -n "$NS" get ogxserver ordo-ogx -o jsonpath='{.status.phase}' 2>/dev/null)" == "Ready" ]]
 }
@@ -315,7 +313,6 @@ ogx() {
   check_ogx
 }
 
-# One real question through OGX: prints the model OGX used, each tool it called over MCP and the answer.
 check_ogx() {
   if oc -n "$NS" exec deployment/ordo-api -- python -m backend.agents.ogx "How much cash do I have?"; then
     echo "OK   OGX ran the chat's tool loop and called Ordo's tools over MCP"
@@ -325,7 +322,6 @@ check_ogx() {
   fi
 }
 
-# Back to the agents' own tool loop (OGX and the MCP server stay up).
 ogx_off() {
   oc -n "$NS" delete configmap ordo-ogx --ignore-not-found
   ogx_restart_agents
@@ -490,7 +486,6 @@ expected_rules() {
 }
 
 ordo_rules() {
-  # One line per loaded rule of the groups in ORDO_RULES: "<group> <rule> <health>".
   local groups
   groups="$(oc -n "$NS" get prometheusrule "${ORDO_RULES[@]}" -o json | jq -c '[.items[].spec.groups[].name]')"
   thanos /api/v1/rules | jq -r --argjson groups "$groups" '.data.groups[] | select(.name as $n | $groups | index($n))
@@ -566,8 +561,7 @@ check_monitoring() {
 }
 
 grafana_db_role() {
-  # A login role that can only read the tables the dashboards query; read-only and with a statement timeout,
-  # so a heavy panel cannot slow the app down. The password reaches psql on stdin.
+  # A login role that reads only the dashboards' tables, read-only with a statement timeout so a panel cannot slow the app.
   local password
   password="$(oc -n "$NS" get secret ordo-grafana -o jsonpath='{.data.GRAFANA_DB_PASSWORD}' | base64 -d)"
   oc -n "$NS" exec -i deployment/postgresql -- psql -U postgres -d ordo -v ON_ERROR_STOP=1 -q <<SQL
@@ -597,7 +591,6 @@ grafana() {
   grafana_db_role
   grafana_dashboards
   oc apply -f "$OBS/grafana.yaml"
-  # Datasources are read at start; a restart picks up a changed provisioning ConfigMap. Dashboards reload alone.
   oc -n "$NS" rollout restart deployment/grafana
   oc -n "$NS" rollout status deployment/grafana --timeout=300s
   check_grafana
@@ -608,8 +601,6 @@ grafana_url() {
 }
 
 grafana_api() {
-  # grafana_api <method> <path> [JSON body], as admin; the password reaches curl on stdin. URL and password are
-  # looked up once per run: an oc round trip per call made check-grafana take minutes.
   local method="$1" path="$2" body="${3:-}"
   local args=(-sS --max-time 60 -X "$method" -K - -H 'Content-Type: application/json')
   if [[ -n "$body" ]]; then
@@ -625,7 +616,6 @@ grafana_api() {
 }
 
 dashboards_loaded() {
-  # True when Grafana serves every dashboard file with the same panels (type and title) as on disk.
   local file uid want have
   for file in "$OBS"/dashboards/*.json; do
     uid="$(jq -r '.uid' "$file")"
@@ -636,8 +626,7 @@ dashboards_loaded() {
 }
 
 grafana_reload_dashboards() {
-  # New dashboards without a restart, so nobody is logged out (sessions live in the pod). The kubelet can take a
-  # few minutes to update the mounted ConfigMap (3.5 min measured), then Grafana rereads the folder every 30 s.
+  # New dashboards without a restart (nobody logged out): the mounted ConfigMap updates in minutes, Grafana rereads it every 30 s.
   grafana_dashboards
   wait_for "Grafana to load the new dashboards" 480 dashboards_loaded
   echo "OK   Grafana serves the dashboards in $OBS/dashboards"
@@ -674,7 +663,6 @@ check_grafana() {
     failed=1
   fi
 
-  # A panel type Grafana does not know renders as "Panel plugin not found" (ids are case-sensitive: nodeGraph).
   plugins="$(grafana_api GET '/api/plugins?type=panel' | jq -c '[.[].id]')" || plugins='[]'
   unknown="$(jq -r --argjson known "$plugins" '.panels[] | select(.type as $t | $known | index($t) | not)
     | "\(.title) (\(.type))"' "$OBS"/dashboards/*.json)"
@@ -686,7 +674,6 @@ check_grafana() {
     failed=1
   fi
 
-  # Every panel query, run through Grafana against the last 6 hours: catches broken SQL and PromQL.
   for file in "$OBS"/dashboards/*.json; do
     while IFS= read -r query; do
       title="$(jq -r '.title' <<<"$query")"
@@ -749,7 +736,6 @@ check_mlflow() {
   oc -n "$NS" exec -i deployment/ordo-extractor -c extractor -- python - "$address" <"$HERE/check_mlflow.py"
 }
 
-# The evaluation notebook's workbench (#19), made in the RHOAI dashboard. It never runs during the demo.
 WORKBENCH=model-tests
 WORKBENCH_STOPPED=kubeflow-resource-stopped
 WORKBENCH_ENV=(MLFLOW_TRACKING_URI MLFLOW_WORKSPACE MLFLOW_TRACKING_TOKEN LLM_BASE_URL ORDO_LLM_API_KEY
@@ -765,7 +751,6 @@ workbench_gone() {
 }
 
 eval_workbench() {
-  # The settings the ordo-extractor has (ordo-config + the MLflow token), then start: no stop annotation.
   oc -n "$NS" get notebook "$WORKBENCH" -o json | jq --arg name "$WORKBENCH" --arg stopped "$WORKBENCH_STOPPED" '
     del(.metadata.annotations[$stopped])
     | .spec.template.spec.containers |= map(if .name != $name then . else
@@ -775,7 +760,6 @@ eval_workbench() {
                   + [{name: "MLFLOW_TRACKING_TOKEN", valueFrom: {secretKeyRef: {name: "llm-token", key: "token"}}},
                      {name: "MLFLOW_GENAI_EVAL_MAX_WORKERS", value: "1"}])
       end)' | oc replace -f -
-  # A changed template rolls the pod; give the old one time to go before waiting for the new one.
   sleep 10
   wait_for "workbench $WORKBENCH to be ready" 600 workbench_ready
   check_workbench

@@ -1,4 +1,4 @@
-"""Money is a decimal string plus currency, never a float (hard rule 6)."""
+"""Money is a decimal string plus currency, never a float."""
 from decimal import ROUND_HALF_UP, Decimal
 
 

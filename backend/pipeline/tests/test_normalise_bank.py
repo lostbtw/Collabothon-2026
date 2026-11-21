@@ -1,6 +1,4 @@
-"""Ticket #23: bank lines -> Transactions. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Bank lines -> Transactions."""
 import unittest
 from decimal import Decimal
 
