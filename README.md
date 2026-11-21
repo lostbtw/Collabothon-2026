@@ -89,30 +89,3 @@ The full flow runs on the cluster: data in, books, forecast, an agent's proposal
 ## Source code repository
 
 https://github.com/lostbtw/Collabothon-2026
-
----
-
-## For developers
-
-| Where | What |
-|---|---|
-| [Issues #1–#6](https://github.com/lostbtw/Collabothon-2026/issues?q=label%3Aspec) | One spec per role; each role's tickets are its sub-issues |
-| [CLAUDE.md](CLAUDE.md) | Roles, folders, the work loop, hard rules, milestones, cut order |
-| [GLOSSARY.md](GLOSSARY.md) | The project's vocabulary |
-| [contracts/](contracts/README.md) | Schemas, API, events and fixtures every role builds against |
-| [DECISIONS.md](DECISIONS.md) | Why things are the way they are |
-| [deploy/README.md](deploy/README.md) | The cluster: what runs where, set-up, checks, OGX, guardrails, monitoring |
-
-Set-up per person: clone, `echo <your role number 1-6> > .role`, start Claude Code in the folder, pick a ticket in the browser (see `CLAUDE.md` section 2) and tell Claude its number. One branch and one pull request per ticket; nobody commits to `main` directly.
-
-API with demo data, one command (no Docker needed): `uv sync --group localdb && uv run python -m backend.api.dev`, then http://localhost:8080/api/v1/inbox (docs at http://localhost:8080/docs). Every path of `contracts/openapi.yaml` answers from the database, loaded with `contracts/fixtures`; SSE at `/api/v1/events/stream` replays `fixtures/event.json` and then relays new events.
-
-Frontend: `cd frontend && npm install && npm run dev` (http://localhost:5173, sample data). Against the local API: `VITE_API_MODE=live VITE_API_PROXY=http://localhost:8080 npm run dev`. Details in [frontend/README.md](frontend/README.md).
-
-Backend: one Python 3.12 package in `backend/`, managed with [uv](https://docs.astral.sh/uv/). `uv sync` installs it; each process starts as `uv run python -m backend <api|connectors|pipeline|agents>`. Your process goes in `backend/<your folder>/main.py` as `run(argv)`; until then the entrypoint is a placeholder. Tests live next to the code they test (`backend/<folder>/tests/`).
-
-Database: Postgres, schema in `backend/db/migrations/`; `uv run python -m backend.db setup` migrates and seeds the database at `ORDO_DATABASE_URL`. Entities are read and written through `backend.db.store.Store`; pydantic models of every contract entity are in `backend.db.contracts.MODELS`. Tests that need a database use the `db` fixture: CI provides Postgres, and locally `uv sync --group localdb` installs a private Postgres (pgserver) so no Docker is needed; without either, those tests are skipped.
-
-Checks (the same ones CI runs on every pull request): `python3 contracts/validate_fixtures.py` (expects `0 invalid`), `uv run python -m pytest` (all backend tests), and `npx tsc --noEmit` in `frontend/`.
-
-Everything in this repository is synthetic. Company, people, vendors and tax ids are invented and marked SAMPLE.
