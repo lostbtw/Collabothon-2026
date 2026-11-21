@@ -133,4 +133,11 @@ describe("endpoints the backend does not serve yet", () => {
     await api.deleteRule("rule_koszyk", "co_borsuk");
     expect((await api.rules("co_borsuk"))!.items.map((r) => r.id)).not.toContain("rule_koszyk");
   });
+  it("a person can be edited: the e-mail tells who forwarded a receipt", async () => {
+    const saved = await api.updatePerson("per_jan", "co_borsuk", { email: "phone.jan@gmail.example" });
+    expect(saved?.email).toBe("phone.jan@gmail.example");
+    const jan = (await api.people("co_borsuk"))!.items.find((p) => p.id === "per_jan");
+    expect(jan?.email).toBe("phone.jan@gmail.example");
+    expect(jan?.name).toContain("Jan");
+  });
 });
