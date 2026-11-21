@@ -114,11 +114,15 @@ PARTIES["NORDWIND LOGISTIK GMBH (SAMPLE)"] = {
 
 # Invoices with no bank line.
 EXTRA = [
-    # October sales still open on 21 Nov (story items si_meblostyl and si_nordwind).
+    # October sales still open on 21 Nov (story items si_meblostyl and si_nordwind, and the project invoice).
     {"direction": "sale", "pay": "transfer", "party": "MEBLOSTYL SP Z O O (SAMPLE)", "number": "2026/10/042",
      "issue": date(2026, 10, 31), "due": date(2026, 11, 27), "gross": Decimal("36900.00")},
     {"direction": "sale", "pay": "transfer", "party": "NORDWIND LOGISTIK GMBH (SAMPLE)", "number": "2026/10/044",
      "issue": date(2026, 10, 15), "due": date(2026, 11, 14), "gross": Decimal("18400.00"), "currency": "EUR"},
+    # One-off project, open on 21 Nov and due after the forecast horizon: October's rule-based VAT is 14,300 (#48).
+    {"direction": "sale", "pay": "transfer", "party": "KADROWNIA SP Z O O (SAMPLE)", "number": "2026/10/040",
+     "issue": date(2026, 10, 20), "due": date(2027, 1, 20), "gross": Decimal("73856.37"),
+     "line": "Wdrożenie modułu kadrowego (projekt)"},
 ] + [
     # M8: document without bank line, not from an employee (paid in cash from the office float).
     {"direction": "purchase", "pay": "cash", "party": "DRUKARNIA PIKSEL (SAMPLE)", "issue": day, "paid": day,

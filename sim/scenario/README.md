@@ -38,7 +38,7 @@ Tests: `python3 -m unittest discover -s sim/scenario/tests -v` (or `python -m py
 
 ## Ground truth (`out/ground_truth.json`)
 
-- `documents`: all 546 documents (FA(3) and November) with `paid_by` (`company_account`, `owner_private`, `employee_private`, as in the Match contract), `match_type`, the bank line (`account` + `entry_reference`), `duplicate_of`, `vat_deductible`, `vat_lost` and the messiness tags.
+- `documents`: all 547 documents (FA(3) and November) with `paid_by` (`company_account`, `owner_private`, `employee_private`, as in the Match contract), `match_type`, the bank line (`account` + `entry_reference`), `duplicate_of`, `vat_deductible`, `vat_lost` and the messiness tags.
 - `duplicates`: 6 clusters (original + copies).
 - `bank_lines_without_document`: every other bank line with a reason: `bank_fee` (M7), `tax_or_social_security`, `salary`, `reimbursement_payout`, `internal_transfer`, `private_purchase_on_company_account` (M4), `foreign_invoice_not_in_backfill`, `document_missing` (M7), `private`.
 
@@ -48,7 +48,7 @@ Entry references (`E000000001`, ...) are the ones the Sandbox Bank (`sim/bank`) 
 
 What role 2's releaser (#37) sends: 1,616 items, each with `mode`, `scenario_date`, `channel`, `artefact`, the bank line or document id, `sender` and `via_model`.
 
-- `backfill` (before the demo, in date order): 1,070 bank lines, 499 FA(3) invoices (purchases by e-mail, sales by the accounting API with e-mail as fallback), 31 November documents.
+- `backfill` (before the demo, in date order): 1,070 bank lines, 500 FA(3) invoices (purchases by e-mail, sales by the accounting API with e-mail as fallback), 31 November documents.
 - `drip` (during the demo, 20–40 s apart, `offset_seconds`): 15 items, the foreign SaaS invoices and the duplicates.
 - `live`: the hero receipt, photographed with a real phone; the rendered photo is the backup.
 - `via_model` is true only for November PDFs and photos. FA(3) XML, bank lines and the accounting API need no model.
@@ -56,11 +56,12 @@ What role 2's releaser (#37) sends: 1,616 items, each with `mode`, `scenario_dat
 
 ## FA(3) invoices (`out/fa3/`)
 
-499 KSeF FA(3) invoices: 497 issued 1 Dec 2025 – 31 Oct 2026 (458 purchases, 39 sales) and 2 November duplicates (M5). They follow the official schema `http://crd.gov.pl/wzor/2025/06/25/13775/` (FA (3), schema 1-0E). `bank_2026.py` attaches the invoice data to the bank lines, so every amount and date agrees with the bank CSVs.
+500 KSeF FA(3) invoices: 498 issued 1 Dec 2025 – 31 Oct 2026 (458 purchases, 40 sales) and 2 November duplicates (M5). They follow the official schema `http://crd.gov.pl/wzor/2025/06/25/13775/` (FA (3), schema 1-0E). `bank_2026.py` attaches the invoice data to the bank lines, so every amount and date agrees with the bank CSVs.
 
 - Purchases (Borsuk Labs is the buyer): coworking, accounting office, 4 B2B contractors, card purchases at Polish merchants, irregular purchases. Card invoices are marked paid (`Zaplacono`, `FormaPlatnosci` 2); transfer invoices carry the due date and the seller's account.
 - Sales (Borsuk Labs is the seller): Meblostyl, Piekarnia Złoty Kłos, Kadrownia (23% VAT, PLN) and Nordwind (EUR, `np II`, reverse charge). Invoices are issued on the last day of the month; December 2025 invoices are the ones paid in January.
-- Without a bank line (8): the open October invoices Meblostyl `2026/10/042` (36,900 PLN) and Nordwind `2026/10/044` (18,400 EUR), and 6 cash purchases (M8). The Warsaw trip in May is paid with the owner's card (M3).
+- Without a bank line (9): the open October invoices Meblostyl `2026/10/042` (36,900 PLN), Nordwind `2026/10/044` (18,400 EUR) and the Kadrownia project invoice `2026/10/040`, and 6 cash purchases (M8). The Warsaw trip in May is paid with the owner's card (M3).
+- The October project invoice 2026/10/040 for Kadrownia (73,856.37 PLN, due 20 Jan 2027) is open on 21 Nov; with it, October's VAT by the rules is 14,300.00 PLN (#48).
 - Not FA(3): foreign vendors (SaaS, Lingua Bridge, EUR card purchases), private receipts, salaries, ZUS and taxes. KSeF holds only invoices of Polish sellers.
 - `fa3_index.json` lists every invoice with its amounts (decimal strings), file and the bank line it belongs to (`null` if none).
 - Seller NIPs are invented, start with 999 and have valid check digits. ElektroMarkt keeps `9990000043` from the contract fixtures.

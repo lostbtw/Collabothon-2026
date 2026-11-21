@@ -27,7 +27,7 @@
     "piotr.lis@devmail.sample"
   ],
   "counts": {
-    "backfill/accounting_api": 40,
+    "backfill/accounting_api": 41,
     "backfill/bank": 1070,
     "backfill/email": 470,
     "backfill/photo": 20,
@@ -14485,6 +14485,17 @@
     {
       "seq": 1442,
       "mode": "backfill",
+      "scenario_date": "2026-10-20",
+      "channel": "accounting_api",
+      "fallback_channel": "email",
+      "artefact": "sim/scenario/out/fa3/2026-10/fa3_20261020_01.xml",
+      "document_id": "fa3_20261020_01",
+      "sender": "owner@borsuk-labs.sample",
+      "via_model": false
+    },
+    {
+      "seq": 1443,
+      "mode": "backfill",
       "scenario_date": "2026-10-21",
       "channel": "email",
       "artefact": "sim/scenario/out/fa3/2026-10/fa3_20261021_01.xml",
@@ -14493,7 +14504,7 @@
       "via_model": false
     },
     {
-      "seq": 1443,
+      "seq": 1444,
       "mode": "backfill",
       "scenario_date": "2026-10-21",
       "channel": "email",
@@ -14503,7 +14514,7 @@
       "via_model": false
     },
     {
-      "seq": 1444,
+      "seq": 1445,
       "mode": "backfill",
       "scenario_date": "2026-10-21",
       "channel": "email",
@@ -14513,7 +14524,7 @@
       "via_model": false
     },
     {
-      "seq": 1445,
+      "seq": 1446,
       "mode": "backfill",
       "scenario_date": "2026-10-22",
       "channel": "bank",
@@ -14523,7 +14534,7 @@
       "via_model": false
     },
     {
-      "seq": 1446,
+      "seq": 1447,
       "mode": "backfill",
       "scenario_date": "2026-10-22",
       "channel": "bank",
@@ -14533,7 +14544,7 @@
       "via_model": false
     },
     {
-      "seq": 1447,
+      "seq": 1448,
       "mode": "backfill",
       "scenario_date": "2026-10-22",
       "channel": "bank",
@@ -14543,7 +14554,7 @@
       "via_model": false
     },
     {
-      "seq": 1448,
+      "seq": 1449,
       "mode": "backfill",
       "scenario_date": "2026-10-22",
       "channel": "bank",
@@ -14553,7 +14564,7 @@
       "via_model": false
     },
     {
-      "seq": 1449,
+      "seq": 1450,
       "mode": "backfill",
       "scenario_date": "2026-10-23",
       "channel": "bank",
@@ -14563,7 +14574,7 @@
       "via_model": false
     },
     {
-      "seq": 1450,
+      "seq": 1451,
       "mode": "backfill",
       "scenario_date": "2026-10-23",
       "channel": "email",
@@ -14573,7 +14584,7 @@
       "via_model": false
     },
     {
-      "seq": 1451,
+      "seq": 1452,
       "mode": "backfill",
       "scenario_date": "2026-10-23",
       "channel": "email",
@@ -14583,7 +14594,7 @@
       "via_model": false
     },
     {
-      "seq": 1452,
+      "seq": 1453,
       "mode": "backfill",
       "scenario_date": "2026-10-23",
       "channel": "email",
@@ -14593,7 +14604,7 @@
       "via_model": false
     },
     {
-      "seq": 1453,
+      "seq": 1454,
       "mode": "backfill",
       "scenario_date": "2026-10-24",
       "channel": "email",
@@ -14603,7 +14614,7 @@
       "via_model": false
     },
     {
-      "seq": 1454,
+      "seq": 1455,
       "mode": "backfill",
       "scenario_date": "2026-10-25",
       "channel": "email",
@@ -14613,7 +14624,7 @@
       "via_model": false
     },
     {
-      "seq": 1455,
+      "seq": 1456,
       "mode": "backfill",
       "scenario_date": "2026-10-25",
       "channel": "email",
@@ -14623,7 +14634,7 @@
       "via_model": false
     },
     {
-      "seq": 1456,
+      "seq": 1457,
       "mode": "backfill",
       "scenario_date": "2026-10-25",
       "channel": "email",
@@ -14633,7 +14644,7 @@
       "via_model": false
     },
     {
-      "seq": 1457,
+      "seq": 1458,
       "mode": "backfill",
       "scenario_date": "2026-10-25",
       "channel": "email",
@@ -14643,7 +14654,7 @@
       "via_model": false
     },
     {
-      "seq": 1458,
+      "seq": 1459,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14653,7 +14664,7 @@
       "via_model": false
     },
     {
-      "seq": 1459,
+      "seq": 1460,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14663,7 +14674,7 @@
       "via_model": false
     },
     {
-      "seq": 1460,
+      "seq": 1461,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14673,7 +14684,7 @@
       "via_model": false
     },
     {
-      "seq": 1461,
+      "seq": 1462,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14683,7 +14694,7 @@
       "via_model": false
     },
     {
-      "seq": 1462,
+      "seq": 1463,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14693,7 +14704,7 @@
       "via_model": false
     },
     {
-      "seq": 1463,
+      "seq": 1464,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14703,7 +14714,7 @@
       "via_model": false
     },
     {
-      "seq": 1464,
+      "seq": 1465,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "bank",
@@ -14713,7 +14724,7 @@
       "via_model": false
     },
     {
-      "seq": 1465,
+      "seq": 1466,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "email",
@@ -14723,7 +14734,7 @@
       "via_model": false
     },
     {
-      "seq": 1466,
+      "seq": 1467,
       "mode": "backfill",
       "scenario_date": "2026-10-26",
       "channel": "email",
@@ -14733,7 +14744,7 @@
       "via_model": false
     },
     {
-      "seq": 1467,
+      "seq": 1468,
       "mode": "backfill",
       "scenario_date": "2026-10-27",
       "channel": "bank",
@@ -14743,7 +14754,7 @@
       "via_model": false
     },
     {
-      "seq": 1468,
+      "seq": 1469,
       "mode": "backfill",
       "scenario_date": "2026-10-27",
       "channel": "bank",
@@ -14753,7 +14764,7 @@
       "via_model": false
     },
     {
-      "seq": 1469,
+      "seq": 1470,
       "mode": "backfill",
       "scenario_date": "2026-10-27",
       "channel": "bank",
@@ -14763,7 +14774,7 @@
       "via_model": false
     },
     {
-      "seq": 1470,
+      "seq": 1471,
       "mode": "backfill",
       "scenario_date": "2026-10-27",
       "channel": "email",
@@ -14773,7 +14784,7 @@
       "via_model": false
     },
     {
-      "seq": 1471,
+      "seq": 1472,
       "mode": "backfill",
       "scenario_date": "2026-10-27",
       "channel": "email",
@@ -14783,7 +14794,7 @@
       "via_model": false
     },
     {
-      "seq": 1472,
+      "seq": 1473,
       "mode": "backfill",
       "scenario_date": "2026-10-28",
       "channel": "bank",
@@ -14793,7 +14804,7 @@
       "via_model": false
     },
     {
-      "seq": 1473,
+      "seq": 1474,
       "mode": "backfill",
       "scenario_date": "2026-10-28",
       "channel": "bank",
@@ -14803,7 +14814,7 @@
       "via_model": false
     },
     {
-      "seq": 1474,
+      "seq": 1475,
       "mode": "backfill",
       "scenario_date": "2026-10-28",
       "channel": "bank",
@@ -14813,7 +14824,7 @@
       "via_model": false
     },
     {
-      "seq": 1475,
+      "seq": 1476,
       "mode": "backfill",
       "scenario_date": "2026-10-28",
       "channel": "bank",
@@ -14823,7 +14834,7 @@
       "via_model": false
     },
     {
-      "seq": 1476,
+      "seq": 1477,
       "mode": "backfill",
       "scenario_date": "2026-10-28",
       "channel": "email",
@@ -14833,7 +14844,7 @@
       "via_model": false
     },
     {
-      "seq": 1477,
+      "seq": 1478,
       "mode": "backfill",
       "scenario_date": "2026-10-29",
       "channel": "bank",
@@ -14843,7 +14854,7 @@
       "via_model": false
     },
     {
-      "seq": 1478,
+      "seq": 1479,
       "mode": "backfill",
       "scenario_date": "2026-10-29",
       "channel": "email",
@@ -14853,7 +14864,7 @@
       "via_model": false
     },
     {
-      "seq": 1479,
+      "seq": 1480,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14863,7 +14874,7 @@
       "via_model": false
     },
     {
-      "seq": 1480,
+      "seq": 1481,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14873,7 +14884,7 @@
       "via_model": false
     },
     {
-      "seq": 1481,
+      "seq": 1482,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14883,7 +14894,7 @@
       "via_model": false
     },
     {
-      "seq": 1482,
+      "seq": 1483,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14893,7 +14904,7 @@
       "via_model": false
     },
     {
-      "seq": 1483,
+      "seq": 1484,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14903,7 +14914,7 @@
       "via_model": false
     },
     {
-      "seq": 1484,
+      "seq": 1485,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14913,7 +14924,7 @@
       "via_model": false
     },
     {
-      "seq": 1485,
+      "seq": 1486,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14923,7 +14934,7 @@
       "via_model": false
     },
     {
-      "seq": 1486,
+      "seq": 1487,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14933,7 +14944,7 @@
       "via_model": false
     },
     {
-      "seq": 1487,
+      "seq": 1488,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14943,7 +14954,7 @@
       "via_model": false
     },
     {
-      "seq": 1488,
+      "seq": 1489,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14953,7 +14964,7 @@
       "via_model": false
     },
     {
-      "seq": 1489,
+      "seq": 1490,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14963,7 +14974,7 @@
       "via_model": false
     },
     {
-      "seq": 1490,
+      "seq": 1491,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14973,7 +14984,7 @@
       "via_model": false
     },
     {
-      "seq": 1491,
+      "seq": 1492,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "bank",
@@ -14983,7 +14994,7 @@
       "via_model": false
     },
     {
-      "seq": 1492,
+      "seq": 1493,
       "mode": "backfill",
       "scenario_date": "2026-10-30",
       "channel": "email",
@@ -14993,7 +15004,7 @@
       "via_model": false
     },
     {
-      "seq": 1493,
+      "seq": 1494,
       "mode": "backfill",
       "scenario_date": "2026-10-31",
       "channel": "accounting_api",
@@ -15004,7 +15015,7 @@
       "via_model": false
     },
     {
-      "seq": 1494,
+      "seq": 1495,
       "mode": "backfill",
       "scenario_date": "2026-10-31",
       "channel": "accounting_api",
@@ -15015,7 +15026,7 @@
       "via_model": false
     },
     {
-      "seq": 1495,
+      "seq": 1496,
       "mode": "backfill",
       "scenario_date": "2026-10-31",
       "channel": "accounting_api",
@@ -15026,7 +15037,7 @@
       "via_model": false
     },
     {
-      "seq": 1496,
+      "seq": 1497,
       "mode": "backfill",
       "scenario_date": "2026-11-01",
       "channel": "email",
@@ -15036,7 +15047,7 @@
       "via_model": true
     },
     {
-      "seq": 1497,
+      "seq": 1498,
       "mode": "backfill",
       "scenario_date": "2026-11-01",
       "channel": "photo",
@@ -15046,7 +15057,7 @@
       "via_model": true
     },
     {
-      "seq": 1498,
+      "seq": 1499,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15056,7 +15067,7 @@
       "via_model": false
     },
     {
-      "seq": 1499,
+      "seq": 1500,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15066,7 +15077,7 @@
       "via_model": false
     },
     {
-      "seq": 1500,
+      "seq": 1501,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15076,7 +15087,7 @@
       "via_model": false
     },
     {
-      "seq": 1501,
+      "seq": 1502,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15086,7 +15097,7 @@
       "via_model": false
     },
     {
-      "seq": 1502,
+      "seq": 1503,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15096,7 +15107,7 @@
       "via_model": false
     },
     {
-      "seq": 1503,
+      "seq": 1504,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15106,7 +15117,7 @@
       "via_model": false
     },
     {
-      "seq": 1504,
+      "seq": 1505,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "bank",
@@ -15116,7 +15127,7 @@
       "via_model": false
     },
     {
-      "seq": 1505,
+      "seq": 1506,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "email",
@@ -15126,7 +15137,7 @@
       "via_model": true
     },
     {
-      "seq": 1506,
+      "seq": 1507,
       "mode": "backfill",
       "scenario_date": "2026-11-02",
       "channel": "email",
@@ -15136,7 +15147,7 @@
       "via_model": true
     },
     {
-      "seq": 1507,
+      "seq": 1508,
       "mode": "backfill",
       "scenario_date": "2026-11-03",
       "channel": "bank",
@@ -15146,7 +15157,7 @@
       "via_model": false
     },
     {
-      "seq": 1508,
+      "seq": 1509,
       "mode": "backfill",
       "scenario_date": "2026-11-03",
       "channel": "bank",
@@ -15156,7 +15167,7 @@
       "via_model": false
     },
     {
-      "seq": 1509,
+      "seq": 1510,
       "mode": "backfill",
       "scenario_date": "2026-11-03",
       "channel": "bank",
@@ -15166,7 +15177,7 @@
       "via_model": false
     },
     {
-      "seq": 1510,
+      "seq": 1511,
       "mode": "backfill",
       "scenario_date": "2026-11-03",
       "channel": "email",
@@ -15176,7 +15187,7 @@
       "via_model": true
     },
     {
-      "seq": 1511,
+      "seq": 1512,
       "mode": "backfill",
       "scenario_date": "2026-11-04",
       "channel": "bank",
@@ -15186,7 +15197,7 @@
       "via_model": false
     },
     {
-      "seq": 1512,
+      "seq": 1513,
       "mode": "backfill",
       "scenario_date": "2026-11-04",
       "channel": "bank",
@@ -15196,7 +15207,7 @@
       "via_model": false
     },
     {
-      "seq": 1513,
+      "seq": 1514,
       "mode": "backfill",
       "scenario_date": "2026-11-04",
       "channel": "photo",
@@ -15206,7 +15217,7 @@
       "via_model": true
     },
     {
-      "seq": 1514,
+      "seq": 1515,
       "mode": "backfill",
       "scenario_date": "2026-11-05",
       "channel": "bank",
@@ -15216,7 +15227,7 @@
       "via_model": false
     },
     {
-      "seq": 1515,
+      "seq": 1516,
       "mode": "backfill",
       "scenario_date": "2026-11-05",
       "channel": "bank",
@@ -15226,7 +15237,7 @@
       "via_model": false
     },
     {
-      "seq": 1516,
+      "seq": 1517,
       "mode": "backfill",
       "scenario_date": "2026-11-05",
       "channel": "email",
@@ -15236,7 +15247,7 @@
       "via_model": true
     },
     {
-      "seq": 1517,
+      "seq": 1518,
       "mode": "backfill",
       "scenario_date": "2026-11-05",
       "channel": "email",
@@ -15246,7 +15257,7 @@
       "via_model": true
     },
     {
-      "seq": 1518,
+      "seq": 1519,
       "mode": "backfill",
       "scenario_date": "2026-11-05",
       "channel": "photo",
@@ -15256,7 +15267,7 @@
       "via_model": true
     },
     {
-      "seq": 1519,
+      "seq": 1520,
       "mode": "backfill",
       "scenario_date": "2026-11-05",
       "channel": "photo",
@@ -15266,7 +15277,7 @@
       "via_model": true
     },
     {
-      "seq": 1520,
+      "seq": 1521,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "bank",
@@ -15276,7 +15287,7 @@
       "via_model": false
     },
     {
-      "seq": 1521,
+      "seq": 1522,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "bank",
@@ -15286,7 +15297,7 @@
       "via_model": false
     },
     {
-      "seq": 1522,
+      "seq": 1523,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "bank",
@@ -15296,7 +15307,7 @@
       "via_model": false
     },
     {
-      "seq": 1523,
+      "seq": 1524,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "bank",
@@ -15306,7 +15317,7 @@
       "via_model": false
     },
     {
-      "seq": 1524,
+      "seq": 1525,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "bank",
@@ -15316,7 +15327,7 @@
       "via_model": false
     },
     {
-      "seq": 1525,
+      "seq": 1526,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "bank",
@@ -15326,7 +15337,7 @@
       "via_model": false
     },
     {
-      "seq": 1526,
+      "seq": 1527,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "photo",
@@ -15336,7 +15347,7 @@
       "via_model": true
     },
     {
-      "seq": 1527,
+      "seq": 1528,
       "mode": "backfill",
       "scenario_date": "2026-11-06",
       "channel": "photo",
@@ -15346,7 +15357,7 @@
       "via_model": true
     },
     {
-      "seq": 1528,
+      "seq": 1529,
       "mode": "backfill",
       "scenario_date": "2026-11-07",
       "channel": "photo",
@@ -15356,7 +15367,7 @@
       "via_model": true
     },
     {
-      "seq": 1529,
+      "seq": 1530,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15366,7 +15377,7 @@
       "via_model": false
     },
     {
-      "seq": 1530,
+      "seq": 1531,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15376,7 +15387,7 @@
       "via_model": false
     },
     {
-      "seq": 1531,
+      "seq": 1532,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15386,7 +15397,7 @@
       "via_model": false
     },
     {
-      "seq": 1532,
+      "seq": 1533,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15396,7 +15407,7 @@
       "via_model": false
     },
     {
-      "seq": 1533,
+      "seq": 1534,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15406,7 +15417,7 @@
       "via_model": false
     },
     {
-      "seq": 1534,
+      "seq": 1535,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15416,7 +15427,7 @@
       "via_model": false
     },
     {
-      "seq": 1535,
+      "seq": 1536,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15426,7 +15437,7 @@
       "via_model": false
     },
     {
-      "seq": 1536,
+      "seq": 1537,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15436,7 +15447,7 @@
       "via_model": false
     },
     {
-      "seq": 1537,
+      "seq": 1538,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "bank",
@@ -15446,7 +15457,7 @@
       "via_model": false
     },
     {
-      "seq": 1538,
+      "seq": 1539,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "photo",
@@ -15456,7 +15467,7 @@
       "via_model": true
     },
     {
-      "seq": 1539,
+      "seq": 1540,
       "mode": "backfill",
       "scenario_date": "2026-11-09",
       "channel": "photo",
@@ -15466,7 +15477,7 @@
       "via_model": true
     },
     {
-      "seq": 1540,
+      "seq": 1541,
       "mode": "backfill",
       "scenario_date": "2026-11-10",
       "channel": "bank",
@@ -15476,7 +15487,7 @@
       "via_model": false
     },
     {
-      "seq": 1541,
+      "seq": 1542,
       "mode": "backfill",
       "scenario_date": "2026-11-10",
       "channel": "bank",
@@ -15486,7 +15497,7 @@
       "via_model": false
     },
     {
-      "seq": 1542,
+      "seq": 1543,
       "mode": "backfill",
       "scenario_date": "2026-11-10",
       "channel": "email",
@@ -15496,7 +15507,7 @@
       "via_model": false
     },
     {
-      "seq": 1543,
+      "seq": 1544,
       "mode": "backfill",
       "scenario_date": "2026-11-10",
       "channel": "photo",
@@ -15506,7 +15517,7 @@
       "via_model": true
     },
     {
-      "seq": 1544,
+      "seq": 1545,
       "mode": "backfill",
       "scenario_date": "2026-11-10",
       "channel": "photo",
@@ -15516,7 +15527,7 @@
       "via_model": true
     },
     {
-      "seq": 1545,
+      "seq": 1546,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "bank",
@@ -15526,7 +15537,7 @@
       "via_model": false
     },
     {
-      "seq": 1546,
+      "seq": 1547,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "bank",
@@ -15536,7 +15547,7 @@
       "via_model": false
     },
     {
-      "seq": 1547,
+      "seq": 1548,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "bank",
@@ -15546,7 +15557,7 @@
       "via_model": false
     },
     {
-      "seq": 1548,
+      "seq": 1549,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "bank",
@@ -15556,7 +15567,7 @@
       "via_model": false
     },
     {
-      "seq": 1549,
+      "seq": 1550,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "bank",
@@ -15566,7 +15577,7 @@
       "via_model": false
     },
     {
-      "seq": 1550,
+      "seq": 1551,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "email",
@@ -15576,7 +15587,7 @@
       "via_model": true
     },
     {
-      "seq": 1551,
+      "seq": 1552,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "email",
@@ -15586,7 +15597,7 @@
       "via_model": true
     },
     {
-      "seq": 1552,
+      "seq": 1553,
       "mode": "backfill",
       "scenario_date": "2026-11-12",
       "channel": "photo",
@@ -15596,7 +15607,7 @@
       "via_model": true
     },
     {
-      "seq": 1553,
+      "seq": 1554,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "bank",
@@ -15606,7 +15617,7 @@
       "via_model": false
     },
     {
-      "seq": 1554,
+      "seq": 1555,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "bank",
@@ -15616,7 +15627,7 @@
       "via_model": false
     },
     {
-      "seq": 1555,
+      "seq": 1556,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "bank",
@@ -15626,7 +15637,7 @@
       "via_model": false
     },
     {
-      "seq": 1556,
+      "seq": 1557,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "bank",
@@ -15636,7 +15647,7 @@
       "via_model": false
     },
     {
-      "seq": 1557,
+      "seq": 1558,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "bank",
@@ -15646,7 +15657,7 @@
       "via_model": false
     },
     {
-      "seq": 1558,
+      "seq": 1559,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "email",
@@ -15656,7 +15667,7 @@
       "via_model": true
     },
     {
-      "seq": 1559,
+      "seq": 1560,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "photo",
@@ -15666,7 +15677,7 @@
       "via_model": true
     },
     {
-      "seq": 1560,
+      "seq": 1561,
       "mode": "backfill",
       "scenario_date": "2026-11-13",
       "channel": "photo",
@@ -15676,7 +15687,7 @@
       "via_model": true
     },
     {
-      "seq": 1561,
+      "seq": 1562,
       "mode": "backfill",
       "scenario_date": "2026-11-14",
       "channel": "email",
@@ -15686,7 +15697,7 @@
       "via_model": false
     },
     {
-      "seq": 1562,
+      "seq": 1563,
       "mode": "backfill",
       "scenario_date": "2026-11-14",
       "channel": "photo",
@@ -15696,7 +15707,7 @@
       "via_model": true
     },
     {
-      "seq": 1563,
+      "seq": 1564,
       "mode": "backfill",
       "scenario_date": "2026-11-15",
       "channel": "email",
@@ -15706,7 +15717,7 @@
       "via_model": true
     },
     {
-      "seq": 1564,
+      "seq": 1565,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15716,7 +15727,7 @@
       "via_model": false
     },
     {
-      "seq": 1565,
+      "seq": 1566,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15726,7 +15737,7 @@
       "via_model": false
     },
     {
-      "seq": 1566,
+      "seq": 1567,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15736,7 +15747,7 @@
       "via_model": false
     },
     {
-      "seq": 1567,
+      "seq": 1568,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15746,7 +15757,7 @@
       "via_model": false
     },
     {
-      "seq": 1568,
+      "seq": 1569,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15756,7 +15767,7 @@
       "via_model": false
     },
     {
-      "seq": 1569,
+      "seq": 1570,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15766,7 +15777,7 @@
       "via_model": false
     },
     {
-      "seq": 1570,
+      "seq": 1571,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15776,7 +15787,7 @@
       "via_model": false
     },
     {
-      "seq": 1571,
+      "seq": 1572,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15786,7 +15797,7 @@
       "via_model": false
     },
     {
-      "seq": 1572,
+      "seq": 1573,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15796,7 +15807,7 @@
       "via_model": false
     },
     {
-      "seq": 1573,
+      "seq": 1574,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15806,7 +15817,7 @@
       "via_model": false
     },
     {
-      "seq": 1574,
+      "seq": 1575,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15816,7 +15827,7 @@
       "via_model": false
     },
     {
-      "seq": 1575,
+      "seq": 1576,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15826,7 +15837,7 @@
       "via_model": false
     },
     {
-      "seq": 1576,
+      "seq": 1577,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15836,7 +15847,7 @@
       "via_model": false
     },
     {
-      "seq": 1577,
+      "seq": 1578,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15846,7 +15857,7 @@
       "via_model": false
     },
     {
-      "seq": 1578,
+      "seq": 1579,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15856,7 +15867,7 @@
       "via_model": false
     },
     {
-      "seq": 1579,
+      "seq": 1580,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "bank",
@@ -15866,7 +15877,7 @@
       "via_model": false
     },
     {
-      "seq": 1580,
+      "seq": 1581,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "photo",
@@ -15876,7 +15887,7 @@
       "via_model": true
     },
     {
-      "seq": 1581,
+      "seq": 1582,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "photo",
@@ -15886,7 +15897,7 @@
       "via_model": true
     },
     {
-      "seq": 1582,
+      "seq": 1583,
       "mode": "backfill",
       "scenario_date": "2026-11-16",
       "channel": "photo",
@@ -15896,7 +15907,7 @@
       "via_model": true
     },
     {
-      "seq": 1583,
+      "seq": 1584,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15906,7 +15917,7 @@
       "via_model": false
     },
     {
-      "seq": 1584,
+      "seq": 1585,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15916,7 +15927,7 @@
       "via_model": false
     },
     {
-      "seq": 1585,
+      "seq": 1586,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15926,7 +15937,7 @@
       "via_model": false
     },
     {
-      "seq": 1586,
+      "seq": 1587,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15936,7 +15947,7 @@
       "via_model": false
     },
     {
-      "seq": 1587,
+      "seq": 1588,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15946,7 +15957,7 @@
       "via_model": false
     },
     {
-      "seq": 1588,
+      "seq": 1589,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15956,7 +15967,7 @@
       "via_model": false
     },
     {
-      "seq": 1589,
+      "seq": 1590,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15966,7 +15977,7 @@
       "via_model": false
     },
     {
-      "seq": 1590,
+      "seq": 1591,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "bank",
@@ -15976,7 +15987,7 @@
       "via_model": false
     },
     {
-      "seq": 1591,
+      "seq": 1592,
       "mode": "backfill",
       "scenario_date": "2026-11-17",
       "channel": "photo",
@@ -15986,7 +15997,7 @@
       "via_model": true
     },
     {
-      "seq": 1592,
+      "seq": 1593,
       "mode": "backfill",
       "scenario_date": "2026-11-18",
       "channel": "bank",
@@ -15996,7 +16007,7 @@
       "via_model": false
     },
     {
-      "seq": 1593,
+      "seq": 1594,
       "mode": "backfill",
       "scenario_date": "2026-11-18",
       "channel": "bank",
@@ -16006,7 +16017,7 @@
       "via_model": false
     },
     {
-      "seq": 1594,
+      "seq": 1595,
       "mode": "backfill",
       "scenario_date": "2026-11-18",
       "channel": "bank",
@@ -16016,7 +16027,7 @@
       "via_model": false
     },
     {
-      "seq": 1595,
+      "seq": 1596,
       "mode": "backfill",
       "scenario_date": "2026-11-18",
       "channel": "bank",
@@ -16026,7 +16037,7 @@
       "via_model": false
     },
     {
-      "seq": 1596,
+      "seq": 1597,
       "mode": "backfill",
       "scenario_date": "2026-11-18",
       "channel": "photo",
@@ -16036,7 +16047,7 @@
       "via_model": true
     },
     {
-      "seq": 1597,
+      "seq": 1598,
       "mode": "backfill",
       "scenario_date": "2026-11-20",
       "channel": "bank",
@@ -16046,7 +16057,7 @@
       "via_model": false
     },
     {
-      "seq": 1598,
+      "seq": 1599,
       "mode": "backfill",
       "scenario_date": "2026-11-20",
       "channel": "bank",
@@ -16056,7 +16067,7 @@
       "via_model": false
     },
     {
-      "seq": 1599,
+      "seq": 1600,
       "mode": "backfill",
       "scenario_date": "2026-11-20",
       "channel": "bank",
@@ -16066,7 +16077,7 @@
       "via_model": false
     },
     {
-      "seq": 1600,
+      "seq": 1601,
       "mode": "backfill",
       "scenario_date": "2026-11-20",
       "channel": "accounting_api",
@@ -16075,7 +16086,7 @@
       "via_model": false
     },
     {
-      "seq": 1601,
+      "seq": 1602,
       "mode": "drip",
       "scenario_date": "2026-11-02",
       "offset_seconds": 0,
@@ -16086,7 +16097,7 @@
       "via_model": true
     },
     {
-      "seq": 1602,
+      "seq": 1603,
       "mode": "drip",
       "scenario_date": "2026-11-03",
       "offset_seconds": 30,
@@ -16097,7 +16108,7 @@
       "via_model": true
     },
     {
-      "seq": 1603,
+      "seq": 1604,
       "mode": "drip",
       "scenario_date": "2026-11-04",
       "offset_seconds": 55,
@@ -16108,7 +16119,7 @@
       "via_model": true
     },
     {
-      "seq": 1604,
+      "seq": 1605,
       "mode": "drip",
       "scenario_date": "2026-11-05",
       "offset_seconds": 90,
@@ -16119,7 +16130,7 @@
       "via_model": true
     },
     {
-      "seq": 1605,
+      "seq": 1606,
       "mode": "drip",
       "scenario_date": "2026-11-06",
       "offset_seconds": 110,
@@ -16130,7 +16141,7 @@
       "via_model": true
     },
     {
-      "seq": 1606,
+      "seq": 1607,
       "mode": "drip",
       "scenario_date": "2026-11-06",
       "offset_seconds": 150,
@@ -16141,7 +16152,7 @@
       "via_model": true
     },
     {
-      "seq": 1607,
+      "seq": 1608,
       "mode": "drip",
       "scenario_date": "2026-11-07",
       "offset_seconds": 180,
@@ -16152,7 +16163,7 @@
       "via_model": true
     },
     {
-      "seq": 1608,
+      "seq": 1609,
       "mode": "drip",
       "scenario_date": "2026-11-10",
       "offset_seconds": 205,
@@ -16163,7 +16174,7 @@
       "via_model": true
     },
     {
-      "seq": 1609,
+      "seq": 1610,
       "mode": "drip",
       "scenario_date": "2026-11-12",
       "offset_seconds": 240,
@@ -16174,7 +16185,7 @@
       "via_model": true
     },
     {
-      "seq": 1610,
+      "seq": 1611,
       "mode": "drip",
       "scenario_date": "2026-11-13",
       "offset_seconds": 260,
@@ -16185,7 +16196,7 @@
       "via_model": true
     },
     {
-      "seq": 1611,
+      "seq": 1612,
       "mode": "drip",
       "scenario_date": "2026-11-13",
       "offset_seconds": 300,
@@ -16196,7 +16207,7 @@
       "via_model": true
     },
     {
-      "seq": 1612,
+      "seq": 1613,
       "mode": "drip",
       "scenario_date": "2026-11-14",
       "offset_seconds": 330,
@@ -16207,7 +16218,7 @@
       "via_model": true
     },
     {
-      "seq": 1613,
+      "seq": 1614,
       "mode": "drip",
       "scenario_date": "2026-11-17",
       "offset_seconds": 355,
@@ -16218,7 +16229,7 @@
       "via_model": true
     },
     {
-      "seq": 1614,
+      "seq": 1615,
       "mode": "drip",
       "scenario_date": "2026-11-17",
       "offset_seconds": 390,
@@ -16229,7 +16240,7 @@
       "via_model": true
     },
     {
-      "seq": 1615,
+      "seq": 1616,
       "mode": "drip",
       "scenario_date": "2026-11-19",
       "offset_seconds": 410,
@@ -16240,7 +16251,7 @@
       "via_model": true
     },
     {
-      "seq": 1616,
+      "seq": 1617,
       "mode": "live",
       "scenario_date": "2026-11-20",
       "channel": "photo",

@@ -2,7 +2,7 @@
   "company_id": "co_borsuk",
   "as_of": "2026-11-21",
   "summary": {
-    "documents": 546,
+    "documents": 547,
     "duplicate_clusters": 6,
     "bank_lines": 1070,
     "bank_lines_with_document": 521,
@@ -11913,6 +11913,28 @@
       },
       "duplicate_of": null,
       "vat_deductible": true,
+      "vat_lost": null,
+      "messiness": []
+    },
+    {
+      "document_id": "fa3_20261020_01",
+      "source": "fa3",
+      "artefact": "sim/scenario/out/fa3/2026-10/fa3_20261020_01.xml",
+      "direction": "sale",
+      "doc_type": "invoice",
+      "number": "2026/10/040",
+      "issue_date": "2026-10-20",
+      "gross": {
+        "amount": "73856.37",
+        "currency": "PLN"
+      },
+      "paid_by": null,
+      "paid_by_person_id": null,
+      "payment_method": "transfer",
+      "match_type": "document_no_transaction",
+      "bank_line": null,
+      "duplicate_of": null,
+      "vat_deductible": false,
       "vat_lost": null,
       "messiness": []
     },

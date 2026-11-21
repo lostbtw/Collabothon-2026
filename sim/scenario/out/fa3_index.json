@@ -17091,6 +17091,33 @@
     "messiness": []
   },
   {
+    "id": "fa3_20261020_01",
+    "file": "fa3/2026-10/fa3_20261020_01.xml",
+    "number": "2026/10/040",
+    "direction": "sale",
+    "issue_date": "2026-10-20",
+    "due_date": "2027-01-20",
+    "counterparty": "Kadrownia sp. z o.o. (SAMPLE)",
+    "counterparty_tax_id": "9990019628",
+    "description": "Wdrożenie modułu kadrowego (projekt)",
+    "vat_rate": "23",
+    "net": {
+      "amount": "60045.83",
+      "currency": "PLN"
+    },
+    "vat": {
+      "amount": "13810.54",
+      "currency": "PLN"
+    },
+    "gross": {
+      "amount": "73856.37",
+      "currency": "PLN"
+    },
+    "payment": "transfer",
+    "bank_line": null,
+    "messiness": []
+  },
+  {
     "id": "fa3_20261021_01",
     "file": "fa3/2026-10/fa3_20261021_01.xml",
     "number": "FV/NP/00020/10/2026",
