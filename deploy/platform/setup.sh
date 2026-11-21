@@ -5,6 +5,10 @@ NS=cfo-ai
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 APP="$ROOT/deploy/app"
+OBS="$ROOT/deploy/observability"
+UWM_NS=openshift-user-workload-monitoring
+MODEL_JOB=gpt-oss-20b-metrics
+ORDO_RULES=(ordo-model ordo-workloads)
 IMAGES=(backend sim web)
 M1_QUESTION="How much cash do we have today, and what is the next large payment?"
 EXISTING_SECRETS=(llm-token docling-api-key)
@@ -359,6 +363,103 @@ check_m1() {
   ((failed == 0))
 }
 
+uwm_ready() {
+  [[ "$(oc -n "$UWM_NS" get pod prometheus-user-workload-0 \
+    -o jsonpath='{.status.containerStatuses[?(@.name=="prometheus")].ready}' 2>/dev/null)" == true ]]
+}
+
+thanos() {
+  # GET a Thanos Querier API path through its route, with your own oc token (read from stdin, not in argv).
+  local path="$1" host
+  shift
+  host="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath='{.spec.host}')"
+  curl -fsS -G -H @- "$@" "https://$host$path" <<<"Authorization: Bearer $(oc whoami -t)"
+}
+
+promql() {
+  thanos /api/v1/query --data-urlencode "query=$1" | jq -c '.data.result'
+}
+
+expected_rules() {
+  oc -n "$NS" get prometheusrule "${ORDO_RULES[@]}" -o json | jq '[.items[].spec.groups[].rules[]] | length'
+}
+
+ordo_rules() {
+  # One line per loaded rule of the groups in ORDO_RULES: "<group> <rule> <health>".
+  local groups
+  groups="$(oc -n "$NS" get prometheusrule "${ORDO_RULES[@]}" -o json | jq -c '[.items[].spec.groups[].name]')"
+  thanos /api/v1/rules | jq -r --argjson groups "$groups" '.data.groups[] | select(.name as $n | $groups | index($n))
+    | .name as $g | .rules[] | "\($g) \(.name) \(.health)"' | sort -u
+}
+
+rules_evaluated() {
+  local expected lines
+  expected="$(expected_rules)"
+  lines="$(ordo_rules)" || return 1
+  [[ "$(grep -c . <<<"$lines")" -eq "$expected" ]] && ! grep -q ' unknown$' <<<"$lines"
+}
+
+monitoring() {
+  local current
+  current="$(oc -n openshift-monitoring get configmap cluster-monitoring-config -o jsonpath='{.data.config\.yaml}' 2>/dev/null)" ||
+    current=""
+  oc apply -f "$OBS/user-workload-monitoring-config.yaml"
+  if [[ -z "$current" ]]; then
+    oc apply -f "$OBS/cluster-monitoring-config.yaml"
+  elif grep -Eq '^enableUserWorkload: *true *$' <<<"$current"; then
+    echo "user-workload monitoring is already on, cluster-monitoring-config kept"
+  else
+    echo "configmap openshift-monitoring/cluster-monitoring-config holds other settings;" \
+      "add 'enableUserWorkload: true' to its config.yaml by hand. Now it is:" >&2
+    echo "$current" >&2
+    exit 1
+  fi
+  wait_for "prometheus-user-workload-0" 600 uwm_ready
+  oc apply -f "$OBS/prometheus-rules.yaml"
+  wait_for "the first evaluation of the ordo rules" 300 rules_evaluated
+  check_monitoring
+}
+
+check_monitoring() {
+  local up model expected lines bad firing failed=0
+  up="$(promql "up{namespace=\"$NS\",job=\"$MODEL_JOB\"}" | jq -r '.[0].value[1] // empty')" || up=""
+  if [[ "$up" == 1 ]]; then
+    echo "OK   user-workload Prometheus scrapes gpt-oss-20b ($MODEL_JOB)"
+  else
+    echo "FAIL no healthy scrape of $MODEL_JOB; is user-workload monitoring on? oc -n $UWM_NS get pods" >&2
+    failed=1
+  fi
+
+  model="$(promql "max by (__name__) ({namespace=\"$NS\",__name__=~\"vllm:num_requests_running|vllm:num_requests_waiting|vllm:kv_cache_usage_perc\"})" |
+    jq -r 'map({(.metric.__name__): (.value[1] | tonumber)}) | add // {}
+      | if length == 3 then "\(.["vllm:num_requests_running"]) running, \(.["vllm:num_requests_waiting"]) waiting, KV cache \(.["vllm:kv_cache_usage_perc"] * 100 | floor) %" else empty end')" ||
+    model=""
+  if [[ -n "$model" ]]; then
+    echo "OK   vLLM metrics are queryable: $model"
+  else
+    echo "FAIL vLLM metrics of $NS are not in Thanos Querier" >&2
+    failed=1
+  fi
+
+  expected="$(expected_rules)"
+  lines="$(ordo_rules)" || lines=""
+  bad="$(grep -v ' ok$' <<<"$lines" || true)"
+  if [[ -n "$lines" && "$(grep -c . <<<"$lines")" -eq "$expected" && -z "$bad" ]]; then
+    echo "OK   all $expected ordo rules are loaded and evaluate without errors"
+  else
+    echo "FAIL ordo rules: $(grep -c . <<<"$lines") of $expected loaded" >&2
+    if [[ -n "$bad" ]]; then
+      echo "$bad" >&2
+    fi
+    failed=1
+  fi
+
+  firing="$(promql "ALERTS{namespace=\"$NS\",alertstate=\"firing\"}" | jq -r '[.[].metric.alertname] | unique | join(", ")')" ||
+    firing=""
+  echo "     firing now in $NS: ${firing:-nothing}"
+  ((failed == 0))
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -381,8 +482,10 @@ case "$stage" in
   app) app ;;
   db-fixtures) db_fixtures ;;
   check-m1) check_m1 ;;
+  monitoring) monitoring ;;
+  check-monitoring) check_monitoring ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
