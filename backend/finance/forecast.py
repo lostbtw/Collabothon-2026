@@ -49,6 +49,10 @@ def _next_pay_run(as_of: date, country: str) -> date:
     return run
 
 
+# Part of inputs_hash: raise it when the forecast's output changes, or a stored forecast from older code is reused.
+ENGINE_VERSION = 2
+
+
 def inputs_hash(**inputs: Any) -> str:
     return hashlib.sha256(json.dumps(inputs, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
@@ -269,7 +273,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         f"x{1 - BAND} (low), no everyday spending (high).")
     assumptions += [f"1 {c} = {r} {base}" for c, r in sorted(rate.items()) if c != base and (
         any(a["currency"] == c for a in included.values()) or any(i["amount"]["currency"] == c for i in open_items))]
-    digest = inputs_hash(as_of=as_of, horizon=horizon_days, rates=rate, buffer=safety_buffer,
+    digest = inputs_hash(engine=ENGINE_VERSION, as_of=as_of, horizon=horizon_days, rates=rate, buffer=safety_buffer,
                          accounts=sorted((a["id"], json.dumps(a.get("opening_balance"), sort_keys=True))
                                          for a in included.values()),
                          lines=sorted((t["id"], t["amount_base"]["amount"], t["booking_date"]) for t in transactions),
