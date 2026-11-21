@@ -508,3 +508,13 @@ button.more-toggle { align-self: flex-start; gap: 4px; font-size: 14px; font-wei
 .chev-sm { display: inline-flex; transition: transform var(--t-fast) var(--ease-out); }
 .chev-sm.up { transform: rotate(180deg); }
 .full-desc { animation: fade-up var(--t) var(--ease-out); padding-top: 4px; border-top: 1px solid var(--border); }
+
+/* Overview To-do: the one-line why appears when the row is hovered or focused. */
+.todo-row .on-hover { max-height: 0; opacity: 0; overflow: hidden; transition: max-height var(--t) var(--ease-out), opacity var(--t) var(--ease-out); }
+.todo-row:hover .on-hover, .todo-row:focus-within .on-hover { max-height: 72px; opacity: 1; }
+
+/* Cash chart: a forecast day in detail. */
+.day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0 16px; }
+.day-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
+.day-row + .day-row { border-top: 1px solid var(--border); }
+.day-open-gap { width: 64px; flex: none; }

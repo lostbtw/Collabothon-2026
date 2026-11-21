@@ -188,10 +188,9 @@ export function doneRecently(activity: ActivityItem[], approvals: Approval[], re
   return { approved, alone: ordoLog(activity).slice(0, limit) };
 }
 
-/** What can be undone from the app: an action the owner approved, or a match Ordo made on its own. */
-export function undoKind(d: Done): "approval" | "match" | null {
-  if (d.level === "approved") return d.approval && !d.saidNo && d.approval.subject_type === "recommendation" ? "approval" : null;
-  return d.activity?.subject?.type === "match" ? "match" : null;
+/** What can be undone from the app: only a match Ordo made on its own. What the owner decided stays decided. */
+export function undoKind(d: Done): "match" | null {
+  return d.level === "analysed_autonomously" && d.activity?.subject?.type === "match" ? "match" : null;
 }
 
 /** Log lines grouped by calendar day (UTC, like every date in the app), newest day first. */

@@ -19,7 +19,6 @@ import { upcoming } from "./dashboard/model";
 import { buildDecision } from "./inbox/model";
 import { buildTodo, topThree, type TodoItem } from "./todo/model";
 
-const longDay = (iso: string) => new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
 const none = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
 
 export function Overview() {
@@ -46,7 +45,7 @@ export function Overview() {
   const currency = company?.base_currency ?? forecast?.base_currency ?? "PLN";
   return (
     <>
-      <PageHead title="Overview" sub={<>{longDay(today)}{headline(forecast, inbox?.items ?? null)}</>} />
+      <PageHead title="Overview" sub="Your cash today, what waits for you, how the month went and what is coming." />
       <section className="section">
         <h2>Today</h2>
         <div className="row">
@@ -55,20 +54,11 @@ export function Overview() {
         </div>
       </section>
       <MonthSection month={shown} months={recentMonths(today, 6)} onMonth={setMonth}
-        summary={current?.summary ?? null} fromBank={current?.fromBank ?? false} before={before} transactions={transactions?.items ?? []} names={names} currency={currency} loading={figures.loading && !figures.data} />
+        summary={current?.summary ?? null} before={before} transactions={transactions?.items ?? []} names={names} currency={currency} loading={figures.loading && !figures.data} />
       <CashSection history={history} forecast={forecast} flash={flash} />
       <TaxSection forecast={forecast} dueIn30={current?.summary.kpis.tax_due_next_30d ?? null} loading={now.loading && !now.data} />
     </>
   );
-}
-
-/** The point of the day in one line: is a cash gap coming, and how much waits for the owner. */
-export function headline(forecast: Forecast | null, items: Recommendation[] | null): string {
-  const parts: string[] = [];
-  if (forecast) parts.push(forecast.first_negative_date ? `Cash runs short from ${shortDate(forecast.first_negative_date)}` : `No cash gap in the next ${forecast.horizon_days} days`);
-  const n = items ? buildTodo(items, forecast).count : 0;
-  if (n) parts.push(`${n} ${n === 1 ? "thing waits" : "things wait"} for you`);
-  return parts.map((p) => ` · ${p}`).join("");
 }
 
 export function CashCard({ accounts, forecast, loading }: { accounts: AccountsResponse | null; forecast: Forecast | null; loading?: boolean }) {
@@ -124,7 +114,7 @@ function TodoCard({ items, forecast, loading }: { items: Recommendation[] | null
   );
 }
 
-/** One to-do: label, what it is, one line why, one button. Approving here runs the same simulated action as on To-do. */
+/** One to-do: label, what it is and one button; the one line why shows on hover. Approving here runs the same action as on To-do. */
 export function TodoRow({ item }: { item: TodoItem }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -148,7 +138,7 @@ export function TodoRow({ item }: { item: TodoItem }) {
       <div className="stack grow" style={{ gap: 4 }}>
         <StatusLabel level={done ? "approved" : item.level} />
         <span className="medium">{item.title}</span>
-        <span className="small t2">{done ? done.execution.result : item.summary}</span>
+        {done ? <span className="small t2">{done.execution.result}</span> : <span className="small t2 on-hover">{item.summary}</span>}
         {error && <span className="small bad" role="alert">Not done: {error}</span>}
       </div>
       {done ? <DoneChip reference={done.execution.reference} result={done.execution.result} />
@@ -199,8 +189,8 @@ export function TaxSection({ forecast, dueIn30, loading }: { forecast: Forecast 
   );
 }
 
-function MonthSection({ month, months, onMonth, summary, fromBank, before, transactions, names, currency, loading }: {
-  month: string; months: string[]; onMonth: (m: string) => void; summary: LedgerSummary | null; fromBank: boolean; before: LedgerSummary | null; transactions: Transaction[];
+function MonthSection({ month, months, onMonth, summary, before, transactions, names, currency, loading }: {
+  month: string; months: string[]; onMonth: (m: string) => void; summary: LedgerSummary | null; before: LedgerSummary | null; transactions: Transaction[];
   names: Record<string, string>; currency: string; loading: boolean;
 }) {
   const f = monthFigures(summary, currency);
@@ -210,7 +200,6 @@ function MonthSection({ month, months, onMonth, summary, fromBank, before, trans
     <section className="section">
       <div className="section-head">
         <MonthSelect value={month} months={months} onChange={onMonth} look="section" />
-        {fromBank && <FromBank />}
         <span className="grow" />
         {prev && <span className="small t3">Compared with {vs}</span>}
       </div>
@@ -324,12 +313,4 @@ function CashSection({ history, forecast, flash }: { history: BalanceHistory | n
       </div>
     </section>
   );
-}
-
-/** Plain words for a month summed from bank payments because they are not in the books yet. */
-export const FROM_BANK_TEXT = "These totals come straight from your bank account. Their invoices aren't checked yet, so they're not in the books.";
-
-/** Said wherever a month is summed from the bank payments. */
-export function FromBank() {
-  return <span className="chip warn" title={FROM_BANK_TEXT}>Straight from the bank</span>;
 }

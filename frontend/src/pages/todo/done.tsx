@@ -64,14 +64,9 @@ function useUndo(d: Done): Undo {
     setBusy(true);
     setError(null);
     try {
-      if (kind === "match") {
-        await api.decideMatch(d.activity!.subject!.id, { decision: "rejected", channel: "dashboard" });
-        setDone("Undone. The invoice and the payment are no longer paired; the payment waits in Finances for its invoice.");
-      } else if (kind === "approval") {
-        const undone = await api.undoApproval(d.approval!.id);
-        if (undone === null) return setError("Not undone: the backend cannot undo approved actions yet.");
-        setDone(undone.execution.result ?? "Undone.");
-      }
+      if (kind !== "match") return;
+      await api.decideMatch(d.activity!.subject!.id, { decision: "rejected", channel: "dashboard" });
+      setDone("Undone. The invoice and the payment are no longer paired; the payment waits in Finances for its invoice.");
       requestRefresh();
     } catch (e) {
       setError(`Not undone: ${e instanceof Error ? e.message : String(e)}`);
@@ -87,8 +82,8 @@ function UndoFooter({ undo, onClose }: { undo: Undo; onClose: () => void }) {
     <>
       <span className="grow" />
       <button type="button" onClick={onClose}>Close</button>
-      {!undo.done && (
-        <button type="button" className="undo" disabled={!undo.kind || undo.busy} onClick={undo.run}>
+      {!undo.done && undo.kind && (
+        <button type="button" className="undo" disabled={undo.busy} onClick={undo.run}>
           <Icon name="undo" size={16} />{undo.busy ? "Undoing…" : "Undo"}
         </button>
       )}

@@ -26,9 +26,9 @@ describe("Activity log", () => {
     expect(days).toEqual([...days].sort().reverse());
   });
 
-  it("offers Undo for approved actions and for matches Ordo made, not for read-only steps", async () => {
+  it("offers Undo only for matches Ordo made on its own, never for what the owner decided", async () => {
     const lines = await log();
-    expect(lines.filter((d) => undoKind(d) === "approval").map((d) => d.reference)).toEqual(["SIM-PD-2026-0398"]);
+    expect(lines.filter((d) => d.level === "approved").every((d) => undoKind(d) === null)).toBe(true);
     expect(lines.filter((d) => undoKind(d) === "match")).toHaveLength(1);
     expect(undoKind(lines.find((d) => d.text.startsWith("Read 1,480"))!)).toBeNull();
   });
@@ -53,12 +53,5 @@ describe("Activity log", () => {
     const after = (await api.activity("co_borsuk")).items;
     expect(after).toHaveLength(before.length - 1);
     expect((await api.matches()).items.find((m) => m.id === "mat_pixel11")!.status).toBe("rejected");
-  });
-
-  it("undo of an approved action takes it out of the decisions", async () => {
-    const approved = (await api.approvals("co_borsuk")).items.find((a) => a.execution.reference === "SIM-PD-2026-0398")!;
-    const undone = await api.undoApproval(approved.id);
-    expect(undone!.execution.result).toContain("Undone");
-    expect((await api.approvals("co_borsuk")).items.some((a) => a.id === approved.id)).toBe(false);
   });
 });
