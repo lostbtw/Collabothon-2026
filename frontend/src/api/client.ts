@@ -124,6 +124,8 @@ export const api = {
     optional(http<Settings>("PATCH", "/settings", { query: co(companyId), body })),
   people: (companyId?: string) => optional(http<{ items: Person[] }>("GET", "/people", { query: co(companyId) })),
   addPerson: (companyId: string | undefined, body: Omit<Person, "id">) => optional(http<Person>("POST", "/people", { query: co(companyId), body })),
+  updatePerson: (id: string, companyId: string | undefined, body: Partial<Omit<Person, "id">>) =>
+    optional(http<Person>("PATCH", `/people/${id}`, { query: co(companyId), body })),
   rules: (companyId?: string) => optional(http<{ items: Rule[] }>("GET", "/rules", { query: co(companyId) })),
   deleteRule: (id: string, companyId?: string) => optional(http<void>("DELETE", `/rules/${id}`, { query: co(companyId) })),
   chatSessions: (companyId?: string) => optional(http<{ items: ChatSession[] }>("GET", "/chat/sessions", { query: co(companyId) })),
