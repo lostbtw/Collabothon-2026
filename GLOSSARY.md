@@ -94,6 +94,10 @@ _Avoid_: Approval (for the act), confirmation
 The audit record of one Decision, including rejections, with who decided, when, what changed and the simulated result.
 _Avoid_: Sign-off, consent
 
+**Trace**:
+The step-by-step record of one model-assisted job (reading one RawItem, one agent run, or one chat turn): what went into the model, what came out, and what was kept, linked from the Document, Recommendation or chat answer it produced.
+_Avoid_: Log, run, audit trail (that is the Approval)
+
 **Simulated execution**:
 Carrying out an approved action against the Sandbox Bank instead of a real bank. The app says once, in the sidebar, that every action is simulated.
 _Avoid_: Mock execution, test payment

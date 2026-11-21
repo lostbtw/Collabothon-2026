@@ -5,6 +5,7 @@ import os
 import psycopg
 
 from backend import queue
+from backend import tracing
 from backend.settings import database_url
 
 from . import docling, extract_document, model
@@ -13,6 +14,7 @@ from .worker import CONSUMER, Extract, fail, handle
 log = logging.getLogger("ordo.extractor")
 MAX_ATTEMPTS = 3
 RETRY_AFTER_SECONDS = int(os.environ.get("ORDO_EXTRACT_RETRY_SECONDS", "150"))
+EXPERIMENT = "ordo-extraction"
 
 
 def _handle(conn: psycopg.Connection, event: dict, extract: Extract) -> None:
@@ -37,6 +39,7 @@ def default_extract() -> Extract:
 
 def run(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO)
+    tracing.setup(EXPERIMENT)
     extract = default_extract()
     with psycopg.connect(database_url(), autocommit=False) as conn:
         listener = queue.listen(database_url())

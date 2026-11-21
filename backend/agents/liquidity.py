@@ -11,7 +11,7 @@ from typing import Any
 
 import psycopg
 
-from backend import settings
+from backend import settings, tracing
 from backend.agents import stand_ins, tools
 from backend.agents.llm import default_client, run_tool_loop
 from backend.agents.numbers import unexpected_numbers
@@ -221,11 +221,14 @@ def _model_wording(model: Any, conn: psycopg.Connection, company: str, facts: di
                 {"role": "user", "content": f"Facts from the finance engine: {engine_facts}. Template title: {card['title']}"}]
     answer, results = run_tool_loop(model, conn, company, messages, tools.LIQUIDITY_TOOLS, FINAL_SCHEMA)
     if answer is None:
+        tracing.tag(outcome="no_answer")
         return None
     texts = [answer["title"], answer["summary"], *answer["why"]]
     invented = unexpected_numbers(texts, [results, engine_facts, card["title"]])
     if invented:
+        tracing.tag(outcome="rejected_numbers", invented_numbers=", ".join(f"{n:f}" if isinstance(n, Decimal) else str(n) for n in invented)[:250])
         return None
+    tracing.tag(outcome="accepted")
     return answer
 
 
@@ -258,13 +261,21 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
     if model is _DEFAULT:
         model = default_client()
     if model is not None:
-        wording = _model_wording(model, conn, company, facts, card)
+        with tracing.span("liquidity.wording", {"recommendation_id": card["id"], "template_title": card["title"]}) as step:
+            tracing.tag(agent="liquidity", company_id=company, recommendation_id=card["id"])
+            wording = _model_wording(model, conn, company, facts, card)
+            trace_id = tracing.trace_id()
+            tracing.outputs(step, {"accepted": wording is not None, "wording": wording})
         current = s.get("recommendation", card["id"])
-        if wording and current and current["status"] in ("new", "seen"):
-            current["title"], current["summary"] = wording["title"], wording["summary"]
-            current["explanation"]["why"] = wording["why"]
-            current["explanation"]["generated_by"]["wording"] = settings.llm_model()
+        if (wording or trace_id) and current and current["status"] in ("new", "seen"):
+            if wording:
+                current["title"], current["summary"] = wording["title"], wording["summary"]
+                current["explanation"]["why"] = wording["why"]
+                current["explanation"]["generated_by"]["wording"] = settings.llm_model()
+            current["explanation"]["generated_by"]["trace_id"] = trace_id
             s.put("recommendation", current)
-            publish(conn, new_event("recommendation.status_changed", company,
-                                    {"recommendation_id": card["id"], "status": current["status"]}, producer="agents"))
+            if wording:
+                publish(conn, new_event("recommendation.status_changed", company,
+                                        {"recommendation_id": card["id"], "status": current["status"]},
+                                        producer="agents"))
     return card["id"]

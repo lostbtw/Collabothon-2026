@@ -43,6 +43,11 @@ spec:
                 secretKeyRef:
                   name: llm-token
                   key: token
+            - name: MLFLOW_TRACKING_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-token
+                  key: token
           resources:
             requests:
               cpu: 100m

@@ -19,6 +19,7 @@ from backend.settings import database_url
 log = logging.getLogger("ordo.agents")
 CONSUMER = "agents"
 MAX_ATTEMPTS = 3
+EXPERIMENT = "ordo-agents"
 
 HANDLERS: dict[str, list[Callable[[psycopg.Connection, dict[str, Any]], Any]]] = {
     "match.suggested": [ingestion.on_match_suggested],
@@ -42,6 +43,7 @@ def process_pending(conn: psycopg.Connection, retry_after_seconds: int = 30) -> 
 
 def run(argv: list[str]) -> int:
     logging.basicConfig(level=logging.INFO)
+    tracing.setup(EXPERIMENT)
     with psycopg.connect(database_url(), autocommit=False) as conn:
         listener = queue.listen(database_url())
         log.info("agents: listening")

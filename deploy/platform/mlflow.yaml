@@ -1,0 +1,42 @@
+apiVersion: mlflow.opendatahub.io/v1
+kind: MLflow
+metadata:
+  name: mlflow
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  replicas: 1
+  workers: 1
+  backendStoreUri: sqlite:////mlflow/mlflow.db
+  registryStoreUri: sqlite:////mlflow/mlflow.db
+  serveArtifacts: true
+  artifactsDestination: file:///mlflow/artifacts
+  storage:
+    accessModes: ["ReadWriteOnce"]
+    storageClassName: gp3-csi
+    resources:
+      requests:
+        storage: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cfo-app-mlflow-integration
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mlflow-operator-mlflow-integration
+subjects:
+  - kind: ServiceAccount
+    name: cfo-app
+    namespace: cfo-ai
