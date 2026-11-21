@@ -149,6 +149,9 @@ export function TodoRow({ item }: { item: TodoItem }) {
 const ESTIMATE = " (estimate)";
 const OP_SIGN: Record<string, string> = { start: "", plus: "+", minus: "−", equals: "=", note: "" };
 
+const monthInWords = (label: string) => label.replace(/\b(\d{2})\/(\d{4})\b/,
+  (_, m: string, y: string) => `${new Date(Number(y), Number(m) - 1, 1).toLocaleString("en-GB", { month: "long" })} ${y}`);
+
 type TaxComponent = Forecast["components"][number] & { date: string };
 
 function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean; open: boolean; onToggle: () => void }) {
@@ -167,7 +170,7 @@ function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean;
         <span className="t3" style={{ minWidth: 56 }}>{shortDate(c.date)}</span>
         <div className="stack grow" style={{ gap: 2 }}>
           <span className="hstack" style={{ gap: 8 }}>
-            <span className="medium">{estimate ? c.label.slice(0, -ESTIMATE.length) : c.label}</span>
+            <span className="medium">{monthInWords(estimate ? c.label.slice(0, -ESTIMATE.length) : c.label)}</span>
             {estimate && <span className="chip warn">estimate</span>}
           </span>
           <span className="small t2" style={{ marginTop: 2 }}>{c.explainer ?? formula}</span>
