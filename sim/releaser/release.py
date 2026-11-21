@@ -6,6 +6,8 @@ It never writes into the app database: everything it releases reaches the app be
     python sim/releaser/release.py status                      # what is in the plan, what the mailbox already holds
     python sim/releaser/release.py backfill [--until 2026-10-31] [--limit N] [--dry-run]
     python sim/releaser/release.py drip [--speed 10] [--dry-run]   # during the demo: one item every 20-40 s
+    python sim/releaser/release.py next                        # ONE not yet sent drip document (short demo)
+    python sim/releaser/release.py list                        # the 15 drip documents, which are sent
     python sim/releaser/release.py live                        # backup only: the rendered photo of the live receipt
     python sim/releaser/release.py check-bank                  # the bank lines of the plan are in the Sandbox Bank
 
@@ -179,8 +181,9 @@ class Mailbox:
 
 # ---------- commands ----------
 def release(mailbox: Mailbox, items: list[dict], *, now=None, sleep=time.sleep, paced: bool = False,
-            speed: float = 1.0, dry_run: bool = False, log=print) -> Counter:
-    """Put each item's message into the mailbox unless its Message-ID is there. `paced`: wait for offset_seconds."""
+            speed: float = 1.0, dry_run: bool = False, fresh: bool = False, log=print) -> Counter:
+    """Put each item's message into the mailbox unless its Message-ID is there. `paced`: wait for offset_seconds.
+    `fresh`: dated now, like a mail that has just arrived (otherwise dated on the scenario day)."""
     docs = _documents()
     present = mailbox.message_ids() if mailbox else set()
     counts: Counter = Counter()
@@ -194,7 +197,7 @@ def release(mailbox: Mailbox, items: list[dict], *, now=None, sleep=time.sleep, 
         if mid in present:
             counts["already_in_mailbox"] += 1
             continue
-        when = (now or (lambda: datetime.now(POLAND)))() if paced else scenario_time(item)
+        when = (now or (lambda: datetime.now(POLAND)))() if (paced or fresh) else scenario_time(item)
         msg = build_message(item, mailbox.settings["user"] if mailbox else "invoices@example.test", docs, when)
         if dry_run:
             counts["would_release"] += 1
@@ -202,7 +205,7 @@ def release(mailbox: Mailbox, items: list[dict], *, now=None, sleep=time.sleep, 
             mailbox.append(msg, when)
             present.add(mid)
             counts["released"] += 1
-            if paced:
+            if paced or fresh:
                 log(f"{datetime.now():%H:%M:%S} released {item['document_id']} ({item['channel']}) from {sender_of(item)}")
         counts[f"channel:{item['channel']}"] += 1
     return counts
@@ -250,6 +253,9 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--speed", type=float, default=1.0, help="2 = twice as fast as the plan's offsets")
     d.add_argument("--dry-run", action="store_true")
     sub.add_parser("live")
+    sub.add_parser("list", help="the drip documents and which are already in the mailbox")
+    n = sub.add_parser("next", help="send ONE not yet sent drip document (for a short demo)")
+    n.add_argument("--dry-run", action="store_true")
     sub.add_parser("check-bank")
     args = parser.parse_args(argv)
     load_env_file()
@@ -263,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if res["missing"] == res["wrong_date"] == 0 else 1
 
     dry = getattr(args, "dry_run", False)
-    mailbox = None if (dry and args.command != "status") else Mailbox(imap_settings())
+    mailbox = None if (dry and args.command not in ("status", "list", "next")) else Mailbox(imap_settings())
     try:
         if args.command == "status":
             present = mailbox.message_ids()
@@ -272,6 +278,25 @@ def main(argv: list[str] | None = None) -> int:
                 done = sum(message_id(i) in present for i in mine)
                 print(f"{mode:9} {len(mine):4} mail items, {done:4} already in the mailbox")
             print(f"bank      {sum(i['channel'] == 'bank' for i in items):4} lines (loaded by the Sandbox Bank itself)")
+            return 0
+        if args.command in ("list", "next"):
+            drip = select(items, "drip")
+            present = mailbox.message_ids() if mailbox else set()
+            if args.command == "list":
+                docs = _documents()
+                for n, i in enumerate(drip, start=1):
+                    who = docs.get(i["document_id"], {})
+                    state = "sent" if message_id(i) in present else "    "
+                    print(f"{n:2} {state} {i['document_id']:12} {i['channel']:6} from {sender_of(i):28} "
+                          f"{who.get('counterparty') or ''}  [{artefact_path(i['artefact']).name}]")
+                print(f"{sum(message_id(i) in present for i in drip)} of {len(drip)} sent")
+                return 0
+            todo = [i for i in drip if message_id(i) not in present]
+            if not todo:
+                print("all drip documents are already sent")
+                return 0
+            counts = release(mailbox, todo[:1], fresh=True, dry_run=dry)
+            print(f"{len(todo) - 1} left")
             return 0
         if args.command == "backfill":
             counts = release(mailbox, select(items, "backfill", args.until, args.limit), dry_run=dry)
