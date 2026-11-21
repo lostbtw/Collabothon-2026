@@ -26,7 +26,7 @@ export function AskButton({ draft }: { draft?: string }) {
 }
 
 const LEVEL: Record<ControlLevel | "approved", [string, string]> = {
-  approval_required: ["Needs your OK", "ok-needed"],
+  approval_required: ["Needs your confirmation", "ok-needed"],
   recommendation: ["Suggestion", "suggestion"],
   analysed_autonomously: ["Done by Ordo", "by-ordo"],
   approved: ["Approved by you", "approved"],

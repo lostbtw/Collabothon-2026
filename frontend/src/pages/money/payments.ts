@@ -1,7 +1,7 @@
 // One list of every payment: bank and card lines, plus receipts somebody paid with a private card
 // (they never reach a company account). No React in here, so it can be tested directly.
 import type { Account, Counterparty, Match, Money, OrdoDocument, Transaction } from "../../api/types.gen";
-import { COST_TYPES, NOT_COSTS, negate, typeOfCategory } from "../../lib/costTypes";
+import { NOT_COSTS, costTypes, negate, typeOfCategory } from "../../lib/costTypes";
 import { categoryLabel, firstName, plainName } from "../../lib/words";
 
 /** Where the paper behind a payment stands. */
@@ -107,7 +107,7 @@ export function typeOf(p: Payment): { label: string; color: string } {
   const key = typeKey(p);
   if (key === "income") return { label: "Client payment", color: "var(--accent)" };
   if (p.category && NOT_COSTS.has(p.category)) return { label: categoryLabel(p.category), color: "var(--cat-none)" };
-  const t = COST_TYPES.find((c) => c.key === key)!;
+  const t = costTypes().find((c) => c.key === key) ?? typeOfCategory("other");
   return { label: t.label, color: t.color };
 }
 

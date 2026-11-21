@@ -3,10 +3,10 @@
 import type { LedgerSummary } from "../api/client";
 import type { Money } from "../api/types.gen";
 
-export type CostType = { key: string; label: string; color: string; tag: string; categories: string[] };
+export type CostType = { key: string; label: string; color: string; tag: string; categories: string[]; own?: boolean };
 
 /** In the order of the validated colour palette, so neighbours in the cost bar stay distinguishable. */
-export const COST_TYPES: CostType[] = [
+export const DEFAULT_COST_TYPES: CostType[] = [
   { key: "staff", label: "Staff", color: "var(--cat-1)", tag: "Fixed", categories: ["salaries", "contractors", "social_security"] },
   { key: "taxes", label: "Taxes", color: "var(--cat-2)", tag: "Monthly", categories: ["taxes"] },
   { key: "tools", label: "Tools & hosting", color: "var(--cat-3)", tag: "Every month", categories: ["software_subscriptions", "cloud_hosting"] },
@@ -23,7 +23,41 @@ export const INCOME_CATEGORIES = new Set(["revenue_services"]);
 /** Not company costs: a reimbursement is a debt to a person (the cost itself is booked in its own category), owner_private is personal. */
 export const NOT_COSTS = new Set(["reimbursements", "owner_private"]);
 
-export const typeOfCategory = (category: string): CostType => COST_TYPES.find((t) => t.categories.includes(category)) ?? COST_TYPES[COST_TYPES.length - 1];
+// The owner's own cost types, kept in this browser: each takes some categories away from the default types.
+const OWN_KEY = "ordo.costTypes.own";
+export const OWN_COLORS = ["#0f8b8d", "#a3478f", "#8c6d1f", "#4b6a88", "#c2452d", "#5c7d2e"];
+/** Categories an own type may take: costs only, and never "Not explained yet". */
+export const ASSIGNABLE_CATEGORIES = DEFAULT_COST_TYPES.flatMap((t) => t.categories).filter((c) => c !== "other");
+
+function readOwn(): CostType[] {
+  try {
+    const list = JSON.parse(globalThis.localStorage?.getItem(OWN_KEY) ?? "[]") as CostType[];
+    return Array.isArray(list) ? list.map((t) => ({ ...t, own: true })) : [];
+  } catch {
+    return [];
+  }
+}
+let own: CostType[] = readOwn();
+
+export const ownCostTypes = (): CostType[] => own;
+
+export function saveOwnCostTypes(list: CostType[]): void {
+  own = list.map((t) => ({ ...t, own: true }));
+  try { globalThis.localStorage?.setItem(OWN_KEY, JSON.stringify(own)); } catch { /* kept until reload */ }
+}
+
+/** Default types without the categories the owner moved, then the owner's types, "Not explained yet" last. */
+export function costTypes(): CostType[] {
+  const taken = new Set(own.flatMap((t) => t.categories));
+  const defaults = DEFAULT_COST_TYPES.map((t) => ({ ...t, categories: t.categories.filter((c) => !taken.has(c)) }));
+  const unexplained = defaults.pop()!;
+  return [...defaults.filter((t) => t.categories.length > 0), ...own, unexplained];
+}
+
+export const typeOfCategory = (category: string): CostType => {
+  const all = costTypes();
+  return all.find((t) => t.categories.includes(category)) ?? all[all.length - 1];
+};
 
 // Exact decimal arithmetic on money strings, in cents, so no float ever touches an amount.
 const cents = (amount: string): bigint => {
@@ -79,7 +113,7 @@ export function monthFigures(summary: LedgerSummary | null, currency: string): M
     byType.set(t.key, [...(byType.get(t.key) ?? []), { key: row.key, amount: out }]);
   }
   const m = (amount: string): Money => ({ amount, currency });
-  const types = COST_TYPES.filter((t) => byType.has(t.key)).map((t) => {
+  const types = costTypes().filter((t) => byType.has(t.key)).map((t) => {
     const cats = byType.get(t.key)!;
     return { type: t, amount: m(cats.reduce((s, c) => add(s, c.amount), zero)), categories: cats.map((c) => ({ key: c.key, amount: m(c.amount) })) };
   }).filter((t) => !isZero(t.amount.amount));

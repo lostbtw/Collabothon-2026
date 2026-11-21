@@ -7,7 +7,8 @@ import { api, exportUrl, type Person, type Rule, type Settings as SettingsData }
 import type { Account, Source } from "../api/types.gen";
 import { PageHead, Skeleton, Toggle, Waiting } from "../components/ui";
 import { ago, useNow } from "../lib/clock";
-import { COST_TYPES } from "../lib/costTypes";
+import { Icon } from "../components/Icon";
+import { ASSIGNABLE_CATEGORIES, OWN_COLORS, costTypes, ownCostTypes, saveOwnCostTypes, type CostType } from "../lib/costTypes";
 import { useCompany } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
@@ -355,12 +356,7 @@ function SortingSection({ rules, onChanged }: { rules: Rule[] | null; onChanged:
   }
   return (
     <Section id="sorting" title="How Ordo sorts costs" sub="In this order: what you corrected before, then simple word rules, then the AI picks one of your cost types. If nothing fits, it says “Not explained yet”.">
-      <Setting title="Cost types">
-        <div className="hstack" style={{ justifyContent: "flex-end", maxWidth: 560 }}>
-          {COST_TYPES.map((t) => <span key={t.key} className="chip neutral hstack" style={{ gap: 6 }}><span className="dot" style={{ background: t.color }} />{t.label}</span>)}
-          <span className="chip neutral hstack" style={{ gap: 6 }}><span className="dot" style={{ background: "var(--cat-none)" }} />Personal</span>
-        </div>
-      </Setting>
+      <CostTypesSetting />
       <span className="small medium" style={{ padding: "16px 0 4px", borderTop: "1px solid var(--border)" }}>Rules Ordo learned from you</span>
       {!rules ? <Waiting what="the learned rules" /> : rules.length === 0 ? <span className="small t2">None yet. Each time you change a type, Ordo learns a rule.</span> : rules.map((r) => (
         <div key={r.id} className="setting">
@@ -371,6 +367,87 @@ function SortingSection({ rules, onChanged }: { rules: Rule[] | null; onChanged:
       ))}
       {error && <span className="small bad" role="alert">{error}</span>}
     </Section>
+  );
+}
+
+/** The cost types every screen groups costs by; the owner can add their own and move categories into them. */
+function CostTypesSetting() {
+  const [, setVersion] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const types = costTypes();
+  function save(list: CostType[]) {
+    saveOwnCostTypes(list);
+    setVersion((v) => v + 1);
+    requestRefresh();
+  }
+  return (
+    <div className="setting" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
+      <div className="hstack">
+        <div className="stack grow" style={{ gap: 0 }}>
+          <span>Cost types</span>
+          <span className="small t3">Every screen groups costs by these. Make your own and choose what goes into it.</span>
+        </div>
+        {!adding && <button type="button" onClick={() => setAdding(true)}><Icon name="plus" size={14} />New cost type</button>}
+      </div>
+      <div className="hstack">
+        {types.map((t) => (
+          <span key={t.key} className="chip neutral hstack" style={{ gap: 6 }} title={t.categories.map(categoryLabel).join(", ")}>
+            <span className="dot" style={{ background: t.color }} />{t.label}
+            {t.own && <button type="button" className="chip-x" aria-label={`Delete ${t.label}`} onClick={() => save(ownCostTypes().filter((o) => o.key !== t.key))}><Icon name="close" size={12} /></button>}
+          </span>
+        ))}
+        <span className="chip neutral hstack" style={{ gap: 6 }}><span className="dot" style={{ background: "var(--cat-none)" }} />Personal</span>
+      </div>
+      {adding && <NewCostType types={types} onCancel={() => setAdding(false)} onSave={(t) => { save([...ownCostTypes(), t]); setAdding(false); }} />}
+    </div>
+  );
+}
+
+function NewCostType({ types, onSave, onCancel }: { types: CostType[]; onSave: (t: CostType) => void; onCancel: () => void }) {
+  const used = new Set(ownCostTypes().map((t) => t.color));
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(OWN_COLORS.find((c) => !used.has(c)) ?? OWN_COLORS[0]);
+  const [picked, setPicked] = useState<string[]>([]);
+  const taken = types.some((t) => t.label.toLowerCase() === name.trim().toLowerCase());
+  const ok = name.trim() !== "" && !taken && picked.length > 0;
+  const toggle = (c: string) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (ok) onSave({ key: `own_${Date.now().toString(36)}`, label: name.trim(), color, tag: "Your type", categories: picked });
+  }
+  return (
+    <form className="box plain" onSubmit={submit}>
+      <label className="field-row">
+        <span className="small t2">Name</span>
+        <input type="text" value={name} autoFocus placeholder="For example: Ingredients" onChange={(e) => setName(e.target.value)} aria-label="Name of the cost type" />
+      </label>
+      <div className="field-row">
+        <span className="small t2">Colour</span>
+        <div className="hstack">
+          {OWN_COLORS.map((c) => <button key={c} type="button" className={`swatch${c === color ? " on" : ""}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={c === color} onClick={() => setColor(c)} />)}
+        </div>
+      </div>
+      <div className="field-row" style={{ alignItems: "flex-start" }}>
+        <span className="small t2" style={{ paddingTop: 4 }}>What goes into it</span>
+        <div className="hstack">
+          {ASSIGNABLE_CATEGORIES.map((c) => {
+            const from = types.find((t) => t.categories.includes(c));
+            return (
+              <button key={c} type="button" className={`pick${picked.includes(c) ? " on" : ""}`} aria-pressed={picked.includes(c)} onClick={() => toggle(c)}
+                title={from ? `Now in ${from.label}` : undefined}>
+                {categoryLabel(c)}{from && !picked.includes(c) && <span className="t3"> · {from.label}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {taken && <span className="small bad">A cost type with this name already exists.</span>}
+      <span className="small t3">The categories you pick move out of their current type, on every screen. Kept in this browser.</span>
+      <div className="hstack">
+        <button type="submit" className="primary" disabled={!ok}>Add cost type</button>
+        <button type="button" className="quiet" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
   );
 }
 
