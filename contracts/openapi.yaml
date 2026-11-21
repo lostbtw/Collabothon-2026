@@ -37,6 +37,7 @@ paths:
                 properties:
                   status: {type: string, enum: [ok]}
                   llm: {type: object, properties: {base_url: {type: string}, model: {type: string}, reachable: {type: boolean}}}
+                  speech: {type: [object, 'null'], description: "Speech to text for the chat's voice input; null when Whisper is not deployed", properties: {model: {type: string}, reachable: {type: boolean}}}
                   demo_clock: {type: string, format: date-time, description: "Simulated 'now' used by generator and forecast"}
   /companies:
     get:
@@ -362,6 +363,26 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ChatAnswer'}
+  /chat/transcribe:
+    post:
+      tags: [chat]
+      summary: Speech to text for the chat's voice input (Whisper on the cluster). The text goes back to the message box for the owner to check and send; neither audio nor text is stored, logged or traced.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, language]
+              properties:
+                file: {type: string, format: binary, description: "Recorded audio (audio/webm, audio/mp4, audio/ogg, audio/wav), at most 5 MB"}
+                language: {type: string, enum: [pl, en, ru]}
+      responses:
+        '200': {description: Transcript, content: {application/json: {schema: {$ref: '#/components/schemas/Transcript'}}}}
+        '413': {description: The file is over 5 MB (too_large), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '415': {description: The file is not audio (unsupported_media_type), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '422': {description: A language other than pl, en, ru, or an empty file (invalid_request), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '503': {description: Whisper is not deployed or does not answer (speech_unavailable), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
   /fx/rates:
     get:
       summary: Exchange rate lookup used by engine and UI tooltips
@@ -522,6 +543,20 @@ components:
     company: {name: company_id, in: query, schema: {type: string}}
     cursor: {name: cursor, in: query, schema: {type: string}}
   schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: {type: object, required: [code, message], properties: {code: {type: string}, message: {type: string}}}
+    Transcript:
+      type: object
+      required: [text, language, duration_seconds, model, seconds]
+      properties:
+        text: {type: string, description: "What Whisper heard; empty when nothing was said"}
+        language: {type: string, enum: [pl, en, ru]}
+        duration_seconds: {type: number, description: "Length of the recording"}
+        model: {type: string}
+        seconds: {type: number, description: "Time the transcription took"}
     Settings:
       type: object
       properties:
