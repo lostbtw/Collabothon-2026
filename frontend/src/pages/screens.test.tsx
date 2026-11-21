@@ -110,7 +110,7 @@ describe("To-do", () => {
     expect(html).toContain("Close October");
     expect(html).toContain("94% done");
     expect(html).toContain("SIM-PD-2026-0398");
-    expect(html).not.toContain("No need to hedge");
+    expect(html).toContain("No need to hedge"); // advice is shown, with the Suggestion badge
   });
 });
 
