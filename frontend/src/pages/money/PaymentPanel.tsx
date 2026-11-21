@@ -297,11 +297,17 @@ function Why({ p, onChanged }: { p: Payment; onChanged: () => void }) {
   const suggestion = d?.category_suggestion;
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { companyId } = useCompany();
+  const t0 = p.transaction;
   async function change(category: Category) {
-    if (!d) return;
     setError(null);
     try {
-      await api.patchDocument(d.id, { category_suggestion: { category, confidence: 1, method: "history" } });
+      // With a document the correction goes on it; a bank line alone gets its type changed directly.
+      // Either way the backend remembers it as a rule for this counterparty.
+      if (d) await api.patchDocument(d.id, { category_suggestion: { category, confidence: 1, method: "history" } });
+      else if (t0 && (await api.setTransactionCategory(t0.id, category, companyId)) === null) {
+        return setError("Not saved: the backend cannot change a payment's type yet.");
+      }
       setEditing(false);
       onChanged();
       requestRefresh();
@@ -322,9 +328,9 @@ function Why({ p, onChanged }: { p: Payment; onChanged: () => void }) {
           {p.category && t.label !== categoryLabel(p.category) ? `${suggestion && suggestion.confidence < 1 ? " · " : ""}${categoryLabel(p.category).toLowerCase()}` : ""}
           {d?.lines?.[0] && p.doc === "to_check" ? ` · ${d.lines[0].description.toLowerCase()}` : ""}
         </span>
-        {d && !editing && <button type="button" className="quiet" onClick={() => setEditing(true)}>Change</button>}
+        {(d || t0) && !editing && <button type="button" className="quiet" onClick={() => setEditing(true)}>{p.category && p.category !== "other" ? "Change" : "Choose a type"}</button>}
       </div>
-      {editing && d && (
+      {editing && (d || t0) && (
         <label className="pill-select">
           <select aria-label="Type" defaultValue={suggestion?.category ?? p.category ?? "other"} onChange={(e) => change(e.target.value as Category)}>
             {CHANGEABLE.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
@@ -334,7 +340,7 @@ function Why({ p, onChanged }: { p: Payment; onChanged: () => void }) {
       {error && <span className="small bad" role="alert">{error}</span>}
       {paid && p.match?.paid_by !== "company_account" && <span className="small t2">{paid.headline}{p.match?.payer?.email ? `: the receipt came from ${firstName(p.match.payer.name)}'s e-mail` : ""}.</span>}
       {reasons.map((r) => <span key={r} className="small t2">{r}</span>)}
-      {!d && p.doc === "missing" && <span className="small t2">No invoice{p.category === "other" ? ", and no rule for this shop yet" : ""}. Add the invoice and Ordo sorts it.</span>}
+      {!d && p.doc === "missing" && <span className="small t2">No invoice{p.category === "other" ? ", and no rule for this shop yet" : ""}. Once you choose a type, Ordo remembers it for {p.name}.</span>}
       {!d && p.doc !== "missing" && p.transaction && <span className="small t2">From the bank line “{p.transaction.counterparty_name_raw ?? p.transaction.description}”.</span>}
       {d && (
         <div className="hstack">

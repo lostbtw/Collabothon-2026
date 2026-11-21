@@ -36,11 +36,12 @@ def seed(conn: psycopg.Connection, address_map: dict[str, str] | None = None) ->
         )
     for p in json.loads(PEOPLE_FILE.read_text(encoding="utf-8")):
         conn.execute(
-            """insert into people (id, company_id, name, email, role)
-               values (%(id)s, %(company_id)s, %(name)s, %(email)s, %(role)s)
+            """insert into people (id, company_id, name, email, role, pay_type, card_last4, statement_names)
+               values (%(id)s, %(company_id)s, %(name)s, %(email)s, %(role)s, %(pay_type)s, %(card_last4)s, %(statement_names)s)
                on conflict (id) do update set company_id = excluded.company_id, name = excluded.name,
-                 email = excluded.email, role = excluded.role""",
-            p,
+                 email = excluded.email, role = excluded.role, pay_type = excluded.pay_type,
+                 card_last4 = excluded.card_last4, statement_names = excluded.statement_names""",
+            {"pay_type": None, "card_last4": [], "statement_names": [], **p},
         )
     for address, person_id in address_map.items():
         conn.execute(

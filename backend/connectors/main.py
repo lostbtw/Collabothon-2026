@@ -9,7 +9,8 @@ Options:
   --once            one tick, then exit (tests, manual runs)
   --reset-cursors   start the bank sources from the beginning (a manual tool; not needed for the invented
                     cursors of contracts/fixtures, the bank connector detects and fixes those by itself)
-Environment: ORDO_DATABASE_URL, ORDO_BANK_URL, ORDO_BANK_TOKEN, ORDO_DEMO_MODE=1 (bank sources poll every 15 s).
+Environment: ORDO_DATABASE_URL, ORDO_BANK_URL, ORDO_BANK_TOKEN, ORDO_DEMO_MODE=1 (bank sources poll every 15 s),
+ORDO_IMAP_USER + ORDO_IMAP_PASSWORD (the invoices mailbox), ORDO_CONNECTORS_ONLY (limit to some connectors).
 """
 from __future__ import annotations
 
@@ -27,7 +28,7 @@ from psycopg.types.json import Jsonb
 
 from backend.connectors.bank import BankConnector, account_for_source, make_client
 from backend.connectors.base import Connector, iso, run_once
-from backend.connectors.mailbox import ImapConnector, imap_configured
+from backend.connectors.mailbox import ImapConnector, imap_configured, imap_settings
 from backend.connectors.nbp import NbpConnector, make_nbp_client
 from backend.settings import database_url
 
@@ -36,15 +37,37 @@ DEMO_INTERVAL_SECONDS = 15
 TICK_SECONDS = 2.0
 
 
+def enabled_connectors() -> set[str] | None:
+    """ORDO_CONNECTORS_ONLY=imap_mailbox,fx_rates limits the process to those connectors (e.g. on a cluster where the
+    Sandbox Bank does not run yet). Unset: every connector."""
+    raw = os.environ.get("ORDO_CONNECTORS_ONLY", "").strip()
+    return {c.strip() for c in raw.split(",") if c.strip()} or None
+
+
+def show_mailbox_address(conn: psycopg.Connection, source: dict[str, Any], address: str) -> dict[str, Any]:
+    """The invoices mailbox's address on its Source, so the app can tell staff where to forward receipts. The address
+    comes from the Secret-backed ORDO_IMAP_USER, never from Git."""
+    public = dict(source.get("config_public") or {})
+    if public.get("mailbox") == address:
+        return source
+    source = {**source, "config_public": {**public, "mailbox": address}}
+    conn.execute("update sources set doc = %s where id = %s", (Jsonb(source), source["id"]))
+    conn.commit()
+    return source
+
+
 def build_connector(conn: psycopg.Connection, source: dict[str, Any], bank: httpx.Client,
                     nbp: httpx.Client | None = None) -> Connector | None:
     """The connector for a source, or None when role 2 has none for it (yet)."""
+    only = enabled_connectors()
+    if only is not None and source["connector"] not in only:
+        return None
     if source["connector"] == "bank_psd2":
         return BankConnector(source, account_for_source(conn, source), bank)
     if source["connector"] == "fx_rates" and nbp is not None:
         return NbpConnector(source, nbp)
     if source["connector"] == "imap_mailbox" and imap_configured():
-        return ImapConnector(source)
+        return ImapConnector(show_mailbox_address(conn, source, imap_settings()["user"].lower()))
     return None
 
 
