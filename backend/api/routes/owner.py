@@ -90,8 +90,12 @@ def clients(month: str | None = Query(None), company: str = Depends(company_id),
 
 
 @router.get("/subscriptions")
-def subscriptions(company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
-    return owner.subscriptions(c, company)
+def subscriptions(month: str | None = Query(None), scope: str = Query("subscriptions", pattern="^(subscriptions|all)$"),
+                  company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
+    """scope=all: every payment that repeats each month (rent, staff, taxes too), not only tools."""
+    if month is not None and not MONTH.match(month):
+        raise ApiError(422, "invalid_request", "month is YYYY-MM")
+    return owner.subscriptions(c, company, month, scope)
 
 
 @router.get("/chat/sessions")

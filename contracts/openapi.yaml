@@ -462,8 +462,8 @@ paths:
   /subscriptions:
     get:
       tags: [owner]
-      summary: Tools and services paid every month, with price rises, double payments and private cards
-      parameters: [{$ref: '#/components/parameters/company'}]
+      summary: What is paid every month (scope=all) or only tools and services (default), seen from a month, with price rises, double payments and private cards
+      parameters: [{$ref: '#/components/parameters/company'}, {name: month, in: query, schema: {type: string}}, {name: scope, in: query, schema: {type: string, enum: [subscriptions, all]}}]
       responses:
         '200':
           description: OK
@@ -472,7 +472,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  items: {type: array, items: {type: object, required: [counterparty_id, name, category, monthly, paid_by, flags], properties: {counterparty_id: {type: string}, name: {type: string}, category: {type: string}, monthly: {$ref: './schemas/common.schema.json#/$defs/Money'}, previous_monthly: {$ref: './schemas/common.schema.json#/$defs/Money'}, original: {oneOf: [{$ref: './schemas/common.schema.json#/$defs/Money'}, {type: 'null'}]}, duplicate_cost: {$ref: './schemas/common.schema.json#/$defs/Money'}, paid_by: {type: array, items: {type: object, properties: {kind: {type: string, enum: [account, card, person]}, label: {type: string}}}}, flags: {type: array, items: {type: string, enum: [price_up, paid_twice, paid_privately]}}, series_ids: {type: array, items: {type: string}}}}}
+                  items: {type: array, items: {type: object, required: [counterparty_id, name, category, monthly, paid_by, flags], properties: {counterparty_id: {type: string}, name: {type: string}, category: {type: string}, monthly: {$ref: './schemas/common.schema.json#/$defs/Money'}, paid_in_month: {type: boolean}, previous_monthly: {$ref: './schemas/common.schema.json#/$defs/Money'}, original: {oneOf: [{$ref: './schemas/common.schema.json#/$defs/Money'}, {type: 'null'}]}, duplicate_cost: {$ref: './schemas/common.schema.json#/$defs/Money'}, paid_by: {type: array, items: {type: object, properties: {kind: {type: string, enum: [account, card, person]}, label: {type: string}}}}, flags: {type: array, items: {type: string, enum: [price_up, paid_twice, paid_privately]}}, series_ids: {type: array, items: {type: string}}}}}
                   monthly_total: {$ref: './schemas/common.schema.json#/$defs/Money'}
   /rules:
     get:
