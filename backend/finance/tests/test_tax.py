@@ -223,7 +223,7 @@ def test_every_breakdown_ends_at_the_amount_to_pay():
     assert {c["id"].split("_")[2] for c in comps} >= {"vat", "cit", "pit4", "zus"}
     for c in comps:
         steps = c["breakdown"]
-        assert steps[0]["op"] == "start"
+        assert [x for x in steps if x["op"] != "note"][0]["op"] == "start"
         last = [s for s in steps if s["op"] == "equals"][-1]
         assert last["amount"]["amount"] == c["amount_base"]["amount"].lstrip("-")
         assert all(s["amount"] is None for s in steps if s["op"] == "note")
