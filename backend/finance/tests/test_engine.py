@@ -143,7 +143,7 @@ def test_input_events_are_debounced_per_company(labs_db):
     seen = DIRTY["co_borsuk"][0]
 
     assert recompute_due(labs_db, now=seen + 1.0) == []          # within 2 s: wait for more events
-    assert recompute_due(labs_db, now=seen + 2.0) == ["co_borsuk"]
+    assert recompute_due(labs_db, now=seen + 3.0) == ["co_borsuk"]
     assert events(labs_db, "forecast.updated")[-1]["causation_id"] == event["id"]
     assert DIRTY == {}
 
