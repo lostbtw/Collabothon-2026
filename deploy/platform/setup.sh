@@ -119,6 +119,21 @@ dev_build_web() {
   fi
 }
 
+bank_csv() {
+  local file="${1:-}"
+  if [[ -z "$file" || ! -f "$file" ]]; then
+    echo "usage: $0 bank-csv <the organisers' pizzeria-amalfi-bank-statement CSV, not in Git>" >&2
+    exit 2
+  fi
+  oc -n "$NS" create configmap bank-pizzeria-csv --from-file="statement.csv=$file" --dry-run=client -o yaml |
+    oc label --local -f - app.kubernetes.io/part-of=ordo -o yaml |
+    oc apply -f -
+  if oc -n "$NS" get deployment ordo-bank >/dev/null 2>&1; then
+    oc -n "$NS" rollout restart deployment/ordo-bank
+    oc -n "$NS" rollout status deployment/ordo-bank --timeout=300s
+  fi
+}
+
 webhook_urls() {
   local server secret name
   server="$(oc whoami --show-server)"
@@ -208,20 +223,29 @@ verify() {
   ((failed == 0))
 }
 
-app() {
+app_inputs() {
   local name
-  for name in ordo-db llm-token docling-api-key; do
+  for name in ordo-db llm-token docling-api-key sandbox-bank-token; do
     if ! secret_exists "$name"; then
       echo "secret $name is missing, see deploy/secrets.example.yaml" >&2
       exit 1
     fi
   done
+  if ! oc -n "$NS" get configmap bank-pizzeria-csv >/dev/null 2>&1; then
+    echo "configmap bank-pizzeria-csv is missing, run: $0 bank-csv <pizzeria CSV>" >&2
+    exit 1
+  fi
   if ! secret_exists ordo-mailbox; then
     echo "note: no secret ordo-mailbox, the invoices mailbox is not read (see deploy/secrets.example.yaml)" >&2
   fi
-  oc apply -f "$APP/config.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml" -f "$APP/extractor.yaml" \
-    -f "$APP/connectors.yaml"
-  for name in ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors; do
+}
+
+app() {
+  local name
+  app_inputs
+  oc apply -f "$APP/config.yaml" -f "$APP/bank.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml" \
+    -f "$APP/extractor.yaml" -f "$APP/connectors.yaml"
+  for name in ordo-bank ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors; do
     oc -n "$NS" rollout status "deployment/$name" --timeout=300s
   done
 }
@@ -239,25 +263,79 @@ model_requests() {
     awk '/^vllm:request_success_total\{/ && !/finished_reason="abort"/ { sum += $NF } END { printf "%d\n", sum }'
 }
 
-check_m1() {
-  local base health company request answer before after failed=0
-  base="https://$(oc -n "$NS" get route ordo-web -o jsonpath='{.spec.host}')"
+app_base() {
+  echo "https://$(oc -n "$NS" get route ordo-web -o jsonpath='{.spec.host}')"
+}
 
-  if curl -fsS -o /dev/null "$base/"; then
-    echo "OK   $base/ opens from outside the cluster"
+check_web() {
+  local base="$1" page
+  if page="$(curl -fsS "$base/")" && grep -q '<div id="root">' <<<"$page"; then
+    echo "OK   $base/ opens the Ordo app from outside the cluster"
   else
-    echo "FAIL $base/ does not open" >&2
-    failed=1
+    echo "FAIL $base/ does not open the Ordo app" >&2
+    return 1
   fi
+}
 
+check_health() {
+  local base="$1" health
   if health="$(curl -fsS "$base/api/v1/health")" && jq -e '.llm.reachable == true' <<<"$health" >/dev/null; then
     echo "OK   $base/api/v1/health: $(jq -r '.llm.model + " at " + .llm.base_url' <<<"$health") is reachable"
   else
     echo "FAIL $base/api/v1/health does not report the model reachable: ${health:-no answer}" >&2
-    failed=1
+    return 1
   fi
+}
 
-  company="$(curl -fsS "$base/api/v1/companies" | jq -r '.items[0].id // empty')" || company=""
+first_company() {
+  curl -fsS "$1/api/v1/companies" | jq -r '.items[0].id // empty'
+}
+
+check_bank() {
+  local entry name container failed=0
+  for entry in "ordo-api api" "ordo-connectors connectors"; do
+    read -r name container <<<"$entry"
+    oc -n "$NS" exec -i "deployment/$name" -c "$container" -- python - <"$HERE/check_bank.py" || failed=1
+  done
+  ((failed == 0))
+}
+
+check_m2() {
+  local base company items failed=0
+  base="$(app_base)"
+  check_web "$base" || failed=1
+  check_health "$base" || failed=1
+  company="$(first_company "$base")" || company=""
+  if [[ -z "$company" ]]; then
+    echo "FAIL $base/api/v1/companies lists no company" >&2
+    failed=1
+  else
+    items="$(curl -fsS "$base/api/v1/recommendations?company_id=$company" | jq -r '.items | length')" || items=0
+    if ((items > 0)); then
+      echo "OK   $base/api/v1/recommendations serves $items items for $company"
+    else
+      echo "FAIL $base/api/v1/recommendations serves nothing for $company" >&2
+      failed=1
+    fi
+  fi
+  check_bank || failed=1
+  ((failed == 0))
+}
+
+redeploy() {
+  app_inputs
+  build
+  app
+  check_m2
+}
+
+check_m1() {
+  local base company request answer before after failed=0
+  base="$(app_base)"
+  check_web "$base" || failed=1
+  check_health "$base" || failed=1
+
+  company="$(first_company "$base")" || company=""
   if [[ -z "$company" ]]; then
     echo "FAIL $base/api/v1/companies lists no company" >&2
     return 1
@@ -292,6 +370,10 @@ case "$stage" in
   build) build "$@" ;;
   dev-build) dev_build "$@" ;;
   dev-build-web) dev_build_web "$@" ;;
+  bank-csv) bank_csv "$@" ;;
+  redeploy) redeploy ;;
+  check-bank) check_bank ;;
+  check-m2) check_m2 ;;
   verify) verify ;;
   webhook-urls) webhook_urls ;;
   freeze) freeze ;;
@@ -300,7 +382,7 @@ case "$stage" in
   db-fixtures) db_fixtures ;;
   check-m1) check_m1 ;;
   *)
-    echo "usage: $0 secrets|apply|build|dev-build|dev-build-web|app|db-fixtures|check-m1|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
