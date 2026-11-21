@@ -91,3 +91,36 @@ describe("voice input in mock mode", () => {
     expect((await api.health()).speech).toEqual({ model: "mock", reachable: true });
   });
 });
+
+describe("deleting a chat in mock mode", () => {
+  it("removes the chat from the list and from reading", async () => {
+    const before = (await api.chatSessions("co_borsuk"))!.items.map((s) => s.session_id);
+    const [gone, ...rest] = before;
+
+    await expect(api.deleteChatSession(gone, "co_borsuk")).resolves.toBeUndefined();
+
+    expect((await api.chatSessions("co_borsuk"))!.items.map((s) => s.session_id)).toEqual(rest);
+    expect(await api.chatSession(gone, "co_borsuk")).toBeNull();
+  });
+
+  it("answers 404 for a chat that is not there, also a second time", async () => {
+    const [gone] = (await api.chatSessions("co_borsuk"))!.items;
+    await api.deleteChatSession(gone.session_id, "co_borsuk");
+
+    await expect(api.deleteChatSession(gone.session_id, "co_borsuk")).rejects.toMatchObject({ status: 404 });
+    await expect(api.deleteChatSession("chat_nope", "co_borsuk")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("does not delete another company's chat", async () => {
+    const [chat] = (await api.chatSessions("co_borsuk"))!.items;
+    await expect(api.deleteChatSession(chat.session_id, "co_amalfi")).rejects.toMatchObject({ status: 404 });
+    expect((await api.chatSessions("co_borsuk"))!.items.map((s) => s.session_id)).toContain(chat.session_id);
+  });
+
+  it("brings the sample chats back after a reset", async () => {
+    const count = (await api.chatSessions("co_borsuk"))!.items.length;
+    await api.deleteChatSession((await api.chatSessions("co_borsuk"))!.items[0].session_id, "co_borsuk");
+    resetMockState();
+    expect((await api.chatSessions("co_borsuk"))!.items.length).toBe(count);
+  });
+});

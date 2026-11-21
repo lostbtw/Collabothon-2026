@@ -124,6 +124,7 @@ export const api = {
   deleteRule: (id: string, companyId?: string) => optional(http<void>("DELETE", `/rules/${id}`, { query: co(companyId) })),
   chatSessions: (companyId?: string) => optional(http<{ items: ChatSession[] }>("GET", "/chat/sessions", { query: co(companyId) })),
   chatSession: (id: string, companyId?: string) => optional(http<ChatSessionDetail>("GET", `/chat/sessions/${id}`, { query: co(companyId) })),
+  deleteChatSession: (id: string, companyId?: string) => http<void>("DELETE", `/chat/sessions/${encodeURIComponent(id)}`, { query: co(companyId) }),
 };
 
 export const rawContentUrl = (rawItemId: string): string | null => (API_MODE === "mock" ? null : `${API_BASE}/raw-items/${rawItemId}/content`);

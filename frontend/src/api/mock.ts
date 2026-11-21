@@ -339,6 +339,11 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     if (!s) throw new MockNotFound(`No chat ${seg[2]}`);
     result = { session_id: s.session_id, messages: s.messages };
   }
+  else if (method === "DELETE" && seg[0] === "chat" && seg[1] === "sessions" && seg.length === 3) {
+    const s = sessions.find((x) => x.session_id === seg[2] && x.company_id === (company ?? "co_borsuk"));
+    if (!s) throw new MockNotFound(`No chat with id ${seg[2]}`);
+    sessions = sessions.filter((x) => x !== s);
+  }
   else if (seg[0] === "forecast" && (method === "POST" || seg.length === 2)) {
     const forecast = (seg[1] && seg[1] !== "latest" && f.forecasts.find((x) => x.id === seg[1])) || byCompany(f.forecasts, company)[0];
     if (!forecast) throw new MockNotFound(`No forecast fixture for ${company ?? seg[1]}`);

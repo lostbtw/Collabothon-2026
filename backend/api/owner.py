@@ -482,6 +482,12 @@ def chat_session(conn: psycopg.Connection, company_id: str, session_id: str) -> 
     return {"session_id": session_id, "messages": [{"role": r, "content": c, "at": a.strftime("%Y-%m-%dT%H:%M:%SZ")} for r, c, a in rows]}
 
 
+def delete_chat_session(conn: psycopg.Connection, company_id: str, session_id: str) -> bool:
+    deleted = conn.execute("delete from chat_messages where company_id = %s and session_id = %s", (company_id, session_id)).rowcount
+    conn.commit()
+    return deleted > 0
+
+
 def balance_history(conn: psycopg.Connection, company_id: str, days: int = 91) -> dict[str, Any] | None:
     s = Store(conn)
     company = _company(conn, company_id)

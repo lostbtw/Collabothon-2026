@@ -119,6 +119,13 @@ def chat_session(session_id: str, company: str = Depends(company_id), c: psycopg
     return found
 
 
+@router.delete("/chat/sessions/{session_id}", status_code=204)
+def delete_chat_session(session_id: str, company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
+    if not owner.delete_chat_session(c, company, session_id):
+        raise not_found("chat", session_id)
+    return Response(status_code=204)
+
+
 @router.get("/balance/history")
 def balance_history(days: int = Query(91, ge=7, le=400), company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
     found = owner.balance_history(c, company, days)

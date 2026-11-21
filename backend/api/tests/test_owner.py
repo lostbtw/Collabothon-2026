@@ -158,6 +158,66 @@ def test_chat_history_lists_sessions_and_their_messages(demo):
     assert demo.get("/api/v1/chat/sessions/nope", params=BORSUK).status_code == 404
 
 
+def chat(c, message, company="co_borsuk", session_id=None):
+    return c.post("/api/v1/chat", json={"message": message, "company_id": company, "session_id": session_id}).json()
+
+
+def session_ids(c, company="co_borsuk"):
+    return [s["session_id"] for s in c.get("/api/v1/chat/sessions", params={"company_id": company}).json()["items"]]
+
+
+def test_deleting_a_chat_removes_that_chat_only(demo):
+    kept = chat(demo, "Who still owes us?")["session_id"]
+    gone = chat(demo, "How much cash do I have?")["session_id"]
+    chat(demo, "And next month?", session_id=gone)
+    pizzeria = chat(demo, "How much cash do I have?", company="co_amalfi")["session_id"]
+
+    response = demo.delete(f"/api/v1/chat/sessions/{gone}", params=BORSUK)
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert session_ids(demo) == [kept]
+    assert demo.get(f"/api/v1/chat/sessions/{gone}", params=BORSUK).status_code == 404
+    assert demo.get(f"/api/v1/chat/sessions/{kept}", params=BORSUK).status_code == 200
+    assert session_ids(demo, "co_amalfi") == [pizzeria]
+
+
+def test_a_chat_that_is_not_there_or_belongs_to_another_company_is_not_found(demo):
+    gone = chat(demo, "How much cash do I have?")["session_id"]
+    pizzeria = chat(demo, "How much cash do I have?", company="co_amalfi")["session_id"]
+    assert demo.delete(f"/api/v1/chat/sessions/{gone}", params=BORSUK).status_code == 204
+
+    again = demo.delete(f"/api/v1/chat/sessions/{gone}", params=BORSUK)
+    assert again.status_code == 404
+    assert again.json() == {"error": {"code": "not_found", "message": f"No chat with id {gone!r}"}}
+    assert demo.delete("/api/v1/chat/sessions/chat_nope", params=BORSUK).status_code == 404
+    assert demo.delete(f"/api/v1/chat/sessions/{pizzeria}", params=BORSUK).status_code == 404
+    assert session_ids(demo, "co_amalfi") == [pizzeria]
+
+
+def test_a_deleted_chat_does_not_come_back_as_history(demo):
+    gone = chat(demo, "How much cash do I have?")["session_id"]
+    chat(demo, "And next month?", session_id=gone)
+    demo.delete(f"/api/v1/chat/sessions/{gone}", params=BORSUK)
+
+    chat(demo, "Who still owes us?", session_id=gone)
+
+    detail = demo.get(f"/api/v1/chat/sessions/{gone}", params=BORSUK).json()
+    assert [(m["role"], m["content"][:18]) for m in detail["messages"]][0] == ("user", "Who still owes us?")
+    assert len(detail["messages"]) == 2
+
+
+def test_inbox_cards_a_deleted_chat_created_stay(demo, db):
+    answer = chat(demo, "Transfer 5,000 PLN to Nordwind now")
+    assert answer["created_recommendation_id"]
+
+    assert demo.delete(f"/api/v1/chat/sessions/{answer['session_id']}", params=BORSUK).status_code == 204
+
+    db.rollback()
+    card = Store(db).get("recommendation", answer["created_recommendation_id"])
+    assert card is not None and card["agent"] == "chat"
+
+
 def test_balance_history_works_back_from_the_reported_balance(demo):
     got = demo.get("/api/v1/balance/history", params=BORSUK).json()
     assert got["currency"] == "PLN" and len(got["points"]) >= 2

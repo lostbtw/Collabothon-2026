@@ -523,6 +523,13 @@ paths:
       parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/company'}]
       responses:
         '200': {description: OK, content: {application/json: {schema: {type: object, properties: {session_id: {type: string}, messages: {type: array, items: {type: object, properties: {role: {type: string, enum: [user, assistant]}, content: {type: string}, at: {type: string, format: date-time}}}}}}}}}
+    delete:
+      tags: [chat]
+      summary: Delete one past chat of the company for good (its messages; inbox cards it created stay)
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/company'}]
+      responses:
+        '204': {description: Deleted}
+        '404': {description: No such chat for this company (not_found), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
   /balance/history:
     get:
       tags: [bank]
