@@ -107,7 +107,7 @@ def _credit_line(conn, client, token, company, p) -> tuple[str, str]:
     account = p.get("account_id") or _company_account(conn, company, currency)
     tenor = int(p.get("tenor_days") or 90)
     out = _post(client, token, "/v1/credit-line-applications", {"accountId": account, "limit": amount, "tenorDays": tenor})
-    return out["reference"], (f"Sandbox Bank accepted the credit-line application: limit {_amount_text(out['limit'], currency)}, "
+    return out["reference"], (f"Commerzbank accepted the credit-line application: limit {_amount_text(out['limit'], currency)}, "
                               f"{tenor} days, available from {out['availableFrom']}.")
 
 
@@ -137,7 +137,7 @@ def _fx_forward(conn, client, token, company, p) -> tuple[str, str]:
     out = _post(client, token, "/v1/fx-forwards", {"accountId": account, "sellCurrency": sell, "buyCurrency": buy,
                                                    "notional": notional, "rate": str(p["rate"]),
                                                    "valueDate": p["value_date"]})
-    return out["reference"], (f"Forward booked in the Sandbox Bank: sell {_amount_text(out['notional'], sell)} "
+    return out["reference"], (f"Forward booked at Commerzbank: sell {_amount_text(out['notional'], sell)} "
                               f"for {buy} at {out['rate']} on {out['valueDate']}.")
 
 

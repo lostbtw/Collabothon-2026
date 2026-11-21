@@ -8,10 +8,10 @@ STRESS = {
 
 # Illustrative price lists of the simulated bank (illustrative, not an offer).
 PRICE_LISTS = {
-    "co_borsuk": {"bank": "Sandbox Bank", "product": "mBank kredyt w rachunku bieżącym (illustrative)",
+    "co_borsuk": {"bank": "Commerzbank", "product": "Commerzbank Kontokorrentkredit (illustrative)",
                   "interest_rate_pct": "11.5", "arrangement_fee_pct_of_limit": "1", "min_limit": None,
                   "note": "Illustrative price list of the simulated bank, not an offer"},
-    "co_amalfi": {"bank": "Sandbox Bank", "product": "Commerzbank Gewerbekredit (illustrative)",
+    "co_amalfi": {"bank": "Commerzbank", "product": "Commerzbank Gewerbekredit (illustrative)",
                   "interest_rate_pct": "11.5", "arrangement_fee_pct_of_limit": "1",
                   "min_limit": {"amount": "5000.00", "currency": "EUR"},
                   "note": "Illustrative price list of the simulated bank, not an offer"},

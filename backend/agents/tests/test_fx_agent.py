@@ -73,7 +73,7 @@ def test_hedge_gives_a_simulated_forward_to_approve_compared_with_the_reference_
         ("fx_hedge", "approval_required", "simulated", "warning")
     assert card["proposed_action"]["params"] == {
         "sell_currency": "USD", "buy_currency": "PLN", "notional": {"amount": "40000.00", "currency": "USD"},
-        "rate": "4.0491", "value_date": "2027-01-05", "hedge_ratio": 1.0, "bank": "Sandbox Bank"}
+        "rate": "4.0491", "value_date": "2027-01-05", "hedge_ratio": 1.0, "bank": "Commerzbank"}
     assert card["proposed_action"]["preview"].startswith(
         "SIMULATED: books a forward to sell 40,000 USD for 161,964.64 PLN on 5 Jan")
     assert "6,594.83 PLN, 11.0% of money in during your weakest of the last 10 months (60,147 PLN)" in card["summary"]

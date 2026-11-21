@@ -140,7 +140,7 @@ def hedge_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
         assumptions.append(f"The client pays late on average: {h['ratio']} of the amount is hedged, on the expected date")
     assumptions += [ILLUSTRATIVE, HISTORY]
     preview = (f"SIMULATED: books a forward to {'sell' if receivable else 'buy'} {m(h['notional'])} for "
-               f"{m(h['with_forward'])} on {short_date(h['value_date'])} at the Sandbox Bank. No real bank is contacted.")
+               f"{m(h['with_forward'])} on {short_date(h['value_date'])} at Commerzbank. No real bank is contacted.")
     zero = {"amount": "0.00", "currency": a["value_today_base"]["currency"]}
     return _base(
         company, a, at, type="fx_hedge", title=f"Fix the exchange rate for {a['label']}",
@@ -160,7 +160,7 @@ def hedge_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
         proposed_action={"kind": "book_fx_forward",
                          "params": {"sell_currency": h["sell_currency"], "buy_currency": h["buy_currency"],
                                     "notional": h["notional"], "rate": h["forward_rate"], "value_date": h["value_date"],
-                                    "hedge_ratio": float(h["ratio"]), "bank": "Sandbox Bank"},
+                                    "hedge_ratio": float(h["ratio"]), "bank": "Commerzbank"},
                          "preview": preview},
         impact={"cash_effect": None, "cost": h["forward_cost"], "min_balance_before": None, "min_balance_after": None,
                 "scenario_forecast_id": None})
