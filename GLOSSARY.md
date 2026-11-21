@@ -54,6 +54,16 @@ _Avoid_: Payer, funding source
 A repeating flow (salaries, rent, a subscription) recognised from history and used both to forecast it and to confirm its Matches automatically.
 _Avoid_: Subscription, pattern, schedule
 
+## Reading quality
+
+**Ground truth**:
+The correct field values of a SAMPLE Document, known because the team generated or printed it; what reading Documents is measured against.
+_Avoid_: Expected values, labels
+
+**Silently wrong**:
+A Document field read wrong while the Document was accepted without review; the one reading outcome that must never happen.
+_Avoid_: False accept, undetected error
+
 ## Books and forecast
 
 **Ledger entry**:
