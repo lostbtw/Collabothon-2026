@@ -80,8 +80,10 @@ spec:
             - -c
             - |
               import os
+              import shutil
               from huggingface_hub import snapshot_download
 
+              shutil.rmtree(os.path.join(os.environ["HF_HOME"], "xet"), ignore_errors=True)
               patterns = ["config.json", "preprocessor_config.json", "model.bin", "tokenizer.json", "vocabulary.*", "README.md"]
               required = ["model.bin", "tokenizer.json", "README.md"]
               models = dict.fromkeys([os.environ["WHISPER_MODEL"], *os.environ.get("WHISPER_MODELS", "").split()])
@@ -98,6 +100,8 @@ spec:
           env:
             - name: HF_HOME
               value: /home/ubuntu/.cache/huggingface
+            - name: HF_HUB_DISABLE_XET
+              value: "1"
             - name: WHISPER_MODEL
               value: deepdml/faster-whisper-large-v3-turbo-ct2
             - name: WHISPER_MODELS
