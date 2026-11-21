@@ -18,17 +18,18 @@ def mcp_call(name: str, arguments: dict, output: dict | None = None, error: str 
 class Ogx:
     """What the openai SDK shows of an OGX server: its models and one Responses call."""
 
-    def __init__(self, output: list, text: str, fail: bool = False):
+    def __init__(self, output: list, text: str, fail: bool = False, then: str | None = None):
         self.requests: list[dict] = []
         self.models = NS(list=lambda: [NS(id="sentence-transformers/embed"), NS(id="vllm-inference/gpt-oss-20b")])
         self.responses = NS(create=self._create)
-        self._answer, self._fail = NS(output=output, output_text=text), fail
+        self._answer, self._fail = NS(id="resp_1", output=output, output_text=text), fail
+        self._then = NS(id="resp_2", output=[NS(type="message")], output_text=then if then is not None else text)
 
     def _create(self, **request):
         self.requests.append(request)
         if self._fail:
             raise ConnectionError("no route to OGX")
-        return self._answer
+        return self._then if request.get("previous_response_id") else self._answer
 
 
 @pytest.fixture
@@ -80,6 +81,19 @@ def test_a_tool_error_reaches_the_results_and_a_bad_answer_is_refused(cluster):
     answer, results = ogx.run("co_borsuk", MESSAGES, ["search_ledger"], SCHEMA, max_calls=6, client=server)
 
     assert answer is None and results == [{"error": "bad month"}]
+
+
+def test_an_empty_answer_gets_one_corrective_turn_and_no_tool_runs_twice(cluster):
+    cash = {"total": "5"}
+    server = Ogx([mcp_call("get_cash_position", {"company_id": "co_borsuk"}, cash)], "", then='{"answer": "You have 5."}')
+    trace: list = []
+
+    answer, results = ogx.run("co_borsuk", MESSAGES, ["get_cash_position"], SCHEMA, max_calls=6, trace=trace, client=server)
+
+    assert answer == {"answer": "You have 5."} and results == [cash] and len(trace) == 1
+    again = server.requests[1]
+    assert again["previous_response_id"] == "resp_1" and "JSON only" in again["input"][0]["content"]
+    assert len(server.requests) == 2
 
 
 def test_the_agents_loop_goes_through_ogx_on_the_cluster(cluster, monkeypatch):
