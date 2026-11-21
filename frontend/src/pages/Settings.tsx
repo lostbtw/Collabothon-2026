@@ -11,7 +11,7 @@ import { COST_TYPES } from "../lib/costTypes";
 import { useCompany } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
-import { useRefreshKey } from "../lib/refresh";
+import { requestRefresh, useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { PAY_LABEL, ROLE_LABEL, categoryLabel, initials, plainName } from "../lib/words";
 import { parseAmount } from "./inbox/model";
@@ -170,8 +170,10 @@ function AccountsSection({ accounts, sources }: { accounts: Account[]; sources: 
         const ok = !s || s.status === "connected" || s.status === "syncing";
         return (
           <Setting key={a.id} title={a.name}
-            note={[s?.is_sandbox === false ? "Bank" : "Sandbox Bank", iban && `${iban.slice(0, 4)} ${iban.slice(-4)}`, a.card_last4?.length ? `card ending ${a.card_last4.join(", ")}` : null, a.include_in_liquidity ? null : "only company costs on it are counted"].filter(Boolean).join(" · ")}>
-            <span className="hstack small t3" style={{ gap: 6 }}><span className="dot" style={{ background: ok ? "var(--good)" : "var(--warn)" }} />{s?.last_synced_at && now ? `Synced ${ago(s.last_synced_at, now)}` : ok ? "Connected" : "Needs attention"}</span>
+            note={[s?.is_sandbox === false ? "Bank" : "Sandbox Bank", iban && `${iban.slice(0, 4)} ${iban.slice(-4)}`, a.card_last4?.length ? `card ending ${a.card_last4.join(", ")}` : null,
+              s?.items_total ? `${s.items_total.toLocaleString("en")} payments read` : null, a.include_in_liquidity ? null : "only company costs on it are counted"].filter(Boolean).join(" · ")}>
+            <SourceStatus source={s} ok={ok} now={now} />
+            {s && <SyncNow source={s} />}
             {!a.include_in_liquidity && <span className="hstack small t2" style={{ gap: 8 }}>Count as company cash <Toggle on={false} label="Count as company cash" /></span>}
           </Setting>
         );
@@ -192,8 +194,38 @@ function AccountsSection({ accounts, sources }: { accounts: Account[]; sources: 
   );
 }
 
+/** Green or amber dot, "Synced 2 min ago" (ticking), and the last error in words when there is one. */
+function SourceStatus({ source, ok, now }: { source: Source | null; ok: boolean; now: number | null }) {
+  return (
+    <span className="hstack small t3" style={{ gap: 6 }} title={source?.last_error?.message ?? undefined}>
+      <span className="dot" style={{ background: ok ? "var(--good)" : "var(--warn)" }} />
+      {source?.last_synced_at && now ? `Synced ${ago(source.last_synced_at, now)}` : ok ? "Connected" : "Needs attention"}
+    </span>
+  );
+}
+
+/** Asks the connector to read the source now; the status above updates live when the run finishes. */
+function SyncNow({ source }: { source: Source }) {
+  const [state, setState] = useState<"idle" | "busy" | "asked" | "failed">("idle");
+  async function sync() {
+    setState("busy");
+    try {
+      await api.syncNow(source.id);
+      setState("asked");
+      setTimeout(() => { requestRefresh(); setState("idle"); }, 3000);
+    } catch {
+      setState("failed");
+    }
+  }
+  return <button type="button" className="quiet" disabled={state === "busy" || state === "asked"} onClick={sync}>
+    {state === "busy" ? "Asking…" : state === "asked" ? "Reading…" : state === "failed" ? "Try again" : "Sync now"}
+  </button>;
+}
+
 function InvoicesSection({ sources }: { sources: Source[] }) {
-  const mailbox = sources.find((s) => s.connector === "imap_mailbox")?.config_public?.mailbox as string | undefined;
+  const mail = sources.find((s) => s.connector === "imap_mailbox") ?? null;
+  const mailbox = mail?.config_public?.mailbox as string | undefined;
+  const now = useNow(30_000);
   const rates = sources.find((s) => s.connector === "fx_rates");
   const [copied, setCopied] = useState(false);
   return (
@@ -206,6 +238,12 @@ function InvoicesSection({ sources }: { sources: Source[] }) {
           </>
         ) : <span className="small t3">No mailbox connected</span>}
       </Setting>
+      {mail && (
+        <Setting title="Mailbox" note={mail.items_total ? `${mail.items_total.toLocaleString("en")} e-mails and files read` : "Nothing read yet"}>
+          <SourceStatus source={mail} ok={mail.status === "connected" || mail.status === "syncing"} now={now} />
+          <SyncNow source={mail} />
+        </Setting>
+      )}
       <Setting title="Accept e-mails from" note="Anything from other senders waits for you in To-do."><span className="small t2">People below and known suppliers</span></Setting>
       <Setting title="Exchange rates" note="For invoices in other currencies."><span className="small t2">{rates ? `${rates.display_name}, daily` : "National Bank of Poland, daily"}</span></Setting>
     </Section>
