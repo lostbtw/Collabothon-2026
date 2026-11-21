@@ -38,12 +38,14 @@ A deterministic finance engine computes. Generated text is rejected if it contai
 
 **D-03 — Demo bank = own simulator; the Commerzbank sandbox is an optional read-only second connector (time-boxed to 90 minutes).**
 The bank connector is written against `contracts/bank-sim-api.md`.
+**Update 21 Nov: the Commerzbank sandbox connector is cancelled (#38, `wontfix`).** Registration and key issue were never verified, and it adds only a line on the Sources page. The Sandbox Bank is the only bank.
 
 **D-04 — KSeF: FA(3) XML ingestion is a must-have; the test API connector is cut first.**
 The test API needs XAdES-signed auth and encrypted async exports. E-invoices enter as XML files (e-mail attachment or releaser).
 
 **D-05 — Accounting source = inFakt sandbox (not Symfonia / Merit).**
 inFakt has a free self-registration sandbox with API-key auth. Symfonia and Merit stay in the pitch as "same connector interface".
+**Update 21 Nov: the inFakt connector is cancelled (#38, `wontfix`).** Sales invoices reach the app by e-mail (the releaser's fallback channel, #37); role 3's inFakt normaliser stays for later.
 
 **D-06 — Connectors in plain Python, not n8n.**
 n8n costs 2–3 h of setup, one more stateful pod and awkward idempotency.
