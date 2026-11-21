@@ -55,6 +55,15 @@ def earliest_gap(forecast: dict[str, Any]) -> dict[str, Any] | None:
     return sorted(gaps, key=lambda a: a["date_from"])[0] if gaps else None
 
 
+def gap_end(forecast: dict[str, Any], alert: dict[str, Any]) -> str:
+    """Last day of the gap. date_to is null when the balance has not recovered by the end of the forecast
+    (forecast.schema.json); the gap then lasts at least until the forecast's last day, as_of_date + horizon_days."""
+    if alert.get("date_to"):
+        return alert["date_to"]
+    last_day = date.fromisoformat(forecast["as_of_date"]) + timedelta(days=forecast.get("horizon_days") or 0)
+    return max(last_day.isoformat(), alert["date_from"])
+
+
 def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[str, Any] | None:
     """Every number the card shows, from the engine tools. None when there is no gap to act on."""
     f = tools.get_forecast(conn, company, forecast_id)
@@ -70,7 +79,8 @@ def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[
     prices = tools.get_bank_price_list(conn, company)
     min_limit = Decimal(prices["min_limit"]["amount"]) if prices.get("min_limit") else None
     limit = stand_ins.size_credit_line(stress_shortfall, min_limit)
-    gap_days = max(tools.days_between(alert["date_from"], alert["date_to"]), 1)
+    gap_to = gap_end(f, alert)
+    gap_days = max(tools.days_between(alert["date_from"], gap_to), 1)
     rate = Decimal(prices.get("interest_rate_pct", "0")) / 100
     interest = (shortfall * gap_days * rate / 365).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     fee = (limit * Decimal(prices.get("arrangement_fee_pct_of_limit", "0")) / 100).quantize(Decimal("1"))
@@ -80,6 +90,7 @@ def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[
     return {
         "forecast": f,
         "alert": alert,
+        "gap_to": gap_to,
         "currency": currency,
         "shortfall": _money(shortfall, currency),
         "low": f["min_balance"],
@@ -100,7 +111,7 @@ def reasons(facts: dict[str, Any]) -> list[str]:
     alert = facts["alert"]
     comps = facts["forecast"]["components"]
     outflows = sorted((c for c in comps if Decimal(c["amount_base"]["amount"]) < 0 and c.get("dates")
-                       and c["dates"][0] <= alert["date_to"]), key=lambda c: Decimal(c["amount_base"]["amount"]))
+                       and c["dates"][0] <= facts["gap_to"]), key=lambda c: Decimal(c["amount_base"]["amount"]))
     late = [o for o in facts["overdue"] if o.get("expected_date") and o["expected_date"] >= alert["date_from"]]
     why = []
     if outflows:
@@ -145,8 +156,9 @@ def template_recommendation(company: str, facts: dict[str, Any], at: str) -> dic
         {"label": "Pay contractors 7 days later", "pros": "No bank cost", "cons": "Breaks agreed payment dates", "cost": zero},
         {"label": "Do nothing", "pros": None, "cons": "Unarranged overdraft or failed salary transfers", "cost": None},
     ]
-    summary = (f"From {short_date(alert['date_from'])} to {short_date(alert['date_to'])} the accounts will be "
-               f"{fmt_money(facts['shortfall'], cents=False)} short")
+    period = (f"From {short_date(alert['date_from'])} to {short_date(alert['date_to'])}" if alert.get("date_to") else
+              f"From {short_date(alert['date_from'])} until at least {short_date(facts['gap_to'])}, when the forecast ends,")
+    summary = f"{period} the accounts will be {fmt_money(facts['shortfall'], cents=False)} short"
     if stress:
         summary += f", or {fmt_money(facts['stress_shortfall'], cents=False)} short if {stress['label']}"
     summary += f". A {fmt_money(limit, cents=False)} revolving line covers {'both cases' if stress else 'the gap'}."
