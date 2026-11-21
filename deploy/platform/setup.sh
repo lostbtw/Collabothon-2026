@@ -391,7 +391,9 @@ whisper_bench() {
     echo "usage: $0 whisper-bench [folder with samples.json and its clips, default $WHISPER_SAMPLES]" >&2
     exit 2
   fi
-  whisper_in_api "$dir" "${WHISPER_CANDIDATES[@]}"
+  whisper_in_api "$dir" "${WHISPER_CANDIDATES[@]}" || true
+  oc -n "$NS" rollout restart deployment/whisper
+  oc -n "$NS" rollout status deployment/whisper --timeout=900s
 }
 
 db_fixtures() {

@@ -52,9 +52,6 @@ class Whisper:
             raise RuntimeError(f"loading {model} answered HTTP {response.status_code}: {response.text[:200]}")
         return time.monotonic() - started, response.status_code == 409
 
-    def unload(self, model):
-        self.client.delete(f"{self.root}/api/ps/{model}")
-
     def transcribe(self, model, clip):
         started = time.monotonic()
         response = self.client.post(
@@ -69,7 +66,6 @@ class Whisper:
 
 
 def bench(whisper, models, clips, runs):
-    keep = os.environ.get("ORDO_WHISPER_MODEL", "")
     summary = []
     for model in models:
         load_seconds, was_loaded = whisper.load(model)
@@ -91,8 +87,6 @@ def bench(whisper, models, clips, runs):
             print(f"{clip['file']:<16}{clip['language']:<6}{audio:>8.1f}{median:>10.2f}{error:>7.2f}  "
                   f"{'pass' if ok else 'FAIL'}  {text}", flush=True)
         summary.append((model, len(clips) - failed, len(clips), worst_long))
-        if model != keep:
-            whisper.unload(model)
     print(f"\n{'model':<46}{'right':>8}{'long clip s':>13}  budget {BUDGET_SECONDS:.0f} s")
     for model, right, total, worst_long in summary:
         budget = "-" if not worst_long else ("meets" if worst_long <= BUDGET_SECONDS else "MISSES")
