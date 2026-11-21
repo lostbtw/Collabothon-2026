@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { api, type ActivityItem, type LedgerSummary, type PeopleCosts } from "../api/client";
 import type { Approval, Forecast, Recommendation, Transaction } from "../api/types.gen";
 import { Evidence } from "../components/More";
-import { PageHead, StatusLabel } from "../components/ui";
+import { PageHead, Skeleton, StatusLabel } from "../components/ui";
 import { lastFullMonth, monthFigures, monthOnly, monthRange, percent } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { dateTime, shortDate } from "../lib/dates";
@@ -31,7 +31,7 @@ export function Todo() {
     none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(month) })), none(api.transactions(companyId)), none(api.peopleCosts(companyId, month)),
   ]), [companyId, month, refresh]);
 
-  if (state.loading && !state.data) return <><PageHead title="To-do" /><p className="t3">Loading…</p></>;
+  if (state.loading && !state.data) return <><PageHead title="To-do" sub="Only you can decide these. Nothing happens until you say yes." /><Skeleton rows={5} title /><Skeleton rows={3} /></>;
   if (state.error) return <><PageHead title="To-do" /><p className="bad" role="alert">Could not load To-do: {state.error}</p></>;
   const [inbox, forecast, recs, approvals, activity] = state.data!;
   const [summary, transactions, people] = close.data ?? [null, null, null];
@@ -234,7 +234,7 @@ function Result({ approval, compact }: { approval: Approval; compact?: boolean }
   if (approval.decision === "rejected") return <span className="small t2">{resultHeadline(approval)}</span>;
   return (
     <div className={compact ? "hstack" : "box good"}>
-      <span className="simulated">SIMULATED · {approval.execution.reference ?? "recorded"}</span>
+      <span className="simulated pulse">SIMULATED · {approval.execution.reference ?? "recorded"}</span>
       {!compact && <span className="small">{approval.execution.result}</span>}
     </div>
   );
@@ -293,7 +293,7 @@ function CloseMonth({ month, summary, transactions, people, openReimbursements }
         <div className="kv"><span className="t2">Payments without an invoice</span><span className={missing ? "bad" : "good"}>{missing}</span></div>
         <div className="kv"><span className="t2">Receipts to pay back</span><span className={receipts ? "warn" : "good"}>{receipts}</span></div>
       </div>
-      {sent ? <span className="simulated">SIMULATED · nothing left the app</span>
+      {sent ? <span className="simulated pulse">SIMULATED · nothing left the app</span>
         : <button type="button" disabled={!ready} onClick={() => setSent(true)} style={{ alignSelf: "flex-start" }}>Send to accountant (simulated)</button>}
       {!ready && <span className="caption t3">Available when {monthOnly(month)} is 100% done</span>}
     </div>

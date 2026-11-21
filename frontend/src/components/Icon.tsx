@@ -17,6 +17,10 @@ const PATHS = {
   cloud: "M7 18a4 4 0 0 1 .6-7.95A5.5 5.5 0 0 1 18.2 11.5 3.5 3.5 0 0 1 17.5 18z",
   sun: "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4",
   arrowUp: "M12 19V5M6 11l6-6 6 6",
+  close: "M6 6l12 12M18 6 6 18",
+  chevronRight: "m10 7 5 5-5 5",
+  upload: "M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3",
+  plus: "M12 5v14M5 12h14",
 } as const;
 
 export type IconName = keyof typeof PATHS;

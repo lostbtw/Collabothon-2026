@@ -86,7 +86,7 @@ function Line({ item, onUndo, preloaded }: { item: ActivityItem; onUndo: (item: 
       {error && <p className="small danger feed-detail" role="alert">Not undone: {error}</p>}
       {open && (
         <div className="feed-detail stack">
-          {detail === undefined && <p className="small muted">Loading…</p>}
+          {detail === undefined && <span className="skeleton line" style={{ width: "60%" }} />}
           {detail?.kind === "document" && detail.data.duplicates.length > 0 && (
             <>
               <p className="medium">{detail.data.duplicates.length + 1} copies → one record</p>

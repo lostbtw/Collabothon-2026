@@ -5,7 +5,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api, exportUrl, type Person, type Rule, type Settings as SettingsData } from "../api/client";
 import type { Account, Source } from "../api/types.gen";
-import { PageHead, Toggle, Waiting } from "../components/ui";
+import { PageHead, Skeleton, Toggle, Waiting } from "../components/ui";
 import { ago, useNow } from "../lib/clock";
 import { COST_TYPES } from "../lib/costTypes";
 import { useCompany } from "../lib/company";
@@ -41,7 +41,7 @@ export function Settings() {
         <nav className="settings-menu" aria-label="Settings sections">
           {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} className={`nav-item${active === id ? " active" : ""}`}>{label}</a>)}
         </nav>
-        {state.loading && !state.data ? <p className="t3">Loading…</p> : (
+        {state.loading && !state.data ? <div className="grow"><Skeleton rows={8} title /></div> : (
           <div className="stack grow" style={{ gap: 24 }}>
             <CompanySection settings={settings} onSaved={again} />
             <AccountsSection accounts={accounts?.items ?? []} sources={sources?.items ?? []} />

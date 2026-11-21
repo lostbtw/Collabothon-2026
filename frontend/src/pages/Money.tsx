@@ -1,10 +1,10 @@
 // Money: every payment in and out, with the invoice behind it. One place, five ways to look at it.
 import { useState, type FormEvent } from "react";
-import { Link, NavLink, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, type ClientsResponse, type LedgerSummary, type PeopleCosts, type SubscriptionsResponse } from "../api/client";
 import type { Recommendation } from "../api/types.gen";
 import { Icon } from "../components/Icon";
-import { Avatar, Change, Chevron, MonthSelect, PageHead, StatusLabel, Tile, Waiting } from "../components/ui";
+import { Avatar, Change, Chevron, MonthSelect, PageHead, Skeleton, SlidingTabs, StatusLabel, Tile, Waiting, nth } from "../components/ui";
 import { add, isZero, lastFullMonth, monthFigures, monthOnly, percent, previousMonth, recentMonths, subtract } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { shortDate } from "../lib/dates";
@@ -54,9 +54,7 @@ export function Money() {
       <PageHead title="Money" sub="Every payment in and out, with the invoice behind it." />
       <div className="toolbar">
         {v !== "subscriptions" && <MonthSelect value={month} months={recentMonths(today, 12)} onChange={setMonth} allowAll={v === "payments"} />}
-        <nav className="tabs" aria-label="Views">
-          {VIEWS.map((x) => <NavLink key={x.key} to={keep(x.key)} end className={() => (x.key === v ? "on" : "")}>{x.label}</NavLink>)}
-        </nav>
+        <SlidingTabs label="Views" active={v} items={VIEWS.map((x) => ({ key: x.key, label: x.label, to: keep(x.key) }))} />
         <span className="grow" />
         <form className="search" role="search" onSubmit={search}>
           <Icon name="search" size={14} />
@@ -79,7 +77,7 @@ function ByType({ month }: { month: string }) {
   const currency = useCompanyInfo()?.base_currency ?? "PLN";
   const refresh = useRefreshKey();
   const state = useApi(() => monthAndBefore(companyId, month), [companyId, month, refresh]);
-  if (state.loading && !state.data) return <p className="t3">Loading…</p>;
+  if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   const [current, before] = state.data ?? [null, null];
   if (!current) return <Waiting what="costs by type" />;
   return <ByTypeView month={month} summary={current.summary} fromBank={current.fromBank} before={before} currency={currency} />;
@@ -101,8 +99,8 @@ export function ByTypeView({ month, summary, fromBank, before, currency }: { mon
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Type</span><span className="cell" style={{ width: 120 }}>Repeats</span><span className="cell r" style={{ width: 90 }}>Payments</span><span className="cell r" style={{ width: 140 }}>{monthOnly(month)}</span><span className="cell r" style={{ width: 70 }}>Share</span><span style={{ width: 16 }} /></div>
-        {f.types.map((t) => (
-          <Link key={t.type.key} to={`/money/payments?month=${month}&type=${t.type.key}`} className="trow">
+        {f.types.map((t, i) => (
+          <Link style={nth(i)} key={t.type.key} to={`/money/payments?month=${month}&type=${t.type.key}`} className="trow">
             <span className="cell col grow">
               <span className="hstack" style={{ gap: 8 }}><span className="dot" style={{ background: t.type.color }} />{t.type.label}</span>
               <span className="caption t3">{t.categories.map((c) => categoryLabel(c.key)).join(", ")}</span>
@@ -124,7 +122,7 @@ function ByPerson({ month }: { month: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
   const state = useApi(() => api.peopleCosts(companyId, month).catch(() => null), [companyId, month, refresh]);
-  if (state.loading && !state.data) return <p className="t3">Loading…</p>;
+  if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   if (!state.data) return <Waiting what="costs per person" />;
   return <ByPersonView month={month} data={state.data} />;
 }
@@ -145,8 +143,8 @@ export function ByPersonView({ month, data }: { month: string; data: PeopleCosts
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Person</span><span className="cell" style={{ width: 140 }}>How we pay</span><span className="cell r" style={{ width: 260 }}>Cost in {monthOnly(month)}</span><span className="cell r" style={{ width: 120 }}>Owed to them</span><span style={{ width: 16 }} /></div>
-        {data.items.map((p) => (
-          <Link key={p.person_id} to={`/money/payments?month=${month}&q=${encodeURIComponent(plainName(p.name).split(" ").at(-1) ?? "")}`} className="trow">
+        {data.items.map((p, i) => (
+          <Link style={nth(i)} key={p.person_id} to={`/money/payments?month=${month}&q=${encodeURIComponent(plainName(p.name).split(" ").at(-1) ?? "")}`} className="trow">
             <span className="cell grow" style={{ gap: 12 }}>
               <Avatar text={initials(p.name)} />
               <span className="stack" style={{ gap: 0 }}><span>{plainName(p.name)}</span><span className="caption t3">{ROLE_LABEL[p.role] ?? p.role}</span></span>
@@ -171,7 +169,7 @@ function ByClient({ month }: { month: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
   const state = useApi(() => Promise.all([none(api.clients(companyId, month)), none(api.inbox(companyId))]), [companyId, month, refresh]);
-  if (state.loading && !state.data) return <p className="t3">Loading…</p>;
+  if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   const [clients, inbox] = state.data ?? [null, null];
   if (!clients) return <Waiting what="clients and what they owe" />;
   return <ByClientView month={month} data={clients} fx={inbox?.items.filter((r) => r.agent === "fx" && r.control_level === "approval_required") ?? []} />;
@@ -188,14 +186,14 @@ export function ByClientView({ month, data, fx }: { month: string; data: Clients
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Client</span><span className="cell r" style={{ width: 150 }}>Paid in {monthOnly(month)}</span><span className="cell r" style={{ width: 200 }}>Still owes</span><span className="cell r" style={{ width: 120 }}>Status</span><span style={{ width: 16 }} /></div>
-        {data.items.map((c) => {
+        {data.items.map((c, i) => {
           const late = Math.max(0, ...c.open_invoices.map((i) => i.days_late));
           const due = c.open_invoices.map((i) => i.due_date).filter((d): d is string => Boolean(d)).sort()[0];
           const one = c.open_invoices.length === 1 ? c.open_invoices[0] : null;
           const habit = c.typical_payment_delay_days === null ? `New client${c.currency !== data.totals.open_base.currency ? ` · pays in ${c.currency}` : ""}`
             : c.typical_payment_delay_days <= 1 ? "Usually pays on time" : `Usually pays ${c.typical_payment_delay_days} days late`;
           return (
-            <Link key={c.counterparty_id} to={`/money/payments?month=${month}&q=${encodeURIComponent(plainName(c.name).split(" ")[0])}`} className="trow">
+            <Link style={nth(i)} key={c.counterparty_id} to={`/money/payments?month=${month}&q=${encodeURIComponent(plainName(c.name).split(" ")[0])}`} className="trow">
               <span className="cell col grow"><span>{plainName(c.name)}</span><span className="caption t3">{habit}</span></span>
               <span className="cell r" style={{ width: 150 }}>{isZero(c.paid_in_month.amount) ? <span className="t3">—</span> : whole(c.paid_in_month)}</span>
               <span className="cell col r" style={{ width: 200 }}>
@@ -229,7 +227,7 @@ function Subscriptions() {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
   const state = useApi(() => api.subscriptions(companyId).catch(() => null), [companyId, refresh]);
-  if (state.loading && !state.data) return <p className="t3">Loading…</p>;
+  if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   if (!state.data) return <Waiting what="subscriptions" />;
   return <SubscriptionsView data={state.data} />;
 }
@@ -251,8 +249,8 @@ export function SubscriptionsView({ data }: { data: SubscriptionsResponse }) {
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Tool</span><span className="cell" style={{ width: 240 }}>Paid by</span><span className="cell r" style={{ width: 130 }}>Every month</span><span className="cell r" style={{ width: 130 }} /><span style={{ width: 16 }} /></div>
-        {data.items.map((s) => (
-          <Link key={s.counterparty_id} to={`/money/payments?q=${encodeURIComponent(plainName(s.name).split(" ")[0])}`} className="trow">
+        {data.items.map((s, i) => (
+          <Link style={nth(i)} key={s.counterparty_id} to={`/money/payments?q=${encodeURIComponent(plainName(s.name).split(" ")[0])}`} className="trow">
             <span className="cell col grow"><span>{plainName(s.name)}</span><span className="caption t3">{categoryLabel(s.category)}</span></span>
             <span className="cell small t2" style={{ width: 240 }}>{s.paid_by.map((p) => p.label).join(" and ")}</span>
             <span className="cell col r" style={{ width: 130 }}><span>{whole(s.monthly)}</span>{s.original && <span className="caption t3">{formatMoney(s.original).replace(".00 ", " ")}</span>}</span>
@@ -284,7 +282,7 @@ function AllPayments({ month, selected }: { month: string; selected: string | nu
   const state = useApi(() => Promise.all([
     api.transactions(companyId), api.accounts(companyId), none(api.counterparties(companyId)), none(api.matches(companyId)), none(api.documents(companyId)),
   ]), [companyId, refresh, reload]);
-  if (state.loading && !state.data) return <p className="t3">Loading…</p>;
+  if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   if (state.error) return <p className="bad" role="alert">Could not load the payments: {state.error}</p>;
   const [transactions, accounts, counterparties, matches, documents] = state.data!;
   const all = buildPayments({ transactions: transactions.items, accounts: accounts.items, counterparties: counterparties?.items ?? [], matches: matches?.items ?? [], documents: documents?.items ?? [] });
@@ -306,7 +304,6 @@ export function PaymentsView({ all, month, selected, onChanged }: { all: Payment
       <div className="stack grow" style={{ gap: 12 }}>
         {(filter.type || filter.doc || filter.q) && (
           <div className="hstack">
-            <span className="small t2">Showing only</span>
             {filter.type && <button type="button" className="chip" onClick={() => drop("type")}>{typeName} ✕</button>}
             {filter.doc && <button type="button" className="chip" onClick={() => drop("doc")}>{filter.doc === "missing" ? "No invoice" : DOC_CHIP[filter.doc as keyof typeof DOC_CHIP]?.text ?? filter.doc} ✕</button>}
             {filter.q && <button type="button" className="chip" onClick={() => drop("q")}>“{filter.q}” ✕</button>}
@@ -318,11 +315,11 @@ export function PaymentsView({ all, month, selected, onChanged }: { all: Payment
             <span className="cell" style={{ width: 96 }}>Document</span><span className="cell r" style={{ width: 130 }}>Amount</span>
           </div>
           {list.length === 0 && <p className="t2" style={{ padding: 12 }}>No payments match{month ? ` in ${monthOnly(month)}` : ""}.</p>}
-          {list.slice(0, shown).map((p) => {
+          {list.slice(0, shown).map((p, i) => {
             const t = typeOf(p);
             const chip = DOC_CHIP[p.doc];
             return (
-              <Link key={p.id} to={`/money/payments/${p.id}${qs}`} className={`trow${p.id === selected ? " selected" : ""}`}>
+              <Link style={nth(i)} key={p.id} to={`/money/payments/${p.id}${qs}`} className={`trow${p.id === selected ? " selected" : ""}`}>
                 <span className="cell small t2" style={{ width: 56 }}>{p.date ? shortDate(p.date) : "—"}</span>
                 <span className="cell col grow"><span className="ellipsis" title={p.name}>{p.name}</span><span className="caption t3 hstack" style={{ gap: 6 }}><span className="dot" style={{ background: t.color }} />{t.label}</span></span>
                 <span className="cell small t2" style={{ width: 130 }}>{p.paidBy}</span>
