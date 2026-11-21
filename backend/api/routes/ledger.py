@@ -12,6 +12,7 @@ from fastapi.responses import Response
 
 from backend.api.deps import company_id, conn, store
 from backend.api.money import amount_of, money
+from backend.api.ports import finance_engine
 from backend.api.routes.bank import base_currency
 from backend.db.store import ENTITIES, Store
 
@@ -45,7 +46,10 @@ GROUP_KEYS = {
 @router.get("/ledger/summary")
 def ledger_summary(company: str = Depends(company_id), group_by: str = "category", from_: str | None = Query(None, alias="from"),
                    to: str | None = None, s: Store = Depends(store), c: psycopg.Connection = Depends(conn)):
-    """Plain sums over non-void entries (no LLM). Role 4 may replace it with its own SQL."""
+    """Rows: plain sums over non-void entries in from/to (no LLM).
+
+    Kpis: role 4's engine.ledger_kpis() (approved entries, the as-of year, not limited by from/to), or the stand-in
+    below while the engine is not importable."""
     base = base_currency(c, company)
     entries = [e for e in _entries(s, company, from_, to) if e["status"] != "void"]
     key = GROUP_KEYS.get(group_by, GROUP_KEYS["category"])
@@ -56,6 +60,10 @@ def ledger_summary(company: str = Depends(company_id), group_by: str = "category
         counts[key(e)] += 1
     rows = [{"key": k, "amount_base": money(v, base), "change_pct": None, "entries": counts[k]}
             for k, v in sorted(sums.items(), key=lambda kv: kv[1])]
+
+    engine = finance_engine()
+    if engine is not None and hasattr(engine, "ledger_kpis"):
+        return {"rows": rows, "kpis": engine.ledger_kpis(c, company)}
 
     owed = sum((amount_of(e["amount_base"]) for e in entries if e["type"] == "reimbursement_liability"), Decimal(0))
     paid = sum((amount_of(e["amount_base"]) for e in entries if e["type"] == "reimbursement_payout"), Decimal(0))

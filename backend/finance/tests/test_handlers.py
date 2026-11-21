@@ -11,10 +11,6 @@ from backend.db.store import Store
 from backend.finance import engine
 from backend.finance.main import process_pending
 
-WAITS_FOR_ROLE_5 = pytest.mark.xfail(
-    reason="role 5 serves GET /ledger/summary kpis from engine.ledger_kpis() (request issue for #46); "
-           "until then the route counts proposed entries and only the requested month")
-
 
 @pytest.fixture
 def demo(db, db_url):
@@ -103,7 +99,6 @@ def test_a_rejected_hero_receipt_leaves_vat_lost_this_year_unchanged(demo, db):
     assert engine.ledger_kpis(db, "co_borsuk")["vat_lost_ytd"] == before == {"amount": "0.00", "currency": "PLN"}
 
 
-@WAITS_FOR_ROLE_5
 def test_the_summary_the_app_shows_rises_by_242_90_when_the_hero_receipt_is_approved(demo, db):
     """The Overview page asks for one month; 'VAT lost this year' must still be the whole year."""
     month = {"company_id": "co_borsuk", "group_by": "category", "from": "2026-11-01", "to": "2026-11-30"}
