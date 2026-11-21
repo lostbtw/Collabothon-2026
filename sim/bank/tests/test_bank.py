@@ -1,4 +1,5 @@
 import os
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -44,7 +45,7 @@ def test_bearer_and_consent_are_required(client):
 
 
 def test_admin_needs_bearer(client):
-    assert client.post("/admin/clock", json={"now": "2026-11-21"}).status_code == 401
+    assert client.post("/admin/reset").status_code == 401
     assert client.get("/health").status_code == 200  # no auth
 
 
@@ -127,40 +128,6 @@ def test_date_from_filters_by_booking_date(client):
     assert [t["bookingDate"] for t in got["transactions"]["booked"]] == ["2026-11-15"]
 
 
-# ---------- as-of date ("demo clock") ----------
-def test_lines_after_the_clock_are_hidden_and_advancing_reveals_them(client):
-    post_line(client, bookingDate="2026-11-10", amount="-10.00")
-    post_line(client, bookingDate="2026-11-20", amount="-20.00")
-    url = "/v1/accounts/acc_pln/transactions"
-    assert client.post("/admin/clock", json={"now": "2026-11-15"}, headers=AUTH).json()["now"] == "2026-11-15"
-    seen = client.get(url, headers=PSD2).json()["transactions"]["booked"]
-    assert [t["transactionAmount"]["amount"] for t in seen] == ["-10.00"]
-    bal = client.get("/v1/accounts/acc_pln/balances", headers=PSD2).json()["balances"][0]
-    assert bal["balanceAmount"]["amount"] == "24720.15" and bal["referenceDate"] == "2026-11-15"
-
-    client.post("/admin/clock", json={"advanceDays": 10}, headers=AUTH)  # -> 2026-11-25
-    seen = client.get(url, headers=PSD2).json()["transactions"]["booked"]
-    assert [t["entryReference"] for t in seen] == ["E000000001", "E000000002"]
-
-
-def test_clock_per_company_does_not_move_the_others(client):
-    post_line(client, accountId="acc_pln", bookingDate="2026-11-20")
-    post_line(client, accountId="acc_eur", bookingDate="2026-11-20", currency="EUR", amount="-5.00")
-    client.post("/admin/clock", json={"now": "2026-11-01", "accountId": "acc_pln"}, headers=AUTH)
-    assert client.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
-    assert len(client.get("/v1/accounts/acc_eur/transactions", headers=PSD2).json()["transactions"]["booked"]) == 1
-    state = client.get("/admin/clock", headers=AUTH).json()
-    assert state == {"now": None, "accounts": {"acc_pln": "2026-11-01"}}
-
-
-def test_clock_input_validation(client):
-    assert client.post("/admin/clock", json={}, headers=AUTH).status_code == 400
-    assert client.post("/admin/clock", json={"now": "2026-11-01", "advanceDays": 1}, headers=AUTH).status_code == 400
-    assert client.post("/admin/clock", json={"now": "yesterday"}, headers=AUTH).status_code == 400
-    assert client.post("/admin/clock", json={"now": "2026-11-01", "accountId": "nope"}, headers=AUTH).status_code == 404
-    assert client.post("/admin/clock", json={"now": "2026-11-01T10:00:00Z"}, headers=AUTH).json()["now"] == "2026-11-01"
-
-
 # ---------- admin/transactions ----------
 def test_admin_transaction_defaults_and_validation(client):
     r = client.post("/admin/transactions", json={"accountId": "acc_eur", "amount": "-12.5"}, headers=AUTH)
@@ -180,13 +147,12 @@ def test_references_strictly_increase_per_account(client):
 
 # ---------- simulated execution targets ----------
 def test_credit_line_application(client):
-    client.post("/admin/clock", json={"now": "2026-11-21"}, headers=AUTH)
     r = client.post("/v1/credit-line-applications",
                     json={"accountId": "acc_pln", "limit": "25000", "tenorDays": 90}, headers=PSD2)
     assert r.status_code == 201
     body = r.json()
     assert body["reference"] == "SIM-CL-0001" and body["status"] == "accepted"
-    assert body["availableFrom"] == "2026-11-22" and body["limit"] == "25000.00"
+    assert body["availableFrom"] == (date.today() + timedelta(days=1)).isoformat() and body["limit"] == "25000.00"
     assert client.post("/v1/credit-line-applications", json={"accountId": "acc_pln", "limit": "0", "tenorDays": 90},
                        headers=PSD2).status_code == 422
     assert client.post("/v1/credit-line-applications", json={"accountId": "x", "limit": "1", "tenorDays": 1},
@@ -219,10 +185,8 @@ def test_executions_are_listed_and_do_not_move_balances(client):
 
 def test_reset_restores_the_seed(client):
     post_line(client)
-    client.post("/admin/clock", json={"now": "2026-11-01"}, headers=AUTH)
     client.post("/admin/reset", headers=AUTH)
     assert client.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
-    assert client.get("/admin/clock", headers=AUTH).json() == {"now": None, "accounts": {}}
 
 
 # ---------- load-csv ----------
@@ -248,13 +212,11 @@ def test_load_csv_makes_chronological_lines_and_keeps_the_chf_quirk(client):
     assert iban == "DE89370400440532013000"
 
 
-def test_load_csv_is_idempotent_and_respects_the_clock(client):
+def test_load_csv_is_idempotent(client):
     load(client)
     assert load(client).json()["lines"] == 4  # replaces, does not append
-    client.post("/admin/clock", json={"now": "2025-06-02", "accountId": "acc_pizzeria"}, headers=AUTH)
     shown = client.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]
-    assert len(shown) == 3
-    client.post("/admin/clock", json={"now": "2025-06-30", "accountId": "acc_pizzeria"}, headers=AUTH)
+    assert len(shown) == 4
     assert len(client.get("/v1/accounts/acc_pizzeria/transactions",
                           params={"entryReferenceFrom": "E000000003"}, headers=PSD2).json()["transactions"]["booked"]) == 1
 
@@ -276,12 +238,10 @@ def test_autoload_fills_the_account_at_start_and_after_reset(tmp_path):
     # other accounts are untouched
     assert c.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
     c.post("/admin/transactions", json={"accountId": "acc_pln", "amount": "-1"}, headers=AUTH)
-    c.post("/admin/clock", json={"now": "2025-06-01", "accountId": "acc_pizzeria"}, headers=AUTH)
     r = c.post("/admin/reset", headers=AUTH)
     assert r.json() == {"status": "reset", "autoloaded": True}
     assert len(c.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]) == 4
     assert c.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
-    assert c.get("/admin/clock", headers=AUTH).json() == {"now": None, "accounts": {}}
 
 
 def test_autoload_fails_fast_when_the_file_is_missing_or_the_account_unknown(tmp_path):
@@ -316,7 +276,3 @@ def test_real_pizzeria_file(client):
     assert sum(1 for t in seen if t["transactionAmount"]["currency"] == "CHF") == 12
     bal = client.get("/v1/accounts/acc_pizzeria/balances", headers=PSD2).json()["balances"][0]["balanceAmount"]["amount"]
     assert abs(float(bal) - 33266.35) < 0.05  # the organisers' year-end balance
-    # the as-of date of the demo: 15 May 2025 hides everything after it
-    client.post("/admin/clock", json={"now": "2025-05-15", "accountId": "acc_pizzeria"}, headers=AUTH)
-    visible = client.get("/v1/accounts/acc_pizzeria/transactions", params={"limit": 1000}, headers=PSD2).json()
-    assert max(t["bookingDate"] for t in visible["transactions"]["booked"]) <= "2025-05-15"
