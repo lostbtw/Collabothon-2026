@@ -1,4 +1,5 @@
 """The agents' model loop (D-10): plain openai SDK against the vLLM model served on the cluster, no framework.
+With ORDO_OGX_URL set, OGX runs the same loop and reaches the tools over MCP (backend/agents/ogx.py).
 
 messages + tools -> model -> tool calls -> results -> ... -> final JSON -> validated by the caller.
 At most `max_calls` tool calls; any failure returns None and the caller uses its template.
@@ -14,6 +15,7 @@ import psycopg
 from jsonschema import Draft202012Validator
 
 from backend import settings
+from backend.agents import ogx
 from backend.agents.tools import Tool
 
 log = logging.getLogger("ordo.agents.llm")
@@ -43,6 +45,10 @@ def run_tool_loop(client: Any, conn: psycopg.Connection, company: str, messages:
                   tools: dict[str, Tool], final_schema: dict[str, Any], *, max_calls: int = MAX_TOOL_CALLS,
                   trace: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any] | None, list[Any]]:
     """Returns (final JSON or None, every tool result). `trace` collects {tool, arguments, duration_ms}."""
+    if ogx.enabled():  # on the cluster OGX runs the loop and calls the same tools over MCP
+        outcome = ogx.run(company, messages, sorted(tools), final_schema, max_calls=max_calls, trace=trace)
+        if outcome is not None:
+            return outcome
     results: list[Any] = []
     calls = 0
     retried = False

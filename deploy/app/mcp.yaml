@@ -1,0 +1,78 @@
+# Ordo's MCP server: the agents' tools over Streamable HTTP, for OGX (deploy/app/ogx.yaml) and any MCP client.
+# Reached only inside the cluster (no Route).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordo-mcp
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-mcp
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"mcp\")].image"}]'
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ordo-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: ordo-mcp
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      serviceAccountName: cfo-app
+      containers:
+        - name: mcp
+          image: ordo-backend:latest
+          args: ["mcp", "--http", "8000"]
+          ports:
+            - name: mcp
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: ordo-config
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+            - name: ORDO_MCP_ALLOWED_HOSTS
+              value: "ordo-mcp:8000,ordo-mcp.cfo-ai:8000,ordo-mcp.cfo-ai.svc:8000,ordo-mcp.cfo-ai.svc.cluster.local:8000"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: mcp
+              httpHeaders:
+                - name: Host
+                  value: localhost:8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordo-mcp
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-mcp
+spec:
+  selector:
+    app.kubernetes.io/name: ordo-mcp
+  ports:
+    - name: mcp
+      port: 8000
+      targetPort: mcp

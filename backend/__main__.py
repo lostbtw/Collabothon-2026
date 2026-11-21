@@ -1,4 +1,4 @@
-"""One package, four processes: `python -m backend <api|connectors|pipeline|agents> [--check]`.
+"""One package, five processes: `python -m backend <api|connectors|pipeline|agents|mcp> [--check]`.
 
 Each process lives in its owner's folder as `backend/<folder>/main.py` with a `run(argv)` function.
 Until the owner adds it, the entrypoint is a placeholder that starts and exits cleanly.
@@ -14,6 +14,7 @@ ENTRYPOINTS = {
     "connectors": ("backend.connectors.main", "role 2"),
     "pipeline": ("backend.pipeline.main", "role 3"),
     "agents": ("backend.agents.main", "role 5"),
+    "mcp": ("backend.agents.mcp_server", "role 5"),
 }
 
 
