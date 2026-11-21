@@ -173,13 +173,19 @@ function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean;
             <span className="medium">{monthInWords(estimate ? c.label.slice(0, -ESTIMATE.length) : c.label)}</span>
             {estimate && <span className="chip warn">estimate</span>}
           </span>
-          <span className="small t2" style={{ marginTop: 2 }}>{c.explainer ?? formula}</span>
+          {c.explainer && <span className="small t2" style={{ marginTop: 2 }}>{c.explainer}</span>}
         </div>
         <span className="medium">{whole({ amount: c.amount_base.amount.replace("-", ""), currency: c.amount_base.currency })}</span>
         <span className="t3" aria-hidden style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
       </div>
       {open && (
         <div className="stack" style={{ gap: 16, padding: "0 28px 20px 72px" }}>
+          {steps.length === 0 && formula && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="caption t3">How we got this number</span>
+              <span className="small">{formula}</span>
+            </div>
+          )}
           {steps.length > 0 && (
           <div className="stack" style={{ gap: 6 }}>
             <span className="caption t3">How we got this number</span>
