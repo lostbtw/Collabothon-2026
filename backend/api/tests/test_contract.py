@@ -42,6 +42,19 @@ CALLS = [
     ("post", "/chat", "/chat", {"json": {"message": "Why will I be short in December?", "company_id": "co_borsuk"}}, 200),
     ("get", "/fx/rates", "/fx/rates", {"params": {"currency": "EUR", "date": "2026-11-20"}}, 200),
     ("get", "/fx/exposure", "/fx/exposure", {"params": BORSUK}, 200),
+    ("patch", "/transactions/{id}", "/transactions/txn_731", {"params": BORSUK, "json": {"category": "software_subscriptions"}}, 200),
+    ("get", "/settings", "/settings", {"params": BORSUK}, 200),
+    ("patch", "/settings", "/settings", {"params": BORSUK, "json": {"alerts": {"late_client_days": 10}}}, 200),
+    ("get", "/people", "/people", {"params": BORSUK}, 200),
+    ("post", "/people", "/people", {"params": BORSUK, "json": {"name": "Ewa Nowak (SAMPLE)", "email": "ewa@borsuk-labs.sample", "role": "employee"}}, 201),
+    ("get", "/people/costs", "/people/costs", {"params": {**BORSUK, "month": "2026-10"}}, 200),
+    ("get", "/clients", "/clients", {"params": {**BORSUK, "month": "2026-10"}}, 200),
+    ("get", "/subscriptions", "/subscriptions", {"params": BORSUK}, 200),
+    ("get", "/rules", "/rules", {"params": BORSUK}, 200),
+    ("delete", "/rules/{id}", "/rules/rule_nope", {"params": BORSUK}, 404),
+    ("get", "/chat/sessions", "/chat/sessions", {"params": BORSUK}, 200),
+    ("get", "/chat/sessions/{id}", "/chat/sessions/chat_nope", {"params": BORSUK}, 404),
+    ("get", "/balance/history", "/balance/history", {"params": BORSUK}, 200),
 ]
 STREAM = "/events/stream"  # tested in test_events_stream
 

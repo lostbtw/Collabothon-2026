@@ -4,7 +4,7 @@ from typing import Any
 import psycopg
 from fastapi import APIRouter, Body, Depends
 
-from backend.api import contract
+from backend.api import contract, owner
 from backend.api.decisions import decide_match, record_approval
 from backend.api.deps import ApiError, company_id, conn, get_or_404, store
 from backend.db.events import new_event, publish
@@ -56,6 +56,10 @@ def correct_document(id: str, patch: dict[str, Any] = Body(...), c: psycopg.Conn
     approval = record_approval(c, company=document["company_id"], subject_type="document", subject_id=id,
                                decision="approved_with_changes", changes=patch)
     s.put("document", updated)
+    category = (patch.get("category_suggestion") or {}).get("category") if isinstance(patch.get("category_suggestion"), dict) else None
+    if category:  # the owner changed the type: remember it for this seller (owner.learn_rule)
+        party = updated["buyer"] if updated.get("direction") == "sale" else updated["seller"]
+        owner.learn_rule(c, document["company_id"], party.get("name"), party.get("counterparty_id"), category)
     # The corrected document goes through the matcher again (dedup, match, who paid), as after extraction.
     publish(c, new_event("document.extracted", document["company_id"],
                          {"document_id": id, "status": updated["status"], "gross": updated["totals"]["gross"],

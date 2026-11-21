@@ -18,7 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend import settings
 from backend.agents.llm import default_client
 from backend.api.deps import ApiError, error_body
-from backend.api.routes import bank, chat, documents, forecast, ledger, recommendations, sources, stream, system
+from backend.api.routes import bank, chat, documents, forecast, ledger, owner, recommendations, sources, stream, system
 
 
 def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | None = None) -> FastAPI:
@@ -35,7 +35,7 @@ def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | 
 
     app = FastAPI(title="Ordo API", version="0.1.0", lifespan=lifespan)
     app.state.chat_model = chat_model or default_client
-    for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream):
+    for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream, owner):
         app.include_router(module.router, prefix="/api/v1")
 
     @app.exception_handler(ApiError)
