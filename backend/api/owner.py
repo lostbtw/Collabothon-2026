@@ -156,6 +156,30 @@ def add_person(conn: psycopg.Connection, company_id: str, body: dict[str, Any]) 
     return next(p for p in people(conn, company_id) if p["id"] == pid)
 
 
+def update_person(conn: psycopg.Connection, company_id: str, person_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    """Change a listed person: name, e-mail, role, cards, names on statements. Raises LookupError for an unknown id and
+    ValueError for a bad value or an e-mail someone else already has. The e-mail is what tells who forwarded a receipt."""
+    row = conn.execute(f"select {PERSON_COLUMNS} from people where id = %s and company_id = %s", (person_id, company_id)).fetchone()
+    if row is None:
+        raise LookupError(person_id)
+    current = _person(row)
+    name = (body["name"] or "").strip() if "name" in body else current["name"]
+    email = (body["email"] or "").strip().lower() if "email" in body else current["email"].lower()
+    role = body["role"] if "role" in body else current["role"]
+    if not name or not email or role not in ("owner", "employee", "contractor"):
+        raise ValueError("a person needs a name, an e-mail and a role (owner, employee or contractor)")
+    if conn.execute("select 1 from people where lower(email) = %s and id <> %s", (email, person_id)).fetchone():
+        raise ValueError(f"someone with the e-mail {email} is already listed")
+    cards = [c.strip()[-4:] for c in body["card_last4"] if c and c.strip()] if "card_last4" in body else current["card_last4"]
+    statements = ([s.strip().upper() for s in body["statement_names"] if s and s.strip()]
+                  if "statement_names" in body else current["statement_names"])
+    pay_type = body.get("pay_type") or (DEFAULT_PAY_TYPE[role] if role != current["role"] else current["pay_type"])
+    conn.execute("update people set name = %s, email = %s, role = %s, pay_type = %s, card_last4 = %s, statement_names = %s "
+                 "where id = %s", (name, email, role, pay_type, cards, statements, person_id))
+    conn.commit()
+    return next(p for p in people(conn, company_id) if p["id"] == person_id)
+
+
 def person_of(t: dict, team: list[dict], counterparties: dict[str, dict]) -> dict | None:
     """The person a bank line pays: the counterparty is linked to them, or the line names them."""
     cp = counterparties.get(t.get("counterparty_id") or "") or {}
