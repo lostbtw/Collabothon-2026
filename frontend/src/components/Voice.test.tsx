@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Composer } from "./AskOrdo";
 import { HEARD_NOTHING, UNAVAILABLE, VoiceControls, VoiceStatus, type VoiceState } from "./Voice";
 
 const controls = (state: VoiceState, extra: { available?: boolean; language?: "pl" | "en" | "ru" } = {}) =>
@@ -56,5 +57,35 @@ describe("the chat's mic", () => {
     const html = status({ step: "error", message: HEARD_NOTHING });
     expect(html).toContain('role="alert"');
     expect(html).toContain("Ordo heard nothing");
+  });
+});
+
+describe("the chat's message box", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const box = (speech: { model: string; reachable: boolean } | null) =>
+    renderToStaticMarkup(<Composer busy={false} onSend={() => {}} speech={speech} />);
+  const browserCanRecord = () => {
+    vi.stubGlobal("MediaRecorder", Object.assign(function () {}, { isTypeSupported: () => true }));
+    vi.stubGlobal("navigator", { language: "pl-PL", mediaDevices: { getUserMedia: async () => ({}) } });
+  };
+
+  it("has the mic when the browser can record and speech to text is there", () => {
+    browserCanRecord();
+    const html = box({ model: "turbo", reachable: true });
+    expect(mic(html)).toContain('aria-label="Speak your question in Polish"');
+    expect(mic(html)).not.toContain("disabled");
+    expect(html).toContain('aria-label="Send"');
+  });
+
+  it("shows the mic switched off when speech to text does not answer", () => {
+    browserCanRecord();
+    expect(mic(box({ model: "turbo", reachable: false }))).toContain('disabled=""');
+  });
+
+  it("has no mic without speech to text or without a browser that records", () => {
+    browserCanRecord();
+    expect(box(null)).not.toContain('class="mic');
+    vi.unstubAllGlobals();
+    expect(box({ model: "turbo", reachable: true })).not.toContain('class="mic');
   });
 });

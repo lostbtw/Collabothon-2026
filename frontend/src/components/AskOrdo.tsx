@@ -1,13 +1,15 @@
 // Ask Ordo: a chat panel over any page, with the company's past chats (GET /chat/sessions, else this tab's) on the left.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api, type ChatAnswer, type ChatSession } from "../api/client";
+import { api, type ChatAnswer, type ChatSession, type Health } from "../api/client";
 import { useCompany, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
 import { requestRefresh } from "../lib/refresh";
+import { voiceSupported } from "../lib/voice";
 import { Icon } from "./Icon";
 import { Sources } from "./Sources";
 import { CloseButton } from "./ui";
+import { VoiceControls, VoiceStatus, useVoice } from "./Voice";
 
 const EXIT_MS = 160;
 
@@ -55,7 +57,13 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [reload, setReload] = useState(0);
+  const [speech, setSpeech] = useState<Health["speech"]>(null);
 
+  useEffect(() => {
+    let alive = true;
+    api.health().then((h) => alive && setSpeech(h.speech ?? null), () => alive && setSpeech(null));
+    return () => { alive = false; };
+  }, []);
   useEffect(() => {
     let alive = true;
     api.chatSessions(companyId).then((r) => alive && setServer(r?.items ?? null), () => alive && setServer(null));
@@ -144,7 +152,7 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
             <div className="hstack">
               {(SUGGESTIONS[companyId] ?? SUGGESTIONS.co_borsuk).map((s) => <button key={s} type="button" disabled={pending !== null} onClick={() => send(s)}>{s}</button>)}
             </div>
-            <Composer key={draft} initial={draft} busy={pending !== null} onSend={send} />
+            <Composer key={draft} initial={draft} busy={pending !== null} onSend={send} speech={speech} />
           </div>
         </section>
       </aside>
@@ -192,9 +200,21 @@ function Answer({ text, answer: a }: { text: string; answer?: ChatAnswer }) {
   );
 }
 
-export function Composer({ busy, onSend, initial = "" }: { busy: boolean; onSend: (question: string) => void; initial?: string }) {
+export function Composer({ busy, onSend, initial = "", speech = null }: { busy: boolean; onSend: (question: string) => void; initial?: string; speech?: Health["speech"] }) {
   const [message, setMessage] = useState(initial);
   const box = useRef<HTMLTextAreaElement>(null);
+  const [canRecord] = useState(() => voiceSupported());
+  const voice = useVoice((heard) => {
+    setMessage((m) => (m.trim() ? `${m.trimEnd()} ${heard}` : heard));
+    requestAnimationFrame(() => {
+      const el = box.current;
+      if (!el) return;
+      el.focus();
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  });
   function submit(e?: FormEvent) {
     e?.preventDefault();
     if (!message.trim() || busy) return;
@@ -208,12 +228,17 @@ export function Composer({ busy, onSend, initial = "" }: { busy: boolean; onSend
       submit();
     }
   }
+  const withVoice = canRecord && speech != null;
   return (
-    <form onSubmit={submit} className="composer">
-      <textarea ref={box} rows={1} autoFocus aria-label="Message Ordo" placeholder="Ask about your money" value={message}
-        onChange={(e) => { setMessage(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`; }} onKeyDown={onKey} />
-      <button className="primary send" type="submit" disabled={busy || !message.trim()} aria-label="Send"><Icon name="arrowUp" size={18} /></button>
-    </form>
+    <>
+      <form onSubmit={submit} className="composer">
+        <textarea ref={box} rows={1} autoFocus aria-label="Message Ordo" placeholder="Ask about your money" value={message}
+          onChange={(e) => { setMessage(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`; }} onKeyDown={onKey} />
+        {withVoice && <VoiceControls state={voice.state} language={voice.language} available={speech.reachable} onPress={voice.press} onLanguage={voice.setLanguage} />}
+        <button className="primary send" type="submit" disabled={busy || !message.trim()} aria-label="Send"><Icon name="arrowUp" size={18} /></button>
+      </form>
+      {withVoice && <VoiceStatus state={voice.state} />}
+    </>
   );
 }
 
