@@ -85,6 +85,19 @@ def guardrails_token() -> str:
     return os.environ.get("ORDO_GUARDRAILS_API_KEY") or llm_token()
 
 
+def whisper_url() -> str:
+    """OpenAI-compatible speech-to-text endpoint of Whisper on the team's cluster; empty when it is not deployed."""
+    return os.environ.get("ORDO_WHISPER_URL", "")
+
+
+def whisper_model() -> str:
+    return os.environ.get("ORDO_WHISPER_MODEL", "")
+
+
+def whisper_api_key() -> str:
+    return os.environ.get("ORDO_WHISPER_API_KEY", "")
+
+
 def mcp_allowed_hosts() -> list[str]:
     return [h.strip() for h in os.environ.get("ORDO_MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
