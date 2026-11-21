@@ -157,6 +157,41 @@ def test_rate_on_follows_the_contract_shape_and_unknowns(db, source, nbp):
     assert rate_on(db, "PLN", date(2026, 11, 20))["rate"] == "1"
 
 
+# ---------- weekends and holidays (found on the cluster) ----------
+SATURDAY = date(2026, 11, 21)
+
+
+def test_a_weekend_is_not_asked_for_and_does_not_degrade_the_source(db, source, nbp):
+    fake, _ = nbp
+    poll(db, source, nbp)  # history up to Friday 20 Nov
+    asked = len(fake.requests)
+    fake.today = SATURDAY
+    fake.status = 500  # what api.nbp.pl answered for a day without a table
+    result = poll(db, source, nbp, today=SATURDAY)
+    assert result["status"] == "success" and result["items_new"] == 0
+    assert len(fake.requests) == asked  # a Saturday-only window is never requested
+    assert fake.status == 500 and Store(db).get("source", "src_nbp")["status"] == "connected"
+
+
+def test_an_error_on_a_short_window_after_the_last_table_is_nothing_new_not_an_outage(db, source, nbp):
+    """A holiday (11 Nov 2026 is a Wednesday): NBP answers 500 for it; the source stays connected."""
+    fake, _ = nbp
+    poll(db, source, nbp, today=date(2026, 11, 10))
+    fake.status = 500
+    result = poll(db, source, nbp, today=date(2026, 11, 11))
+    assert result["status"] == "success" and result["items_new"] == 0
+    assert Store(db).get("source", "src_nbp")["status"] == "connected"
+
+
+def test_a_real_outage_on_the_first_read_is_still_an_error(db, source, nbp):
+    fake, _ = nbp
+    fake.status = 500
+    waited = []
+    result = poll(db, source, nbp, waited=waited)  # no table stored yet: the long history window fails
+    assert result["status"] == "failed" and waited == [5, 20, 60]
+    assert Store(db).get("source", "src_nbp")["status"] == "degraded"
+
+
 # ---------- GET /api/v1/fx/rates ----------
 def test_the_api_serves_the_stored_nbp_rate_and_falls_back_before_it(db, db_url, source, nbp):
     from fastapi.testclient import TestClient
