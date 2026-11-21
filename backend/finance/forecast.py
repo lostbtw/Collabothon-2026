@@ -26,6 +26,7 @@ from typing import Any, Iterable
 from .calendar import last_business_day, on_or_after
 from .series import Flow, counterparty_key, detect, template, weekday_averages, weekly_spread
 from .settings import BAND, BAND_Z, HORIZON_DAYS, VARIABLE_WEEKS
+from .tax import tax_components
 
 METHOD = "recurring-schedule + weekday-average v1"
 VARIABLE_CONFIDENCE = 0.5
@@ -70,7 +71,8 @@ def inputs_hash(**inputs: Any) -> str:
 
 
 def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterable[dict], rates: dict[str, Decimal],
-                   open_items: Iterable[dict] = (), ledger_entries: Iterable[dict] = (), events: Iterable[dict] = (),
+                   open_items: Iterable[dict] = (), ledger_entries: Iterable[dict] = (),
+                   tax_documents: Iterable[dict] = (), events: Iterable[dict] = (),
                    invoice_keys: Iterable[str] = (), people_keys: Iterable[str] = (), own_ibans: Iterable[str] = (),
                    own_keys: Iterable[str] = (),
                    horizon_days: int = HORIZON_DAYS, safety_buffer: Decimal | None = None,
@@ -85,6 +87,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     open_items     open invoices: {id, kind: receivable|payable, label, key, amount: Money, due_date,
                    delay_days, confidence}
     ledger_entries Ledger entries; approved `reimbursement_liability` ones are paid with the next pay run
+    tax_documents  invoices and purchases as tax documents (tax.tax_document); VAT and CIT come from them
     events         owner events (forecast.schema.json#/properties/events/items)
     invoice_keys   counterparties paid by invoice: their bank lines are neither a series nor an average
                    (their open invoices are the forecast), so nothing is counted twice
@@ -100,6 +103,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     rate = {k: Decimal(str(v)) for k, v in rates.items()}
     people_keys, invoice_keys = set(people_keys), set(invoice_keys)
     open_items, ledger_entries, events = list(open_items), list(ledger_entries), list(events)
+    tax_documents = list(tax_documents)
     included, transactions, opening, flows, last_line = _prepare(company, accounts, transactions, rate, own_ibans,
                                                                  own_keys)
 
@@ -113,7 +117,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                 d += timedelta(days=1)
 
     series, rest = detect(flows, as_of, country, loose_keys=invoice_keys)
-    variable = [f for f in rest if f.key not in people_keys and f.key not in invoice_keys]
+    variable = [f for f in rest if f.key not in people_keys and f.key not in invoice_keys
+                and f.transaction.get("transaction_type") not in ("tax", "social_security")]
     history_start = flows[0].day if flows else None
     averages = weekday_averages(variable, as_of, quiet, history_start)
     spread = weekly_spread(variable, as_of, quiet, history_start)  # (sd of weekly sums, weeks) or None
@@ -127,6 +132,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         expected_at[item["id"]] = on_or_after(max(due + timedelta(days=delay), as_of + timedelta(days=1)), country)
 
     for s in series:
+        if s.kind in ("tax", "social_security"):  # taxes come from the rules, not the bank history
+            continue
         dates = [d for d in s.dates(as_of, end, country) if not any(  # an open invoice replaces that occurrence
             s.key in (i.get("keys") or [i.get("key")]) and abs((expected_at[i["id"]] - d).days) <= 10 for i in open_items)]
         if not dates:
@@ -140,6 +147,15 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
             "dates": [d.isoformat() for d in dates], "confidence": 0.6 if not_invoiced else s.confidence,
             "evidence": [_txn_link(f, base) for f in s.flows[-3:]],
         })
+
+    salaries = [{"day": f.day, "key": f.key, "name": f.name, "net": -f.amount, "evidence": _txn_link(f, base)}
+                for f in flows if f.transaction.get("transaction_type") == "salary" and f.amount < 0]
+    salaries += [{"day": d, "key": s.key, "name": s.label, "net": -s.amount, "evidence": None}
+                 for s in series if s.kind == "salary" for d in s.dates(as_of, end, country)]
+    for comp in tax_components(as_of=as_of, end=end, base=base, rates=rate, documents=tax_documents,
+                               salaries=salaries):
+        certain[date.fromisoformat(comp["dates"][0])] += Decimal(comp["amount_base"]["amount"])
+        components.append(comp)
 
     for item in open_items:
         unit = rate[item["amount"]["currency"]]
@@ -298,7 +314,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                          items=sorted(json.dumps(i, sort_keys=True, default=str) for i in open_items),
                          ledger=sorted((e["id"], e.get("status"), e.get("cash_date")) for e in ledger_entries),
                          events=sorted(json.dumps(e, sort_keys=True) for e in events),
-                         invoice_keys=sorted(invoice_keys), people_keys=sorted(people_keys))
+                         invoice_keys=sorted(invoice_keys), people_keys=sorted(people_keys),
+                         tax=sorted(json.dumps(d, sort_keys=True, default=str) for d in tax_documents))
     return {
         "id": forecast_id or f"fc_{company['id']}_{digest[:10]}",
         "company_id": company["id"], "generated_at": generated_at or f"{as_of}T00:00:00Z", "as_of_date": as_of.isoformat(),

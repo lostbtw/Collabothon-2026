@@ -8,6 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from backend.finance.series import counterparty_key
+from backend.finance.tax import tax_document
 from backend.pipeline.normalise.bank import normalise_bank_line
 from backend.pipeline.normalise.commerzbank_csv import DEFAULT_CSV, raw_items, read_booked_lines
 
@@ -38,6 +39,24 @@ CLOSED_JUNE = {"id": "fev_june", "label": "Closed 1-30 June", "date_from": "2025
 
 CLIENTS = ["MEBLOSTYL SP Z O O (SAMPLE)", "PIEKARNIA ZLOTY KLOS SP Z O O (SAMPLE)", "KADROWNIA SP Z O O (SAMPLE)",
            "NORDWIND LOGISTIK GMBH (SAMPLE)"]
+
+
+def scenario_documents() -> list[dict]:
+    """Borsuk Labs' FA(3) invoices as Documents, without duplicates; November is still open, so its documents are not needed."""
+    index = json.loads((SCENARIO / "fa3_index.json").read_text(encoding="utf-8"))
+    truth = {d["document_id"]: d for d in json.loads((SCENARIO / "ground_truth.json").read_text(encoding="utf-8"))["documents"]}
+    docs = []
+    for e in index:
+        if truth.get(e["id"], {}).get("duplicate_of") is not None:
+            continue
+        docs.append({"id": e["id"], "company_id": "co_borsuk", "direction": e["direction"], "doc_type": "invoice",
+                     "status": "approved", "number": e["number"], "issue_date": e["issue_date"],
+                     "due_date": e.get("due_date"), "totals": {"net": e["net"], "vat": e["vat"], "gross": e["gross"]},
+                     "flags": [], "payment": {"method": e["payment"], "paid": e.get("bank_line") is not None},
+                     "bank_line": e.get("bank_line"),
+                     ("buyer" if e["direction"] == "sale" else "seller"): {"name": e["counterparty"],
+                                                                           "counterparty_id": None}})
+    return docs
 
 
 def borsuk(without: tuple[str, ...] = ()) -> dict:
@@ -74,4 +93,5 @@ def borsuk(without: tuple[str, ...] = ()) -> dict:
             "accounts": accounts, "transactions": transactions, "rates": RATES, "open_items": open_items,
             "ledger_entries": ledger, "invoice_keys": [key(c) for c in CLIENTS],
             "people_keys": [key(p["name"].upper()) for p in people],
+            "tax_documents": [t for t in map(tax_document, scenario_documents()) if t],
             "own_ibans": ["PL00999900000000000000010001", "PL00999900000000000000010002"]}

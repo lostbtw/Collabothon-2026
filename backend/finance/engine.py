@@ -26,6 +26,7 @@ from .scenarios import credit_line_size, stress_of, with_changes
 from .series import name_key
 from .settings import (BUFFER_MONTHS, BUFFER_ROUND, BUFFER_SHARE, DEFAULT_PAYMENT_DAYS, DEMO_DAY_RATES_PLN,
                        EVENT_TAIL_DAYS, FX_HISTORY_DAYS, FX_MIN_HISTORY, HORIZON_DAYS)
+from .tax import tax_document
 
 try:  # role 2's NBP connector (#34): stored table A rates
     from backend.connectors.nbp import rate_on
@@ -218,6 +219,7 @@ def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     people_keys |= {c["id"] for c in s.list("counterparty", company_id=company_id) if c.get("person_id")}
     ledger = [e for e in s.list("ledger_entry", company_id=company_id, type="reimbursement_liability",
                                 status="approved") if not e.get("cash_date") or e["cash_date"] > as_of]
+    documents = s.list("document", company_id=company_id)
     events = [r[0] for r in conn.execute("select doc from forecast_events where company_id = %s order by seq",
                                          (company_id,)).fetchall()]
     currencies = {a["currency"] for a in accounts} | {i["amount"]["currency"] for i in open_items}
@@ -225,6 +227,7 @@ def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     return {"company": {k: company[k] for k in ("id", "base_currency", "as_of_date", "country")},
             "accounts": accounts, "transactions": transactions, "rates": rates,
             "open_items": open_items, "ledger_entries": ledger, "events": events,
+            "tax_documents": [t for t in map(tax_document, documents) if t],
             "invoice_keys": sorted(invoice_keys), "people_keys": sorted(people_keys),
             "own_keys": [name_key(company["name"])],
             "horizon_days": horizon_for(as_of, events),

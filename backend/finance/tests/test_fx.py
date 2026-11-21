@@ -65,7 +65,7 @@ def test_the_company_facts_are_month_by_month_because_money_in_varies(labs, labs
     assert {r["id"]: r["amount"] for r in facts["references"]} == {
         "money_in_weakest_month": pln("60147.00"), "money_in_median_month": pln("116005.50"),
         "money_out_median_month": pln("118288.61"), "cash_today": pln("38401.15")}
-    assert facts["lowest_forecast_balance"] == {"date": "2026-12-04", "amount": pln("-12970.34")}
+    assert facts["lowest_forecast_balance"] == {"date": "2026-12-04", "amount": pln("-13178.34")}
     assert [t for t in labs["transactions"] if t.get("transaction_type") == "internal"]  # own transfers: not counted
 
 
@@ -77,8 +77,8 @@ def test_lakeshore_facts(labs, labs_forecast):
     assert (a["good_case_p95"], a["average_result"]) == (pln("7732.83"), pln("18.63"))
     assert shares(a) == {"money_in_weakest_month": "11.0", "money_in_median_month": "5.7",
                          "money_out_median_month": "5.6", "cash_today": "17.2"}
-    assert a["lowest_balance_after_payment"] == {"date": "2027-01-05", "balance": pln("149552.31")}
-    assert a["lowest_balance_after_payment_with_bad_case"]["balance"] == pln("142957.48")
+    assert a["lowest_balance_after_payment"] == {"date": "2027-01-05", "balance": pln("158250.52")}
+    assert a["lowest_balance_after_payment_with_bad_case"]["balance"] == pln("151655.69")
     assert (a["already_negative_after_payment"], a["bad_case_takes_balance_below_zero"]) == (False, False)
     assert a["hedge"] == {"ratio": "1.0", "value_date": "2027-01-05", "notional": {"amount": "40000.00", "currency": "USD"},
                           "sell_currency": "USD", "buy_currency": "PLN", "forward_rate": "4.0491",
@@ -92,8 +92,8 @@ def test_nordwind_facts_paid_in_16_days_into_a_forecast_already_below_zero(labs,
     assert (a["value_today_base"], a["expected_shortfall"]) == (pln("81144.00"), pln("-994.46"))
     assert shares(a) == {"money_in_weakest_month": "1.7", "money_in_median_month": "0.9",
                          "money_out_median_month": "0.8", "cash_today": "2.6"}
-    assert a["lowest_balance_after_payment"] == {"date": "2027-01-04", "balance": pln("-11171.69")}
-    assert a["lowest_balance_after_payment_with_bad_case"]["balance"] == pln("-12166.15")
+    assert a["lowest_balance_after_payment"] == {"date": "2027-01-04", "balance": pln("-2473.48")}
+    assert a["lowest_balance_after_payment_with_bad_case"]["balance"] == pln("-3467.94")
     assert (a["already_negative_after_payment"], a["bad_case_takes_balance_below_zero"]) == (True, True)
     assert (a["hedge"]["ratio"], a["hedge"]["value_date"], a["hedge"]["notional"]) == \
         ("0.8", "2026-12-07", {"amount": "14720.00", "currency": "EUR"})  # a late client: 80% on the expected date

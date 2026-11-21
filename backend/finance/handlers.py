@@ -5,6 +5,7 @@
     transaction.ingested   mark the company: its forecast is recomputed 2 s after the last such event (#28)
     ledger.entry.approved  same
     execution.simulated    same
+    document.extracted     same (taxes come from documents)
     approval.recorded      -- nothing
 
 Every handler can run twice: entries have ids derived from the Match and `Store.add` ignores a repeated id,
@@ -94,4 +95,5 @@ HANDLERS: dict[str, list[Callable[[psycopg.Connection, dict[str, Any]], Any]]] =
     "transaction.ingested": [on_inputs_changed],
     "ledger.entry.approved": [on_inputs_changed],
     "execution.simulated": [on_inputs_changed],
+    "document.extracted": [on_inputs_changed],
 }

@@ -62,14 +62,14 @@ def test_pizzeria_is_lowest_on_3_july_2025_at_minus_22_097_60_eur(pizzeria_days)
     assert pizzeria_days[end_of_june] == Decimal("-20098.69")
 
 
-def test_borsuk_labs_is_lowest_on_4_december_at_minus_12_970_34_pln(labs_forecast):
-    assert labs_forecast["min_balance"] == {"date": "2026-12-04", "amount": pln("-12970.34")}
+def test_borsuk_labs_is_lowest_on_4_december_at_minus_13_178_34_pln(labs_forecast):
+    assert labs_forecast["min_balance"] == {"date": "2026-12-04", "amount": pln("-13178.34")}
     assert labs_forecast["first_negative_date"] == "2026-11-30"
 
 
-def test_borsuk_labs_stress_case_is_minus_46_072_20_pln_and_the_credit_line_50_000_pln(labs_forecast):
+def test_borsuk_labs_stress_case_is_minus_45_497_99_pln_and_the_credit_line_50_000_pln(labs_forecast):
     assert (STRESS_EXTRA_DAYS, SIZING_STEP) == (14, Decimal("5000"))  # the settings the numbers below assume
     stress = stress_of(labs_forecast)
     assert (stress["label"], stress["date"], stress["balance"]) == \
-        ("Nordwind pays 21 Dec", "2026-12-21", pln("-46072.20"))
+        ("Nordwind pays 21 Dec", "2026-12-21", pln("-45497.99"))
     assert credit_line_size(labs_forecast)["limit"] == pln("50000.00")
