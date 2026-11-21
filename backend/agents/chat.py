@@ -374,6 +374,7 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
 def answer(conn: psycopg.Connection, company: str, message: str, session_id: str | None, model: Any) -> dict[str, Any]:
     trace: list[dict[str, Any]] = []
     created = guardrail = table = None
+    results: list[Any] = []
     text = evidence = None
     session_id = session_id or f"chat_{uuid.uuid4().hex[:10]}"
     trace_id = None
@@ -400,6 +401,12 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
             tracing.tag(outcome=outcome, created_recommendation_id=created)
             tracing.outputs(step, {"outcome": outcome, "answer": text, "tool_calls": trace,
                                    "created_recommendation_id": created})
+    if text is None and created:
+        # The model already put the request in the inbox but its answer was unusable: say so, do not make a second card.
+        card = Store(conn).get("recommendation", created) or {}
+        text = (f"I cannot move money from the chat. I put this in your inbox: \"{card.get('title', 'your request')}\". "
+                "It runs only after you approve it, in simulation.")
+        evidence = _evidence(results)
     if text is None:
         text, evidence, fallback_trace, fallback_created, fallback_guardrail = deterministic(conn, company, message)
         trace = trace or fallback_trace

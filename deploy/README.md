@@ -22,8 +22,8 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `ordo-pipeline` | `ordo-backend` | Normalises and matches |
 | `ordo-extractor` | `ordo-backend` | Reads photos and PDFs through docling-serve and gpt-oss-20b |
 | `ordo-agents` | `ordo-backend` | Turns new Matches and forecasts into inbox cards (ingestion, liquidity, receivables agents) |
-| `ordo-mcp` | `ordo-backend` | The agents' tools as an MCP server, in-cluster only at `http://ordo-mcp.cfo-ai.svc.cluster.local:8000/mcp` |
-| `ordo-ogx` (OGXServer) | OGX `rh-dev` distribution | OGX in front of the model; runs the agents' tool loop and calls `ordo-mcp` (only after `setup.sh ogx`) |
+| `ordo-mcp` | `ordo-backend` | The agents' tools as an MCP server, in-cluster only at `http://ordo-mcp.cfo-ai.svc.cluster.local:8000/mcp`; also OGX's way to the model (`/model/v1`) |
+| `ordo-ogx` (OGXServer) | OGX `rh` distribution | OGX in front of the model; runs the agents' tool loop and calls `ordo-mcp` (only after `setup.sh ogx`) |
 | `ordo-bank` | `ordo-sim` | The Sandbox Bank, in-cluster only at `http://ordo-bank.cfo-ai.svc.cluster.local:8081` |
 | `postgresql` | `rhel9/postgresql-16` | The database |
 | `gpt-oss-20b-predictor`, `docling-serve` | see `deploy/models/` | The model and OCR |
@@ -58,9 +58,11 @@ deploy/platform/setup.sh redeploy
 deploy/platform/setup.sh ogx
 ```
 
-This turns on the OGX Operator (`DataScienceCluster` `spec.components.ogx`, cluster-wide, needs cluster-admin), creates the database `ogx` that OGX keeps its own state in, starts `ordo-mcp` and the OGX server `ordo-ogx`, applies `deploy/app/ogx-config.yaml` and runs `check-ogx`.
+This turns on the OGX Operator (`DataScienceCluster` `spec.components.ogx`, and `llamastackoperator` to `Removed`, which OGX replaces and refuses to run next to; cluster-wide, needs cluster-admin), creates the database `ogx` that OGX keeps its own state in, starts `ordo-mcp` and the OGX server `ordo-ogx`, applies `deploy/app/ogx-config.yaml` and runs `check-ogx`.
 
 From then on the chat (`ordo-api`) and the liquidity and FX Shield agents (`ordo-agents`) ask OGX's Responses API instead of running their own tool loop: OGX talks to gpt-oss-20b and calls Ordo's tools on `ordo-mcp`. The answer passes the same checks as before (JSON schema, no number that no tool returned). If OGX does not answer, each agent runs its own loop against the model, so the app keeps working.
+
+OGX reaches the model through `ordo-mcp` (`/model/v1`), not directly: OGX hands a tool's result to the model as text parts, the gpt-oss chat handler of our vLLM accepts only plain text there, and the pass-through converts it. Nothing else is changed on the way.
 
 `deploy/platform/setup.sh ogx-off` switches the agents back; OGX and `ordo-mcp` stay up.
 
