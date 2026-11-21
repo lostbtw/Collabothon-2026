@@ -206,3 +206,18 @@ def test_the_template_card_is_stored_before_the_model_is_asked(db, world):
     on_forecast_updated(db, updated("fc_20261121a"), model=SlowModel(final("x" * 10, "y" * 20, ["a", "b"])))
 
     assert seen_while_model_runs[0] == ["rec_cl_fc_20261121a"]
+
+
+def test_the_limit_and_the_stress_case_on_the_card_come_from_the_engine(db, world, monkeypatch):
+    from backend.finance import engine
+
+    money = lambda amount: {"amount": amount, "currency": "PLN"}  # noqa: E731
+    stress = {"label": "Nordwind pays 21 Dec", "date": "2026-12-21", "balance": money("-46072.20")}
+    monkeypatch.setattr(engine, "stress", lambda conn, company: stress)
+    monkeypatch.setattr(engine, "credit_line", lambda conn, company: {"limit": money("50000.00")})
+    on_forecast_updated(db, updated("fc_20261121a"), model=None)
+    card = cards(world)[0]
+    assert card["title"] == "Open a 50,000 PLN credit line before 30 November"
+    assert card["proposed_action"]["params"]["limit"] == money("50000.00")
+    calculation = {row["label"]: row["value"] for row in card["explanation"]["calculation"]}
+    assert calculation["Stress case (Nordwind pays 21 Dec)"] == "-46,072.20 PLN on 21 Dec"
