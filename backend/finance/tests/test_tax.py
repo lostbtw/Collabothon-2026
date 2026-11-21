@@ -110,10 +110,13 @@ def test_vat_of_a_closed_month_is_output_minus_deductible_input():
     assert c["amount_base"] == {"amount": "-5067.00", "currency": "PLN"}
     assert c["dates"] == ["2026-11-25"]
     assert c["confidence"] == 0.9
-    assert c["label"].startswith("VAT for 10/2026")
+    assert c["label"] == "VAT for October 2026"
     assert c["evidence"][0]["kind"] == "rule"
     assert c["evidence"][1]["kind"] == "document"
     assert "output VAT 6,900.00 − deductible input VAT 1,832.52" in c["schedule"]
+    assert c["explainer"] == "VAT you charged clients minus VAT you paid suppliers"
+    assert [(s["op"], s["amount"] and s["amount"]["amount"]) for s in c["breakdown"]] == [
+        ("start", "6900.00"), ("minus", "1832.52"), ("equals", "5067.00")]
 
 
 def test_vat_loss_of_a_month_is_carried_forward():
@@ -135,6 +138,8 @@ def test_vat_of_an_open_month_is_an_estimate_from_the_closed_months():
     assert c["amount_base"]["amount"] == "-2300.00"
     assert "mean of the last 3 closed months" in c["schedule"]
     assert c["evidence"][0]["kind"] == "rule"
+    assert c["breakdown"][-1] == {"label": "November is not over yet: the VAT is the average of Aug, Sep and Oct",
+                                  "op": "note", "amount": None}
 
 
 def test_cit_advance_is_cumulative_and_open_months_are_estimated():
@@ -202,7 +207,7 @@ def test_components_follow_role_5_parsing_rules():
 
 
 def test_components_have_exactly_the_contract_keys():
-    keys = {"id", "label", "kind", "amount_base", "schedule", "dates", "confidence", "evidence"}
+    keys = {"id", "label", "kind", "amount_base", "schedule", "dates", "confidence", "evidence", "explainer", "breakdown"}
     comps = components(OCTOBER, [JAN])
     assert comps
     assert all(set(c) == keys for c in comps)
@@ -210,3 +215,14 @@ def test_components_have_exactly_the_contract_keys():
 
 def test_nothing_to_compute_gives_no_components():
     assert components([]) == []
+
+
+def test_every_breakdown_ends_at_the_amount_to_pay():
+    comps = components(OCTOBER, [JAN])
+    assert {c["id"].split("_")[2] for c in comps} >= {"vat", "cit", "pit4", "zus"}
+    for c in comps:
+        steps = c["breakdown"]
+        assert steps[0]["op"] == "start"
+        last = [s for s in steps if s["op"] == "equals"][-1]
+        assert last["amount"]["amount"] == c["amount_base"]["amount"].lstrip("-")
+        assert all(s["amount"] is None for s in steps if s["op"] == "note")

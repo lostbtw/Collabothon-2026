@@ -1,4 +1,5 @@
 """Polish tax payments (VAT, CIT advance, PIT-4, ZUS) as forecast components; an open month is estimated from closed ones."""
+import calendar
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -121,13 +122,40 @@ def _evidence(tax: str, docs: list[tuple[Decimal, dict]], salaries: list[dict] |
     return out
 
 
+EXPLAINERS = {
+    "vat": "VAT you charged clients minus VAT you paid suppliers",
+    "cit": f"Monthly advance on company income tax: {settings.CIT_RATE * 100:.0f} % of this year's profit, "
+           "minus the advances already due",
+    "pit4": "Income tax held back from salaries and passed on to the tax office",
+    "zus": "Social and health insurance for the people on the payroll",
+}
+
+
+def _step(label: str, op: str, amount: Decimal | None = None, base: str = "PLN") -> dict:
+    return {"label": label, "op": op, "amount": None if amount is None else money(amount, base)}
+
+
+def _to_pay(amount: Decimal, base: str) -> dict:
+    return _step("To pay, rounded to whole złoty" if base == "PLN" else "To pay, rounded", "equals", amount, base)
+
+
+def _count(n: int, one: str, many: str | None = None) -> str:
+    return f"{n} {one if n == 1 else many or one + 's'}"
+
+
+def _month_names(months: list[tuple[int, int]]) -> str:
+    names = [calendar.month_abbr[m] for _, m in months]
+    return ", ".join(names[:-1]) + f" and {names[-1]}" if len(names) > 1 else "".join(names)
+
+
 def _component(tax: str, y: int, m: int, due: date, amount: Decimal, base: str, schedule: str, estimate: bool,
-               evidence: list[dict], *, confidence: float | None = None) -> dict:
+               evidence: list[dict], breakdown: list[dict], *, confidence: float | None = None) -> dict:
+    period = f"{calendar.month_name[m]} {y}"
     label = {
-        "vat": f"VAT for {m:02d}/{y} (JPK_V7M)",
-        "cit": f"CIT advance for {m:02d}/{y}",
-        "pit4": f"PIT-4 for {m:02d}/{y}",
-        "zus": f"ZUS for {m:02d}/{y}",
+        "vat": f"VAT for {period}",
+        "cit": f"CIT advance for {period}",
+        "pit4": f"PIT-4 for {period}",
+        "zus": f"ZUS for {period}",
     }[tax]
     if estimate:
         label += " (estimate)"
@@ -141,6 +169,8 @@ def _component(tax: str, y: int, m: int, due: date, amount: Decimal, base: str, 
         "confidence": confidence if confidence is not None else (
             settings.TAX_ESTIMATE_CONFIDENCE if estimate else settings.TAX_CONFIDENCE),
         "evidence": evidence,
+        "explainer": EXPLAINERS[tax],
+        "breakdown": breakdown,
     }
 
 
@@ -153,6 +183,8 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     lost_vat: dict[str, Decimal] = defaultdict(Decimal)
     revenue: dict[str, Decimal] = defaultdict(Decimal)
     purchase_net: dict[str, Decimal] = defaultdict(Decimal)
+    sales_with_vat: dict[str, int] = defaultdict(int)
+    purchases_with_vat: dict[str, int] = defaultdict(int)
     month_docs: dict[str, list[tuple[Decimal, Decimal, dict]]] = defaultdict(list)
 
     for doc in documents:
@@ -168,10 +200,12 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
         if doc["direction"] == "sale":
             revenue[month] += net
             output_vat[month] += vat
+            sales_with_vat[month] += vat > 0
         elif doc["direction"] == "purchase":
             purchase_net[month] += net
             if doc["deductible"]:
                 input_vat[month] += vat
+                purchases_with_vat[month] += vat > 0
             else:
                 lost_vat[month] += vat
         else:
@@ -222,7 +256,11 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     est_position = _mean([position(_month_key(*c)) for c in recent])
     est_profit = _mean([profit(_month_key(*c)) for c in recent])
     estimate_note = f"mean of the last {n_recent} closed months"
+    recent_names = _month_names(recent)
     out: list[dict] = []
+
+    def not_closed(m: int, what: str) -> dict:
+        return _step(f"{calendar.month_name[m]} is not over yet: {what} is the average of {recent_names}", "note")
 
     def in_window(due: date) -> bool:
         return as_of < due <= end
@@ -246,11 +284,20 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                 schedule = (f"{when}output VAT {_shown(output_vat[key])} − deductible input VAT {_shown(input_vat[key])}"
                             + (f" − carried forward {_shown(used_carry)}" if used_carry else ""))
                 docs = [(vat, d) for _, vat, d in month_docs[key] if vat > 0]
+                steps = [_step(f"VAT on {_count(sales_with_vat[key], 'sales invoice')}", "start", output_vat[key], base),
+                         _step(f"VAT on {_count(purchases_with_vat[key], 'purchase invoice')} you can deduct", "minus",
+                               input_vat[key], base)]
             else:
                 schedule = f"{when}output VAT − deductible input VAT, {estimate_note}" + (
                     f" − carried forward {_shown(used_carry)}" if used_carry else "")
                 docs = []
-            out.append(_component("vat", y, m, due, amount, base, schedule, not is_closed, _evidence("vat", docs)))
+                steps = [_step("VAT to pay in an average month", "start", est_position, base)]
+            if used_carry:
+                steps.append(_step("Overpaid VAT carried from earlier months", "minus", used_carry, base))
+            steps.append(_to_pay(amount, base))
+            if not is_closed:
+                steps.append(not_closed(m, "the VAT"))
+            out.append(_component("vat", y, m, due, amount, base, schedule, not is_closed, _evidence("vat", docs), steps))
 
     ytd = ZERO
     advances = ZERO
@@ -271,7 +318,15 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             if not is_closed:
                 schedule += f"; month profit is the {estimate_note}"
             docs = [(net, d) for net, _, d in month_docs[key]] if is_closed else []
-            out.append(_component("cit", y, m, due, due_amount, base, schedule, not is_closed, _evidence("cit", docs)))
+            steps = [_step("Profit since 1 January", "start", ytd, base),
+                     _step(f"{settings.CIT_RATE * 100:.0f} % tax on that profit", "equals", settings.CIT_RATE * ytd, base)]
+            if advances - due_amount:
+                steps.append(_step("Advances already due this year", "minus", advances - due_amount, base))
+            steps.append(_to_pay(due_amount, base))
+            if not is_closed:
+                steps.append(not_closed(m, "its profit"))
+            out.append(_component("cit", y, m, due, due_amount, base, schedule, not is_closed, _evidence("cit", docs),
+                                  steps))
 
     for month in sorted(paid):
         y, m = int(month[:4]), int(month[5:])
@@ -282,7 +337,13 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             if amount > 0 and in_window(due):
                 schedule = (f"{_ordinal(due_day)} of the next month, next business day if not (Ordynacja podatkowa art. 12 § 5): "
                             f"{people} salaries, gross pay {_shown(gross_sum[month])} (inferred from net pay)")
+                result = (f"Income tax held back ({settings.PIT_RATE * 100:.0f} %, {settings.PIT_RATE_HIGH * 100:.0f} % "
+                          f"above {settings.PIT_THRESHOLD_PLN:,.0f} PLN a year)" if tax == "pit4"
+                          else "Social and health contributions, employer and employee share")
+                steps = [_step(f"Gross pay of {_count(people, 'person', 'people')}", "start", gross_sum[month], base),
+                         _step(result, "equals", amount, base),
+                         _step("Gross pay is worked out from the net pay seen in the bank", "note")]
                 out.append(_component(tax, y, m, due, amount, base, schedule, False,
-                                      _evidence(tax, [], paid[month])))
+                                      _evidence(tax, [], paid[month]), steps))
 
     return sorted(out, key=lambda c: (c["dates"][0], c["id"]))
