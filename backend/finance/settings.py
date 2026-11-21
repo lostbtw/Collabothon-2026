@@ -41,3 +41,15 @@ SIZING_STEP = _get("SIZING_STEP", Decimal("5000"), Decimal)  # credit line: the 
 # Exchange rates: the stored NBP table A rate (role 2's connector). Only while no table is stored, the demo-day
 # rate of spec #4 is used ("4.41 PLN per EUR and 4.0613 PLN per USD, used everywhere").
 DEMO_DAY_RATES_PLN = {"PLN": Decimal("1"), "EUR": Decimal("4.41"), "USD": Decimal("4.0613")}
+
+# FX Shield (#47, spec #4): the method's parameters only. There is no threshold of "large" here: the model judges that
+# against the company's own figures. Prices are illustrative placeholders, not an offer.
+FX_HISTORY_DAYS = _get("FX_HISTORY_DAYS", 1095)                      # 3 years of NBP rates before the as-of date
+FX_MIN_HISTORY = _get("FX_MIN_HISTORY", 500)                         # fewer stored rates: use the committed 3-year file
+FX_NET_WINDOW_DAYS = _get("FX_NET_WINDOW_DAYS", 15)                  # opposite invoices this close in time offset each other
+FX_NATURAL_SHARE = _get("FX_NATURAL_SHARE", Decimal("0.05"), Decimal)      # net exposure under this share: naturally hedged
+FX_FORWARD_COST = _get("FX_FORWARD_COST", Decimal("0.003"), Decimal)       # illustrative forward margin, share of value
+FX_OPTION_COST = _get("FX_OPTION_COST", Decimal("0.012"), Decimal)         # illustrative option premium, share of value
+FX_LATE_DAYS = _get("FX_LATE_DAYS", 3)                               # a client this many days late on average is late
+FX_LATE_HEDGE_RATIO = _get("FX_LATE_HEDGE_RATIO", Decimal("0.8"), Decimal) # share hedged for a late client (spec)
+FX_CONTEXT_MONTHS = _get("FX_CONTEXT_MONTHS", 12)                    # full months of money in and out shown to the model

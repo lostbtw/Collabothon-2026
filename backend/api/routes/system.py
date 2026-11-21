@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from backend import settings
 from backend.api import stand_ins
 from backend.api.deps import ApiError, company_id, conn, now_iso
+from backend.api.ports import finance_engine
 from backend.connectors.nbp import rate_on
 from backend.db.seed import companies
 
@@ -53,5 +54,9 @@ def fx_rates(currency: str, date_: date = Query(alias="date"), rule: str = "pl_t
 
 
 @router.get("/fx/exposure")
-def fx_exposure(company: str = Depends(company_id)):
+def fx_exposure(company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
+    """FX Shield (#47): role 4's engine (engine.fx_exposure); the fixture-shaped stand-in while it is not importable."""
+    engine = finance_engine()
+    if engine is not None and hasattr(engine, "fx_exposure"):
+        return engine.fx_exposure(c, company)
     return {"items": stand_ins.FX_EXPOSURE.get(company, [])}

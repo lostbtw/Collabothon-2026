@@ -24,6 +24,7 @@ from backend.agents.sql import VIEWS, run_readonly_sql
 from backend.agents.text import fmt_money, short_date
 from backend.api import owner, stand_ins
 from backend.api.forecasting import add_forecast_event as store_forecast_event
+from backend.api.ports import finance_engine
 from backend.api.recommendations import save_recommendation
 from backend.db.store import Store
 
@@ -92,6 +93,9 @@ def add_forecast_event(conn: psycopg.Connection, company: str, label: str, date_
 
 
 def get_fx_exposure(conn: psycopg.Connection, company: str) -> dict[str, Any]:
+    engine = finance_engine()
+    if engine is not None and hasattr(engine, "fx_exposure"):
+        return engine.fx_exposure(conn, company)
     return {"items": stand_ins.FX_EXPOSURE.get(company, [])}
 
 
