@@ -100,6 +100,25 @@ The dashboards are generated: change the queries in `deploy/observability/make_d
 
 `check-grafana`: Grafana answers, both datasources pass their health check, both dashboards are loaded, every panel type is a panel plugin Grafana knows (a wrong id such as `nodegraph` instead of `nodeGraph` shows as "Panel plugin not found"), and every panel query of every dashboard runs through Grafana's query API against the last 6 hours without an error.
 
+## pgAdmin
+
+```bash
+deploy/platform/setup.sh pgadmin
+```
+
+pgAdmin 4 runs in `cfo-ai` at the route `ordo-pgadmin` (`oc -n cfo-ai get route ordo-pgadmin`), for exploring the database in the browser. Log in as `admin@example.com`; the password is in secret `ordo-pgadmin`: `oc -n cfo-ai extract secret/ordo-pgadmin --keys=PGADMIN_DEFAULT_PASSWORD --to=-`. The stage creates that secret if missing, creates the database role `pgadmin_ro`, applies `deploy/platform/pgadmin.yaml`, restarts pgAdmin and runs `check-pgadmin`.
+
+Two connections are ready in the group **Ordo**:
+
+| Connection | Role | Can |
+|---|---|---|
+| **Ordo (read-only)** | `pgadmin_ro` | Read every table and view in schema `public`, also tables later migrations add, and the activity dashboard (`pg_monitor`). No write grant at all; read-only transactions and a 60 s statement timeout on top. Connects without a password prompt: the init container writes a `.pgpass` into the admin user's storage directory. |
+| **Ordo (owner, can write)**, shown red | the app's owner role (`ordo`) | Everything the app can do: changes here change the app. pgAdmin asks for the password: `oc -n cfo-ai extract secret/ordo-db --keys=POSTGRESQL_PASSWORD --to=-`. |
+
+pgAdmin keeps its own state in an emptyDir: a restart (also `setup.sh pgadmin`) logs everyone out, forgets saved queries and passwords, and loads the two connections again. It sends nothing outside the cluster: no mail server, no upgrade check. The route allows queries up to 5 minutes.
+
+`check-pgadmin`: pgAdmin answers, it loaded both connections from `servers.json`, the read-only connection works from the pgAdmin pod with pgAdmin's own `.pgpass`, and a write as `pgadmin_ro` is refused.
+
 ## Demo day
 
 `setup.sh freeze` turns the webhook builds off, so a push no longer changes the cluster; after that, deploy a fix with `setup.sh build <name>`. `redeploy` does not turn the webhooks back on. `setup.sh tag-demo` tags the current images as `demo`.

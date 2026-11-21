@@ -11,6 +11,7 @@ MODEL_JOB=gpt-oss-20b-metrics
 ORDO_RULES=(ordo-model ordo-workloads)
 # What Grafana's read-only database role may read (deploy/observability/dashboards/).
 GRAFANA_TABLES="outbox, outbox_delivery, outbox_subscription, recommendations, sources, sync_runs, companies"
+PGADMIN_LOGIN=admin@example.com  # pgAdmin's login; must match PGADMIN_DEFAULT_EMAIL in deploy/platform/pgadmin.yaml
 IMAGES=(backend sim web)
 M1_QUESTION="How much cash do we have today, and what is the next large payment?"
 EXISTING_SECRETS=(llm-token docling-api-key)
@@ -22,6 +23,8 @@ SECRET_VALUES=(
   "llm-token token"
   "ordo-grafana GF_SECURITY_ADMIN_PASSWORD"
   "ordo-grafana GRAFANA_DB_PASSWORD"
+  "ordo-pgadmin PGADMIN_DEFAULT_PASSWORD"
+  "ordo-pgadmin PGADMIN_DB_PASSWORD"
 )
 
 wait_for() {
@@ -79,6 +82,17 @@ secrets() {
   create_random_secret github-webhook WebHookSecretKey
   create_random_secret sandbox-bank-token BANK_TOKEN
   grafana_secret
+  pgadmin_secret
+}
+
+pgadmin_secret() {
+  if secret_exists ordo-pgadmin; then
+    echo "secret ordo-pgadmin already exists, kept"
+  else
+    oc -n "$NS" create secret generic ordo-pgadmin \
+      --from-literal=PGADMIN_DEFAULT_PASSWORD="$(random_hex)" \
+      --from-literal=PGADMIN_DB_PASSWORD="$(random_hex)"
+  fi
 }
 
 grafana_secret() {
@@ -617,6 +631,89 @@ check_grafana() {
   ((failed == 0))
 }
 
+pgadmin_db_role() {
+  # pgadmin_ro reads every table and view in schema public, also those later migrations add (default privileges of
+  # the app's owner role), plus pg_monitor for pgAdmin's activity dashboard. It has no write grant at all; read-only
+  # transactions and a statement timeout come on top. The password reaches psql on stdin.
+  local password owner
+  password="$(oc -n "$NS" get secret ordo-pgadmin -o jsonpath='{.data.PGADMIN_DB_PASSWORD}' | base64 -d)"
+  owner="$(oc -n "$NS" get secret ordo-db -o jsonpath='{.data.POSTGRESQL_USER}' | base64 -d)"
+  oc -n "$NS" exec -i deployment/postgresql -- psql -U postgres -d ordo -v ON_ERROR_STOP=1 -q <<SQL
+do \$\$ begin
+  if not exists (select 1 from pg_roles where rolname = 'pgadmin_ro') then
+    create role pgadmin_ro login;
+  end if;
+end \$\$;
+alter role pgadmin_ro with login password '$password' connection limit 10;
+alter role pgadmin_ro set default_transaction_read_only = on;
+alter role pgadmin_ro set statement_timeout = '60s';
+grant connect on database ordo to pgadmin_ro;
+grant usage on schema public to pgadmin_ro;
+grant select on all tables in schema public to pgadmin_ro;
+alter default privileges for role "$owner" in schema public grant select on tables to pgadmin_ro;
+grant pg_monitor to pgadmin_ro;
+SQL
+  echo "OK   database role pgadmin_ro reads every table and view in schema public"
+}
+
+pgadmin() {
+  pgadmin_secret
+  pgadmin_db_role
+  oc apply -f "$HERE/pgadmin.yaml"
+  # servers.json and the .pgpass are read at start, so a changed ConfigMap or password needs a new pod.
+  oc -n "$NS" rollout restart deployment/pgadmin
+  oc -n "$NS" rollout status deployment/pgadmin --timeout=300s
+  check_pgadmin
+}
+
+pgadmin_psql() {
+  # Runs SQL in the pgAdmin pod as pgadmin_ro, with the .pgpass pgAdmin itself uses: the read-only connection as
+  # pgAdmin makes it. psql is the newest of the client versions bundled in the pgAdmin image.
+  oc -n "$NS" exec deployment/pgadmin -c pgadmin -- sh -c '
+    psql="$(ls /usr/local/pgsql-*/psql | sort -V | tail -1)"
+    PGPASSFILE="/var/lib/pgadmin/storage/$(printf "%s" "$PGADMIN_DEFAULT_EMAIL" | tr @ _)/.pgpass" \
+      "$psql" "host=postgresql.cfo-ai.svc.cluster.local dbname=ordo user=pgadmin_ro connect_timeout=10" -Atc "$1"' \
+    sh "$1" 2>&1
+}
+
+check_pgadmin() {
+  local url loaded rows refused failed=0
+  url="https://$(oc -n "$NS" get route ordo-pgadmin -o jsonpath='{.spec.host}')"
+  if [[ "$(curl -fsS --max-time 30 "$url/misc/ping")" == PING ]]; then
+    echo "OK   pgAdmin answers at $url"
+  else
+    echo "FAIL pgAdmin does not answer at $url" >&2
+    return 1
+  fi
+
+  loaded="$(oc -n "$NS" logs deployment/pgadmin -c pgadmin | grep -oE 'Added [0-9]+ Server Group\(s\) and [0-9]+ Server\(s\)' | tail -1)"
+  if [[ -n "$loaded" ]]; then
+    echo "OK   pgAdmin loaded the preset connections: $loaded"
+  else
+    echo "FAIL pgAdmin did not log loading servers.json: oc -n $NS logs deployment/pgadmin -c pgadmin" >&2
+    failed=1
+  fi
+
+  # psql exits non-zero on an error; under set -e that would end the script before the message.
+  rows="$(pgadmin_psql 'select count(*) from outbox')" || true
+  if [[ "$rows" =~ ^[0-9]+$ ]]; then
+    echo "OK   the read-only connection works without a password prompt ($rows events in outbox)"
+  else
+    echo "FAIL the read-only connection: $rows" >&2
+    failed=1
+  fi
+
+  refused="$(pgadmin_psql 'delete from outbox where false')" || true
+  if grep -qE 'read-only transaction|permission denied' <<<"$refused"; then
+    echo "OK   pgadmin_ro cannot write: $(grep -m1 -oE '(read-only transaction|permission denied).*' <<<"$refused")"
+  else
+    echo "FAIL pgadmin_ro was not refused a write: ${refused:-no error}" >&2
+    failed=1
+  fi
+  echo "     log in as $PGADMIN_LOGIN; password: oc -n $NS extract secret/ordo-pgadmin --keys=PGADMIN_DEFAULT_PASSWORD --to=-"
+  ((failed == 0))
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -644,8 +741,10 @@ case "$stage" in
   grafana) grafana ;;
   grafana-dashboards) grafana_reload_dashboards ;;
   check-grafana) check_grafana ;;
+  pgadmin) pgadmin ;;
+  check-pgadmin) check_pgadmin ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|pgadmin|check-pgadmin|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

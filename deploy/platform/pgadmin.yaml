@@ -1,0 +1,206 @@
+# pgAdmin 4 for exploring the ordo database. Applied by `setup.sh pgadmin`, which also creates secret ordo-pgadmin
+# and the database role pgadmin_ro (reads every table and view in schema public, read-only transactions).
+#
+# Two connections are preloaded in group "Ordo":
+#   - "Ordo (read-only)" as pgadmin_ro; it connects without a password prompt, through a .pgpass that the init
+#     container writes into the admin user's storage directory (pgAdmin 9.19+ accepts a passfile only there).
+#   - "Ordo (owner, can write)" as the app's owner role, shown red; pgAdmin asks for its password
+#     (oc -n cfo-ai extract secret/ordo-db --keys=POSTGRESQL_PASSWORD --to=-).
+# pgAdmin keeps its own state in an emptyDir: a restart logs everyone out and loads the two connections again.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgadmin-servers
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: pgadmin
+data:
+  servers.json: |
+    {
+      "Servers": {
+        "1": {
+          "Name": "Ordo (read-only)",
+          "Group": "Ordo",
+          "Host": "postgresql.cfo-ai.svc.cluster.local",
+          "Port": 5432,
+          "MaintenanceDB": "ordo",
+          "Username": "pgadmin_ro",
+          "Comment": "Role pgadmin_ro: reads every table and view in schema public; every transaction is read-only.",
+          "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10, "passfile": ".pgpass"}
+        },
+        "2": {
+          "Name": "Ordo (owner, can write)",
+          "Group": "Ordo",
+          "Host": "postgresql.cfo-ai.svc.cluster.local",
+          "Port": 5432,
+          "MaintenanceDB": "ordo",
+          "Username": "ordo",
+          "BGColor": "#c4162a",
+          "FGColor": "#ffffff",
+          "Comment": "The app's own role: changes here change the app. Password: oc -n cfo-ai extract secret/ordo-db --keys=POSTGRESQL_PASSWORD --to=-",
+          "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10}
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgadmin
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: pgadmin
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pgadmin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: pgadmin
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+        # libpq reads a .pgpass only if nobody else can read it, and pgAdmin only inside the user's storage directory.
+        - name: pgpass
+          image: docker.io/dpage/pgadmin4:9.19
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              umask 077
+              dir="/var/lib/pgadmin/storage/$(printf '%s' "$PGADMIN_DEFAULT_EMAIL" | tr '@' '_')"
+              mkdir -p "$dir"
+              printf 'postgresql.cfo-ai.svc.cluster.local:5432:*:pgadmin_ro:%s\n' "$PGADMIN_DB_PASSWORD" > "$dir/.pgpass"
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: admin@example.com
+            - name: PGADMIN_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-pgadmin
+                  key: PGADMIN_DB_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgadmin
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: pgadmin
+          image: docker.io/dpage/pgadmin4:9.19
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: admin@example.com
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-pgadmin
+                  key: PGADMIN_DEFAULT_PASSWORD
+            # A random UID with all capabilities dropped cannot bind port 80.
+            - name: PGADMIN_LISTEN_PORT
+              value: "8080"
+            - name: PGADMIN_LISTEN_ADDRESS
+              value: 0.0.0.0
+            - name: PGADMIN_SERVER_JSON_FILE
+              value: /etc/pgadmin/servers.json
+            # No mail server (it needs sudo) and nothing sent outside the cluster.
+            - name: PGADMIN_DISABLE_POSTFIX
+              value: "true"
+            - name: PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED
+              value: "False"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgadmin
+            - name: servers
+              mountPath: /etc/pgadmin
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /misc/ping
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /misc/ping
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: servers
+          configMap:
+            name: pgadmin-servers
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: pgadmin
+spec:
+  selector:
+    app.kubernetes.io/name: pgadmin
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ordo-pgadmin
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+  annotations:
+    # Long queries in the query tool should not be cut by the router's default 30 s timeout.
+    haproxy.router.openshift.io/timeout: 5m
+spec:
+  to:
+    kind: Service
+    name: pgadmin
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
