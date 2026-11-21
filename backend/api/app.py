@@ -13,7 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend import settings
 from backend.agents.llm import default_client
 from backend.api.deps import ApiError, error_body
-from backend.api.routes import bank, chat, documents, forecast, ledger, owner, recommendations, sources, stream, system
+from backend.api.routes import bank, chat, demo, documents, forecast, ledger, owner, recommendations, sources, stream, system
 
 
 class _GzipExceptStream:
@@ -46,7 +46,7 @@ def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | 
     app.add_middleware(_GzipExceptStream)
     app.state.chat_model = chat_model or default_client
     app.state.speech_transport = speech_transport
-    for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream, owner):
+    for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream, owner, demo):
         app.include_router(module.router, prefix="/api/v1")
 
     @app.exception_handler(ApiError)
