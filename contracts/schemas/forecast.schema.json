@@ -172,6 +172,56 @@
             "items": {
               "$ref": "common.schema.json#/$defs/EvidenceLink"
             }
+          },
+          "explainer": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "One plain sentence for the owner: what this payment is. 'VAT you charged clients minus VAT you paid suppliers'"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "breakdown": {
+            "type": "array",
+            "description": "How the engine computed amount_base, step by step, top to bottom. Amounts are positive figures; op gives the arithmetic.",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "op"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "'VAT on 12 sales invoices', 'To pay, rounded to whole złoty'"
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "plus",
+                    "minus",
+                    "equals",
+                    "note"
+                  ],
+                  "description": "start: first figure; plus/minus: applied to the running figure; equals: a result; note: text only, no amount"
+                },
+                "amount": {
+                  "oneOf": [
+                    {
+                      "$ref": "common.schema.json#/$defs/Money"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false
