@@ -1,6 +1,6 @@
 // Small building blocks shared by every screen, matching the components in Figma ("Ordo · new design").
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Link, NavLink } from "react-router-dom";
 import type { ControlLevel, Money } from "../api/types.gen";
 import { compareAmounts, isZero, monthName, subtract } from "../lib/costTypes";
 import { whole } from "../lib/words";
@@ -50,15 +50,16 @@ export function Tile({ label, value, note, tone, to }: { label: string; value: R
   return to ? <Link to={to} className="card tile">{body}</Link> : <div className="card tile">{body}</div>;
 }
 
-/** "↑ 14,100 PLN vs September". `upIsGood` decides the colour: more income is good, more costs are not. */
-export function Change({ now, before, upIsGood, vs }: { now: Money; before: Money | null; upIsGood: boolean; vs: string }) {
+/** "↑ 14,100 PLN vs September". `upIsGood` decides the colour: more income is good, more costs are not.
+ * Leave out `vs` where the section already says what it is compared with. */
+export function Change({ now, before, upIsGood, vs }: { now: Money; before: Money | null; upIsGood: boolean; vs?: string }) {
   if (!before) return null;
   const diff = subtract(now.amount, before.amount);
-  if (isZero(diff)) return <span className="small t2">Same as {vs}</span>;
+  if (isZero(diff)) return <span className="small t2">{vs ? `Same as ${vs}` : "No change"}</span>;
   const up = compareAmounts(diff, "0") > 0;
   return (
     <span className={`small ${up === upIsGood ? "good" : "bad"}`}>
-      {up ? "↑" : "↓"} {whole({ amount: diff.replace("-", ""), currency: now.currency })} vs {vs}
+      {up ? "↑" : "↓"} {whole({ amount: diff.replace("-", ""), currency: now.currency })}{vs ? ` vs ${vs}` : ""}
     </span>
   );
 }
@@ -106,5 +107,48 @@ export function Avatar({ text }: { text: string }) {
 
 /** A row's chevron, pointing to where its details are. */
 export function Chevron() {
-  return <span className="chev" aria-hidden="true">›</span>;
+  return <span className="chev" aria-hidden="true"><Icon name="chevronRight" size={16} /></span>;
+}
+
+/** The close button of a panel. */
+export function CloseButton({ onClick }: { onClick: () => void }) {
+  return <button type="button" className="quiet icon-button" aria-label="Close" onClick={onClick}><Icon name="close" size={16} /></button>;
+}
+
+/** Grey placeholders shaped like the content that is loading, instead of a "Loading…" line. */
+export function Skeleton({ rows = 3, tiles = 0, title = false }: { rows?: number; tiles?: number; title?: boolean }) {
+  return (
+    <div className="stack" style={{ gap: 16 }} aria-busy="true" aria-label="Loading">
+      {tiles > 0 && (
+        <div className="row">
+          {Array.from({ length: tiles }, (_, i) => <div key={i} className="card tile"><span className="skeleton line" style={{ width: "40%" }} /><span className="skeleton big" /></div>)}
+        </div>
+      )}
+      {rows > 0 && (
+        <div className="card stack" style={{ gap: 18 }}>
+          {title && <span className="skeleton line" style={{ width: "30%", height: 16 }} />}
+          {Array.from({ length: rows }, (_, i) => <span key={i} className="skeleton line" style={{ width: `${88 - (i % 3) * 14}%` }} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Index for the 30 ms row stagger (styles/app.css). */
+export const nth = (i: number): CSSProperties => ({ "--i": i }) as CSSProperties;
+
+/** Navigation tabs whose white pill slides to the chosen tab (the same object moves, it does not jump). */
+export function SlidingTabs({ items, active, label }: { items: { key: string; label: string; to: string }[]; active: string; label: string }) {
+  const box = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{ x: number; w: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = box.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(active)}"]`);
+    if (el) setPill({ x: el.offsetLeft, w: el.offsetWidth });
+  }, [active, items.length]);
+  return (
+    <nav ref={box} className={`tabs${pill ? " sliding" : ""}`} aria-label={label}>
+      {pill && <span className="tabs-pill" style={{ width: pill.w, transform: `translateX(${pill.x}px)` }} />}
+      {items.map((x) => <NavLink key={x.key} data-key={x.key} to={x.to} end className={() => (x.key === active ? "on" : "")}>{x.label}</NavLink>)}
+    </nav>
+  );
 }

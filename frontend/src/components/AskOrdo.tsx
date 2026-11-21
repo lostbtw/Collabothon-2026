@@ -8,6 +8,10 @@ import { daysBetween, shortDate } from "../lib/dates";
 import { requestRefresh } from "../lib/refresh";
 import { Icon } from "./Icon";
 import { Evidence } from "./More";
+import { CloseButton } from "./ui";
+
+/** Same as --t-exit in styles/app.css. */
+const EXIT_MS = 160;
 
 const AskContext = createContext<{ open: (draft?: string) => void }>({ open: () => {} });
 export const useAsk = () => useContext(AskContext);
@@ -19,7 +23,12 @@ export const SUGGESTIONS: Record<string, string[]> = {
 };
 
 export function AskProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<{ open: boolean; draft: string }>({ open: false, draft: "" });
+  const [state, setState] = useState<{ open: boolean; draft: string; leaving?: boolean }>({ open: false, draft: "" });
+  // Closing plays the exit (slide back to the side the button is on) before the panel leaves the page.
+  const close = useCallback(() => {
+    setState((s) => ({ ...s, leaving: true }));
+    setTimeout(() => setState({ open: false, draft: "" }), EXIT_MS);
+  }, []);
   const [params, setParams] = useSearchParams();
   const open = useCallback((draft = "") => setState({ open: true, draft }), []);
   // Old links to /chat arrive as ?ask=1.
@@ -33,7 +42,7 @@ export function AskProvider({ children }: { children: ReactNode }) {
   return (
     <AskContext.Provider value={{ open }}>
       {children}
-      {state.open && <AskPanel draft={state.draft} onClose={() => setState({ open: false, draft: "" })} />}
+      {state.open && <AskPanel draft={state.draft} leaving={Boolean(state.leaving)} onClose={close} />}
     </AskContext.Provider>
   );
 }
@@ -41,7 +50,7 @@ export function AskProvider({ children }: { children: ReactNode }) {
 export type Line = { role: "user"; text: string } | { role: "assistant"; text: string; answer?: ChatAnswer };
 type Chat = { id: string; title: string; lastAt: string; lines: Line[] | null };
 
-function AskPanel({ draft, onClose }: { draft: string; onClose: () => void }) {
+function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean; onClose: () => void }) {
   const { companyId } = useCompany();
   const today = useToday();
   const [server, setServer] = useState<ChatSession[] | null>(null);
@@ -113,10 +122,10 @@ function AskPanel({ draft, onClose }: { draft: string; onClose: () => void }) {
   const shown = chats.filter((c) => c.title.toLowerCase().includes(search.trim().toLowerCase()));
   return (
     <>
-      <div className="scrim" onClick={onClose} />
-      <aside className="ask-panel" role="dialog" aria-label="Ask Ordo">
+      <div className={`scrim${leaving ? " leaving" : ""}`} onClick={onClose} />
+      <aside className={`ask-panel${leaving ? " leaving" : ""}`} role="dialog" aria-label="Ask Ordo">
         <nav className="history" aria-label="Past chats">
-          <button type="button" onClick={() => { setCurrent(null); setError(null); }}>+ New chat</button>
+          <button type="button" onClick={() => { setCurrent(null); setError(null); }}><Icon name="plus" size={16} />New chat</button>
           <label className="search"><Icon name="search" size={14} /><input type="search" placeholder="Search chats" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
           {groupChats(shown, today).map(([group, items]) => (
             <div key={group} className="stack" style={{ gap: 2 }}>
@@ -135,7 +144,7 @@ function AskPanel({ draft, onClose }: { draft: string; onClose: () => void }) {
         <section className="conv">
           <div className="conv-head">
             <span className="medium grow">{open?.title ?? "New chat"}</span>
-            <button type="button" className="quiet" aria-label="Close" onClick={onClose}>✕</button>
+            <CloseButton onClick={onClose} />
           </div>
           <Thread lines={lines} pending={pending} error={error} onLeave={onClose} />
           <div className="conv-foot">

@@ -6,7 +6,9 @@ import { useLive } from "../lib/live";
 import { formatMoney } from "../lib/money";
 import { requestRefresh } from "../lib/refresh";
 
-export type Toast = { id: string; text: string; to?: string };
+export type Toast = { id: string; text: string; to?: string; leaving?: boolean };
+/** Same as --t-exit in styles/app.css: a toast fades out before it is removed. */
+const EXIT_MS = 160;
 
 const isMoney = (v: unknown): v is Money => typeof v === "object" && v !== null && typeof (v as Money).amount === "string";
 const first = (name?: string | null) => (name ?? "").split(" ")[0];
@@ -34,10 +36,14 @@ const REFRESH: ReadonlySet<OrdoEvent["type"]> = new Set(["recommendation.created
 
 export function Toasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const dismiss = useCallback((id: string) => {
+    setToasts((list) => list.map((x) => (x.id === id ? { ...x, leaving: true } : x)));
+    setTimeout(() => setToasts((list) => list.filter((x) => x.id !== id)), EXIT_MS);
+  }, []);
   const show = useCallback((t: Toast) => {
     setToasts((list) => [...list.filter((x) => x.id !== t.id), t].slice(-3));
-    setTimeout(() => setToasts((list) => list.filter((x) => x.id !== t.id)), 7000);
-  }, []);
+    setTimeout(() => dismiss(t.id), 7000);
+  }, [dismiss]);
 
   useLive((e) => {
     if (REFRESH.has(e.type)) requestRefresh();
@@ -50,14 +56,14 @@ export function Toasts() {
     if (t) show(t);
   });
 
-  return <ToastList toasts={toasts} onClose={(id) => setToasts((list) => list.filter((x) => x.id !== id))} />;
+  return <ToastList toasts={toasts} onClose={dismiss} />;
 }
 
 export function ToastList({ toasts, onClose }: { toasts: Toast[]; onClose: (id: string) => void }) {
   return (
     <div className="toasts" role="status" aria-live="polite">
       {toasts.map((t) => (
-        <div key={t.id} className="toast">
+        <div key={t.id} className={`toast${t.leaving ? " leaving" : ""}`}>
           {t.to ? <Link to={t.to} onClick={() => onClose(t.id)}>{t.text}</Link> : <span>{t.text}</span>}
           <button type="button" className="linklike" aria-label="Dismiss" onClick={() => onClose(t.id)}>×</button>
         </div>

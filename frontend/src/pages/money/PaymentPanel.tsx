@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, rawContentUrl } from "../../api/client";
 import type { Approval, Category, OrdoDocument, Recommendation } from "../../api/types.gen";
-import { StatusLabel } from "../../components/ui";
+import { Icon } from "../../components/Icon";
+import { CloseButton, StatusLabel } from "../../components/ui";
 import { useCompany } from "../../lib/company";
 import { longDate } from "../../lib/dates";
 import { formatMoney } from "../../lib/money";
@@ -32,6 +33,11 @@ export function PaymentPanel({ payment: p, onClose, onChanged }: { payment: Paym
   const mailbox = sources?.items.find((s) => s.connector === "imap_mailbox")?.config_public?.mailbox as string | undefined;
   const [upload, setUpload] = useState<Upload | null>(null);
   const alive = useRef(true);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
   // Set on every mount: React's development mode mounts twice and would otherwise leave it false.
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
@@ -61,13 +67,12 @@ export function PaymentPanel({ payment: p, onClose, onChanged }: { payment: Paym
   const sub = [p.date && longDate(p.date), cardText(p)].filter(Boolean).join(" · ");
   return (
     <aside className="card drawer" aria-label={`Payment ${p.name}`}>
-      <div className="hstack" style={{ flexWrap: "nowrap" }}>
-        <span className="small t3 grow">Payment</span>
-        <button type="button" className="quiet" aria-label="Close" onClick={onClose}>✕</button>
-      </div>
-      <div className="stack" style={{ gap: 2 }}>
-        <span className="heading">{p.name}</span>
-        {sub && <span className="small t2">{sub}</span>}
+      <div className="hstack" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
+        <div className="stack grow" style={{ gap: 2 }}>
+          <span className="heading">{p.name}</span>
+          {sub && <span className="small t2">{sub}</span>}
+        </div>
+        <CloseButton onClick={onClose} />
       </div>
       <div className="stack" style={{ gap: 0 }}>
         <span className={`number${p.amount.amount.startsWith("-") ? "" : " good"}`}>{p.amount.amount.startsWith("-") ? "" : "+"}{formatMoney(p.amount)}</span>
@@ -133,7 +138,7 @@ function Decide({ p, card }: { p: Payment; card: Recommendation }) {
     return (
       <div className="box good">
         <StatusLabel level="approved" />
-        <span className="simulated">SIMULATED · {done.execution.reference}</span>
+        <span className="simulated pulse">SIMULATED · {done.execution.reference}</span>
         <span className="small">{done.execution.result}</span>
       </div>
     );
@@ -182,7 +187,7 @@ export function DropZone({ onFile, compact }: { onFile: (f: File) => void; compa
     <div className={`drop${over ? " over" : ""}`} role="button" tabIndex={0} onClick={() => input.current?.click()} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
       {picker}
-      <span className="accent" aria-hidden="true" style={{ fontSize: 20 }}>↑</span>
+      <span className="accent" aria-hidden="true"><Icon name="upload" size={22} /></span>
       <span className="medium">Drop a photo or PDF here</span>
       <span className="small accent">or choose a file</span>
       <span className="small t3">Ordo reads it and fills in the details for you.</span>

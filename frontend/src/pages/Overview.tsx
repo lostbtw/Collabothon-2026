@@ -5,7 +5,7 @@ import { api, type AccountsResponse, type BalanceHistory, type LedgerSummary } f
 import type { Approval, Forecast, Recommendation, Transaction } from "../api/types.gen";
 import { useAsk } from "../components/AskOrdo";
 import { CashChart } from "../components/CashChart";
-import { Change, MonthSelect, PageHead, StatusLabel, Tile } from "../components/ui";
+import { Change, MonthSelect, PageHead, Skeleton, StatusLabel, Tile } from "../components/ui";
 import { compareAmounts, isZero, lastFullMonth, monthFigures, monthOnly, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
@@ -47,7 +47,7 @@ export function Overview() {
   const currency = company?.base_currency ?? forecast?.base_currency ?? "PLN";
   return (
     <>
-      <PageHead title="Overview" sub={longDay(today)} />
+      <PageHead title="Overview" sub={<>{longDay(today)}{headline(forecast, inbox?.items ?? null)}</>} />
       <section className="section">
         <h2>Today</h2>
         <div className="row">
@@ -62,6 +62,15 @@ export function Overview() {
   );
 }
 
+/** The point of the day in one line: is a cash gap coming, and how much waits for the owner. */
+export function headline(forecast: Forecast | null, items: Recommendation[] | null): string {
+  const parts: string[] = [];
+  if (forecast) parts.push(forecast.first_negative_date ? `Cash runs short from ${shortDate(forecast.first_negative_date)}` : `No cash gap in the next ${forecast.horizon_days} days`);
+  const n = items ? buildTodo(items, forecast).count : 0;
+  if (n) parts.push(`${n} ${n === 1 ? "thing waits" : "things wait"} for you`);
+  return parts.map((p) => ` · ${p}`).join("");
+}
+
 export function CashCard({ accounts, forecast, loading }: { accounts: AccountsResponse | null; forecast: Forecast | null; loading?: boolean }) {
   const coming = forecast ? upcoming(forecast).filter((u) => daysBetween(forecast.as_of_date, u.date) <= 14).slice(0, 4) : [];
   const total = accounts?.total_liquidity_base ?? forecast?.opening_balance ?? null;
@@ -70,7 +79,7 @@ export function CashCard({ accounts, forecast, loading }: { accounts: AccountsRe
     <div className="card stack" style={{ gap: 16 }}>
       <div className="stack" style={{ gap: 4 }}>
         <span className="t2">Cash in the bank</span>
-        <span className="hero">{loading ? "…" : total ? whole(total) : "—"}</span>
+        {loading ? <span className="skeleton big" /> : <span className="hero">{total ? whole(total) : "—"}</span>}
       </div>
       {cash.length > 0 && (
         <div className="stack" style={{ gap: 6 }}>
@@ -92,7 +101,7 @@ export function CashCard({ accounts, forecast, loading }: { accounts: AccountsRe
               ))}
             </div>
           ) : <span className="small t3">Nothing expected in the next two weeks.</span>
-        ) : <span className="small t3">{loading ? "…" : "No forecast yet."}</span>}
+        ) : (loading ? <span className="skeleton line" style={{ width: "70%" }} /> : <span className="small t3">No forecast yet.</span>)}
       </div>
     </div>
   );
@@ -108,7 +117,7 @@ function TodoCard({ items, forecast, loading }: { items: Recommendation[] | null
         <span className="grow" />
         <Link to="/todo" className="small">See all</Link>
       </div>
-      {loading && <span className="t3">…</span>}
+      {loading && <><span className="skeleton line" style={{ width: "80%" }} /><span className="skeleton line" style={{ width: "60%" }} /><span className="skeleton line" style={{ width: "70%" }} /></>}
       {todo && todo.count === 0 && <span className="t2">Nothing waits for you. Ordo will add a to-do when something needs your OK.</span>}
       {todo && topThree(todo).map((item) => <TodoRow key={item.id} item={item} />)}
     </div>
@@ -142,7 +151,7 @@ export function TodoRow({ item }: { item: TodoItem }) {
         <span className="small t2">{done ? done.execution.result : item.summary}</span>
         {error && <span className="small bad" role="alert">Not done: {error}</span>}
       </div>
-      {done ? <span className="simulated">SIMULATED · {done.execution.reference}</span>
+      {done ? <span className="simulated pulse">SIMULATED · {done.execution.reference}</span>
         : p.kind === "approve" && item.rec ? <button type="button" className="primary" disabled={busy} onClick={() => approve(item.rec!)}>{busy ? "Working…" : p.label}</button>
         : <button type="button" onClick={() => navigate(p.to ?? `/todo#${item.id}`)}>{p.kind === "details" ? "See details" : p.label}</button>}
     </div>
@@ -164,12 +173,12 @@ function MonthSection({ month, months, onMonth, summary, fromBank, before, trans
         <span className="grow" />
         {prev && <span className="small t3">Compared with {vs}</span>}
       </div>
-      {loading ? <p className="t3">…</p> : !summary ? <p className="t2">No month figures yet: the books for this company are empty.</p> : !f.hasData ? <p className="t2">No payments in {monthOnly(month)}.</p> : (
+      {loading ? <Skeleton tiles={3} rows={4} /> : !summary ? <p className="t2">No month figures yet: the books for this company are empty.</p> : !f.hasData ? <p className="t2">No payments in {monthOnly(month)}.</p> : (
         <>
           <div className="row">
-            <Tile label="Income" value={whole(f.income)} note={prev && <Change now={f.income} before={prev.income} upIsGood vs={vs} />} />
-            <Tile label="Costs" value={whole(f.costs)} note={prev && <Change now={f.costs} before={prev.costs} upIsGood={false} vs={vs} />} />
-            <Tile label="Left over" value={whole(f.leftOver)} note={prev && <Change now={f.leftOver} before={prev.leftOver} upIsGood vs={vs} />} />
+            <Tile label="Income" value={whole(f.income)} note={prev && <Change now={f.income} before={prev.income} upIsGood />} />
+            <Tile label="Costs" value={whole(f.costs)} note={prev && <Change now={f.costs} before={prev.costs} upIsGood={false} />} />
+            <Tile label="Left over" value={whole(f.leftOver)} note={prev && <Change now={f.leftOver} before={prev.leftOver} upIsGood />} />
           </div>
           <div className="row">
             <WhereItWent f={f} month={month} summary={summary} />
