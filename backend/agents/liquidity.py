@@ -71,7 +71,11 @@ def facts_for(conn: psycopg.Connection, company: str, forecast_id: str) -> dict[
     stress_shortfall = max(shortfall, -Decimal(stress["balance"]["amount"])) if stress else shortfall
     prices = tools.get_bank_price_list(conn, company)
     min_limit = Decimal(prices["min_limit"]["amount"]) if prices.get("min_limit") else None
-    limit = stand_ins.size_credit_line(stress_shortfall, min_limit)
+    engine = tools._engine()
+    if engine is not None and hasattr(engine, "credit_line"):
+        limit = max(Decimal(engine.credit_line(conn, company)["limit"]["amount"]), min_limit or Decimal(0))
+    else:
+        limit = stand_ins.size_credit_line(stress_shortfall, min_limit)
     gap_to = gap_end(f, alert)
     gap_days = max(tools.days_between(alert["date_from"], gap_to), 1)
     rate = Decimal(prices.get("interest_rate_pct", "0")) / 100

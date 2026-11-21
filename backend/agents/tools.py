@@ -18,7 +18,7 @@ def get_forecast(conn: psycopg.Connection, company: str, forecast_id: str | None
     if forecast is None:
         return {"error": "no forecast yet"}
     engine = _engine()
-    stress = engine.stress_case(conn, company) if engine and hasattr(engine, "stress_case") else stand_ins.STRESS.get(company)
+    stress = engine.stress(conn, company) if engine and hasattr(engine, "stress") else stand_ins.STRESS.get(company)
     return {
         "forecast_id": forecast["id"],
         "as_of_date": forecast["as_of_date"],
