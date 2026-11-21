@@ -47,6 +47,7 @@ deploy/platform/setup.sh redeploy
 
 | Stage | Checks |
 |---|---|
+| `smoke` (`make smoke`) | The whole cluster in about 40 s, one line per check, nothing written to the demo data: every Deployment and the InferenceService ready; every Route answers as it should (a Route without a probe in `setup.sh` fails); MLflow up. From `ordo-api`: the database, the outbox (no dead delivery, nothing waiting over 2 min), gpt-oss-20b (refuses calls without a token, answers one question), the guardrails mask an IBAN, OGX, `ordo-mcp` lists its tools, the Sandbox Bank. From `ordo-extractor`: docling-serve, then the hero backup receipt `doc_rcpt412.jpg` read end to end (docling-serve, gpt-oss-20b, the checks) against its Ground truth within 30 s, traced to MLflow experiment `ordo-smoke`. Ends with `smoke: N checks, all OK` or the components that failed |
 | `check-m2` | The web route opens the app; `/api/v1/health` reports the model reachable; the API serves data; `check-bank` |
 | `check-bank` | `ordo-api` and `ordo-connectors` reach the Sandbox Bank and see its four accounts |
 | `check-m1` | The chat answers with text from gpt-oss-20b |
@@ -166,5 +167,7 @@ The evaluation notebook `notebooks/extraction_eval.ipynb` (#19) runs in the Jupy
 The notebook reads the 47 November documents and the real receipt photos in `notebooks/receipt_photos/` through `extract_document()`. It compares gross, date, seller NIP and VAT with the Ground truth and logs one evaluation run (`mlflow.genai.evaluate`, one trace per document) to experiment `ordo-evaluation`. Phone photos go through `notebooks/strip_exif.py` before they are committed.
 
 ## Demo day
+
+Sunday 07:00: run `make smoke` twice (without `make`: `deploy/platform/setup.sh smoke`), restart whatever it names, and stop the workbench when it prints a NOTE. A run during a rollout fails on the Deployment that is rolling out (every push to `main` restarts the Sandbox Bank); run it again once `oc -n cfo-ai get deployments` shows everything ready.
 
 `setup.sh freeze` turns the webhook builds off, so a push no longer changes the cluster; after that, deploy a fix with `setup.sh build <name>`. `redeploy` does not turn the webhooks back on. `setup.sh tag-demo` tags the current images as `demo`.

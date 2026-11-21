@@ -800,6 +800,171 @@ stop_workbench() {
   echo "OK   workbench $WORKBENCH is stopped: no pod $WORKBENCH-0"
 }
 
+SMOKE_DOC=doc_rcpt412
+SMOKE_RECEIPT="$ROOT/sim/documents/november/$SMOKE_DOC.jpg"
+SMOKE_TRUTH="$ROOT/sim/scenario/out/november_documents.json"
+SMOKE_BODY=""
+
+smoke_ok() {
+  echo "OK   $1: $2"
+}
+
+smoke_fail() {
+  echo "FAIL $1: $2"
+}
+
+smoke_get() {
+  local url="$1" token="${2:-}" auth=()
+  if [[ -n "$token" ]]; then
+    auth=(-H "Authorization: Bearer $token")
+  fi
+  curl -s -o "$SMOKE_BODY" -w '%{http_code}' --max-time 20 "${auth[@]}" "$url" || true
+}
+
+smoke_route() {
+  local name="$1" host code anonymous
+  host="$(oc -n "$NS" get route "$name" -o jsonpath='{.spec.host}')"
+  case "$name" in
+    ordo-web)
+      code="$(smoke_get "https://$host/")"
+      if [[ "$code" == 200 ]] && grep -q '<div id="root">' "$SMOKE_BODY"; then
+        smoke_ok "route $name" "https://$host/ opens the app"
+      else
+        smoke_fail "route $name" "https://$host/ answered HTTP $code without the app"
+      fi
+      ;;
+    ordo-api)
+      code="$(smoke_get "https://$host/api/v1/health")"
+      if [[ "$code" == 200 ]] && jq -e '.llm.reachable == true' "$SMOKE_BODY" >/dev/null; then
+        smoke_ok "route $name" "https://$host/api/v1/health: $(jq -r '.llm.model + " reachable at " + .llm.base_url' "$SMOKE_BODY")"
+      else
+        smoke_fail "route $name" "https://$host/api/v1/health answered HTTP $code: $(head -c 200 "$SMOKE_BODY")"
+      fi
+      ;;
+    gpt-oss-20b)
+      anonymous="$(smoke_get "https://$host/v1/models")"
+      code="$(smoke_get "https://$host/v1/models" "$(oc whoami -t)")"
+      if [[ "$anonymous" == 401 && "$code" == 200 ]] && jq -e '.data | any(.id == "gpt-oss-20b")' "$SMOKE_BODY" >/dev/null; then
+        smoke_ok "route $name" "https://$host/v1/models: 401 without a token, serves gpt-oss-20b with one"
+      else
+        smoke_fail "route $name" "https://$host/v1/models answered HTTP $anonymous without a token, HTTP $code with one"
+      fi
+      ;;
+    ordo-guardrails)
+      code="$(smoke_get "https://$host/")"
+      if [[ "$code" == 401 ]]; then
+        smoke_ok "route $name" "https://$host/ refuses calls without a token (HTTP 401)"
+      else
+        smoke_fail "route $name" "https://$host/ answered HTTP $code, expected 401 from its auth proxy"
+      fi
+      ;;
+    ordo-grafana)
+      code="$(smoke_get "https://$host/api/health")"
+      if [[ "$code" == 200 ]] && jq -e '.database == "ok"' "$SMOKE_BODY" >/dev/null; then
+        smoke_ok "route $name" "https://$host/api/health: Grafana $(jq -r '.version' "$SMOKE_BODY"), database ok"
+      else
+        smoke_fail "route $name" "https://$host/api/health answered HTTP $code: $(head -c 200 "$SMOKE_BODY")"
+      fi
+      ;;
+    ordo-pgadmin)
+      code="$(smoke_get "https://$host/misc/ping")"
+      if [[ "$code" == 200 ]]; then
+        smoke_ok "route $name" "https://$host/misc/ping answers"
+      else
+        smoke_fail "route $name" "https://$host/misc/ping answered HTTP $code"
+      fi
+      ;;
+    *)
+      smoke_fail "route $name" "setup.sh has no smoke probe for this route"
+      ;;
+  esac
+}
+
+smoke_routes() {
+  local name
+  for name in $(oc -n "$NS" get routes -o jsonpath='{.items[*].metadata.name}'); do
+    smoke_route "$name"
+  done
+}
+
+smoke_mlflow() {
+  local url code
+  url="$(oc get mlflow mlflow -o jsonpath='{.status.url}' 2>/dev/null)"
+  if ! mlflow_available; then
+    smoke_fail mlflow "the MLflow CR mlflow is not Available"
+    return
+  fi
+  code="$(smoke_get "$url/")"
+  if [[ "$code" == 200 || "$code" == 302 ]]; then
+    smoke_ok mlflow "CR Available, the UI at $url answers HTTP $code"
+  else
+    smoke_fail mlflow "CR Available, but the UI at $url answered HTTP $code"
+  fi
+}
+
+smoke_workloads() {
+  local name want ready
+  while read -r name want ready; do
+    if ((want == 0)); then
+      smoke_fail "deployment $name" "scaled to 0"
+    elif ((ready >= want)); then
+      smoke_ok "deployment $name" "$ready/$want ready"
+    else
+      smoke_fail "deployment $name" "$ready/$want ready"
+    fi
+  done < <(oc -n "$NS" get deployments -o json |
+    jq -r '.items[] | "\(.metadata.name) \(.spec.replicas // 1) \(.status.readyReplicas // 0)"')
+  if [[ "$(oc -n "$NS" get inferenceservice gpt-oss-20b \
+    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" == True ]]; then
+    smoke_ok "inferenceservice gpt-oss-20b" "Ready"
+  else
+    smoke_fail "inferenceservice gpt-oss-20b" "not Ready: oc -n $NS describe inferenceservice gpt-oss-20b"
+  fi
+  for name in $(oc -n "$NS" get notebooks -o json |
+    jq -r --arg stopped "$WORKBENCH_STOPPED" '.items[] | select(.metadata.annotations[$stopped] == null) | .metadata.name'); do
+    echo "NOTE workbench $name is running; stop it before the demo: $0 stop-workbench"
+  done
+}
+
+smoke_in_pod() {
+  local deployment="$1" container="$2"
+  shift 2
+  if ! oc -n "$NS" exec -i "deployment/$deployment" -c "$container" -- python -c "$(cat "$HERE/smoke.py")" "$@"; then
+    smoke_fail "$deployment" "smoke.py $1 did not run in the pod"
+  fi
+}
+
+smoke_extract() {
+  local amount currency
+  read -r amount currency < <(jq -r --arg id "$SMOKE_DOC" '.[] | select(.id == $id) | "\(.totals.gross) \(.currency)"' "$SMOKE_TRUTH")
+  smoke_in_pod ordo-extractor extractor extract "$(basename "$SMOKE_RECEIPT")" "$amount" "$currency" <"$SMOKE_RECEIPT"
+}
+
+smoke_checks() {
+  set +e
+  echo "     smoke $(date -u +%FT%TZ) as $(oc whoami) on $(oc whoami --show-server)"
+  smoke_workloads
+  smoke_routes
+  smoke_mlflow
+  smoke_in_pod ordo-api api api </dev/null
+  smoke_extract
+}
+
+smoke() {
+  local log total failed
+  SMOKE_BODY="$(mktemp)"
+  log="$(mktemp)"
+  smoke_checks 2>&1 | tee "$log" || true
+  total="$(grep -cE '^(OK|FAIL) ' "$log" || true)"
+  failed="$(grep -E '^FAIL ' "$log" | sed -E 's/^FAIL +([^:]+):.*/\1/' | awk '!seen[$0]++' | paste -sd ';' - || true)"
+  rm -f "$log" "$SMOKE_BODY"
+  if [[ -n "$failed" ]]; then
+    echo "smoke: $total checks, FAIL: ${failed//;/, }" >&2
+    return 1
+  fi
+  echo "smoke: $total checks, all OK"
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -838,8 +1003,9 @@ case "$stage" in
   eval-workbench) eval_workbench ;;
   check-workbench) check_workbench ;;
   stop-workbench) stop_workbench ;;
+  smoke) smoke ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
