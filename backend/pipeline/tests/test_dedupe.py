@@ -63,6 +63,34 @@ class ThreeChannels(unittest.TestCase):
         self.assertEqual(set(duplicate_detected_payload(merge)), {"document_id", "duplicate_of", "reason"})
 
 
+class UploadedPhotoOfTheHeroReceipt(unittest.TestCase):
+    """Seen on the cluster: an upload-form copy read badly (confidence 0.6, no number) took over the hero photo."""
+
+    def setUp(self):
+        self.photo = copy.deepcopy(next(d for d in fixture("document") if d["id"] == "doc_rcpt412"))
+        self.upload = copy.deepcopy(self.photo)
+        self.upload.update(id="doc_up412", channel="upload", number=None, raw_item_ids=["raw_up412"],
+                           created_at="2026-11-21T09:08:50Z", status="needs_review",
+                           extraction={**self.photo["extraction"], "confidence": 0.6})
+
+    def test_a_worse_upload_does_not_take_over_the_photo(self):
+        result = add_document(self.upload, [self.photo])
+        self.assertIsNone(result["golden_changed"])
+        [merge] = result["merges"]
+        self.assertEqual((merge["document_id"], merge["duplicate_of"]), ("doc_up412", "doc_rcpt412"))
+
+    def test_between_two_phone_copies_the_more_confident_reading_wins(self):
+        self.upload["extraction"]["confidence"] = 0.98
+        result = add_document(self.upload, [self.photo])
+        self.assertEqual(result["golden_changed"], "doc_rcpt412")
+
+    def test_an_emailed_pdf_still_outranks_an_upload(self):
+        pdf = copy.deepcopy(self.upload)
+        pdf.update(id="doc_pdf412", channel="email", raw_item_ids=["raw_pdf412"])
+        pdf["extraction"]["confidence"] = 0.5
+        self.assertEqual(deduplicate([self.upload, pdf])["clusters"], [["doc_pdf412", "doc_up412"]])
+
+
 class NotDuplicates(unittest.TestCase):
     def test_two_monthly_invoices_with_different_numbers(self):
         xml, pdf, _ = three_copies()
