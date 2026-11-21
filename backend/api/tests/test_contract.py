@@ -39,6 +39,7 @@ CALLS = [
     ("get", "/approvals", "/approvals", {"params": BORSUK}, 200),
     ("get", "/activity", "/activity", {"params": BORSUK}, 200),
     ("post", "/chat", "/chat", {"json": {"message": "Why will I be short in December?", "company_id": "co_borsuk"}}, 200),
+    ("post", "/chat/transcribe", "/chat/transcribe", {"files": {"file": ("question.webm", b"SAMPLE", "audio/webm")}, "data": {"language": "pl"}}, 503),
     ("get", "/fx/rates", "/fx/rates", {"params": {"currency": "EUR", "date": "2026-11-20"}}, 200),
     ("get", "/fx/exposure", "/fx/exposure", {"params": BORSUK}, 200),
     ("patch", "/transactions/{id}", "/transactions/txn_731", {"params": BORSUK, "json": {"category": "software_subscriptions"}}, 200),

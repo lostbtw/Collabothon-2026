@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def _no_model_calls(monkeypatch):
     monkeypatch.setenv("ORDO_LLM_ENABLED", "0")
     monkeypatch.delenv("ORDO_GUARDRAILS_URL", raising=False)
+    monkeypatch.delenv("ORDO_WHISPER_URL", raising=False)
 
 
 def _server_url() -> str:
