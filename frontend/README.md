@@ -40,7 +40,7 @@ In local development, live mode forwards `/api` to `VITE_API_PROXY` (default `ht
 | `src/api/mock.ts` | Mock answers for every API path, plus a replay of the fixture events |
 | `src/api/guards.ts` | A recommendation without control level, execution mode, explanation and evidence is not rendered |
 | `src/lib/money.ts` | Money formatting on the decimal string; never through a float |
-| `src/lib/voice.ts`, `src/components/Voice.tsx` | Voice input in the chat: the mic records up to a minute (webm/opus, ogg/opus or mp4 by browser), Whisper on the cluster writes it down through `POST /chat/transcribe`, and the text goes into the message box for the owner to check and send. Shown only when `/health` reports `speech`; PL / EN / RU remembered per browser |
+| `src/lib/voice.ts`, `src/components/Voice.tsx` | Voice input in the chat: the mic records up to a minute (webm/opus, ogg/opus or mp4 by browser), Whisper on the cluster writes it down through `POST /chat/transcribe`, and the text goes into the message box for the owner to check and send. Shown only when `/health` reports `speech`; Whisper detects the language (Polish, English and Russian tested) |
 | `src/components/` | Layout with sidebar and company switcher, control-level badges, loading/error/empty state |
 | `src/pages/` | Dashboard, Inbox, Documents, Sources, Activity, Chat. First versions that render fixture data; the screen tickets replace them |
 | `src/styles/app.css` | Colour tokens with the same names and values as the Figma file |

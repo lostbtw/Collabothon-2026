@@ -1,7 +1,7 @@
 // The mic of the chat's message box: record, have Whisper write it down, put the text in the box for the owner to check and send.
 import { useEffect, useRef, useState } from "react";
-import { api, type SpeechLanguage } from "../api/client";
-import { LANGUAGES, MAX_RECORDING_MS, formatLeft, micMessage, saveLanguage, savedLanguage, startRecording, transcribeMessage, type Recording } from "../lib/voice";
+import { api } from "../api/client";
+import { MAX_RECORDING_MS, formatLeft, micMessage, startRecording, transcribeMessage, type Recording } from "../lib/voice";
 import { Icon } from "./Icon";
 
 export type VoiceState =
@@ -11,13 +11,11 @@ export type VoiceState =
   | { step: "transcribing" }
   | { step: "error"; message: string };
 
-const NAMES: Record<SpeechLanguage, string> = { pl: "Polish", en: "English", ru: "Russian" };
 export const HEARD_NOTHING = "Ordo heard nothing. Try again a little closer to the microphone.";
 export const UNAVAILABLE = "Voice input is unavailable right now";
 
 export function useVoice(onText: (text: string) => void) {
   const [state, setState] = useState<VoiceState>({ step: "idle" });
-  const [language, setLanguageState] = useState<SpeechLanguage>(savedLanguage);
   const recording = useRef<Recording | null>(null);
   const attempt = useRef(0);
   const deliver = useRef(onText);
@@ -28,7 +26,7 @@ export function useVoice(onText: (text: string) => void) {
     recording.current = null;
   }, []);
 
-  async function begin(spoken: SpeechLanguage) {
+  async function begin() {
     const id = ++attempt.current;
     const current = () => attempt.current === id;
     setState({ step: "asking" });
@@ -50,7 +48,7 @@ export function useVoice(onText: (text: string) => void) {
     if (!current() || !audio) return;
     setState({ step: "transcribing" });
     try {
-      const text = (await api.transcribe(audio, spoken)).text.trim();
+      const text = (await api.transcribe(audio)).text.trim();
       if (!current()) return;
       if (text) {
         deliver.current(text);
@@ -66,35 +64,20 @@ export function useVoice(onText: (text: string) => void) {
     else if (state.step === "asking") {
       attempt.current += 1;
       setState({ step: "idle" });
-    } else if (state.step !== "transcribing") void begin(language);
+    } else if (state.step !== "transcribing") void begin();
   }
 
-  function setLanguage(next: SpeechLanguage) {
-    setLanguageState(next);
-    saveLanguage(next);
-  }
-
-  return { state, language, press, setLanguage };
+  return { state, press };
 }
 
-export function VoiceControls({ state, language, available = true, onPress, onLanguage }: {
-  state: VoiceState; language: SpeechLanguage; available?: boolean; onPress: () => void; onLanguage: (language: SpeechLanguage) => void;
-}) {
+export function VoiceControls({ state, available = true, onPress }: { state: VoiceState; available?: boolean; onPress: () => void }) {
   const recording = state.step === "recording";
-  const busy = recording || state.step === "asking" || state.step === "transcribing";
-  const label = recording ? "Stop recording" : state.step === "asking" ? "Stop waiting for the microphone" : `Speak your question in ${NAMES[language]}`;
+  const label = recording ? "Stop recording" : state.step === "asking" ? "Stop waiting for the microphone" : "Speak your question (Polish, English or Russian)";
   return (
-    <div className="voice">
-      <div className="voice-lang" role="group" aria-label="Language you speak">
-        {LANGUAGES.map((l) => (
-          <button key={l} type="button" title={NAMES[l]} aria-pressed={l === language} disabled={busy || !available} onClick={() => onLanguage(l)}>{l.toUpperCase()}</button>
-        ))}
-      </div>
-      <button type="button" className={`mic${recording ? " on" : ""}`} aria-pressed={recording} aria-label={label} title={available ? label : UNAVAILABLE}
-        disabled={!available || state.step === "transcribing"} onClick={onPress}>
-        <Icon name={recording ? "stop" : "mic"} size={18} />
-      </button>
-    </div>
+    <button type="button" className={`mic${recording ? " on" : ""}`} aria-pressed={recording} aria-label={label} title={available ? label : UNAVAILABLE}
+      disabled={!available || state.step === "transcribing"} onClick={onPress}>
+      <Icon name={recording ? "stop" : "mic"} size={18} />
+    </button>
   );
 }
 

@@ -3,23 +3,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Composer } from "./AskOrdo";
 import { HEARD_NOTHING, UNAVAILABLE, VoiceControls, VoiceStatus, type VoiceState } from "./Voice";
 
-const controls = (state: VoiceState, extra: { available?: boolean; language?: "pl" | "en" | "ru" } = {}) =>
-  renderToStaticMarkup(<VoiceControls state={state} language={extra.language ?? "pl"} available={extra.available} onPress={() => {}} onLanguage={() => {}} />);
+const controls = (state: VoiceState, extra: { available?: boolean } = {}) =>
+  renderToStaticMarkup(<VoiceControls state={state} available={extra.available} onPress={() => {}} />);
 const mic = (html: string) => html.match(/<button[^>]*class="mic[^"]*"[^>]*>/)?.[0] ?? "";
 const status = (state: VoiceState) => renderToStaticMarkup(<VoiceStatus state={state} />);
 
 describe("the chat's mic", () => {
-  it("waits to be pressed, named for the language the owner speaks", () => {
+  it("waits to be pressed, saying which languages it understands", () => {
     const button = mic(controls({ step: "idle" }));
     expect(button).toContain('type="button"');
     expect(button).toContain('aria-pressed="false"');
-    expect(button).toContain('aria-label="Speak your question in Polish"');
+    expect(button).toContain('aria-label="Speak your question (Polish, English or Russian)"');
     expect(button).not.toContain("disabled");
     expect(status({ step: "idle" })).toBe("");
   });
 
   it("shows it is listening, with the time left, and stops on the next press", () => {
-    const html = controls({ step: "recording", msLeft: 42_000 }, { language: "ru" });
+    const html = controls({ step: "recording", msLeft: 42_000 });
     expect(mic(html)).toContain('aria-pressed="true"');
     expect(mic(html)).toContain('aria-label="Stop recording"');
     expect(mic(html)).toContain('class="mic on"');
@@ -44,13 +44,9 @@ describe("the chat's mic", () => {
     expect(button).toContain(`title="${UNAVAILABLE}"`);
   });
 
-  it("marks the chosen language and locks the choice while recording", () => {
-    const idle = controls({ step: "idle" }, { language: "en" });
-    expect(idle).toContain('aria-pressed="true">EN</button>');
-    expect(idle).toContain('aria-pressed="false">PL</button>');
-    expect(idle).toContain('aria-pressed="false">RU</button>');
-    expect(idle).toContain('role="group" aria-label="Language you speak"');
-    expect(controls({ step: "recording", msLeft: 1000 })).toMatch(/disabled=""[^>]*>PL<\/button>/);
+  it("has no language switch: Whisper detects the language", () => {
+    expect(controls({ step: "idle" })).not.toContain("PL");
+    expect(controls({ step: "idle" }).match(/<button/g)).toHaveLength(1);
   });
 
   it("says what went wrong next to the box", () => {
@@ -72,7 +68,7 @@ describe("the chat's message box", () => {
   it("has the mic when the browser can record and speech to text is there", () => {
     browserCanRecord();
     const html = box({ model: "turbo", reachable: true });
-    expect(mic(html)).toContain('aria-label="Speak your question in Polish"');
+    expect(mic(html)).toContain('aria-label="Speak your question (Polish, English or Russian)"');
     expect(mic(html)).not.toContain("disabled");
     expect(html).toContain('aria-label="Send"');
   });

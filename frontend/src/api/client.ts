@@ -10,7 +10,7 @@ export type Page<T> = { items: T[]; next_cursor: string | null };
 export type Company = { id: string; name: string; base_currency: string; country: string; as_of_date?: string };
 export type Health = { status: "ok"; llm: { base_url: string; model: string; reachable: boolean }; speech?: { model: string; reachable: boolean } | null; demo_clock: string };
 export type SpeechLanguage = "pl" | "en" | "ru";
-export type Transcript = { text: string; language: SpeechLanguage; duration_seconds: number; model: string; seconds: number };
+export type Transcript = { text: string; language: string; duration_seconds: number; model: string; seconds: number };
 export type DocumentDetail = { document: OrdoDocument; duplicates: OrdoDocument[]; matches: Match[] };
 export type AccountsResponse = { items: Account[]; total_liquidity_base: Money | null };
 export type InboxResponse = { items: Recommendation[]; counts: { approval_required: number; recommendation: number; analysed_autonomously_today: number } };
@@ -101,10 +101,10 @@ export const api = {
     if (opts.transactionId) form.append("transaction_id", opts.transactionId);
     return httpForm<RawItem>("/uploads", form, co(opts.companyId));
   },
-  transcribe: (audio: Blob, language: SpeechLanguage) => {
+  transcribe: (audio: Blob, language?: SpeechLanguage) => {
     const form = new FormData();
     form.append("file", audio, `question.${audioExtension(audio.type)}`);
-    form.append("language", language);
+    if (language) form.append("language", language);
     return httpForm<Transcript>("/chat/transcribe", form);
   },
 

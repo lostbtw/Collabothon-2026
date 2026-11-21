@@ -377,7 +377,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
       tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
     } satisfies ChatAnswer;
   } else if (method === "POST" && path === "/chat/transcribe") {
-    const language = ((body ?? {}) as { language?: string }).language as SpeechLanguage;
+    const language = (((body ?? {}) as { language?: string }).language ?? "en") as SpeechLanguage;
     if (!(language in HEARD)) throw new MockRefused(422, "language must be one of pl, en, ru");
     await new Promise((done) => setTimeout(done, TRANSCRIBE_MS));
     result = { text: HEARD[language], language, duration_seconds: 2.1, model: "mock", seconds: TRANSCRIBE_MS / 1000 } satisfies Transcript;

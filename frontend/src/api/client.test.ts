@@ -79,6 +79,10 @@ describe("voice input in mock mode", () => {
     expect(ru).toMatchObject({ text: "Сколько у меня денег?", language: "ru" });
   });
 
+  it("lets Whisper detect the language when none is given", async () => {
+    expect(await api.transcribe(audio())).toMatchObject({ text: "How much cash do I have?", language: "en" });
+  });
+
   it("refuses another language with 422", async () => {
     await expect(api.transcribe(audio(), "de" as never)).rejects.toMatchObject({ status: 422 });
   });

@@ -1,10 +1,7 @@
 // Voice input for the chat: the browser records the owner's question; Whisper on the cluster turns it into text.
-import type { SpeechLanguage } from "../api/client";
 import { ApiError } from "../api/transport";
 
 export const MAX_RECORDING_MS = 60_000;
-export const LANGUAGES: SpeechLanguage[] = ["pl", "en", "ru"];
-const LANGUAGE_KEY = "ordo.voiceLanguage";
 const TYPES = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4"];
 
 type RecorderClass = { new (stream: MediaStream, options?: MediaRecorderOptions): MediaRecorder; isTypeSupported(type: string): boolean };
@@ -111,27 +108,4 @@ export function transcribeMessage(error: unknown): string {
   if (status === 413) return "The recording is too long. Keep it under a minute.";
   if (status === 415 || status === 422) return "Ordo could not read the recording. Try again.";
   return "Voice input did not answer. Try again.";
-}
-
-const isLanguage = (value: unknown): value is SpeechLanguage => LANGUAGES.includes(value as SpeechLanguage);
-
-export function defaultLanguage(browserLanguage?: string): SpeechLanguage {
-  const code = (browserLanguage ?? "").toLowerCase();
-  return code.startsWith("pl") ? "pl" : code.startsWith("ru") ? "ru" : "en";
-}
-
-export function savedLanguage(): SpeechLanguage {
-  try {
-    const saved = globalThis.localStorage?.getItem(LANGUAGE_KEY);
-    if (isLanguage(saved)) return saved;
-  } catch {
-  }
-  return defaultLanguage(globalThis.navigator?.language);
-}
-
-export function saveLanguage(language: SpeechLanguage): void {
-  try {
-    globalThis.localStorage?.setItem(LANGUAGE_KEY, language);
-  } catch {
-  }
 }

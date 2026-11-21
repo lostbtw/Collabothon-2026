@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/transport";
-import {
-  defaultLanguage, formatLeft, micMessage, pickMimeType, savedLanguage, saveLanguage, startRecording, transcribeMessage, voiceSupported, type VoiceDeps,
-} from "./voice";
+import { formatLeft, micMessage, pickMimeType, startRecording, transcribeMessage, voiceSupported, type VoiceDeps } from "./voice";
 
 class FakeRecorder extends EventTarget {
   static supported = new Set(["audio/webm;codecs=opus"]);
@@ -151,33 +149,5 @@ describe("what the owner reads", () => {
     expect(transcribeMessage(new ApiError(415, ""))).toMatch(/could not read/);
     expect(transcribeMessage(new ApiError(422, ""))).toMatch(/could not read/);
     expect(transcribeMessage(new TypeError("Failed to fetch"))).toMatch(/did not answer/);
-  });
-});
-
-describe("language", () => {
-  it("starts from the browser's language", () => {
-    expect(defaultLanguage("pl-PL")).toBe("pl");
-    expect(defaultLanguage("ru")).toBe("ru");
-    expect(defaultLanguage("en-US")).toBe("en");
-    expect(defaultLanguage("de-DE")).toBe("en");
-    expect(defaultLanguage(undefined)).toBe("en");
-  });
-
-  it("remembers the owner's choice in this browser", () => {
-    const store = new Map<string, string>();
-    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
-    vi.stubGlobal("navigator", { language: "pl-PL" });
-
-    expect(savedLanguage()).toBe("pl");
-    saveLanguage("ru");
-    expect(savedLanguage()).toBe("ru");
-  });
-
-  it("works without storage", () => {
-    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } });
-    vi.stubGlobal("navigator", { language: "ru-RU" });
-
-    expect(() => saveLanguage("pl")).not.toThrow();
-    expect(savedLanguage()).toBe("ru");
   });
 });

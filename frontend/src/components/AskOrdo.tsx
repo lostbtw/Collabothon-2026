@@ -234,7 +234,7 @@ export function Composer({ busy, onSend, initial = "", speech = null }: { busy: 
       <form onSubmit={submit} className="composer">
         <textarea ref={box} rows={1} autoFocus aria-label="Message Ordo" placeholder="Ask about your money" value={message}
           onChange={(e) => { setMessage(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`; }} onKeyDown={onKey} />
-        {withVoice && <VoiceControls state={voice.state} language={voice.language} available={speech.reachable} onPress={voice.press} onLanguage={voice.setLanguage} />}
+        {withVoice && <VoiceControls state={voice.state} available={speech.reachable} onPress={voice.press} />}
         <button className="primary send" type="submit" disabled={busy || !message.trim()} aria-label="Send"><Icon name="arrowUp" size={18} /></button>
       </form>
       {withVoice && <VoiceStatus state={voice.state} />}
