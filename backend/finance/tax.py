@@ -139,6 +139,10 @@ def _to_pay(amount: Decimal, base: str) -> dict:
     return _step("To pay, rounded to whole złoty" if base == "PLN" else "To pay, rounded", "equals", amount, base)
 
 
+def _pct(rate: Decimal) -> str:
+    return f"{rate * 100:.2f}".rstrip("0").rstrip(".") + " %"
+
+
 def _count(n: int, one: str, many: str | None = None) -> str:
     return f"{n} {one if n == 1 else many or one + 's'}"
 
@@ -220,16 +224,25 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     gross_sum: dict[str, Decimal] = {}
     pit_sum: dict[str, Decimal] = {}
     zus_sum: dict[str, Decimal] = {}
+    net_sum: dict[str, Decimal] = {}
+    base_sum: dict[str, Decimal] = {}
+    employer_sum: dict[str, Decimal] = {}
+    employee_sum: dict[str, Decimal] = {}
     ytd_base: dict[tuple[str, str], Decimal] = defaultdict(Decimal)
     for month in sorted(paid):
         year = month[:4]
         gross_sum[month] = pit_sum[month] = zus_sum[month] = ZERO
+        net_sum[month] = base_sum[month] = employer_sum[month] = employee_sum[month] = ZERO
         for s in paid[month]:
             advance, pit_base = pit4_advance(s["gross"], ytd_base[(year, s["key"])], p)
             ytd_base[(year, s["key"])] += pit_base
+            net_sum[month] += Decimal(s["net"])
             gross_sum[month] += s["gross"]
+            base_sum[month] += pit_base
             pit_sum[month] += advance
             zus_sum[month] += zus_payment(s["gross"])
+            employer_sum[month] += (s["gross"] * settings.ZUS_EMPLOYER).quantize(CENT, ROUND_HALF_UP)
+            employee_sum[month] += (s["gross"] * settings.ZUS_EMPLOYEE).quantize(CENT, ROUND_HALF_UP)
 
     keys = set(month_docs) | set(paid)
     if not keys:
@@ -338,12 +351,26 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             if amount > 0 and in_window(due):
                 schedule = (f"{_ordinal(due_day)} of the next month, next business day if not (Ordynacja podatkowa art. 12 § 5): "
                             f"{people} salaries, gross pay {_shown(gross_sum[month])} (inferred from net pay)")
-                result = (f"Income tax held back ({settings.PIT_RATE * 100:.0f} %, {settings.PIT_RATE_HIGH * 100:.0f} % "
-                          f"above {settings.PIT_THRESHOLD_PLN:,.0f} PLN a year)" if tax == "pit4"
-                          else "Social and health contributions, employer and employee share")
-                steps = [_step(f"Gross pay of {_count(people, 'person', 'people')}", "start", gross_sum[month], base),
-                         _step(result, "equals", amount, base),
-                         _step("Gross pay is worked out from the net pay seen in the bank", "note")]
+                steps = [_step(f"Net pay of {_count(people, 'person', 'people')}, as paid from the bank", "start",
+                               net_sum[month], base),
+                         _step("Gross pay, before tax and insurance", "equals", gross_sum[month], base)]
+                if tax == "pit4":
+                    steps += [_step(f"Taxable income: gross − employee social insurance {_pct(settings.ZUS_EMPLOYEE)} − "
+                                    f"{settings.PIT_COSTS_PLN:,.0f} PLN work costs per person", "equals",
+                                    base_sum[month], base),
+                              _step(f"Income tax held back: {_pct(settings.PIT_RATE)} ({_pct(settings.PIT_RATE_HIGH)} above "
+                                    f"{settings.PIT_THRESHOLD_PLN:,.0f} PLN a year) − {settings.PIT_REDUCTION_PLN:,.0f} PLN "
+                                    "tax-free reduction per person", "equals", amount, base)]
+                else:
+                    steps += [_step(f"Employer social insurance, {_pct(settings.ZUS_EMPLOYER)} of gross", "start",
+                                    employer_sum[month], base),
+                              _step(f"Employee social insurance, {_pct(settings.ZUS_EMPLOYEE)} of gross", "plus",
+                                    employee_sum[month], base),
+                              _step(f"Health insurance, {_pct(settings.HEALTH_RATE)} of gross after employee insurance",
+                                    "plus", amount - employer_sum[month] - employee_sum[month], base),
+                              _step("ZUS to pay", "equals", amount, base)]
+                steps.append(_step("Gross pay is worked out back from the net pay, with the standard employment "
+                                   "contract rates", "note"))
                 out.append(_component(tax, y, m, due, amount, base, schedule, False,
                                       _evidence(tax, [], paid[month]), steps))
 
