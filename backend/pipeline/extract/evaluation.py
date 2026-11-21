@@ -24,7 +24,8 @@ from .bench import BUDGET_SECONDS, CONTENT_TYPES, _cents, truth_id
 
 FIELDS = ("gross", "issue_date", "seller_tax_id", "vat")
 FIELD_NAMES = {"gross": "gross", "issue_date": "date", "seller_tax_id": "seller NIP", "vat": "VAT"}
-SUBSETS = ("text_pdf", "rendered_photo", "real_photo")
+SUBSETS = ("text_pdf", "rendered_photo", "receipt_render", "real_photo")
+PHOTO_SUBSETS = ("rendered_photo", "receipt_render", "real_photo")
 NOVEMBER_SUBSETS = {"pdf": "text_pdf", "photo": "rendered_photo"}
 PHOTO_SUFFIXES = {".jpg", ".jpeg"}
 ZERO = "0.00"
@@ -60,8 +61,9 @@ def load_november(truth_path: Path, documents_dir: Path) -> list[Case]:
     return cases
 
 
-def load_receipt_photos(truth_path: Path, photos_dir: Path) -> list[Case]:
-    """Real phone photos named `<truth id>-<n>.jpg`; none yet is an empty list, a photo without truth an error."""
+def load_receipt_photos(truth_path: Path, photos_dir: Path, subset: str = "real_photo") -> list[Case]:
+    """Photos of the printed receipts named `<truth id>-<n>.jpg`: real phone photos, or renders of the printed
+    layout (`receipt_render`). No folder is an empty list; a photo without truth is an error."""
     if not photos_dir.is_dir():
         return []
     truths = {record["id"]: truth_of(record) for record in _read(truth_path)}
@@ -70,7 +72,7 @@ def load_receipt_photos(truth_path: Path, photos_dir: Path) -> list[Case]:
         key = truth_id(path)
         if key not in truths:
             raise ValueError(f"{path.name}: no ground truth for {key!r} in {truth_path.name}")
-        cases.append(Case(path.stem, path, "real_photo", truths[key]))
+        cases.append(Case(path.stem, path, subset, truths[key]))
     return cases
 
 
@@ -198,12 +200,14 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def headline(rows: list[dict[str, Any]]) -> str:
-    """The pitch number: gross first, real phone photos, Silently wrong fields; then the other fields."""
+    """The pitch number: gross first, then photos (and real phone photos, when there are any), Silently wrong
+    fields; then the other fields."""
     count = len(rows)
     parts = [f"Gross amount read right on {_right(rows, 'gross')} of {count} documents"]
-    photos = [row for row in rows if row["subset"] == "real_photo"]
-    if photos:
-        parts.append(f"{_right(photos, 'gross')} of {len(photos)} real phone photos")
+    for label, subsets in (("photos", PHOTO_SUBSETS), ("real phone photos", ("real_photo",))):
+        chosen = [row for row in rows if row["subset"] in subsets]
+        if chosen:
+            parts.append(f"{_right(chosen, 'gross')} of {len(chosen)} {label}")
     wrong = [(row["case_id"], field) for row in rows for field in row["silently_wrong"]]
     if wrong:
         named = ", ".join(f"{FIELD_NAMES[field]} on {case_id}" for case_id, field in wrong[:HEADLINE_NAMES])

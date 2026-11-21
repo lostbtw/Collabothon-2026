@@ -50,6 +50,31 @@ def test_receipt_photos_take_the_truth_of_their_receipt(tmp_path):
     assert cases[1].truth == HERO_TRUTH
 
 
+def test_renders_of_the_printed_receipts_are_their_own_subset(tmp_path):
+    (tmp_path / "rcpt_office-4.jpg").write_bytes(JPEG)
+
+    cases = evaluation.load_receipt_photos(RECEIPTS, tmp_path, subset="receipt_render")
+
+    assert [(case.case_id, case.subset, case.truth.gross) for case in cases] == [
+        ("rcpt_office-4", "receipt_render", "238.98")]
+
+
+def test_the_committed_receipt_renders_all_have_truth():
+    cases = evaluation.load_receipt_photos(RECEIPTS, REPO / "notebooks" / "receipt_renders", subset="receipt_render")
+
+    assert len(cases) == 12
+    assert {case.case_id.rsplit("-", 1)[0] for case in cases} == {"rcpt_hero", "rcpt_cafe", "rcpt_office"}
+
+
+def test_headline_counts_rendered_photos_without_calling_them_real():
+    rows = [row("nov_003", "rendered_photo"), row("rcpt_cafe-1", "receipt_render", gross="47.00")]
+
+    first_line = evaluation.headline(rows).splitlines()[0]
+
+    assert first_line.startswith("Gross amount read right on 1 of 2 documents, 1 of 2 photos;")
+    assert "real" not in first_line
+
+
 def test_a_photo_without_truth_is_refused(tmp_path):
     (tmp_path / "rcpt_unknown-1.jpg").write_bytes(JPEG)
 
@@ -185,7 +210,8 @@ def test_headline_leads_with_gross_and_real_photos_and_names_nothing_silently_wr
     rows = [row("nov_001", "text_pdf"), row("rcpt_hero-1"), row("rcpt_hero-2", status="needs_review", gross="1239.00")]
 
     assert evaluation.headline(rows) == (
-        "Gross amount read right on 2 of 3 documents, 1 of 2 real phone photos; none silently wrong.\n"
+        "Gross amount read right on 2 of 3 documents, 1 of 2 photos, 1 of 2 real phone photos; "
+        "none silently wrong.\n"
         "Date 3/3, seller NIP 3/3, VAT 3/3; 1 of 3 sent to review.")
 
 
