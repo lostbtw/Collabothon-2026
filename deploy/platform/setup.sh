@@ -264,8 +264,8 @@ app() {
   local name
   app_inputs
   oc apply -f "$APP/config.yaml" -f "$APP/bank.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml" \
-    -f "$APP/extractor.yaml" -f "$APP/connectors.yaml" -f "$APP/agents.yaml" -f "$APP/mcp.yaml"
-  for name in ordo-bank ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors ordo-agents ordo-mcp; do
+    -f "$APP/extractor.yaml" -f "$APP/connectors.yaml" -f "$APP/agents.yaml" -f "$APP/finance.yaml" -f "$APP/mcp.yaml"
+  for name in ordo-bank ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors ordo-agents ordo-finance ordo-mcp; do
     oc -n "$NS" rollout status "deployment/$name" --timeout=300s
   done
 }
