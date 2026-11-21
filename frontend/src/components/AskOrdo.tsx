@@ -9,6 +9,7 @@ import { requestRefresh } from "../lib/refresh";
 import { voiceSupported } from "../lib/voice";
 import { Icon } from "./Icon";
 import { Sources } from "./Sources";
+import { Modal } from "./Modal";
 import { CloseButton } from "./ui";
 import { VoiceControls, VoiceStatus, useVoice } from "./Voice";
 
@@ -58,7 +59,9 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deletingNow = useRef(false);
+  const closeConfirm = useCallback(() => setConfirming((c) => (deletingNow.current ? c : null)), []);
   const [search, setSearch] = useState("");
   const [reload, setReload] = useState(0);
   const [speech, setSpeech] = useState<Health["speech"]>(null);
@@ -75,10 +78,10 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
   }, [companyId, reload]);
   useEffect(() => { setLocal({}); setCurrent(null); }, [companyId]);
   useEffect(() => {
-    const onKey = (e: globalThis.KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: globalThis.KeyboardEvent) => e.key === "Escape" && confirming === null && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, confirming]);
 
   const chats: Chat[] = useMemo(() => {
     const fromServer = (server ?? []).map((s) => ({ id: s.session_id, title: s.title, lastAt: s.last_at, lines: local[s.session_id]?.lines ?? null }));
@@ -101,16 +104,22 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
     }
   }
 
+  function askToDelete(id: string) {
+    setDeleteError(null);
+    setConfirming(id);
+  }
+
   async function remove(id: string) {
+    deletingNow.current = true;
     setDeleting(true);
-    setHistoryError(null);
+    setDeleteError(null);
     try {
       if (server) await api.deleteChatSession(id, companyId);
     } catch (e) {
       if (!(e instanceof ApiError && e.status === 404)) {
-        setHistoryError(e instanceof ApiError && e.status === 405 ? "Not deleted: the backend cannot delete chats yet." : `Not deleted: ${e instanceof Error ? e.message : String(e)}`);
+        setDeleteError(e instanceof ApiError && e.status === 405 ? "Not deleted: the backend cannot delete chats yet." : `Not deleted: ${e instanceof Error ? e.message : String(e)}`);
+        deletingNow.current = false;
         setDeleting(false);
-        setConfirming(null);
         return;
       }
     }
@@ -124,6 +133,7 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
       setCurrent(null);
       setError(null);
     }
+    deletingNow.current = false;
     setDeleting(false);
     setConfirming(null);
     setReload((n) => n + 1);
@@ -164,21 +174,18 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
             <div key={group} className="stack" style={{ gap: 2 }}>
               <span className="caption t3 history-group">{group}</span>
               {items.map((c) => (
-                <HistoryItem key={c.id} title={c.title} when={whenLabel(c.lastAt, today)} on={c.id === current}
-                  confirming={confirming === c.id} deleting={deleting && confirming === c.id}
-                  onOpen={() => select(c.id)} onAsk={() => { setHistoryError(null); setConfirming(c.id); }} onCancel={() => setConfirming(null)} onDelete={() => remove(c.id)} />
+                <button key={c.id} type="button" className={`history-item${c.id === current ? " on" : ""}`} onClick={() => select(c.id)}>
+                  <span className="title">{c.title}</span>
+                  <span className="caption t3">{whenLabel(c.lastAt, today)}</span>
+                </button>
               ))}
             </div>
           ))}
-          {historyError && <span className="caption danger" role="alert">{historyError}</span>}
           <span className="grow" />
           <span className="caption t3">{server ? "Chats are saved for this company only." : "Chats stay in this tab until the backend saves them."}</span>
         </nav>
         <section className="conv">
-          <div className="conv-head">
-            <span className="medium grow">{open?.title ?? "New chat"}</span>
-            <CloseButton onClick={onClose} />
-          </div>
+          <ChatHead title={open?.title ?? "New chat"} onDelete={open ? () => askToDelete(open.id) : undefined} onClose={onClose} />
           <Thread lines={lines} pending={pending} error={error} onLeave={onClose} />
           <div className="conv-foot">
             <div className="hstack">
@@ -188,37 +195,47 @@ function AskPanel({ draft, leaving, onClose }: { draft: string; leaving: boolean
           </div>
         </section>
       </aside>
+      {confirming !== null && (
+        <Modal title="Delete this chat?" onClose={closeConfirm}
+          footer={<DeleteChatActions deleting={deleting} onCancel={closeConfirm} onDelete={() => remove(confirming)} />}>
+          <DeleteChatText title={chats.find((c) => c.id === confirming)?.title ?? "This chat"} error={deleteError} />
+        </Modal>
+      )}
     </>
   );
 }
 
-export function HistoryItem({ title, when, on, confirming, deleting = false, onOpen, onAsk, onCancel, onDelete }: {
-  title: string; when: string; on: boolean; confirming: boolean; deleting?: boolean;
-  onOpen: () => void; onAsk: () => void; onCancel: () => void; onDelete: () => void;
-}) {
-  if (confirming) {
-    return (
-      <div className="history-row confirming" role="group" aria-label={`Delete chat “${title}”?`}
-        onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onCancel(); } }}>
-        <span className="caption">Delete this chat?</span>
-        <span className="title caption t3">{title}</span>
-        <span className="hstack" style={{ gap: 4 }}>
-          <button type="button" className="delete-confirm" autoFocus disabled={deleting} onClick={onDelete}>{deleting ? "Deleting…" : "Delete"}</button>
-          <button type="button" className="quiet" disabled={deleting} onClick={onCancel}>Cancel</button>
-        </span>
-      </div>
-    );
-  }
+export function ChatHead({ title, onDelete, onClose }: { title: string; onDelete?: () => void; onClose: () => void }) {
   return (
-    <div className={`history-row${on ? " on" : ""}`}>
-      <button type="button" className={`history-item${on ? " on" : ""}`} onClick={onOpen}>
-        <span className="title">{title}</span>
-        <span className="caption t3">{when}</span>
-      </button>
-      <button type="button" className="history-delete" aria-label={`Delete chat “${title}”`} title="Delete chat" onClick={onAsk}>
-        <Icon name="trash" size={14} />
-      </button>
+    <div className="conv-head">
+      <span className="medium conv-title grow" title={title}>{title}</span>
+      {onDelete && (
+        <button type="button" className="quiet icon-button conv-delete" onClick={onDelete} aria-label="Delete this chat" title="Delete this chat">
+          <Icon name="trash" size={16} />
+        </button>
+      )}
+      <CloseButton onClick={onClose} />
     </div>
+  );
+}
+
+export function DeleteChatText({ title, error }: { title: string; error?: string | null }) {
+  return (
+    <>
+      <p className="t2">“{title}” and all its messages will be deleted for this company. This cannot be undone.</p>
+      <p className="small t3">To-dos the chat added to your list stay there.</p>
+      {error && <span className="small bad" role="alert">{error}</span>}
+    </>
+  );
+}
+
+export function DeleteChatActions({ deleting, onCancel, onDelete }: { deleting: boolean; onCancel: () => void; onDelete: () => void }) {
+  return (
+    <>
+      <span className="grow" />
+      <button type="button" disabled={deleting} onClick={onCancel}>Cancel</button>
+      <button type="button" className="danger-solid" disabled={deleting} onClick={onDelete}>{deleting ? "Deleting…" : "Delete chat"}</button>
+    </>
   );
 }
 
