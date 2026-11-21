@@ -187,3 +187,13 @@ def test_the_suggested_questions_get_an_answer_with_sources(demo, question, expe
     got = demo.post("/api/v1/chat", json={"message": question, "company_id": "co_borsuk"}).json()
     assert expect in got["answer"]
     assert got["evidence"]
+
+
+def test_big_answers_are_compressed_but_the_event_stream_is_not(demo, monkeypatch):
+    listed = demo.get("/api/v1/transactions", params=BORSUK, headers={"Accept-Encoding": "gzip"})
+    assert listed.headers.get("content-encoding") == "gzip"
+    assert listed.json()["items"]  # the client still reads it as JSON
+    monkeypatch.setenv("ORDO_SSE_REPLAY_FIXTURES", "1")
+    with demo.stream("GET", "/api/v1/events/stream", params={**BORSUK, "max_events": 1}, headers={"Accept-Encoding": "gzip"}) as stream:
+        assert stream.headers.get("content-encoding") is None
+        assert "event:" in stream.read().decode()

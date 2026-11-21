@@ -95,7 +95,7 @@ The audit record of one Decision, including rejections, with who decided, when, 
 _Avoid_: Sign-off, consent
 
 **Simulated execution**:
-Carrying out an approved action against the Sandbox Bank instead of a real bank, always labelled SIMULATED.
+Carrying out an approved action against the Sandbox Bank instead of a real bank. The app says once, in the sidebar, that every action is simulated.
 _Avoid_: Mock execution, test payment
 
 **Sandbox Bank**:

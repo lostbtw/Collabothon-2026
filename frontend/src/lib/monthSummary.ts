@@ -11,14 +11,16 @@ async function one(companyId: string, month: string, basis: "ledger" | "bank"): 
 
 /** The month and the month before, on the same basis so the two compare. Null when the backend has no summary. */
 export async function monthAndBefore(companyId: string, month: string): Promise<[MonthSummary | null, LedgerSummary | null]> {
-  const books = await one(companyId, month, "ledger");
+  // All four at once (books and bank, this month and the one before), then pick: one round trip, not three.
+  const [books, bank, booksBefore, bankBefore] = await Promise.all([
+    one(companyId, month, "ledger"), one(companyId, month, "bank"),
+    one(companyId, previousMonth(month), "ledger"), one(companyId, previousMonth(month), "bank"),
+  ]);
   if (!books) return [null, null];
-  let current: MonthSummary = { summary: books, fromBank: false };
   // The books hold only what was checked. When the bank shows more payments for the month than the books, the
   // month is not booked yet: show it from the bank (and say so).
-  const bank = await one(companyId, month, "bank");
   const count = (x: LedgerSummary) => x.rows.reduce((n, r) => n + r.entries, 0);
-  if (bank && count(bank) > count(books)) current = { summary: { ...bank, kpis: books.kpis }, fromBank: true };
-  const before = await one(companyId, previousMonth(month), current.fromBank ? "bank" : "ledger");
-  return [current, before];
+  const fromBank = Boolean(bank && count(bank) > count(books));
+  const current: MonthSummary = fromBank ? { summary: { ...bank!, kpis: books.kpis }, fromBank } : { summary: books, fromBank };
+  return [current, fromBank ? bankBefore : booksBefore];
 }

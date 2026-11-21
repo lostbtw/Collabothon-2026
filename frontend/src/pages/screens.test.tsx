@@ -93,11 +93,12 @@ describe("To-do", () => {
     expect(html).toContain("Needs your OK");
     expect(html).toContain("Cash runs short from 30 Nov to 7 Dec");
     expect(html).toContain("Options, cheapest first");
-    expect(html).toContain('Send reminder<span class="sim-tag">simulated</span>');
-    expect(html).toContain('Apply<span class="sim-tag">simulated</span>');
+    expect(html).toContain(">Send reminder</button>");
+    expect(html).toContain(">Apply</button>");
+    expect(html.replace(/<[^>]+>/g, " ")).not.toMatch(/simulated|SAMPLE/i); // visible text only
     expect(html).toContain("Close October");
     expect(html).toContain("94% done");
-    expect(html).toContain("SIMULATED · SIM-PD-2026-0398");
+    expect(html).toContain("Done · SIM-PD-2026-0398");
     expect(html).not.toContain("No need to hedge");
   });
 });

@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from psycopg_pool import ConnectionPool
@@ -19,6 +20,20 @@ from backend import settings
 from backend.agents.llm import default_client
 from backend.api.deps import ApiError, error_body
 from backend.api.routes import bank, chat, documents, forecast, ledger, owner, recommendations, sources, stream, system
+
+
+class _GzipExceptStream:
+    """Gzip for every response except the live event stream: compressing it would hold events back."""
+
+    def __init__(self, app):
+        self.app = app
+        self.gzip = GZipMiddleware(app, minimum_size=1024, compresslevel=5)
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path", "").endswith("/events/stream"):
+            await self.app(scope, receive, send)
+        else:
+            await self.gzip(scope, receive, send)
 
 
 def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | None = None) -> FastAPI:
@@ -34,6 +49,8 @@ def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | 
             app.state.pool.close()
 
     app = FastAPI(title="Ordo API", version="0.1.0", lifespan=lifespan)
+    # Lists of bank lines, documents and cards are hundreds of KB of JSON; compressed they are about a tenth.
+    app.add_middleware(_GzipExceptStream)
     app.state.chat_model = chat_model or default_client
     for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream, owner):
         app.include_router(module.router, prefix="/api/v1")

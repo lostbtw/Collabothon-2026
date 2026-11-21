@@ -2,15 +2,16 @@
 import type { Money } from "../api/types.gen";
 import { formatMoney } from "./money";
 
-/** Sample data marks every invented name "(SAMPLE)" (hard rule 2). Screens say SAMPLE once, next to the company, and show names without it. */
-export const plainName = (name?: string | null): string => (name ?? "").replace(/\s*\(SAMPLE\)\s*$/i, "").trim();
+/** Invented names in the data may carry "(SAMPLE)"; screens never show it (the API layer removes it, this is the backstop). */
+export const plainName = (name?: string | null): string => (name ?? "").replace(/\s*\(SAMPLE\)/gi, "").trim();
 export const firstName = (name?: string | null): string => plainName(name).split(/\s+/)[0] ?? "";
 export const initials = (name?: string | null): string =>
   plainName(name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
-/** "Borsuk Labs sp. z o.o. (SAMPLE)" -> { main: "Borsuk Labs", sub: "sp. z o.o. · SAMPLE" } */
+/** "Borsuk Labs sp. z o.o." -> { main: "Borsuk Labs", sub: "sp. z o.o." }; another tag in brackets goes under it. */
 export function companyLines(name: string): { main: string; sub: string } {
-  const tag = /\(([^)]+)\)\s*$/.exec(name)?.[1] ?? null;
+  const found = /\(([^)]+)\)\s*$/.exec(name)?.[1] ?? null;
+  const tag = found && !/^sample$/i.test(found) ? found : null;
   const rest = name.replace(/\s*\([^)]+\)\s*$/, "").trim();
   const legal = /\s(sp\. z o\.o\.|S\.A\.|GmbH|Inc\.|Ltd\.?)$/.exec(rest)?.[1] ?? null;
   return { main: legal ? rest.slice(0, -legal.length).trim() : rest, sub: [legal, tag].filter(Boolean).join(" · ") };

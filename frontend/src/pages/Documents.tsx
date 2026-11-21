@@ -108,7 +108,6 @@ function Preview({ d }: { d: OrdoDocument }) {
         <div className="slip-row medium"><span>TOTAL {d.totals.gross.currency}</span><span>{d.totals.gross.amount}</span></div>
         {d.payment?.card_last4 && <div className="caption">Card *{d.payment.card_last4}</div>}
       </div>
-      <p className="caption muted">Sample mode: drawn from the read fields, not the original image.</p>
     </div>
   );
 }

@@ -67,7 +67,7 @@ describe("inbox lists", () => {
     const lists = buildLists(await api.inbox("co_borsuk"), (await api.recommendations("co_borsuk")).items, (await api.approvals("co_borsuk")).items);
     expect(lists.open.map((r) => r.id)).not.toContain("rec_cl01");
     expect(lists.decided.map((r) => r.id)).toContain("rec_cl01");
-    expect(resultHeadline(lists.approvalFor("rec_cl01")!)).toBe("SIMULATED — SIM-CL-2026-0007");
+    expect(resultHeadline(lists.approvalFor("rec_cl01")!)).toBe("Done — SIM-CL-2026-0007");
     expect(approval.execution.result).toContain("25,000.00 PLN");
     expect(describeChanges(approval)).toEqual([["Limit", "25,000.00 PLN"]]);
   });
