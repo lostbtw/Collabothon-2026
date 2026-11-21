@@ -176,7 +176,10 @@ function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean;
           {c.explainer && <span className="small t2" style={{ marginTop: 2 }}>{c.explainer}</span>}
         </div>
         <span className="medium">{whole({ amount: c.amount_base.amount.replace("-", ""), currency: c.amount_base.currency })}</span>
-        <span className="t3" aria-hidden style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
+        <span className="button" aria-hidden style={{ height: 30, padding: "0 12px", fontSize: 13, minWidth: 104, gap: 6 }}>
+          {open ? "Hide details" : "Details"}
+          <span style={{ display: "inline-block", transform: open ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform .15s" }}>›</span>
+        </span>
       </div>
       {open && (
         <div className="stack" style={{ gap: 16, padding: "0 28px 20px 72px" }}>
