@@ -22,6 +22,8 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `ordo-pipeline` | `ordo-backend` | Normalises and matches |
 | `ordo-extractor` | `ordo-backend` | Reads photos and PDFs through docling-serve and gpt-oss-20b |
 | `ordo-agents` | `ordo-backend` | Turns new Matches and forecasts into inbox cards (ingestion, liquidity, receivables agents) |
+| `ordo-mcp` | `ordo-backend` | The agents' tools as an MCP server, in-cluster only at `http://ordo-mcp.cfo-ai.svc.cluster.local:8000/mcp` |
+| `ordo-ogx` (OGXServer) | OGX `rh-dev` distribution | OGX in front of the model; runs the agents' tool loop and calls `ordo-mcp` (only after `setup.sh ogx`) |
 | `ordo-bank` | `ordo-sim` | The Sandbox Bank, in-cluster only at `http://ordo-bank.cfo-ai.svc.cluster.local:8081` |
 | `postgresql` | `rhel9/postgresql-16` | The database |
 | `gpt-oss-20b-predictor`, `docling-serve` | see `deploy/models/` | The model and OCR |
@@ -47,7 +49,22 @@ deploy/platform/setup.sh redeploy
 | `check-bank` | `ordo-api` and `ordo-connectors` reach the Sandbox Bank and see its four accounts |
 | `check-m1` | The chat answers with text from gpt-oss-20b |
 | `verify` | Postgres and the raw volume work from a pod, every container has requests and limits, no secret value is in Git |
+| `check-ogx` | One chat question goes through OGX; prints the model OGX used, each tool it called over MCP and the answer |
 | `check-monitoring` | Prometheus scrapes gpt-oss-20b, its vLLM metrics are queryable, every rule in `deploy/observability/prometheus-rules.yaml` evaluates without errors; lists the alerts firing in `cfo-ai` |
+
+## OGX + MCP
+
+```bash
+deploy/platform/setup.sh ogx
+```
+
+This turns on the OGX Operator (`DataScienceCluster` `spec.components.ogx`, cluster-wide, needs cluster-admin), creates the database `ogx` that OGX keeps its own state in, starts `ordo-mcp` and the OGX server `ordo-ogx`, applies `deploy/app/ogx-config.yaml` and runs `check-ogx`.
+
+From then on the chat (`ordo-api`) and the liquidity and FX Shield agents (`ordo-agents`) ask OGX's Responses API instead of running their own tool loop: OGX talks to gpt-oss-20b and calls Ordo's tools on `ordo-mcp`. The answer passes the same checks as before (JSON schema, no number that no tool returned). If OGX does not answer, each agent runs its own loop against the model, so the app keeps working.
+
+`deploy/platform/setup.sh ogx-off` switches the agents back; OGX and `ordo-mcp` stay up.
+
+Where to look: `oc -n cfo-ai logs deployment/ordo-mcp` shows every tool call OGX made; `oc -n cfo-ai logs deployment/ordo-api | grep ogx` shows each run.
 
 ## Monitoring
 

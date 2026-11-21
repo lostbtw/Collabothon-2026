@@ -1,0 +1,12 @@
+# Switches the agents (ordo-api for the chat, ordo-agents for the cards) from their own tool loop to OGX + MCP.
+# Optional: without this ConfigMap, or when OGX does not answer, each agent runs its own loop against the model.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ordo-ogx
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+data:
+  ORDO_OGX_URL: http://ordo-ogx-service.cfo-ai.svc.cluster.local:8321/v1
+  ORDO_MCP_URL: http://ordo-mcp.cfo-ai.svc.cluster.local:8000/mcp

@@ -63,6 +63,30 @@ def llm_verify() -> ssl.SSLContext | bool:
     return ssl.create_default_context(cafile=ca_file) if ca_file else True
 
 
+def ogx_url() -> str:
+    """OpenAI-compatible endpoint of the cluster's OGX server, with /v1. Empty: the agents run their own tool loop."""
+    return os.environ.get("ORDO_OGX_URL", "")
+
+
+def ogx_token() -> str:
+    return os.environ.get("ORDO_OGX_API_KEY", "EMPTY")
+
+
+def ogx_model() -> str:
+    """The model's id in OGX ('<provider>/<model>'). Empty: found by asking OGX for its models."""
+    return os.environ.get("ORDO_OGX_MODEL", "")
+
+
+def mcp_url() -> str:
+    """Where OGX reaches Ordo's MCP server (Streamable HTTP, ends in /mcp)."""
+    return os.environ.get("ORDO_MCP_URL", "")
+
+
+def mcp_allowed_hosts() -> list[str]:
+    """Host headers the MCP server answers to, besides localhost (the Service's names on the cluster)."""
+    return [h.strip() for h in os.environ.get("ORDO_MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
+
+
 def sse_replay_fixtures() -> bool:
     """Replay contracts/fixtures/event.json to every new SSE client (skeleton mode). Off on the cluster once real events flow."""
     return os.environ.get("ORDO_SSE_REPLAY_FIXTURES", "1") != "0"

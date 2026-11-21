@@ -264,10 +264,63 @@ app() {
   local name
   app_inputs
   oc apply -f "$APP/config.yaml" -f "$APP/bank.yaml" -f "$APP/api.yaml" -f "$APP/web.yaml" -f "$APP/pipeline.yaml" \
-    -f "$APP/extractor.yaml" -f "$APP/connectors.yaml" -f "$APP/agents.yaml"
-  for name in ordo-bank ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors ordo-agents; do
+    -f "$APP/extractor.yaml" -f "$APP/connectors.yaml" -f "$APP/agents.yaml" -f "$APP/mcp.yaml"
+  for name in ordo-bank ordo-api ordo-web ordo-pipeline ordo-extractor ordo-connectors ordo-agents ordo-mcp; do
     oc -n "$NS" rollout status "deployment/$name" --timeout=300s
   done
+}
+
+# OGX + MCP: OGX (OpenShift AI) runs the agents' tool loop and calls Ordo's tools on the ordo-mcp Service.
+ogx_ready() {
+  [[ "$(oc -n "$NS" get ogxserver ordo-ogx -o jsonpath='{.status.phase}' 2>/dev/null)" == "Ready" ]]
+}
+
+ogx_database() {
+  local owner
+  owner="$(oc -n "$NS" extract secret/ordo-db --keys=POSTGRESQL_USER --to=-)"
+  oc -n "$NS" exec -i deployment/postgresql -- psql -U postgres -v ON_ERROR_STOP=1 -q <<SQL
+select 'create database ogx owner "$owner"' where not exists (select 1 from pg_database where datname = 'ogx') \\gexec
+SQL
+  echo "OK   database ogx exists (OGX keeps its own state there, apart from Ordo's data)"
+}
+
+ogx_restart_agents() {
+  local name
+  oc -n "$NS" rollout restart deployment/ordo-api deployment/ordo-agents
+  for name in ordo-api ordo-agents; do
+    oc -n "$NS" rollout status "deployment/$name" --timeout=300s
+  done
+}
+
+ogx() {
+  oc patch datasciencecluster default-dsc --type=merge -p '{"spec":{"components":{"ogx":{"managementState":"Managed"}}}}'
+  wait_for "the OGXServer resource type" 300 oc get crd ogxservers.ogx.io
+  oc -n redhat-ods-applications wait pod -l name=ogx-k8s-operator --for=condition=Ready --timeout=300s
+  ogx_database
+  oc apply -f "$APP/mcp.yaml"
+  oc -n "$NS" rollout status deployment/ordo-mcp --timeout=300s
+  oc apply -f "$APP/ogx.yaml"
+  wait_for "the OGX server ordo-ogx" 600 ogx_ready
+  oc apply -f "$APP/ogx-config.yaml" -f "$APP/api.yaml" -f "$APP/agents.yaml"
+  ogx_restart_agents
+  check_ogx
+}
+
+# One real question through OGX: prints the model OGX used, each tool it called over MCP and the answer.
+check_ogx() {
+  if oc -n "$NS" exec deployment/ordo-api -- python -m backend.agents.ogx "How much cash do I have?"; then
+    echo "OK   OGX ran the chat's tool loop and called Ordo's tools over MCP"
+  else
+    echo "FAIL OGX + MCP: see oc -n $NS logs deployment/ordo-mcp and oc -n $NS get ogxserver ordo-ogx -o yaml" >&2
+    return 1
+  fi
+}
+
+# Back to the agents' own tool loop (OGX and the MCP server stay up).
+ogx_off() {
+  oc -n "$NS" delete configmap ordo-ogx --ignore-not-found
+  ogx_restart_agents
+  echo "OK   the agents run their own tool loop again"
 }
 
 db_fixtures() {
@@ -681,6 +734,9 @@ case "$stage" in
   tag-demo) tag_demo ;;
   app) app ;;
   db-fixtures) db_fixtures ;;
+  ogx) ogx ;;
+  check-ogx) check_ogx ;;
+  ogx-off) ogx_off ;;
   check-m1) check_m1 ;;
   monitoring) monitoring ;;
   check-monitoring) check_monitoring ;;
@@ -690,7 +746,7 @@ case "$stage" in
   mlflow) mlflow ;;
   check-mlflow) check_mlflow ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
