@@ -33,11 +33,20 @@ export type Payment = {
 
 export type PaymentInput = { transactions: Transaction[]; accounts: Account[]; counterparties: Counterparty[]; matches: Match[]; documents: OrdoDocument[] };
 
+/** "Company account PLN" -> "PLN account". */
+export function accountShort(a: Account | null): string {
+  if (!a) return "Account";
+  if (a.kind === "owner_private") return "Owner's card";
+  const currency = /\b([A-Z]{3})$/.exec(a.name)?.[1];
+  return currency ? `${currency} account` : a.name;
+}
+
+/** Which account or card the money went from (or came into), in a few words. */
 function paidBy(t: Transaction, a: Account | null): string {
-  if (!t.amount_base.amount.startsWith("-")) return "Paid to us";
-  if (a?.kind === "owner_private") return "Owner's card";
+  if (!t.amount_base.amount.startsWith("-")) return `Into ${accountShort(a)}`;
+  if (a?.kind === "owner_private") return `Owner's card${t.card_last4 ? ` ·${t.card_last4}` : ""}`;
   if (a?.kind === "employee_out_of_pocket") return `${firstName(a.name)}, own card`;
-  return t.transaction_type === "card_payment" || t.card_last4 ? "Company card" : "Company account";
+  return t.transaction_type === "card_payment" || t.card_last4 ? `Card ·${t.card_last4 ?? ""} (${accountShort(a).replace(" account", "")})` : accountShort(a);
 }
 
 function docState(t: Transaction, m: Match | null, d: OrdoDocument | null): DocState {
@@ -102,7 +111,7 @@ export function typeOf(p: Payment): { label: string; color: string } {
   return { label: t.label, color: t.color };
 }
 
-export type PaymentFilter = { month?: string | null; type?: string | null; doc?: string | null; q?: string | null };
+export type PaymentFilter = { month?: string | null; type?: string | null; doc?: string | null; q?: string | null; account?: string | null };
 
 export function filterPayments(list: Payment[], f: PaymentFilter): Payment[] {
   const q = f.q?.trim().toLowerCase();
@@ -110,6 +119,7 @@ export function filterPayments(list: Payment[], f: PaymentFilter): Payment[] {
     (!f.month || p.date.startsWith(f.month))
     && (!f.type || typeKey(p) === f.type)
     && (!f.doc || p.doc === f.doc)
+    && (!f.account || (f.account === "private" ? !p.account : p.account?.id === f.account))
     && (!q || [p.name, p.paidBy, p.transaction?.counterparty_name_raw, p.transaction?.description, p.document?.seller.name, p.match?.payer?.name, typeOf(p).label]
       .some((s) => s?.toLowerCase().includes(q))));
 }

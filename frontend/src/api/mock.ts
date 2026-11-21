@@ -18,7 +18,7 @@ import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
 import type { ChatAnswer, Person, Settings } from "./client";
 import {
-  BALANCE_HISTORY, CHAT_HISTORY, PEOPLE, PEOPLE_COSTS, RULES, SAMPLE_APPROVALS, SAMPLE_COUNTERPARTIES, SAMPLE_RECOMMENDATIONS, SAMPLE_TRANSACTIONS,
+  BALANCE_HISTORY, CHAT_HISTORY, MONTHLY_EXTRA, PEOPLE, PEOPLE_COSTS, RULES, SAMPLE_APPROVALS, SAMPLE_COUNTERPARTIES, SAMPLE_RECOMMENDATIONS, SAMPLE_TRANSACTIONS,
   SETTINGS, SUBSCRIPTIONS, SUMMARY_BY_MONTH, SUMMARY_KPIS, clientsFor, readUpload,
 } from "./sample";
 import type {
@@ -306,7 +306,14 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     } else result = { items: [], totals: { staff: { amount: "0.00", currency: "PLN" }, social_security: { amount: "0.00", currency: "PLN" }, share_of_costs: 0 } };
   }
   else if (method === "GET" && path === "/clients") { onlyBorsuk(company, "clients"); result = clientsFor(q.get("month") ?? "2026-10"); }
-  else if (method === "GET" && path === "/subscriptions") { onlyBorsuk(company, "subscriptions"); result = SUBSCRIPTIONS; }
+  else if (method === "GET" && path === "/subscriptions") {
+    onlyBorsuk(company, "subscriptions");
+    if (q.get("scope") === "all") {
+      const items = [...SUBSCRIPTIONS.items, ...MONTHLY_EXTRA];
+      const total = items.reduce((t, i) => t + BigInt(i.monthly.amount.replace(".", "")), 0n);
+      result = { items, monthly_total: { amount: `${total / 100n}.${String(total % 100n).padStart(2, "0")}`, currency: "PLN" } };
+    } else result = SUBSCRIPTIONS;
+  }
   else if (path === "/settings" && (method === "GET" || method === "PATCH")) {
     onlyBorsuk(company, "settings");
     if (method === "PATCH") {

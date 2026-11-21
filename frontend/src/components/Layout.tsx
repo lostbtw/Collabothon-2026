@@ -43,10 +43,8 @@ export function Layout() {
           </nav>
           <span className="grow" />
           <NavLink to="/settings" className={navClass}>Settings</NavLink>
-          <p className="sidebar-note">
-            Sandbox. Every action is simulated.<br />
-            {API_MODE === "mock" ? "Sample data" : "Live data"} · <a href={API_MODE === "mock" ? "?mock=0" : "?mock=1"}>{API_MODE === "mock" ? "use live data" : "use sample data"}</a>
-          </p>
+          {/* Switching data is still possible with ?mock=1 or ?mock=0 in the address; the owner does not need a button. */}
+          <p className="sidebar-note">{API_MODE === "mock" ? "Sample data" : "Live data"} · every action is simulated</p>
         </aside>
         <main className="main">
           <div className="main-inner">

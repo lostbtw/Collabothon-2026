@@ -15,10 +15,12 @@ function niceStep(range: number, target: number): number {
   return [1, 2, 2.5, 5, 10].map((m) => m * pow).find((s) => s >= raw) ?? raw;
 }
 
-export type CashDay = { date: string; balance: Money; expected: boolean; x: number; y: number; events: Upcoming[] };
+export type CashDay = { date: string; balance: Money; expected: boolean; x: number; y: number; events: Upcoming[]; low?: Money; high?: Money };
 export type CashModel = {
   w: number; h: number; plot: { left: number; right: number; top: number; bottom: number };
   past: string | null; future: string | null; todayX: number | null;
+  /** The forecast's range (low to high) as one closed shape, when the engine sends it. */
+  band: string | null;
   zones: { from: string; to: string; x1: number; x2: number }[];
   low: { date: string; amount: Money; x: number; y: number } | null;
   zeroY: number | null; yTicks: { value: number; y: number }[]; months: { x: number; label: string }[];
@@ -49,7 +51,8 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   const events = forecast ? upcoming(forecast) : [];
   if (forecast) for (const b of dailyBalances(forecast, daysBetween(today, end))) days.push({ ...b, expected: true, events: events.filter((e) => e.date === b.date) });
 
-  const values = days.map((d) => Number(d.balance.amount)).concat(0);
+  const ranged = (forecast?.points ?? []).filter((p) => p.date >= today && p.date <= end && typeof p.low === "string" && typeof p.high === "string");
+  const values = days.map((d) => Number(d.balance.amount)).concat(0, ...ranged.flatMap((p) => [Number(p.low), Number(p.high)]));
   const pad = (Math.max(...values) - Math.min(...values)) * 0.08 || 1;
   const lo = Math.min(...values) - pad;
   const hi = Math.max(...values) + pad;
@@ -66,6 +69,16 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   const joined = lastPast && futurePoints.length && futurePoints[0].date > today ? [{ date: today, v: Number(lastPast.balance) }, ...futurePoints] : futurePoints;
   const future = joined.length ? step(joined, plot.right) : null;
 
+  // Range: the upper edge left to right as steps, then the lower edge back.
+  let band: string | null = null;
+  if (ranged.length > 1) {
+    const top = ranged.map((p, i) => (i === 0 ? `M${r(x(p.date))} ${r(y(Number(p.high)))}` : `H${r(x(p.date))}V${r(y(Number(p.high)))}`)).join("") + `H${r(plot.right)}`;
+    let bottom = `V${r(y(Number(ranged[ranged.length - 1].low)))}`;
+    for (let i = ranged.length - 1; i >= 1; i--) bottom += `H${r(x(ranged[i].date))}V${r(y(Number(ranged[i - 1].low)))}`;
+    band = `${top}${bottom}H${r(x(ranged[0].date))}Z`;
+  }
+  const lowHigh = new Map(ranged.map((p) => [p.date, p]));
+
   const zones = (forecast?.alerts ?? []).filter((a) => a.type === "cash_gap" && a.date_from <= end)
     .map((a) => ({ from: a.date_from, to: a.date_to ?? end, x1: x(a.date_from), x2: x(a.date_to ?? end) }));
   const low = forecast && forecast.min_balance.date <= end
@@ -78,8 +91,13 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   for (let d = `${start.slice(0, 7)}-01`; d <= end; d = addDays(d, 32).slice(0, 7) + "-01") if (d > start) months.push({ x: x(d), label: MONTHS[Number(d.slice(5, 7)) - 1] });
 
   return {
-    w, h, plot, past, future, todayX: forecast ? x(today) : null, zones, low, zeroY: lo < 0 && hi > 0 ? y(0) : null, yTicks, months,
-    days: days.map((d) => ({ ...d, x: x(d.date), y: y(Number(d.balance.amount)) })),
+    w, h, plot, past, future, band, todayX: forecast ? x(today) : null, zones, low, zeroY: lo < 0 && hi > 0 ? y(0) : null, yTicks, months,
+    days: days.map((d) => {
+      // The range holds from one forecast day to the next, like the balance.
+      const known = [...lowHigh.keys()].filter((k) => k <= d.date).pop();
+      const p = d.expected && known ? lowHigh.get(known) : undefined;
+      return { ...d, x: x(d.date), y: y(Number(d.balance.amount)), ...(p ? { low: { amount: p.low!, currency }, high: { amount: p.high!, currency } } : {}) };
+    }),
   };
 }
 

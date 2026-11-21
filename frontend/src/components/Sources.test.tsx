@@ -13,10 +13,10 @@ const many: EvidenceLink[] = [
 ];
 
 describe("chat answer sources", () => {
-  it("shows four chips and puts the rest behind one button", () => {
+  it("shows three chips and puts the rest behind one button", () => {
     const html = renderToStaticMarkup(<MemoryRouter><Sources links={many} /></MemoryRouter>);
-    expect(html.match(/class="chip"/g)).toHaveLength(4);
-    expect(html).toContain("+108 more sources");
+    expect(html.match(/class="chip"/g)).toHaveLength(3);
+    expect(html).toContain("+109 more sources");
   });
   it("groups the rest by kind, accounts first", () => {
     expect(groupSources(many).map((g) => [g.label, g.links.length])).toEqual([["Accounts", 1], ["Forecast", 1], ["Invoices and receipts", 50], ["Payments", 60]]);

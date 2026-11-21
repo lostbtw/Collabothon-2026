@@ -180,6 +180,16 @@ export const SUBSCRIPTIONS: SubscriptionsResponse = {
   monthly_total: pln("2700.00"),
 };
 
+/** What else repeats every month, for Money › Monthly payments (scope=all). In November not all of it is paid yet. */
+export const MONTHLY_EXTRA: SubscriptionsResponse["items"] = [
+  { counterparty_id: "cp_cowork", name: "Coworking space (SAMPLE)", category: "rent_office", monthly: pln("2460.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: true },
+  { counterparty_id: "cp_kowalski", name: "Jan Kowalski (SAMPLE)", category: "salaries", monthly: pln("5800.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
+  { counterparty_id: "cp_zielinska", name: "Marta Zielińska (SAMPLE)", category: "salaries", monthly: pln("5800.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
+  { counterparty_id: "cp_lis", name: "Piotr Lis (SAMPLE)", category: "contractors", monthly: pln("10500.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: true },
+  { counterparty_id: "cp_zus", name: "Social security office (SAMPLE)", category: "social_security", monthly: pln("9200.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
+  { counterparty_id: "cp_abakus", name: "Abakus accounting office (SAMPLE)", category: "professional_services", monthly: pln("1240.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
+];
+
 // ---- Settings, people and learned rules (GET /settings, /people, /rules) ----
 export const SETTINGS: Settings = {
   company: { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", tax_id: "999-000-00-14", base_currency: "PLN", vat_period: "monthly", accountant_email: "office@abakus.example" },

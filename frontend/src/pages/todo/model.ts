@@ -9,20 +9,18 @@ import { daysBetween, shortDate } from "../../lib/dates";
 import { firstSentence, whole } from "../../lib/words";
 import { canApprove, isDecided } from "../inbox/model";
 
-/** Every button that runs something says SIMULATED (product rule). */
+/** What the approve button says. The button also carries a small "simulated" tag (SimButton, product rule). */
 const APPROVE_LABEL: Partial<Record<Recommendation["type"], string>> = {
-  reimburse_employee: "Pay back (simulated)",
-  credit_line: "Apply (simulated)",
-  chase_receivable: "Send reminder (simulated)",
-  payment_deferral: "Send the note (simulated)",
-  fx_hedge: "Fix the rate (simulated)",
-  tax_reserve: "Set aside (simulated)",
+  reimburse_employee: "Pay back",
+  credit_line: "Apply",
+  chase_receivable: "Send reminder",
+  payment_deferral: "Send the note",
+  fx_hedge: "Fix the rate",
+  tax_reserve: "Set aside",
 };
-export const approveLabel = (r: Recommendation): string => APPROVE_LABEL[r.type] ?? "Approve (simulated)";
+export const approveLabel = (r: Recommendation): string => APPROVE_LABEL[r.type] ?? "Approve";
 
 const CHECK_LABEL: Partial<Record<Recommendation["type"], string>> = { request_company_invoice: "See which" };
-/** Kinds of action simple enough to approve straight from the list; the rest open their details first. */
-const ONE_CLICK: ReadonlySet<Recommendation["type"]> = new Set(["reimburse_employee"]);
 /** Liquidity actions that close a cash gap. They are shown together, as options under the gap. */
 const GAP_OPTIONS: ReadonlySet<Recommendation["type"]> = new Set(["credit_line", "payment_deferral", "chase_receivable"]);
 
@@ -50,7 +48,7 @@ const byCost = (a: Recommendation, b: Recommendation) =>
 function single(r: Recommendation): TodoItem {
   const link = r.evidence.find((e) => e.url?.startsWith("/"))?.url;
   const primary: Primary = r.control_level === "approval_required"
-    ? (canApprove(r) && ONE_CLICK.has(r.type) ? { kind: "approve", label: approveLabel(r) } : { kind: "details", label: "See details" })
+    ? (canApprove(r) ? { kind: "approve", label: approveLabel(r) } : { kind: "details", label: "See details" })
     : link ? { kind: "link", label: CHECK_LABEL[r.type] ?? "Check", to: link } : { kind: "details", label: "See details" };
   return { id: r.id, level: r.control_level, title: r.title, summary: firstSentence(r.summary), primary, rec: r };
 }
@@ -69,8 +67,9 @@ export function buildTodo(items: Recommendation[], forecast: Forecast | null): T
   const alert = forecast?.alerts.find((a) => a.type === "cash_gap") ?? null;
   // One option per kind of action: when an agent proposed the same kind twice, the newest proposal counts.
   const newestOfType = (r: Recommendation, _: number, list: Recommendation[]) => !list.some((o) => o.type === r.type && o.created_at > r.created_at);
-  const options = alert ? open.filter((r) => r.agent === "liquidity" && GAP_OPTIONS.has(r.type)).filter(newestOfType).sort(byCost) : [];
-  const grouped = new Set(options.map((r) => r.id));
+  const candidates = alert ? open.filter((r) => r.agent === "liquidity" && GAP_OPTIONS.has(r.type)) : [];
+  const options = candidates.filter(newestOfType).sort(byCost);
+  const grouped = new Set(candidates.map((r) => r.id)); // older duplicates are hidden, not shown on their own
   const approvals = open.filter((r) => r.control_level === "approval_required" && !grouped.has(r.id));
 
   let gapItem: TodoItem | null = null;

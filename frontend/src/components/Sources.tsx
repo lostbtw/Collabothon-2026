@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import type { EvidenceLink } from "../api/types.gen";
 
 /** How many sources show as chips before "+N more". */
-export const VISIBLE_SOURCES = 4;
+export const VISIBLE_SOURCES = 3;
 
 const KIND_LABEL: Record<EvidenceLink["kind"], string> = {
   forecast: "Forecast", forecast_component: "Forecast", recommendation: "To-dos", document: "Invoices and receipts",

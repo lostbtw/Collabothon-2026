@@ -55,6 +55,8 @@ export type Subscription = {
   counterparty_id: string; name: string; category: string; monthly: Money; original: Money | null;
   paid_by: { kind: "account" | "card" | "person"; label: string }[]; flags: string[]; series_ids: string[];
   previous_monthly?: Money | null; duplicate_cost?: Money | null;
+  /** False when the payment is expected this month but not paid yet (monthly = last month's amount). */
+  paid_in_month?: boolean;
 };
 export type SubscriptionsResponse = { items: Subscription[]; monthly_total: Money };
 export type Settings = {
@@ -113,7 +115,9 @@ export const api = {
   balanceHistory: (companyId?: string) => optional(http<BalanceHistory>("GET", "/balance/history", { query: co(companyId) })),
   peopleCosts: (companyId: string | undefined, month: string) => optional(http<PeopleCosts>("GET", "/people/costs", { query: { ...co(companyId), month } })),
   clients: (companyId: string | undefined, month: string) => optional(http<ClientsResponse>("GET", "/clients", { query: { ...co(companyId), month } })),
-  subscriptions: (companyId?: string) => optional(http<SubscriptionsResponse>("GET", "/subscriptions", { query: co(companyId) })),
+  /** scope "all": every payment that repeats each month (rent, staff, taxes); default: only tools and services. */
+  subscriptions: (companyId?: string, month?: string, scope?: "subscriptions" | "all") =>
+    optional(http<SubscriptionsResponse>("GET", "/subscriptions", { query: { ...co(companyId), month, scope } })),
   settings: (companyId?: string) => optional(http<Settings>("GET", "/settings", { query: co(companyId) })),
   patchSettings: (companyId: string | undefined, body: { company?: Partial<Settings["company"]>; alerts?: Partial<Settings["alerts"]> }) =>
     optional(http<Settings>("PATCH", "/settings", { query: co(companyId), body })),

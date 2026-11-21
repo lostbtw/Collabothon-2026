@@ -5,7 +5,7 @@ import { api, type ClientsResponse, type LedgerSummary, type PeopleCosts, type S
 import type { Recommendation } from "../api/types.gen";
 import { Icon } from "../components/Icon";
 import { Avatar, Change, Chevron, MonthSelect, PageHead, Skeleton, SlidingTabs, StatusLabel, Tile, Waiting, nth } from "../components/ui";
-import { add, isZero, lastFullMonth, monthFigures, monthOnly, percent, previousMonth, recentMonths, subtract } from "../lib/costTypes";
+import { COST_TYPES, add, isZero, monthFigures, monthOnly, percent, previousMonth, recentMonths, subtract, typeOfCategory } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
@@ -13,15 +13,15 @@ import { useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { PAY_LABEL, ROLE_LABEL, categoryLabel, initials, pct, plainName, whole } from "../lib/words";
 import { monthAndBefore } from "../lib/monthSummary";
-import { FromBank } from "./Overview";
+import { FROM_BANK_TEXT, FromBank } from "./Overview";
 import { PaymentPanel } from "./money/PaymentPanel";
-import { DOC_CHIP, buildPayments, filterPayments, typeOf, type Payment } from "./money/payments";
+import { DOC_CHIP, accountShort, buildPayments, filterPayments, typeOf, type Payment } from "./money/payments";
 
 const VIEWS = [
   { key: "", label: "By type" },
   { key: "people", label: "By person" },
   { key: "clients", label: "By client" },
-  { key: "subscriptions", label: "Subscriptions" },
+  { key: "monthly", label: "Monthly payments" },
   { key: "payments", label: "All payments" },
 ] as const;
 type View = (typeof VIEWS)[number]["key"];
@@ -33,11 +33,12 @@ export function Money() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const today = useToday();
-  const v = (VIEWS.some((x) => x.key === view) ? view : "") as View;
-  // All payments starts on this month (or on all months when it is asked for a kind of payment or a name);
-  // the summaries on the last full month. "" means all months.
+  // Old links to Subscriptions open Monthly payments.
+  const v = (view === "subscriptions" ? "monthly" : VIEWS.some((x) => x.key === view) ? view : "") as View;
+  // Every view opens on the current month (All payments on all months when it is asked for a kind of payment or a
+  // name). "" means all months.
   const asked = params.get("month");
-  const month = v === "payments" ? (asked ?? (params.get("doc") || params.get("q") ? "" : today.slice(0, 7))) : (asked || lastFullMonth(today));
+  const month = v === "payments" ? (asked ?? (params.get("doc") || params.get("q") ? "" : today.slice(0, 7))) : (asked || today.slice(0, 7));
   const q = params.get("q") ?? "";
   const keep = (key: string) => `/money${key ? `/${key}` : ""}${params.get("month") ? `?month=${month}` : ""}`;
 
@@ -53,7 +54,7 @@ export function Money() {
     <>
       <PageHead title="Money" sub="Every payment in and out, with the invoice behind it." />
       <div className="toolbar">
-        {v !== "subscriptions" && <MonthSelect value={month} months={recentMonths(today, 12)} onChange={setMonth} allowAll={v === "payments"} />}
+        <MonthSelect value={month} months={recentMonths(today, 12)} onChange={setMonth} allowAll={v === "payments"} />
         <SlidingTabs label="Views" active={v} items={VIEWS.map((x) => ({ key: x.key, label: x.label, to: keep(x.key) }))} />
         <span className="grow" />
         <form className="search" role="search" onSubmit={search}>
@@ -65,7 +66,7 @@ export function Money() {
       {v === "" && <ByType month={month} />}
       {v === "people" && <ByPerson month={month} />}
       {v === "clients" && <ByClient month={month} />}
-      {v === "subscriptions" && <Subscriptions />}
+      {v === "monthly" && <Monthly month={month} />}
       {v === "payments" && <AllPayments month={month} selected={id ?? null} />}
     </>
   );
@@ -87,10 +88,12 @@ export function ByTypeView({ month, summary, fromBank, before, currency }: { mon
   const f = monthFigures(summary, currency);
   const prev = before?.rows.length ? monthFigures(before, currency) : null;
   const entries = (cats: string[]) => summary.rows.filter((r) => cats.includes(r.key)).reduce((n, r) => n + r.entries, 0);
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const toggle = (key: string) => setOpen((o) => { const n = new Set(o); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   if (!f.hasData) return <p className="t2">No payments in {monthOnly(month)}.</p>;
   return (
     <>
-      {fromBank && <div className="hstack"><FromBank /><span className="small t2">Summed from the bank lines: these payments are not matched to invoices and booked yet.</span></div>}
+      {fromBank && <div className="hstack"><FromBank /><span className="small t2">{FROM_BANK_TEXT}</span></div>}
       <div className="row">
         <Tile label={`Costs in ${monthOnly(month)}`} value={whole(f.costs)} note={prev && <Change now={f.costs} before={prev.costs} upIsGood={false} vs={monthOnly(previousMonth(month))} />} />
         <Tile label="Fixed every month" value={whole(f.fixed)} note={`${percent(f.fixed.amount, f.costs.amount)}% of all costs`} />
@@ -99,19 +102,38 @@ export function ByTypeView({ month, summary, fromBank, before, currency }: { mon
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Type</span><span className="cell" style={{ width: 120 }}>Repeats</span><span className="cell r" style={{ width: 90 }}>Payments</span><span className="cell r" style={{ width: 140 }}>{monthOnly(month)}</span><span className="cell r" style={{ width: 70 }}>Share</span><span style={{ width: 16 }} /></div>
-        {f.types.map((t, i) => (
-          <Link style={nth(i)} key={t.type.key} to={`/money/payments?month=${month}&type=${t.type.key}`} className="trow">
-            <span className="cell col grow">
-              <span className="hstack" style={{ gap: 8 }}><span className="dot" style={{ background: t.type.color }} />{t.type.label}</span>
-              <span className="caption t3">{t.categories.map((c) => categoryLabel(c.key)).join(", ")}</span>
-            </span>
-            <span className="cell small t2" style={{ width: 120 }}>{t.type.tag}</span>
-            <span className="cell r t2" style={{ width: 90 }}>{entries(t.type.categories)}</span>
-            <span className="cell r" style={{ width: 140 }}>{whole(t.amount)}</span>
-            <span className="cell r t2" style={{ width: 70 }}>{percent(t.amount.amount, f.costs.amount)}%</span>
-            <Chevron />
-          </Link>
-        ))}
+        {f.types.map((t, i) => {
+          const isOpen = open.has(t.type.key);
+          return (
+            <div key={t.type.key} className="group" style={nth(i)}>
+              <button type="button" className="trow group-head" aria-expanded={isOpen} onClick={() => toggle(t.type.key)}>
+                <span className="cell col grow">
+                  <span className="hstack" style={{ gap: 8 }}><span className="dot" style={{ background: t.type.color }} /><span className="medium">{t.type.label}</span></span>
+                  <span className="caption t3">{t.categories.map((c) => categoryLabel(c.key)).join(", ")}</span>
+                </span>
+                <span className="cell small t2" style={{ width: 120 }}>{t.type.tag}</span>
+                <span className="cell r t2" style={{ width: 90 }}>{entries(t.type.categories)}</span>
+                <span className="cell r" style={{ width: 140 }}>{whole(t.amount)}</span>
+                <span className="cell r t2" style={{ width: 70 }}>{percent(t.amount.amount, f.costs.amount)}%</span>
+                <span className={`chev${isOpen ? " open" : ""}`} aria-hidden="true"><Icon name="chevronRight" size={16} /></span>
+              </button>
+              {isOpen && (
+                <>
+                  {t.categories.map((c) => (
+                    <div key={c.key} className="trow sub">
+                      <span className="cell grow small">{categoryLabel(c.key)}</span>
+                      <span className="cell r t2 small" style={{ width: 90 }}>{entries([c.key])}</span>
+                      <span className="cell r small" style={{ width: 140 }}>{whole(c.amount)}</span>
+                      <span className="cell r t2 small" style={{ width: 70 }}>{percent(c.amount.amount, f.costs.amount)}%</span>
+                      <span style={{ width: 16 }} />
+                    </div>
+                  ))}
+                  <div className="trow sub"><Link to={`/money/payments?month=${month}&type=${t.type.key}`} className="small">See the {entries(t.type.categories)} payments</Link></div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );
@@ -223,44 +245,67 @@ export function ByClientView({ month, data, fx }: { month: string; data: Clients
 }
 
 // ---- Subscriptions ----
-function Subscriptions() {
+function Monthly({ month }: { month: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
-  const state = useApi(() => api.subscriptions(companyId).catch(() => null), [companyId, refresh]);
+  const state = useApi(() => api.subscriptions(companyId, month, "all").catch(() => null), [companyId, month, refresh]);
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
-  if (!state.data) return <Waiting what="subscriptions" />;
-  return <SubscriptionsView data={state.data} />;
+  if (!state.data) return <Waiting what="monthly payments" />;
+  return <MonthlyView data={state.data} month={month} />;
 }
 
-export function SubscriptionsView({ data }: { data: SubscriptionsResponse }) {
+/** Two names and how many more, so a tile stays one line or two. */
+const worthALook = (notes: string[]): string =>
+  notes.length === 0 ? "No price rises, nothing paid twice" : notes.slice(0, 2).join(" · ") + (notes.length > 2 ? ` and ${notes.length - 2} more` : "");
+
+/** Everything paid every month, grouped by type; each type opens to its payments. */
+export function MonthlyView({ data, month }: { data: SubscriptionsResponse; month: string }) {
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const twice = data.items.filter((s) => s.flags.includes("paid_twice"));
   const up = data.items.filter((s) => s.flags.includes("price_up"));
-  const saving = twice.reduce((s, x) => (x.duplicate_cost ? add(s, x.duplicate_cost.amount) : s), "0.00");
+  const notYet = data.items.filter((s) => s.paid_in_month === false);
   const currency = data.monthly_total.currency;
+  const sum = (items: typeof data.items) => whole({ amount: items.reduce((t, x) => add(t, x.monthly.amount), "0.00"), currency });
   const rise = (s: (typeof data.items)[number]) => (s.previous_monthly && !isZero(s.previous_monthly.amount) ? `+${percent(subtract(s.monthly.amount, s.previous_monthly.amount), s.previous_monthly.amount)}%` : null);
   const FLAG: Record<string, [string, string]> = { paid_twice: ["Paid twice", "bad"], paid_privately: ["Paid privately", "warn"] };
+  const groups = COST_TYPES.map((t) => ({ type: t, items: data.items.filter((s) => typeOfCategory(s.category).key === t.key) })).filter((g) => g.items.length);
+  const toggle = (key: string) => setOpen((o) => { const n = new Set(o); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  if (data.items.length === 0) return <p className="t2">Nothing repeats every month yet.</p>;
   return (
     <>
       <div className="row">
-        <Tile label="Every month" value={whole(data.monthly_total)} note={`${data.items.length} tools and services`} />
-        <Tile label="Paid twice" value={twice.length ? (isZero(saving) ? `${twice.length} tools` : whole({ amount: saving, currency })) : "None"}
-          note={twice.length ? twice.map((s) => `${plainName(s.name)}, by ${s.paid_by.map((p) => p.label.replace(/'s card$/, "")).join(" and ")}`).join("; ") : "Every tool is paid once"} tone={twice.length ? "bad" : undefined} />
-        <Tile label="Price went up" value={up.length ? `${up.length} tool${up.length === 1 ? "" : "s"}` : "None"} note={up.length ? up.map((s) => [plainName(s.name), rise(s)].filter(Boolean).join(", ")).join("; ") : "No price changes"} tone={up.length ? "warn" : undefined} />
+        <Tile label="Every month" value={whole(data.monthly_total)} note={`${data.items.length} payments that repeat`} />
+        <Tile label={`Not paid yet in ${monthOnly(month)}`} value={notYet.length ? sum(notYet) : "Nothing"} note={notYet.length ? `${notYet.length} payments still to come` : "Everything is paid"} tone={notYet.length ? "warn" : undefined} />
+        <Tile label="Worth a look" value={`${twice.length + up.length}`}
+          note={worthALook([...twice.map((s) => `${plainName(s.name)} paid twice`), ...up.map((s) => [plainName(s.name), rise(s)].filter(Boolean).join(" "))])}
+          tone={twice.length + up.length ? "warn" : undefined} />
       </div>
       <div className="card table">
-        <div className="trow head"><span className="cell grow">Tool</span><span className="cell" style={{ width: 240 }}>Paid by</span><span className="cell r" style={{ width: 130 }}>Every month</span><span className="cell r" style={{ width: 130 }} /><span style={{ width: 16 }} /></div>
-        {data.items.map((s, i) => (
-          <Link style={nth(i)} key={s.counterparty_id} to={`/money/payments?q=${encodeURIComponent(plainName(s.name).split(" ")[0])}`} className="trow">
-            <span className="cell col grow"><span>{plainName(s.name)}</span><span className="caption t3">{categoryLabel(s.category)}</span></span>
-            <span className="cell small t2" style={{ width: 240 }}>{s.paid_by.map((p) => p.label).join(" and ")}</span>
-            <span className="cell col r" style={{ width: 130 }}><span>{whole(s.monthly)}</span>{s.original && <span className="caption t3">{formatMoney(s.original).replace(".00 ", " ")}</span>}</span>
-            <span className="cell r" style={{ width: 130 }}>
-              {s.flags.includes("price_up") ? <span className="chip warn">{rise(s) ? `${rise(s)} lately` : "Price went up"}</span>
-                : s.flags.map((fl) => FLAG[fl]).filter(Boolean).slice(0, 1).map(([text, tone]) => <span key={text} className={`chip ${tone}`}>{text}</span>)}
-            </span>
-            <Chevron />
-          </Link>
-        ))}
+        {groups.map((g) => {
+          const isOpen = open.has(g.type.key);
+          return (
+            <div key={g.type.key} className="group">
+              <button type="button" className="trow group-head" aria-expanded={isOpen} onClick={() => toggle(g.type.key)}>
+                <span className="cell grow" style={{ gap: 8 }}><span className="dot" style={{ background: g.type.color }} /><span className="medium">{g.type.label}</span>
+                  <span className="small t3">{g.items.length} payment{g.items.length === 1 ? "" : "s"}</span></span>
+                <span className="cell r" style={{ width: 160 }}>{sum(g.items)}</span>
+                <span className={`chev${isOpen ? " open" : ""}`} aria-hidden="true"><Icon name="chevronRight" size={16} /></span>
+              </button>
+              {isOpen && g.items.map((s, i) => (
+                <Link style={nth(i)} key={s.counterparty_id} to={`/money/payments?q=${encodeURIComponent(plainName(s.name).split(" ")[0])}`} className="trow sub">
+                  <span className="cell col grow"><span>{plainName(s.name)}</span><span className="caption t3">{categoryLabel(s.category)} · {s.paid_by.map((x) => x.label).join(" and ")}</span></span>
+                  <span className="cell r" style={{ width: 130 }}>
+                    {s.paid_in_month === false ? <span className="chip neutral">Not paid yet</span>
+                      : s.flags.includes("price_up") ? <span className="chip warn">{rise(s) ? `${rise(s)} lately` : "Price went up"}</span>
+                      : s.flags.map((fl) => FLAG[fl]).filter(Boolean).slice(0, 1).map(([text, tone]) => <span key={text} className={`chip ${tone}`}>{text}</span>)}
+                  </span>
+                  <span className="cell col r" style={{ width: 160 }}><span>{whole(s.monthly)}</span>{s.original && <span className="caption t3">{formatMoney(s.original).replace(".00 ", " ")}</span>}</span>
+                  <Chevron />
+                </Link>
+              ))}
+            </div>
+          );
+        })}
       </div>
       {twice.map((s) => (
         <div key={s.counterparty_id} className="card hstack" style={{ gap: 16 }}>
@@ -293,7 +338,9 @@ export function PaymentsView({ all, month, selected, onChanged }: { all: Payment
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [shown, setShown] = useState(PAGE);
-  const filter = { month, type: params.get("type"), doc: params.get("doc"), q: params.get("q") };
+  const filter = { month, type: params.get("type"), doc: params.get("doc"), q: params.get("q"), account: params.get("account") };
+  const accounts = [...new Map(all.filter((p) => p.account).map((p) => [p.account!.id, p.account!])).values()];
+  function setAccount(id: string) { const p = new URLSearchParams(params); if (id) p.set("account", id); else p.delete("account"); navigate(`/money/payments${selected ? `/${selected}` : ""}${p.toString() ? `?${p}` : ""}`); }
   const list = filterPayments(all, filter);
   const open = all.find((p) => p.id === selected) ?? null;
   const qs = params.toString() ? `?${params}` : "";
@@ -302,16 +349,27 @@ export function PaymentsView({ all, month, selected, onChanged }: { all: Payment
   return (
     <div className="hstack" style={{ alignItems: "flex-start", gap: 24, flexWrap: "nowrap" }}>
       <div className="stack grow" style={{ gap: 12 }}>
+        <div className="hstack">
+          <label className="pill-select">
+            <span className="pill-label">{filter.account ? (filter.account === "private" ? "Paid privately" : accountShort(accounts.find((a) => a.id === filter.account) ?? null)) : "All accounts"}</span>
+            <select aria-label="Account" value={filter.account ?? ""} onChange={(e) => setAccount(e.target.value)}>
+              <option value="">All accounts</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{accountShort(a)}</option>)}
+              {all.some((p) => !p.account) && <option value="private">Paid privately</option>}
+            </select>
+            <Icon name="chevron" size={14} />
+          </label>
         {(filter.type || filter.doc || filter.q) && (
-          <div className="hstack">
+          <>
             {filter.type && <button type="button" className="chip" onClick={() => drop("type")}>{typeName} ✕</button>}
             {filter.doc && <button type="button" className="chip" onClick={() => drop("doc")}>{filter.doc === "missing" ? "No invoice" : DOC_CHIP[filter.doc as keyof typeof DOC_CHIP]?.text ?? filter.doc} ✕</button>}
             {filter.q && <button type="button" className="chip" onClick={() => drop("q")}>“{filter.q}” ✕</button>}
-          </div>
+          </>
         )}
+        </div>
         <div className="card table">
           <div className="trow head">
-            <span className="cell" style={{ width: 56 }}>Date</span><span className="cell grow">To / From</span><span className="cell" style={{ width: 130 }}>Paid by</span>
+            <span className="cell" style={{ width: 56 }}>Date</span><span className="cell grow">To / From</span><span className="cell" style={{ width: 150 }}>Account</span>
             <span className="cell" style={{ width: 96 }}>Document</span><span className="cell r" style={{ width: 130 }}>Amount</span>
           </div>
           {list.length === 0 && <p className="t2" style={{ padding: 12 }}>No payments match{month ? ` in ${monthOnly(month)}` : ""}.</p>}
@@ -322,7 +380,7 @@ export function PaymentsView({ all, month, selected, onChanged }: { all: Payment
               <Link style={nth(i)} key={p.id} to={`/money/payments/${p.id}${qs}`} className={`trow${p.id === selected ? " selected" : ""}`}>
                 <span className="cell small t2" style={{ width: 56 }}>{p.date ? shortDate(p.date) : "—"}</span>
                 <span className="cell col grow"><span className="ellipsis" title={p.name}>{p.name}</span><span className="caption t3 hstack" style={{ gap: 6 }}><span className="dot" style={{ background: t.color }} />{t.label}</span></span>
-                <span className="cell small t2" style={{ width: 130 }}>{p.paidBy}</span>
+                <span className="cell small t2 ellipsis" style={{ width: 150 }} title={p.paidBy}>{p.paidBy}</span>
                 <span className="cell" style={{ width: 96 }}><span className={`chip ${chip.tone}`}>{chip.text}</span></span>
                 <span className={`cell r nowrap${p.amount.amount.startsWith("-") ? "" : " good"}`} style={{ width: 130 }}>{p.amount.amount.startsWith("-") ? "" : "+"}{formatMoney(p.amount)}</span>
               </Link>

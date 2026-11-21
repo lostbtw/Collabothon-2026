@@ -18,6 +18,8 @@ describe("live updates from the event replay", () => {
 
   it("points at the new to-do and at the forecast change (-6,571 -> -7,870)", () => {
     expect(toastFor(event("recommendation.created"))).toMatchObject({ text: "New to-do", to: "/todo#rec_412" });
+    expect(toastFor(event("recommendation.created"), null, "Pay Jan back 1,299.00 PLN")?.text).toBe("New to-do: Pay Jan back 1,299.00 PLN");
+    expect(toastFor({ ...event("recommendation.created"), payload: { recommendation_id: "rec_m1", type: "confirm_match" } })).toBeNull();
     expect(toastFor(event("forecast.updated"))?.text).toBe("Forecast updated: lowest point -7,870 PLN (was -6,571 PLN)");
     expect(toastFor(event("raw_item.received"))).toBeNull();
   });

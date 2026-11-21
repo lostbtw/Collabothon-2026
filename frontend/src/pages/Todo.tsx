@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api, type ActivityItem, type LedgerSummary, type PeopleCosts } from "../api/client";
-import type { Approval, Forecast, Recommendation, Transaction } from "../api/types.gen";
-import { Evidence } from "../components/More";
-import { PageHead, Skeleton, StatusLabel } from "../components/ui";
+import type { Approval, Forecast, Recommendation } from "../api/types.gen";
+import { Sources } from "../components/Sources";
+import { PageHead, SimButton, Skeleton, StatusLabel } from "../components/ui";
 import { lastFullMonth, monthFigures, monthOnly, monthRange, percent } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { dateTime, shortDate } from "../lib/dates";
@@ -28,25 +28,25 @@ export function Todo() {
     api.inbox(companyId), none(api.forecast(companyId)), none(api.recommendations(companyId)), none(api.approvals(companyId)), none(api.activity(companyId)),
   ]), [companyId, refresh]);
   const close = useApi(() => Promise.all([
-    none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(month) })), none(api.transactions(companyId)), none(api.peopleCosts(companyId, month)),
+    none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(month) })), none(api.peopleCosts(companyId, month)),
   ]), [companyId, month, refresh]);
 
   if (state.loading && !state.data) return <><PageHead title="To-do" sub="Only you can decide these. Nothing happens until you say yes." /><Skeleton rows={5} title /><Skeleton rows={3} /></>;
   if (state.error) return <><PageHead title="To-do" /><p className="bad" role="alert">Could not load To-do: {state.error}</p></>;
   const [inbox, forecast, recs, approvals, activity] = state.data!;
-  const [summary, transactions, people] = close.data ?? [null, null, null];
+  const [summary, people] = close.data ?? [null, null];
   return (
     <TodoView items={inbox.items} forecast={forecast} recs={recs?.items ?? inbox.items} approvals={approvals?.items ?? []} activity={activity?.items ?? []}
-      month={month} summary={summary} transactions={transactions?.items ?? []} people={people} />
+      month={month} summary={summary} people={people} />
   );
 }
 
 type ViewProps = {
   items: Recommendation[]; forecast: Forecast | null; recs: Recommendation[]; approvals: Approval[]; activity: ActivityItem[];
-  month: string; summary: LedgerSummary | null; transactions: Transaction[]; people: PeopleCosts | null;
+  month: string; summary: LedgerSummary | null; people: PeopleCosts | null;
 };
 
-export function TodoView({ items, forecast, recs, approvals, activity, month, summary, transactions, people }: ViewProps) {
+export function TodoView({ items, forecast, recs, approvals, activity, month, summary, people }: ViewProps) {
   const { hash } = useLocation();
   const [hidden, setHidden] = useState<string[]>(hiddenNow);
   const todo = buildTodo(items, forecast);
@@ -90,7 +90,8 @@ export function TodoView({ items, forecast, recs, approvals, activity, month, su
           )}
         </div>
         <div className="stack" style={{ gap: 24 }}>
-          <CloseMonth month={month} summary={summary} transactions={transactions} people={people} openReimbursements={items.filter((r) => r.type === "reimburse_employee").length} />
+          <CloseMonth month={month} summary={summary} people={people} toCheck={items.filter((r) => r.type === "confirm_match").length}
+            openReimbursements={items.filter((r) => r.type === "reimburse_employee").length} />
           <DoneRecently activity={activity} approvals={approvals} recs={recs} />
         </div>
       </div>
@@ -124,10 +125,11 @@ function ItemCard({ item, open: startOpen }: { item: TodoItem; open?: boolean })
           <StatusLabel level={decision.approval && decision.approval.decision !== "rejected" ? "approved" : item.level} />
           <span className="medium">{item.title}</span>
           <span className={`small t2${open ? "" : " clamp2"}`}>{rec.summary}</span>
+          <button type="button" className="linklike" aria-expanded={open} onClick={() => setOpen(!open)} style={{ alignSelf: "flex-start" }}>{open ? "Less" : "More"}</button>
         </div>
-        {!decision.approval && (item.primary.kind === "approve"
-          ? <button type="button" className="primary" disabled={decision.busy} onClick={() => decision.decide("approve")}>{decision.busy ? "Working…" : item.primary.label}</button>
-          : <button type="button" onClick={() => setOpen(!open)}>{open ? "Hide details" : "See details"}</button>)}
+        {!decision.approval && item.primary.kind === "approve" && (
+          <SimButton label={item.primary.label} busy={decision.busy} what={rec.proposed_action?.preview} onClick={() => decision.decide("approve")} />
+        )}
       </div>
       {decision.approval && <Result approval={decision.approval} />}
       {decision.error && <span className="small bad" role="alert">Not done: {decision.error}</span>}
@@ -149,8 +151,8 @@ function Details({ rec, decision }: { rec: Recommendation; decision: Decision })
           {rec.explanation.calculation!.map((c) => <div key={c.label} className="kv"><span className="t2">{c.label}</span><span>{c.value}</span></div>)}
         </div>
       )}
-      <Evidence links={rec.evidence} />
-      {rec.proposed_action?.preview && <span className="small t3">{rec.proposed_action.preview}</span>}
+      <Sources links={rec.evidence} />
+      {rec.proposed_action?.preview && <span className="small t3">What happens: {rec.proposed_action.preview.replace(/^SIMULATED:\s*/, "")}</span>}
       {canApprove(rec) && (
         <div className="hstack">
           {edit && (
@@ -158,7 +160,7 @@ function Details({ rec, decision }: { rec: Recommendation; decision: Decision })
               <input type="text" value={typed} onChange={(e) => setTyped(e.target.value)} style={{ width: 120 }} aria-label={edit.label} />{edit.value.currency}
             </label>
           )}
-          <button type="button" className="primary" disabled={decision.busy || (edit !== null && amount === null)} onClick={() => decision.decide("approve", amount)}>{approveLabel(rec)}</button>
+          {edit && <SimButton label={`${approveLabel(rec)} with this ${edit.label.toLowerCase()}`} busy={decision.busy} disabled={amount === null} what={rec.proposed_action?.preview} onClick={() => decision.decide("approve", amount)} />}
           <button type="button" disabled={decision.busy} onClick={() => decision.decide("reject")}>No, thanks</button>
         </div>
       )}
@@ -223,7 +225,7 @@ function GapOption({ rec, first }: { rec: Recommendation; first: boolean }) {
       {decision.approval ? <Result approval={decision.approval} compact /> : (
         <>
           {edit && !editing && <button type="button" className="quiet" onClick={() => setEditing(true)}>Change {edit.label.toLowerCase()}</button>}
-          {canApprove(rec) && <button type="button" className={first ? "primary" : undefined} disabled={decision.busy || (editing && amount === null)} onClick={() => decision.decide("approve", amount)}>{decision.busy ? "Working…" : approveLabel(rec)}</button>}
+          {canApprove(rec) && <SimButton label={approveLabel(rec)} primary={first} busy={decision.busy} disabled={editing && amount === null} what={rec.proposed_action?.preview} onClick={() => decision.decide("approve", amount)} />}
         </>
       )}
     </div>
@@ -262,7 +264,7 @@ function useDecision(rec: Recommendation): Decision {
 }
 
 /** Month close: when every cost has a type and an invoice, the month can go to the accountant. */
-function CloseMonth({ month, summary, transactions, people, openReimbursements }: { month: string; summary: LedgerSummary | null; transactions: Transaction[]; people: PeopleCosts | null; openReimbursements: number }) {
+function CloseMonth({ month, summary, people, toCheck, openReimbursements }: { month: string; summary: LedgerSummary | null; people: PeopleCosts | null; toCheck: number; openReimbursements: number }) {
   const currency = useCompanyInfo()?.base_currency ?? "PLN";
   const [sent, setSent] = useState(false);
   if (!summary) return null;
@@ -277,8 +279,6 @@ function CloseMonth({ month, summary, transactions, people, openReimbursements }
     );
   }
   const explained = 100 - percent(f.unexplained.amount, f.costs.amount);
-  const inMonth = transactions.filter((t) => t.booking_date.startsWith(month));
-  const matched = inMonth.filter((t) => t.match_status === "matched" || t.match_status === "no_document_needed").length;
   const missing = summary.kpis.documents_missing;
   const receipts = people ? people.items.reduce((n, p) => n + p.receipts_owed, 0) : openReimbursements;
   const ready = explained === 100 && missing === 0;
@@ -289,12 +289,12 @@ function CloseMonth({ month, summary, transactions, people, openReimbursements }
       <div className="progress"><span style={{ width: `${explained}%` }} /></div>
       <span className="small t2">When every cost has an invoice and a type, send {monthOnly(month)} to your accountant in one click.</span>
       <div className="stack" style={{ gap: 6 }}>
-        <div className="kv"><span className="t2">Bank payments matched</span><span className="good">{matched}</span></div>
+        <div className="kv"><span className="t2">Matched invoices to check</span><span className={toCheck ? "warn" : "good"}>{toCheck}</span></div>
         <div className="kv"><span className="t2">Payments without an invoice</span><span className={missing ? "bad" : "good"}>{missing}</span></div>
         <div className="kv"><span className="t2">Receipts to pay back</span><span className={receipts ? "warn" : "good"}>{receipts}</span></div>
       </div>
       {sent ? <span className="simulated pulse">SIMULATED · nothing left the app</span>
-        : <button type="button" disabled={!ready} onClick={() => setSent(true)} style={{ alignSelf: "flex-start" }}>Send to accountant (simulated)</button>}
+        : <span style={{ alignSelf: "flex-start" }}><SimButton label="Send to accountant" primary={false} disabled={!ready} what="Records the month as sent. No e-mail leaves the app in this build." onClick={() => setSent(true)} /></span>}
       {!ready && <span className="caption t3">Available when {monthOnly(month)} is 100% done</span>}
     </div>
   );

@@ -17,13 +17,19 @@ const first = (name?: string | null) => (name ?? "").split(" ")[0];
  * What a live event says to the owner, or null when it needs no toast. `sender` is the person who
  * sent the document, when known. Amounts are copied from the event, never calculated.
  */
-export function toastFor(e: OrdoEvent, sender?: string | null): Toast | null {
+/** Cards that arrive one per invoice or payment: To-do shows them as one item, so they get no toast each. */
+export const QUIET_TYPES = new Set(["confirm_match", "missing_document"]);
+
+export function toastFor(e: OrdoEvent, sender?: string | null, title?: string | null): Toast | null {
   const p = e.payload;
   if (e.type === "document.extracted" && typeof p.document_id === "string") {
     const from = first(sender) || (typeof p.seller === "string" ? p.seller : "");
     return { id: e.id, text: `New receipt${from ? ` from ${from}` : ""}${isMoney(p.gross) ? ` · ${formatMoney(p.gross)}` : ""}`, to: `/documents/${p.document_id}` };
   }
-  if (e.type === "recommendation.created" && typeof p.recommendation_id === "string") return { id: e.id, text: "New to-do", to: `/todo#${p.recommendation_id}` };
+  if (e.type === "recommendation.created" && typeof p.recommendation_id === "string") {
+    if (typeof p.type === "string" && QUIET_TYPES.has(p.type)) return null;
+    return { id: e.id, text: title ? `New to-do: ${title}` : "New to-do", to: `/todo#${p.recommendation_id}` };
+  }
   if (e.type === "forecast.updated" && isMoney(p.min_balance)) {
     const was = isMoney(p.min_balance_previous) ? ` (was ${formatMoney(p.min_balance_previous, { decimals: false })})` : "";
     return { id: e.id, text: `Forecast updated: lowest point ${formatMoney(p.min_balance, { decimals: false })}${was}`, to: "/#cash" };
@@ -50,6 +56,12 @@ export function Toasts() {
     if (e.type === "document.extracted" && typeof e.payload.document_id === "string") {
       // The event carries no sender; the document does.
       void api.document(e.payload.document_id).then((d) => d.document.submitted_by?.name, () => null).then((name) => { const t = toastFor(e, name); if (t) show(t); });
+      return;
+    }
+    if (e.type === "recommendation.created" && typeof e.payload.recommendation_id === "string") {
+      // The event carries only the id: say which to-do it is.
+      if (typeof e.payload.type === "string" && QUIET_TYPES.has(e.payload.type)) return;
+      void api.recommendation(e.payload.recommendation_id).then((r) => r.title, () => null).then((title) => { const t = toastFor(e, null, title); if (t) show(t); });
       return;
     }
     const t = toastFor(e);
