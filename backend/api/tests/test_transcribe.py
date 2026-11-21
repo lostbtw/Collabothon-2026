@@ -15,8 +15,8 @@ HEARD = "Ile mam gotówki na koncie?"
 
 
 class FakeWhisper:
-    def __init__(self, status=200, error=None):
-        self.status, self.error, self.requests = status, error, []
+    def __init__(self, status=200, error=None, detected="pl"):
+        self.status, self.error, self.requests, self.detected = status, error, [], detected
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         request.read()
@@ -25,7 +25,7 @@ class FakeWhisper:
             raise self.error
         if request.url.path == "/health":
             return httpx.Response(self.status, text="OK")
-        return httpx.Response(self.status, json={"text": f" {HEARD} ", "language": "pl", "duration": 2.4567})
+        return httpx.Response(self.status, json={"text": f" {HEARD} ", "language": self.detected, "duration": 2.4567})
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def make_client(db, db_url, whisper_env):
 
 def transcribe(c, data=AUDIO, content_type="audio/webm;codecs=opus", language="pl"):
     return c.post("/api/v1/chat/transcribe", files={"file": ("question.webm", data, content_type)},
-                  data={"language": language})
+                  data={"language": language} if language else {})
 
 
 def row_counts(db) -> dict[str, int]:
@@ -79,6 +79,18 @@ def test_the_recording_is_forwarded_to_whisper_unchanged_and_the_text_comes_back
     assert b"Content-Type: audio/webm;codecs=opus" in form
     for field, value in {"model": MODEL, "language": "pl", "response_format": "verbose_json", "temperature": "0"}.items():
         assert f'name="{field}"\r\n\r\n{value}\r\n'.encode() in form
+
+
+def test_without_a_language_whisper_detects_it(make_client):
+    whisper = FakeWhisper(detected="ru")
+    response = transcribe(make_client(whisper), language=None)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["language"] == "ru"
+    assert contract.errors(response.json(), contract.response_schema("post", "/chat/transcribe", 200)) == []
+    [sent] = whisper.requests
+    assert b'name="language"' not in sent.content
+    assert b'name="model"' in sent.content
 
 
 @pytest.mark.parametrize("kwargs,status,code", [

@@ -336,6 +336,11 @@ button.undo:hover:not(:disabled) { background: var(--bad-soft); }
 .composer:focus-within { border-color: var(--accent); }
 .composer textarea { flex: 1; min-height: 32px; max-height: 160px; padding: 6px 0; border: 0; outline: 0; resize: none; background: transparent; font: inherit; color: inherit; }
 .composer button.send { width: 36px; height: 36px; padding: 0; flex: none; }
+.composer button.mic { width: 36px; height: 36px; padding: 0; flex: none; color: var(--text-2); }
+.composer button.mic.on { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); animation: mic-pulse 1.2s ease-in-out infinite; }
+.voice-status { padding: 0 18px; }
+@keyframes mic-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--bad-soft); } 50% { box-shadow: 0 0 0 6px var(--bad-soft); } }
+@media (prefers-reduced-motion: reduce) { .composer button.mic.on { animation: none; } }
 .typing { display: flex; gap: 5px; padding: 8px 0; }
 .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); animation: typing 1.2s infinite ease-in-out; }
 .typing span:nth-child(2) { animation-delay: 0.15s; }

@@ -14,7 +14,7 @@ import syncRunsJson from "@contracts/fixtures/sync_run.json";
 import transactionsJson from "@contracts/fixtures/transaction.json";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
-import type { ChatAnswer, Person, Settings } from "./client";
+import type { ChatAnswer, Person, Settings, SpeechLanguage, Transcript } from "./client";
 import {
   BALANCE_HISTORY, CHAT_HISTORY, MONTHLY_EXTRA, PEOPLE, PEOPLE_COSTS, RULES, SAMPLE_APPROVALS, SAMPLE_COUNTERPARTIES, SAMPLE_RECOMMENDATIONS, SAMPLE_TRANSACTIONS,
   SETTINGS, SUBSCRIPTIONS, SUMMARY_BY_MONTH, SUMMARY_KPIS, clientsFor, readUpload,
@@ -42,6 +42,19 @@ export const fixtures = {
 class MockNotFound extends Error {
   status = 404;
 }
+
+class MockRefused extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+const TRANSCRIBE_MS = 700;
+const HEARD: Record<SpeechLanguage, string> = {
+  pl: "Ile mam gotówki?",
+  en: "How much cash do I have?",
+  ru: "Сколько у меня денег?",
+};
 
 const COMPANIES = [
   { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", base_currency: "PLN", country: "PL", as_of_date: "2026-11-21" },
@@ -206,7 +219,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   const page = <I,>(items: I[]) => ({ items, next_cursor: null });
   let result: unknown;
 
-  if (method === "GET" && path === "/health") result = { status: "ok", llm: { base_url: "mock", model: "mock", reachable: false }, demo_clock: demoNow() };
+  if (method === "GET" && path === "/health") result = { status: "ok", llm: { base_url: "mock", model: "mock", reachable: false }, speech: { model: "mock", reachable: true }, demo_clock: demoNow() };
   else if (method === "GET" && path === "/companies") result = { items: COMPANIES };
   else if (method === "GET" && path === "/sources")
     result = { items: byCompany(f.sources, company).map((s) => (syncedAt.has(s.id) ? { ...s, last_synced_at: syncedAt.get(s.id), last_success_at: syncedAt.get(s.id) } : s)) };
@@ -363,6 +376,11 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
       session_id: session.session_id, answer, evidence, table: null,
       tool_calls: [{ tool: "get_forecast", arguments: { horizon_days: forecast.horizon_days }, duration_ms: 12 }], created_recommendation_id: null, guardrail: null, trace_id: null,
     } satisfies ChatAnswer;
+  } else if (method === "POST" && path === "/chat/transcribe") {
+    const language = (((body ?? {}) as { language?: string }).language ?? "en") as SpeechLanguage;
+    if (!(language in HEARD)) throw new MockRefused(422, "language must be one of pl, en, ru");
+    await new Promise((done) => setTimeout(done, TRANSCRIBE_MS));
+    result = { text: HEARD[language], language, duration_seconds: 2.1, model: "mock", seconds: TRANSCRIBE_MS / 1000 } satisfies Transcript;
   } else if (method === "GET" && path === "/fx/rates") result = f.documents.find((d) => d.totals.fx)?.totals.fx ?? null;
   else if (method === "GET" && path === "/fx/exposure") result = { items: company && company !== "co_borsuk" ? [] : FX_EXPOSURE };
   else throw new MockNotFound(`Mock mode has no handler for ${method} ${path}`);

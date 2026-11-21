@@ -26,7 +26,7 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {settings.whisper_api_key()}"}
 
 
-async def transcribe(audio: bytes, filename: str, content_type: str, language: str,
+async def transcribe(audio: bytes, filename: str, content_type: str, language: str | None,
                      transport: httpx.AsyncBaseTransport | None = None) -> dict[str, Any]:
     if not configured():
         raise SpeechUnavailable("Speech to text is not set up (no ORDO_WHISPER_URL)")
@@ -37,7 +37,7 @@ async def transcribe(audio: bytes, filename: str, content_type: str, language: s
             response = await client.post(
                 f"{_base()}/audio/transcriptions",
                 files={"file": (filename, audio, content_type)},
-                data={"model": model, "language": language, "response_format": "verbose_json", "temperature": "0"})
+                data={"model": model, "response_format": "verbose_json", "temperature": "0", **({"language": language} if language else {})})
     except httpx.HTTPError as error:
         raise SpeechUnavailable(f"Speech to text did not answer ({type(error).__name__})") from None
     if response.status_code != 200:
@@ -48,7 +48,7 @@ async def transcribe(audio: bytes, filename: str, content_type: str, language: s
         raise SpeechUnavailable("Speech to text answered without JSON") from None
     return {
         "text": (body.get("text") or "").strip(),
-        "language": language,
+        "language": language or body.get("language") or "",
         "duration_seconds": round(float(body.get("duration") or 0), 2),
         "model": model,
         "seconds": round(time.monotonic() - started, 2),

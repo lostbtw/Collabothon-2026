@@ -9,7 +9,10 @@ export default defineConfig({
   resolve: { alias: { "@contracts": contracts } },
   server: {
     fs: { allow: [".."] },
-    proxy: { "/api": { target: process.env.VITE_API_PROXY ?? "http://localhost:8000", changeOrigin: true } },
+    proxy: {
+      ...(process.env.VITE_TRANSCRIBE_PROXY ? { "/api/v1/chat/transcribe": { target: process.env.VITE_TRANSCRIBE_PROXY, changeOrigin: true } } : {}),
+      "/api": { target: process.env.VITE_API_PROXY ?? "http://localhost:8000", changeOrigin: true },
+    },
   },
   test: { environment: "node", include: ["src/**/*.test.{ts,tsx}"], env: { VITE_API_MODE: "mock" } },
 });
