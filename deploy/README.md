@@ -108,6 +108,8 @@ deploy/platform/setup.sh mlflow
 
 The stage switches the RHOAI component `mlflowoperator` to `Managed` in DataScienceCluster `default-dsc` (an operator change: never after Saturday 18:00), waits for the operator, then applies `deploy/platform/mlflow.yaml`: the cluster-scoped `MLflow` CR `mlflow` (MLflow 3.14, SQLite and artifacts on one 5 Gi PVC, 1 replica, 2 Gi limit) and a RoleBinding that gives SA `cfo-app` the ClusterRole `mlflow-operator-mlflow-integration` (the operator installs it with that prefix) in `cfo-ai`. MLflow keeps its own storage, apart from the ledger database. Each namespace is an MLflow workspace; the app writes to workspace `cfo-ai` with the `llm-token` bearer token.
 
+The app traces into it from three processes: `ordo-extractor` (experiment `ordo-extraction`), `ordo-agents` and `ordo-api` (experiment `ordo-agents`, the liquidity wording and chat turns). `ordo-config` carries `MLFLOW_TRACKING_URI` (the in-cluster address), `MLFLOW_WORKSPACE=cfo-ai` and the service CA as `MLFLOW_TRACKING_SERVER_CERT_PATH`; those three Deployments also get `MLFLOW_TRACKING_TOKEN` from secret `llm-token`. A process without `MLFLOW_TRACKING_URI`, or one that cannot reach MLflow at start, runs without tracing and logs `tracing off`. Tracing adds about 45 MiB per process.
+
 `check-mlflow`: prints the conditions, the in-cluster address and the UI URL, then from the `ordo-extractor` pod (trusting the service CA) checks `/health` and reads, or creates, the experiments `ordo-extraction` and `ordo-agents` as `cfo-app`.
 
 ## Demo day

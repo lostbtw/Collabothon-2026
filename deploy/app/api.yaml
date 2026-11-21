@@ -61,6 +61,11 @@ spec:
                 secretKeyRef:
                   name: llm-token
                   key: token
+            - name: MLFLOW_TRACKING_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-token
+                  key: token
             - name: ORDO_BANK_TOKEN
               valueFrom:
                 secretKeyRef:
