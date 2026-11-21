@@ -68,33 +68,29 @@ def _result(item: Any) -> Any:
     return parsed if parsed is not None else {"text": getattr(item, "output", None) or ""}
 
 
+AGAIN = ('Your answer was empty or not the required JSON. Answer now from the tool results you already have, '
+         'with JSON only.')
+
+
 def request(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
-            max_calls: int, client: Any) -> Any:
-    """One Responses call: OGX runs the whole loop and calls only `tool_names` on the Ordo MCP server."""
+            max_calls: int, client: Any, after: Any = None) -> Any:
+    """One Responses call: OGX runs the whole loop and calls only `tool_names` on the Ordo MCP server.
+    `after` is the response to continue from (OGX keeps it), with one corrective message instead of the turns."""
     system = " ".join(m["content"] for m in messages if m["role"] == "system")
     turns = [{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in ("user", "assistant")]
     return client.responses.create(
         model=model_id(client),
         instructions=f'{system} Every tool takes company_id: always pass "{company}".',
-        input=turns,
+        input=[{"role": "user", "content": AGAIN}] if after is not None else turns,
         tools=[{"type": "mcp", "server_label": SERVER_LABEL, "server_url": settings.mcp_url(),
                 "require_approval": "never", "allowed_tools": tool_names}],
         text={"format": {"type": "json_schema", "name": "final_answer", "schema": final_schema, "strict": False}},
-        max_tool_calls=max_calls, temperature=0.2, store=False)
+        max_tool_calls=max_calls, temperature=0.2,
+        **({"previous_response_id": after.id} if after is not None else {}))
 
 
-def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
-        max_calls: int, trace: list[dict[str, Any]] | None = None,
-        client: Any = None) -> tuple[dict[str, Any] | None, list[Any]] | None:
-    """(final JSON or None, every tool result), like `llm.run_tool_loop`.
-    None when OGX could not be asked at all: the caller then runs its own loop."""
-    try:
-        response = request(company, messages, tool_names, final_schema, max_calls=max_calls,
-                           client=client or default_client())
-    except Exception as exc:
-        log.warning("OGX did not answer, using the in-process loop: %s", exc)
-        return None
-
+def _tool_calls(response: Any, company: str, tool_names: list[str]) -> tuple[list[Any], list[dict[str, Any]]] | None:
+    """(results, trace entries) of the tools OGX called; None when one was called outside the company or the agent."""
     results: list[Any] = []
     calls: list[dict[str, Any]] = []
     for item in response.output:
@@ -103,19 +99,58 @@ def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], fin
         arguments = _parse(item.arguments) or {}
         if arguments.get("company_id") != company or item.name not in tool_names:
             log.warning("OGX run dropped: tool %s was called outside %s", item.name, company)
-            return None, []
+            return None
         results.append(_result(item))
         calls.append({"tool": item.name, "arguments": {k: v for k, v in arguments.items() if k != "company_id"},
                       "duration_ms": 0, "via": VIA})
+    return results, calls
+
+
+def _problems(answer: Any, final_schema: dict[str, Any]) -> list[str]:
+    if answer is None:
+        return ["the answer is empty or not JSON"]
+    return [e.message for e in Draft202012Validator(final_schema).iter_errors(answer)]
+
+
+def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
+        max_calls: int, trace: list[dict[str, Any]] | None = None,
+        client: Any = None) -> tuple[dict[str, Any] | None, list[Any]] | None:
+    """(final JSON or None, every tool result), like `llm.run_tool_loop`.
+    None when OGX could not be asked at all: the caller then runs its own loop."""
+    client = client or default_client()
+    try:
+        response = request(company, messages, tool_names, final_schema, max_calls=max_calls, client=client)
+    except Exception as exc:
+        log.warning("OGX did not answer, using the in-process loop: %s", exc)
+        return None
+
+    results: list[Any] = []
+    calls: list[dict[str, Any]] = []
+    answer = None
+    for attempt in (1, 2):
+        called = _tool_calls(response, company, tool_names)
+        if called is None:
+            return None, []
+        results += called[0]
+        calls += called[1]
+        answer = _parse(response.output_text)
+        problems = _problems(answer, final_schema)
+        if not problems:
+            break
+        log.warning("OGX answer %d does not match the schema: %s | %r", attempt, "; ".join(problems)[:300],
+                    (response.output_text or "")[:200])
+        answer = None
+        if attempt == 2:
+            break
+        try:  # one corrective turn, as in the in-process loop: the model sometimes ends without its final text
+            response = request(company, messages, tool_names, final_schema, max_calls=2, client=client, after=response)
+        except Exception as exc:
+            log.warning("OGX did not answer the corrective turn: %s", exc)
+            break
     if trace is not None:
         trace.extend(calls)
-
-    answer = _parse(response.output_text)
-    problems = ["the answer is not JSON"] if answer is None else [e.message for e in Draft202012Validator(final_schema).iter_errors(answer)]
-    if problems:
-        log.warning("OGX answer does not match the schema: %s | %r", "; ".join(problems)[:300], (response.output_text or "")[:200])
-        return None, results
-    log.info("OGX ran %d tool call(s) over MCP: %s", len(calls), ", ".join(c["tool"] for c in calls))
+    if answer is not None:
+        log.info("OGX ran %d tool call(s) over MCP: %s", len(calls), ", ".join(c["tool"] for c in calls))
     return answer, results
 
 
