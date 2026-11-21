@@ -12,12 +12,6 @@ UNIT = Decimal("1")
 ZERO = Decimal(0)
 MAX_DOCUMENT_LINKS = 5
 
-RULES = {
-    "vat": ("PL-TAX-VAT", "VAT (JPK_V7M): output VAT minus deductible input VAT, due on the 25th of the next month"),
-    "cit": ("PL-TAX-CIT", "CIT advance: 9% of profit since 1 January minus earlier advances, due on the 20th of the next month"),
-    "pit4": ("PL-TAX-PIT4", "PIT-4: income tax withheld from salaries, due on the 20th of the next month"),
-    "zus": ("PL-TAX-ZUS", "ZUS: social and health contributions for salaries, due on the 15th of the next month"),
-}
 
 
 def money(value: Decimal, currency: str) -> dict[str, str]:
@@ -106,6 +100,18 @@ def _mean(values: list[Decimal]) -> Decimal:
     return sum(values, ZERO) / len(values) if values else ZERO
 
 
+def _rule(tax: str) -> tuple[str, str]:
+    when = {"vat": settings.VAT_DUE_DAY, "cit": settings.CIT_DUE_DAY, "pit4": settings.PIT4_DUE_DAY,
+            "zus": settings.ZUS_DUE_DAY}[tax]
+    what = {
+        "vat": "VAT (JPK_V7M): output VAT minus deductible input VAT",
+        "cit": f"CIT advance: {_pct(settings.CIT_RATE)} of profit since 1 January minus earlier advances",
+        "pit4": "PIT-4: income tax withheld from salaries",
+        "zus": "ZUS: social and health contributions for salaries",
+    }[tax]
+    return f"PL-TAX-{tax.upper()}", f"{what}, due on the {_ordinal(when)} of the next month"
+
+
 def _link(kind: str, id_: str, label: str, url: str | None = None) -> dict[str, str]:
     out = {"kind": kind, "id": id_, "label": label}
     if url:
@@ -114,7 +120,7 @@ def _link(kind: str, id_: str, label: str, url: str | None = None) -> dict[str, 
 
 
 def _evidence(tax: str, docs: list[tuple[Decimal, dict]], salaries: list[dict] | None = None) -> list[dict]:
-    rule_id, rule_label = RULES[tax]
+    rule_id, rule_label = _rule(tax)
     out = [_link("rule", rule_id, rule_label)]
     ranked = sorted(docs, key=lambda x: (-x[0], x[1]["id"]))[:MAX_DOCUMENT_LINKS]
     out += [_link("document", d["id"], d["label"], f"/documents/{d['id']}") for _, d in ranked]
@@ -135,8 +141,12 @@ def _step(label: str, op: str, amount: Decimal | None = None, base: str = "PLN")
     return {"label": label, "op": op, "amount": None if amount is None else money(amount, base)}
 
 
+def _rounded(base: str) -> str:
+    return "rounded to whole złoty" if base == "PLN" else f"rounded to whole {base}"
+
+
 def _to_pay(amount: Decimal, base: str) -> dict:
-    return _step("To pay, rounded to whole złoty" if base == "PLN" else "To pay, rounded", "equals", amount, base)
+    return _step(f"To pay, {_rounded(base)}", "equals", amount, base)
 
 
 def _pct(rate: Decimal) -> str:
@@ -386,7 +396,7 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             prior = advances - due_amount
             steps += [_step("Profit since 1 January", "equals", ytd, base),
                       _step("2. CIT advance", "note"),
-                      _step(f"{_pct(settings.CIT_RATE)} of the profit, rounded to whole złoty", "start",
+                      _step(f"{_pct(settings.CIT_RATE)} of the profit, {_rounded(base)}", "start",
                             _whole(settings.CIT_RATE * max(ytd, ZERO)), base)]
             if prior:
                 steps.append(_step("Advances already due this year", "minus", prior, base))
@@ -416,18 +426,18 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                          _step("Income tax held back", "plus", pit_sum[month] + rounding, base),
                          _step("Gross pay", "equals", gross, base)]
                 if tax == "pit4":
-                    reduction = pit_raw_sum[month] - amount
+                    reduction = min(settings.PIT_REDUCTION_PLN * p * people, pit_raw_sum[month])
                     steps += [_step("2. Income tax: what the employer passes on to the tax office", "note"),
                               _step("Gross pay", "start", gross, base),
                               _step(f"Employee social insurance, {_pct(settings.ZUS_EMPLOYEE)}", "minus", employee, base),
                               _step(f"Work costs, {settings.PIT_COSTS_PLN:,.0f} PLN per person", "minus",
                                     settings.PIT_COSTS_PLN * p * people, base),
-                              _step("Taxable income, rounded to whole złoty per person", "equals", base_sum[month], base),
+                              _step(f"Taxable income, {_rounded(base)} per person", "equals", base_sum[month], base),
                               _step(f"Tax: {_pct(settings.PIT_RATE)} of taxable income ({_pct(settings.PIT_RATE_HIGH)} "
                                     f"above {settings.PIT_THRESHOLD_PLN:,.0f} PLN a year)", "start", pit_raw_sum[month], base),
-                              _step(f"Tax-free reduction, {settings.PIT_REDUCTION_PLN:,.0f} PLN per person, and rounding",
-                                    "minus", reduction, base),
-                              _step("PIT-4 to pay", "equals", amount, base)]
+                              _step(f"Tax-free reduction, {settings.PIT_REDUCTION_PLN:,.0f} PLN per person", "minus",
+                                    reduction, base),
+                              _step(f"PIT-4 to pay, {_rounded(base)}", "equals", amount, base)]
                 else:
                     steps += [_step("2. ZUS: what goes to the social insurance office", "note"),
                               _step(f"Employer social insurance, {_pct(settings.ZUS_EMPLOYER)} of gross, paid on top",
