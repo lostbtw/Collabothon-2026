@@ -1,4 +1,4 @@
-"""Normaliser (ticket #23): RawItems -> canonical Transactions and Documents."""
+"""Normaliser: RawItems -> canonical Transactions and Documents."""
 from .bank import NormaliseError, normalise_bank_line, transaction_ingested_payload
 from .fa3 import Fa3Error, parse_fa3
 from .fx import RateNotFound, StandInRates, pl_tax_rate

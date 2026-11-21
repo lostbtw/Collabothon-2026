@@ -1,6 +1,4 @@
-"""Ticket #43: missing documents and documents without a payment. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Missing documents and documents without a payment."""
 import copy
 import unittest
 
@@ -59,7 +57,7 @@ class DocumentsWithoutPayment(unittest.TestCase):
         [match] = p.store.list("match", document_id="doc_ksef0417")
         self.assertEqual((match["match_type"], match["paid_by"], match["status"]),
                          ("document_no_transaction", "unknown", "suggested"))
-        self.assertLess(match["score"], 0.55)  # role 5 shows it as "Which payment is this?"
+        self.assertLess(match["score"], 0.55)  # shown as "Which payment is this?"
         self.assertIn("match.suggested", p.types())
         self.assertEqual(handlers.sweep(p.ctx, COMPANY)["asked"], 0)  # asked once
 

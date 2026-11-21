@@ -1,4 +1,4 @@
-"""Hard rule 4: generated text may only contain numbers from the tool results (format- and sign-insensitive)."""
+"""Generated text may only contain numbers from the tool results (format- and sign-insensitive)."""
 import json
 import re
 from decimal import Decimal, InvalidOperation

@@ -1,4 +1,4 @@
-"""Calls into role 2's executor and role 4's finance engine, with a stand-in when absent."""
+"""Calls into the simulated executor and the finance engine, with a stand-in when absent."""
 import importlib
 import importlib.util
 from decimal import Decimal
@@ -22,7 +22,7 @@ SIM_PREFIX = {
 
 
 def optional_module(name: str):
-    """Another role's module, or None while it does not exist yet."""
+    """An optional module, or None while it does not exist yet."""
     try:
         if importlib.util.find_spec(name) is None:
             return None
@@ -32,7 +32,7 @@ def optional_module(name: str):
 
 
 def finance_engine():
-    """Role 4's engine (backend/finance/engine.py), or None until it lands."""
+    """The finance engine (backend/finance/engine.py), or None while it is absent."""
     return optional_module("backend.finance.engine")
 
 

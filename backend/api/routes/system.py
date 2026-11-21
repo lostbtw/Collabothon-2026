@@ -46,7 +46,7 @@ def list_companies(c: psycopg.Connection = Depends(conn)):
 @router.get("/fx/rates")
 def fx_rates(currency: str, date_: date = Query(alias="date"), rule: str = "pl_tax_prev_business_day",
              c: psycopg.Connection = Depends(conn)):
-    """The NBP table A rate stored by role 2's connector; the demo-day stand-in while no table is stored."""
+    """The NBP table A rate stored by the NBP connector; the demo-day stand-in while no table is stored."""
     found = rate_on(c, currency, date_, rule) or stand_ins.fx_rate(currency.upper(), date_, rule)
     if found is None:
         raise ApiError(404, "not_found", f"No rate for {currency} on {date_}")
@@ -55,7 +55,7 @@ def fx_rates(currency: str, date_: date = Query(alias="date"), rule: str = "pl_t
 
 @router.get("/fx/exposure")
 def fx_exposure(company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
-    """FX Shield: role 4's engine (engine.fx_exposure); the fixture-shaped stand-in while it is not importable."""
+    """FX Shield from the finance engine (engine.fx_exposure); the fixture-shaped stand-in while it is not importable."""
     engine = finance_engine()
     if engine is not None and hasattr(engine, "fx_exposure"):
         return engine.fx_exposure(c, company)

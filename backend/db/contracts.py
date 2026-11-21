@@ -1,9 +1,5 @@
-"""Pydantic models generated from contracts/schemas. Regenerate with the schema change:
-
-    uv run datamodel-codegen --input contracts/schemas --input-file-type jsonschema --output backend/db/models \
-        --output-model-type pydantic_v2.BaseModel --target-python-version 3.12 --use-annotated \
-        --disable-timestamp --use-schema-description --field-constraints
-"""
+"""Pydantic models generated from contracts/schemas; regenerate them in the same commit as a schema change."""
+# uv run datamodel-codegen --input contracts/schemas --input-file-type jsonschema --output backend/db/models --output-model-type pydantic_v2.BaseModel --target-python-version 3.12 --use-annotated --disable-timestamp --use-schema-description --field-constraints
 from pydantic import BaseModel
 
 from backend.db.models.account_schema import Account

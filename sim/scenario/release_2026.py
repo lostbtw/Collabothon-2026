@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""Borsuk Labs (SAMPLE): ground truth and release plan.
-
-Writes:
-  out/ground_truth.json  who really paid, which documents are duplicates, which bank line belongs
-                         to which document, and why the other bank lines have no document
-  out/release_plan.json  what role 2's releaser (#37) sends, when, and through which channel
-Reads out/fa3_index.json and out/november_documents.json, so run fa3_2026.py and november_2026.py first.
-No randomness: the output is byte-identical on every run.
-
-Usage: python3 sim/scenario/release_2026.py
-"""
+"""Borsuk Labs (SAMPLE): out/ground_truth.json and out/release_plan.json, from the fa3 and November outputs."""
 import json
 from datetime import date, timedelta
 
@@ -21,7 +11,7 @@ NOVEMBER = date(2026, 11, 1)
 SCENARIO_ROOT = "sim/scenario/out/"
 FOREIGN_PAYERS = set(FOREIGN) | {payer for _, payer, *_ in CARD_EUR}
 PRIVATE_PAYERS = {payer for _, payer, _ in PRIVATE_ON_COMPANY.values()} | {"SPA PERLA (SAMPLE)"}
-DRIP_GAPS = [30, 25, 35, 20, 40]  # seconds between dripped items (20-40 s, #37)
+DRIP_GAPS = [30, 25, 35, 20, 40]  # seconds between dripped items
 
 
 def load(name):

@@ -1,4 +1,4 @@
-"""Seam: alerts, what-if scenarios, stress case and credit-line sizing (#44). Pure, plus the engine on the test DB."""
+"""Seam: alerts, what-if scenarios, stress case and credit-line sizing. Pure, plus the engine on the test DB."""
 import re
 from decimal import Decimal
 from pathlib import Path

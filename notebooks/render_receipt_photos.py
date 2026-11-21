@@ -1,14 +1,4 @@
-"""Renders phone-style photos of the printable SAMPLE receipts for the evaluation notebook (#19).
-
-    CHROME=$(which google-chrome) python notebooks/render_receipt_photos.py
-
-No real phone photos of the printed receipts exist, so this stands in for them. It reuses role 3's code
-without changing it: the print layout of `sim/documents/receipts/receipts.py` (the same receipt that is
-printed) and the phone-photo effects of `sim/documents/render_november.py` (desk, tilt, noise and the
-scenario's defects). Each receipt is rendered four times with different defects, seeded by file name,
-so the set is reproducible. Writes notebooks/receipt_renders/<truth id>-<n>.jpg; their Ground truth is
-sim/documents/receipts/receipts_truth.json. Needs Pillow and a headless Chrome, Chromium or Edge.
-"""
+"""Renders phone-style photos of the printable SAMPLE receipts for the evaluation notebook (needs Pillow and Chrome)."""
 import importlib.util
 import json
 import random

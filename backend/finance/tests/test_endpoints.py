@@ -1,4 +1,4 @@
-"""Seam: the ledger and forecast endpoints on the engine's data (#29). Needs the test database."""
+"""Seam: the ledger and forecast endpoints on the engine's data. Needs the test database."""
 import json
 from decimal import Decimal
 
@@ -17,7 +17,7 @@ from .test_engine import labs_db  # noqa: F401  (fixture: Borsuk Labs in the dat
 
 WAITS_FOR_ROLE_5 = pytest.mark.xfail(
     reason="role 5 wires GET /forecast/latest to engine.latest(); until then a fresh database has no forecast (404)")
-PATHS = [  # (method, template, url, request) for the 8 paths of #29
+PATHS = [  # (method, template, url, request) for the ledger and forecast paths
     ("get", "/ledger", "/ledger", {}),
     ("get", "/ledger/summary", "/ledger/summary", {}),
     pytest.param("get", "/forecast/latest", "/forecast/latest", {}, marks=WAITS_FOR_ROLE_5),

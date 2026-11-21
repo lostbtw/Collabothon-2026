@@ -1,8 +1,8 @@
-"""Stand-ins for other roles' computations; numbers from fixtures or GLOSSARY.md, never a model."""
+"""Stand-ins for computations that live elsewhere; numbers from fixtures or GLOSSARY.md, never a model."""
 from datetime import date, timedelta
 from decimal import Decimal
 
-# GLOSSARY.md "Demo-day rate": PLN per 1 unit. Replaced by role 4's NBP rates (finance engine).
+# GLOSSARY.md "Demo-day rate": PLN per 1 unit, used until the finance engine has NBP rates.
 DEMO_DAY_RATES_PLN = {"PLN": Decimal("1"), "EUR": Decimal("4.41"), "USD": Decimal("4.0613")}
 
 
@@ -20,7 +20,7 @@ def previous_business_day(d: date) -> date:
 
 
 def fx_rate(currency: str, on: date, rule: str) -> dict | None:
-    """FxConversion for 1 unit of `currency` in PLN. Replaced by role 2's NBP connector + role 4's rate lookup."""
+    """FxConversion for 1 unit of `currency` in PLN, used until the NBP connector has stored rates."""
     if currency not in DEMO_DAY_RATES_PLN or currency == "PLN":
         return None
     rate_date = previous_business_day(on) if rule == "pl_tax_prev_business_day" else on
@@ -32,7 +32,7 @@ def fx_rate(currency: str, on: date, rule: str) -> dict | None:
     }
 
 
-# FX Shield exposure (role 4, 4.x FX Shield). Numbers copied from rec_fx01 / rec_fx02 in contracts/fixtures.
+# FX Shield exposure, copied from rec_fx01 / rec_fx02 in contracts/fixtures.
 FX_EXPOSURE = {
     "co_borsuk": [
         {

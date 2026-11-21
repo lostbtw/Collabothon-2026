@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Borsuk Labs (SAMPLE): the November documents (1-20 Nov 2026) that go through extraction.
-
-Writes out/november_documents.json: the values of every November invoice and receipt, for role 3
-to render as PDF or photo (#16). Every value comes from the bank generator or the story items, so
-the documents, the bank lines and the story always agree.
-
-Contents: the 10 reimbursement receipts (the hero receipt doc_rcpt412 included), company-card
-receipts and invoices, foreign SaaS invoices (M6), owner's-card invoices (M3), the Lakeshore sales
-invoice, and duplicates (M5). About half of the small daily card purchases have no document (M7).
-No randomness: the output is byte-identical on every run.
-
-Usage: python3 sim/scenario/november_2026.py
-"""
+"""Borsuk Labs (SAMPLE): the November documents that go through extraction, written to out/november_documents.json."""
 import json
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -56,7 +44,7 @@ FOREIGN = {
 RECEIPT_SELLERS = {"PALIWEX SP Z O O (SAMPLE)", "NORDPETRO S.A. (SAMPLE)", "BISTRO PIOTRKOWSKA 90 (SAMPLE)",
                    "SUSHI KAMIEN (SAMPLE)", "KAWIARNIA ZIARNO (SAMPLE)", "KOSZYK 24 SP Z O O (SAMPLE)",
                    "TAXIGO SP Z O O (SAMPLE)"}
-# M12: photo defects for role 3 to render, given to the photos in order.
+# M12: photo defects for the renderer, given to the photos in order.
 DEFECTS = ["rotated_8deg", "blur", "shadow", "crumpled", "low_light", "cropped_edge", "perspective", "glare"]
 # M5: duplicates. (bank reference of the original, format of the copy, sender of the copy, days later)
 DUPLICATES = {

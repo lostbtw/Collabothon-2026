@@ -1,6 +1,4 @@
-// Settings: everything Ordo needs to know about the company, and what it may do.
-// Company, alerts, people and rules come from the settings endpoints role 1 is adding; accounts and
-// sources from the connectors. A section whose data the backend does not send yet says so.
+// Settings: everything Ordo needs to know about the company, and what it may do; a section without data says so.
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api, exportUrl, type Person, type Rule, type Settings as SettingsData } from "../api/client";

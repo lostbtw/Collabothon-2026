@@ -1,28 +1,5 @@
 #!/usr/bin/env python3
-"""Releaser (#37): pushes role 4's scenario (sim/scenario/out/release_plan.json) through the real sources.
-
-It never writes into the app database: everything it releases reaches the app because a connector fetched it.
-
-    python sim/releaser/release.py status                      # what is in the plan, what the mailbox already holds
-    python sim/releaser/release.py backfill [--until 2026-10-31] [--limit N] [--dry-run]
-    python sim/releaser/release.py drip [--speed 10] [--dry-run]   # during the demo: one item every 20-40 s
-    python sim/releaser/release.py next                        # ONE not yet sent drip document (short demo)
-    python sim/releaser/release.py list                        # the 15 drip documents, which are sent
-    python sim/releaser/release.py live                        # backup only: the rendered photo of the live receipt
-    python sim/releaser/release.py check-bank                  # the bank lines of the plan are in the Sandbox Bank
-
-Channels:
-- e-mail, photo and accounting_api (inFakt was cut, so its e-mail fallback): one message per document, put into the
-  invoices mailbox with IMAP APPEND. No SMTP: no sending limits, no spam filter, seconds for the whole backfill.
-  The mailbox connector (#33) then reads them like any forwarded mail.
-- bank: nothing to send. The Sandbox Bank loads the statements at start (BANK_AUTOLOAD_DIR) with the same entry
-  references the plan names; `check-bank` verifies it.
-
-Safe to repeat: every message has a fixed Message-ID, and one already in the mailbox is not put there again (the
-connector would skip it anyway). Stdlib only.
-Environment: ORDO_IMAP_USER, ORDO_IMAP_PASSWORD, ORDO_IMAP_HOST (imap.gmail.com), ORDO_IMAP_PORT (993),
-ORDO_IMAP_FOLDER (INBOX); for check-bank ORDO_BANK_URL, ORDO_BANK_TOKEN. A .env at the repo root is read too.
-"""
+"""Releaser: pushes the scenario's release plan through the real sources (IMAP APPEND), never into the app database."""
 from __future__ import annotations
 
 import argparse
@@ -49,7 +26,6 @@ POLAND = timezone(timedelta(hours=1))
 MESSAGE_ID = re.compile(rb"Message-ID:\s*(<[^>]+>)", re.I)
 
 
-# ---------- plan ----------
 def load_env_file(path: Path = ROOT / ".env") -> None:
     """Same rule as backend/settings.py: .env fills what the environment does not set."""
     if not path.is_file():
@@ -95,8 +71,7 @@ OWNER = "owner@borsuk-labs.sample"
 
 
 def sender_of(item: dict) -> str:
-    """The plan's sender. The Lakeshore sales invoice has none (it was meant for the inFakt API, which was cut):
-    it comes from the owner, like the other sales invoices that fall back to e-mail."""
+    """The plan's sender; the Lakeshore sales invoice has none, so it comes from the owner like other sales invoices."""
     return item.get("sender") or OWNER
 
 
@@ -133,7 +108,6 @@ def scenario_time(item: dict) -> datetime:
     return datetime.fromisoformat(item["scenario_date"]).replace(hour=9, tzinfo=POLAND) + timedelta(minutes=item["seq"] % 480)
 
 
-# ---------- mailbox ----------
 def imap_settings() -> dict:
     return {"host": os.environ.get("ORDO_IMAP_HOST", "imap.gmail.com"),
             "port": int(os.environ.get("ORDO_IMAP_PORT", "993")),
@@ -179,11 +153,9 @@ class Mailbox:
             pass
 
 
-# ---------- commands ----------
 def release(mailbox: Mailbox, items: list[dict], *, now=None, sleep=time.sleep, paced: bool = False,
             speed: float = 1.0, dry_run: bool = False, fresh: bool = False, log=print) -> Counter:
-    """Put each item's message into the mailbox unless its Message-ID is there. `paced`: wait for offset_seconds.
-    `fresh`: dated now, like a mail that has just arrived (otherwise dated on the scenario day)."""
+    """Put each item's message into the mailbox unless its Message-ID is there; `paced` waits, `fresh` dates it now."""
     docs = _documents()
     present = mailbox.message_ids() if mailbox else set()
     counts: Counter = Counter()

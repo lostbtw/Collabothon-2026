@@ -1,5 +1,4 @@
-"""Validate a dict against a contract schema. Same JSON Schema subset and rules as
-contracts/validate_fixtures.py (stdlib only), packaged as a function for tests."""
+"""Validate a dict against a contract schema, with the same rules as contracts/validate_fixtures.py."""
 import json
 import re
 from pathlib import Path

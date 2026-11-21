@@ -1,16 +1,4 @@
-"""Outbox handlers of the consumer group `finance` (contracts/events.md).
-
-    match.decided          book the Ledger entries of a confirmed (or auto-confirmed) purchase Match, emit
-                           ledger.entry.approved (#27)
-    transaction.ingested   mark the company: its forecast is recomputed 2 s after the last such event (#28)
-    ledger.entry.approved  same
-    execution.simulated    same
-    document.extracted     same (taxes come from documents)
-    approval.recorded      -- nothing
-
-Every handler can run twice: entries have ids derived from the Match and `Store.add` ignores a repeated id,
-and `ledger.entry.approved` is emitted only for entries stored now.
-"""
+"""Outbox handlers of the consumer group `finance`: book a decided Match, recompute the forecast after new inputs."""
 import logging
 import time
 from typing import Any, Callable

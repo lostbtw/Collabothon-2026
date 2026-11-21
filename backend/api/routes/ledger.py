@@ -1,4 +1,4 @@
-"""Ledger, its summary and the CSV export (role 4's data, served by role 5)."""
+"""Ledger, its summary and the CSV export."""
 import csv
 import io
 import json

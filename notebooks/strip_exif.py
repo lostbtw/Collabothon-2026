@@ -1,12 +1,4 @@
-"""Prepares real phone photos of the printed SAMPLE receipts for the evaluation notebook (#19).
-
-    uv run --with pillow --with pillow-heif python notebooks/strip_exif.py rcpt_hero IMG_0412.HEIC IMG_0413.jpg
-
-For each photo: turn it upright as the phone's EXIF orientation says, drop all metadata (EXIF with GPS
-position and device, XMP, ICC), cap the longest side at 2048 px (about what a forwarded phone photo
-delivers) and save it as JPEG quality 90 under notebooks/receipt_photos/<truth id>-<n>.jpg, numbered
-after the photos already there. The truth id must be one of sim/documents/receipts/receipts_truth.json.
-"""
+"""Prepares real phone photos of the printed SAMPLE receipts: upright, no metadata, max 2048 px, JPEG in receipt_photos/."""
 import argparse
 import json
 import re

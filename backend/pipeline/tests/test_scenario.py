@@ -1,13 +1,10 @@
-"""Role 3's whole pipeline on role 4's demo scenario (#15), checked against sim/scenario/out/ground_truth.json.
-This is the "on real data" check of #23, #24, #25, #40 and #43 that does not need the cluster. ~10 s.
-Run from the repo root:  python -m unittest backend.pipeline.tests.test_scenario -v
-"""
+"""The whole pipeline on the demo scenario, checked against sim/scenario/out/ground_truth.json (~10 s)."""
 import unittest
 
 from backend.pipeline.tests import scenario as sc
 from backend.pipeline.tests.schema_check import schema_errors
 
-# Differences that come from the scenario data, reported to role 4. The test fails on anything else.
+# Differences that come from the scenario data; the test fails on anything else.
 KNOWN_SCENARIO_ISSUES: dict[str, str] = {}  # dup_01 / dup_02 numbers now match their FA(3) originals
 NEVER_MISSING = {"bank_fee", "tax_or_social_security", "salary", "reimbursement_payout", "internal_transfer"}
 

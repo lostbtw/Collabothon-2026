@@ -1,6 +1,4 @@
-"""The pipeline process's handlers, end to end on an in-memory store and event bus (no Postgres needed).
-Run from the repo root:  python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""The pipeline process's handlers end to end on an in-memory store and event bus (no Postgres needed)."""
 import copy
 import unittest
 from pathlib import Path
@@ -99,7 +97,7 @@ class Pipeline:
         self.run()
 
     def extracted(self, doc):
-        """What role 1's extractor does: store the Document and announce it."""
+        """What the extractor does: store the Document and announce it."""
         self.store.add("document", doc, company_id=COMPANY)
         self.publish("document.extracted", COMPANY, {"document_id": doc["id"]}, doc["raw_item_ids"][0])
         self.run()
@@ -139,7 +137,7 @@ class HeroFlow(unittest.TestCase):
     def test_role_5_turns_it_into_the_pay_jan_back_card(self):
         try:
             from backend.agents.ingestion import recommendation_for_match
-        except ImportError as exc:  # role 5's dependencies (psycopg, fastapi) are installed in CI, maybe not here
+        except ImportError as exc:  # the API's dependencies (psycopg, fastapi) are installed in CI, maybe not here
             self.skipTest(f"role 5 code not importable here: {exc}")
         doc = self.p.store.get("document", "doc_rcpt412")
         rec = recommendation_for_match(self.p.store, COMPANY, self.match, doc, "2026-11-21T10:15:00Z")

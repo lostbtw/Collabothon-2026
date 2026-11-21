@@ -1,9 +1,4 @@
-"""Writes the Grafana dashboards in deploy/observability/dashboards/ (loaded by `setup.sh grafana`).
-
-Run from the repo root: python3 deploy/observability/make_dashboards.py, then deploy/platform/setup.sh grafana.
-Edit the queries here rather than the JSON; the dashboards are read-only in Grafana (export or "Save as" to try
-changes in the UI).
-"""
+"""Writes the Grafana dashboards in deploy/observability/dashboards/; edit the queries here, not the JSON."""
 import json
 import sys
 from pathlib import Path
@@ -102,10 +97,7 @@ def dashboard(uid, title, desc, board, *, time_from, refresh="10s"):
     }
 
 
-# --------------------------------------------------------------------------------------------------------------
-# Ordo pipeline: everything comes from the outbox (contracts/events.md). causation_id links an event to the one
-# that caused it; the agents' recommendation.created carries none, so the last hop joins through
-# recommendations.subject_id = the match id.
+# Ordo pipeline from the outbox: causation_id links events; recommendation.created joins through subject_id = match id.
 
 PROCESS = """case
       when o.producer in ('connector', 'connector-mail') then 'connectors'
@@ -362,7 +354,6 @@ pipeline = dashboard("ordo-pipeline", "Ordo pipeline",
                      "The data flow through the outbox: what each process sent, what waits, how long each step took.",
                      p, time_from="now-6h")
 
-# --------------------------------------------------------------------------------------------------------------
 # Model and GPU: vLLM metrics of gpt-oss-20b (user-workload monitoring), DCGM and container metrics (platform).
 
 def quantile(q, metric):

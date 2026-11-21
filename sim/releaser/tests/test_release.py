@@ -1,4 +1,4 @@
-"""Releaser (#37) on role 4's real plan, against a fake IMAP mailbox; the released mail read by the real connector."""
+"""Releaser on the real plan against a fake IMAP mailbox; the released mail read by the real connector."""
 import email
 import email.policy
 import sys
@@ -62,7 +62,6 @@ def parsed(fake):
     return [email.message_from_bytes(m, policy=email.policy.default) for m in fake.messages]
 
 
-# ---------- the plan ----------
 def test_the_plan_has_what_role_4_promised():
     counts = Counter((i["mode"], i["channel"]) for i in PLAN)
     assert counts[("backfill", "bank")] == 1070
@@ -75,7 +74,6 @@ def test_every_artefact_exists():
     assert missing == []
 
 
-# ---------- backfill ----------
 def test_backfill_puts_every_document_into_the_mailbox_once(tmp_path):
     fake = FakeImap()
     counts = release.release(mailbox(fake), release.select(PLAN, "backfill"))
@@ -116,7 +114,6 @@ def test_a_message_carries_sender_subject_and_the_file():
     assert att.get_content() == release.artefact_path(item["artefact"]).read_bytes()
 
 
-# ---------- what the mailbox connector makes of it ----------
 def test_the_connector_reads_released_mail_as_documents():
     from backend.connectors.mailbox import message_items
 
@@ -130,14 +127,13 @@ def test_the_connector_reads_released_mail_as_documents():
         assert len(got) == 2, raw[:200]  # the e-mail and its one file
         kinds[got[1].kind] += 1
         item = by_id[got[0].external_id]
-        assert got[1].metadata["forwarded_by"] == release.sender_of(item)  # who sent it: role 3's who-paid input
+        assert got[1].metadata["forwarded_by"] == release.sender_of(item)  # who sent it: the who-paid input
         senders.add(release.sender_of(item))
     xml_items = sum(i["artefact"].endswith(".xml") for i in items)
     assert kinds == {"ksef_invoice_xml": xml_items, "email_attachment": 531 - xml_items}
     assert "jan@borsuk-labs.sample" in senders
 
 
-# ---------- drip and live ----------
 def test_drip_follows_the_offsets_at_the_chosen_speed():
     fake, waits = FakeImap(), []
     release.time.monotonic, real = (lambda: 0.0), release.time.monotonic
@@ -164,7 +160,6 @@ def test_no_credentials_no_run():
         release.Mailbox({**SETTINGS, "password": ""}, factory=FakeImap())
 
 
-# ---------- bank ----------
 def test_check_bank_against_the_real_sandbox_bank():
     from fastapi.testclient import TestClient
 
@@ -183,7 +178,6 @@ def test_check_bank_against_the_real_sandbox_bank():
         assert res["missing"] == 1070
 
 
-# ---------- one at a time (a short demo) ----------
 def test_next_sends_one_not_yet_sent_drip_document_each_time():
     fake = FakeImap()
     drip = release.select(PLAN, "drip")

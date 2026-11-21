@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Render role 4's November documents (sim/scenario/out/november_documents.json, #15) as the PDFs and phone photos
-that role 2's releaser sends (#37): release_plan.json artefact `november/<id>.pdf|jpg`, root = sim/documents/.
-
-    python sim/documents/render_november.py            # all 47
-    python sim/documents/render_november.py nov_003    # just some
-
-- invoices -> A4 HTML (Polish or English) -> text PDF via headless Chrome/Edge (`--print-to-pdf`);
-- receipts -> thermal-receipt HTML (paragon fiskalny) -> PDF, or a screenshot for photos;
-- photos -> the screenshot on a desk, slightly tilted, with noise, plus the document's `photo_defects`
-  (rotated_8deg, blur, shadow, crumpled, low_light, cropped_edge, perspective, glare). Seeded per document id.
-Every document says SAMPLE in the seller line (from the data), in the footer and as a diagonal watermark (D-18).
-Needs: Pillow, and Chrome/Chromium/Edge (env CHROME = path to the browser if it is not found).
-"""
+"""Render the scenario's November documents as the PDFs and phone photos the releaser sends (needs Pillow and Chrome)."""
 import html
 import json
 import math
@@ -49,8 +37,6 @@ LABELS = {
 }
 
 
-# ---------- formatting ----------
-
 def fmt(amount, lang: str) -> str:
     """'1299.00' -> '1 299,00' (pl) / '1,299.00' (en)."""
     s = f"{Decimal(amount):,.2f}"
@@ -69,8 +55,6 @@ def date_pl(iso: str | None) -> str:
 
 e = html.escape
 
-
-# ---------- HTML ----------
 
 CSS_COMMON = """
 * { box-sizing: border-box; }
@@ -194,8 +178,6 @@ def receipt_html(d: dict) -> str:
 </div></body></html>"""
 
 
-# ---------- browser ----------
-
 def browser() -> str:
     for candidate in BROWSERS:
         if candidate and (Path(candidate).is_file() or shutil.which(candidate)):
@@ -227,8 +209,6 @@ def screenshot(exe: str, profile: Path, html_file: Path, width: int, height: int
                         min(box[3] + pad, img.height)))
     return img
 
-
-# ---------- phone photo ----------
 
 def desk(size: tuple[int, int], rnd: random.Random) -> Image.Image:
     base = (rnd.randint(120, 160), rnd.randint(95, 120), rnd.randint(70, 90))  # wooden desk
@@ -334,8 +314,6 @@ def photo(paper: Image.Image, defects: list[str], rnd: random.Random) -> Image.I
     scale = 1600 / max(canvas.size)
     return canvas.resize((int(canvas.width * scale), int(canvas.height * scale)), Image.LANCZOS)
 
-
-# ---------- main ----------
 
 def render(d: dict, exe: str, work: Path) -> Path:
     is_receipt = d["kind"] == "receipt"

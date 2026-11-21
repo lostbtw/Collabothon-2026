@@ -1,16 +1,4 @@
-"""NBP exchange-rate connector (#34): table A mid rates from the Polish central bank's open API (api.nbp.pl).
-
-Each published table (one per business day, ~32 currencies) becomes one RawItem of kind `fx_rate_table`:
-external_id = the table number ("226/A/NBP/2026"), payload = {"table", "no", "effectiveDate", "rates": {code: mid}}.
-The first run reads `config_public.history_days` back (default 1095 = 3 years, ~756 tables, for FX Shield); later
-runs read the tables after the cursor. NBP serves at most 93 days per request: empty windows (404) are skipped.
-
-Cursor: `<effectiveDate>|<table no>` of the last table stored. A cursor naming a table we never stored (the fixture's
-"225/A/NBP/2026") is ignored by base.py and the history is read from the beginning.
-
-Rate lookups on the stored tables (what /fx/rates, the pipeline and FX Shield need): see `rate_on` and `history`.
-Environment: ORDO_NBP_URL (default https://api.nbp.pl).
-"""
+"""NBP exchange-rate connector: one RawItem per published table A (mid rates), 3 years of history on the first run."""
 from __future__ import annotations
 
 import os
@@ -77,8 +65,7 @@ class NbpConnector(Connector):
             if all((start + timedelta(days=i)).weekday() >= 5 for i in range((end - start).days + 1)):
                 start = end + timedelta(days=1)  # only a Saturday and/or Sunday: NBP publishes nothing, do not ask
                 continue
-            # Found live: for a day with no table NBP sometimes answers HTTP 500 instead of 404. A short window just
-            # after the last stored table is "nothing new yet" (a holiday), not an outage; the history is already ours.
+            # For a day without a table NBP sometimes answers 500, not 404: just after the last stored table that means nothing new.
             tables = self._tables(start, end, quiet=bool(last) and (end - start).days <= 3)
             if tables:
                 items = [
@@ -117,13 +104,9 @@ class NbpConnector(Connector):
             raise ConnectorError(f"NBP sent an unreadable answer: {exc}", code="bad_response") from exc
 
 
-# ---------- lookups on the stored tables ----------
 def rate_on(conn: psycopg.Connection, currency: str, on: date,
             rule: str = "pl_tax_prev_business_day") -> dict[str, str] | None:
-    """FxConversion (contracts/schemas/common.schema.json) for 1 unit of `currency` in PLN.
-
-    pl_tax_prev_business_day: the last table published BEFORE `on` (PL-FX-01, weekends and holidays skipped).
-    booking_day: the table of `on`, or the last one before it."""
+    """FxConversion for 1 unit of `currency` in PLN: the last table before `on` (PL-FX-01), or the table of `on` for booking_day."""
     currency = currency.upper()
     if currency == "PLN":
         return {"rate": "1", "rate_date": on.isoformat(), "source": "PLN", "rule": rule}

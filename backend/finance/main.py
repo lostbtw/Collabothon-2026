@@ -1,11 +1,4 @@
-"""`python -m backend finance`: the finance process (role 4). Serves the outbox consumer group `finance`
-(backend/finance/handlers.py says which events do what).
-
-Claiming is role 2's backend/queue (contracts/events.md: SKIP LOCKED, done after commit, 3 failures -> dead).
-Event types without a handler are marked done, so the group's queue does not grow.
-
-Environment: ORDO_DATABASE_URL (backend/settings.py).
-"""
+"""`python -m backend finance`: the finance process, consumer group `finance`; events without a handler are marked done."""
 import logging
 
 import psycopg

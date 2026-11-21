@@ -1,5 +1,4 @@
-"""FX Shield: per foreign-currency invoice the model judges ignore / inform / hedge against the company's own
-figures (no fixed threshold). Numbers come from the engine; the same numbers are never judged twice."""
+"""FX Shield: the model judges each foreign-currency invoice ignore / inform / hedge against the company's own figures."""
 import hashlib
 import json
 import re
@@ -212,7 +211,6 @@ def ignored_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
         control_level="recommendation", execution_mode="none", severity="info", valid_until=None,
         explanation={"why": [a["decided_because"]], "calculation": [], "alternatives": [], "assumptions": [JUDGED]},
         evidence=[_document(a), METHOD], proposed_action=None, impact=None)
-
 
 
 FINAL_SCHEMA = {"type": "object", "required": ["action", "reference", "reason"], "additionalProperties": False,

@@ -1,6 +1,4 @@
-// Geometry of "Cash over time": what was in the bank (solid line, from the balance history) and what
-// the forecast expects (dashed line). Geometry may use floating point (it is pixels); every number shown
-// is formatted from the backend's decimal strings.
+// Geometry of "Cash over time": pixels may be floats; every number shown is formatted from the backend's decimal strings.
 import type { BalanceHistory } from "../api/client";
 import type { Forecast, Money } from "../api/types.gen";
 import { dailyBalances, upcoming, type Upcoming } from "../pages/dashboard/model";

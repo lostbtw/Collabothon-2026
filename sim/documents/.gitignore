@@ -1,2 +1,2 @@
-# rendered documents: commit the generator, seed and truth, not the renders (ticket #16)
+# rendered documents: commit the generator, seed and truth, not the renders
 out/

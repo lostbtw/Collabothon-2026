@@ -1,25 +1,4 @@
-"""Simulated executor (#36, D-19). Owner: role 2.
-
-Runs an approved action against the Sandbox Bank (contracts/bank-sim-api.md) and nothing else: never a real bank.
-
-    result = execute_action(conn, approval, action, company)   # {"reference": "SIM-CL-0001", "result": "SIMULATED: ..."}
-
-`action` is the Recommendation's `proposed_action` with the Approval's changes already applied (role 5 does that).
-It also emits `execution.simulated`. The three bank actions go to the bank's targets; the actions the bank has no
-target for are recorded as simulated drafts inside Ordo (no bank call, nothing sent):
-
-| action kind              | where                                   | reference      |
-|--------------------------|-----------------------------------------|----------------|
-| apply_credit_line        | POST /v1/credit-line-applications       | SIM-CL-…       |
-| create_payment_draft     | POST /v1/payment-drafts                 | SIM-PD-…       |
-| schedule_transfer        | POST /v1/payment-drafts                 | SIM-PD-…       |
-| move_to_tax_pocket       | POST /v1/payment-drafts (to the tax pocket) | SIM-PD-…   |
-| book_fx_forward          | POST /v1/fx-forwards                    | SIM-FX-…       |
-| send_email_draft         | Ordo only (draft, not sent)             | SIM-EM-YYYY-…  |
-| book_ledger_entries      | Ordo only (role 4 books them)           | SIM-LE-YYYY-…  |
-
-Environment: ORDO_BANK_URL, ORDO_BANK_TOKEN (shared with the bank connector).
-"""
+"""Simulated executor: runs an approved action against the Sandbox Bank, never a real bank, and emits `execution.simulated`."""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -43,7 +22,6 @@ class ExecutionFailed(Exception):
     """The Sandbox Bank did not accept the action (unreachable, refused, invalid)."""
 
 
-# ---------- helpers ----------
 def _amount_text(amount: Any, currency: str | None) -> str:
     value = Decimal(str(amount))
     text = f"{value:,.0f}" if value == value.to_integral_value() else f"{value:,.2f}"
@@ -80,7 +58,7 @@ def _person_name(conn: psycopg.Connection, person_id: str | None) -> str | None:
 
 
 def _local_reference(conn: psycopg.Connection, prefix: str, decided_at: str | None) -> str:
-    """A simulated reference for actions with no bank target (role 5's sequence, same format as its stand-in)."""
+    """A simulated reference for actions with no bank target (same format as the API's stand-in)."""
     seq = conn.execute("select nextval('sim_reference_seq')").fetchone()[0]
     year = (decided_at or datetime.now(UTC).isoformat())[:4]
     return f"SIM-{prefix}-{year}-{seq:04d}"
@@ -101,7 +79,6 @@ def _post(client: httpx.Client, token: str, path: str, body: dict[str, Any]) -> 
     return resp.json()
 
 
-# ---------- the actions ----------
 def _credit_line(conn, client, token, company, p) -> tuple[str, str]:
     amount, currency = _money(p, "limit")
     account = p.get("account_id") or _company_account(conn, company, currency)

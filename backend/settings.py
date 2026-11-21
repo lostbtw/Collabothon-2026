@@ -1,9 +1,4 @@
-"""Runtime settings, read from the environment (OpenShift ConfigMap / Secret). No secrets in Git.
-
-Locally, put them in `.env` at the repo root (git-ignored); it is read at import, without overriding variables
-that are already set. The model variables use the cluster's names (LLM_BASE_URL, LLM_TOKEN, LLM_MODEL, D-12);
-ORDO_LLM_* overrides them.
-"""
+"""Runtime settings from the environment (OpenShift ConfigMap / Secret), or from `.env` at the repo root locally."""
 import os
 import ssl
 from pathlib import Path
@@ -39,7 +34,7 @@ def database_url() -> str:
 
 
 def llm_base_url() -> str:
-    """OpenAI-compatible endpoint of the vLLM model served on the team's cluster (hard rule 1: never a hosted API)."""
+    """OpenAI-compatible endpoint of the vLLM model served on the team's cluster, never a hosted API."""
     return _first("ORDO_LLM_BASE_URL", "LLM_BASE_URL", default="http://localhost:8000/v1")
 
 

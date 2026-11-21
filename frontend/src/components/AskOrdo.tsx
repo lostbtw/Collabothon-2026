@@ -1,5 +1,4 @@
-// Ask Ordo: a chat panel that slides in over any page, with the company's past chats on the left.
-// Past chats come from GET /chat/sessions; until the backend serves it, the panel keeps this tab's chats.
+// Ask Ordo: a chat panel over any page, with the company's past chats (GET /chat/sessions, else this tab's) on the left.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type ChatAnswer, type ChatSession } from "../api/client";

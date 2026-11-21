@@ -1,5 +1,4 @@
-"""Re-matching data an older matcher paired: each monthly invoice gets its own month's transfer back, owner decisions
-stay, stale cards are retired, and a second run changes nothing."""
+"""Re-matching an older matcher's pairs: each invoice gets its own month's transfer, owner decisions stay, idempotent."""
 from backend.db.fixtures import load_fixtures
 from backend.db.store import Store
 from backend.pipeline.handlers import rematch

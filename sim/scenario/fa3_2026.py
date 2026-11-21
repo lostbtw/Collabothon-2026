@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-"""Borsuk Labs (SAMPLE) invoices as KSeF FA(3) XML, issued 1 Dec 2025 - 31 Oct 2026.
-
-Takes the invoice data that bank_2026.py attaches to the bank lines, so amounts and dates always
-agree with the bank CSVs. Adds the invoices that have no bank line: October sales still open on
-21 Nov (Meblostyl, Nordwind) and 6 cash purchases (M8).
-
-Only Polish sellers and Borsuk Labs' own sales invoices are FA(3). Foreign vendors (SaaS, Lingua
-Bridge, EUR card purchases) and private receipts are not KSeF invoices, so they are not here.
-
-Two November invoices (ElektroMarkt laptop, Biurosfera) also come from KSeF, as duplicates (M5)
-of their e-mailed PDFs.
-
-Usage: python3 sim/scenario/fa3_2026.py [--xsd DIR]
-  --xsd DIR  validate every file with xmllint against the FA(3) schema in DIR
-             (schemat.xsd from https://crd.gov.pl/wzor/2025/06/25/13775/, with its imports)
-Output: out/fa3/<YYYY-MM>/<id>.xml and out/fa3_index.json
-"""
+"""Borsuk Labs (SAMPLE) invoices as KSeF FA(3) XML: `python3 sim/scenario/fa3_2026.py [--xsd DIR]` writes out/fa3/."""
 import json
 import shutil
 import subprocess
@@ -119,7 +103,7 @@ EXTRA = [
      "issue": date(2026, 10, 31), "due": date(2026, 11, 27), "gross": Decimal("36900.00")},
     {"direction": "sale", "pay": "transfer", "party": "NORDWIND LOGISTIK GMBH (SAMPLE)", "number": "2026/10/044",
      "issue": date(2026, 10, 15), "due": date(2026, 11, 14), "gross": Decimal("18400.00"), "currency": "EUR"},
-    # One-off project, open on 21 Nov and due after the forecast horizon: October's rule-based VAT is 14,300 (#48).
+    # One-off project, open on 21 Nov and due after the forecast horizon: October's rule-based VAT is 14,300.
     {"direction": "sale", "pay": "transfer", "party": "KADROWNIA SP Z O O (SAMPLE)", "number": "2026/10/040",
      "issue": date(2026, 10, 20), "due": date(2027, 1, 20), "gross": Decimal("73856.37"),
      "line": "Wdrożenie modułu kadrowego (projekt)"},

@@ -28,10 +28,7 @@ export function fields(d: OrdoDocument): Field[] {
   ];
 }
 
-/**
- * The PATCH body: only the blocks that changed (a block such as `buyer` is sent whole). Returns an error text instead when an entry is not valid.
- * Amounts stay decimal strings (parseAmount), never floating point.
- */
+/** The PATCH body with only the changed blocks, amounts as decimal strings; an error text when an entry is not valid. */
 export function buildPatch(d: OrdoDocument, edits: Record<FieldKey, string>): { patch: DocumentPatch | null; error: string | null } {
   const patch: DocumentPatch = {};
   for (const f of fields(d)) {

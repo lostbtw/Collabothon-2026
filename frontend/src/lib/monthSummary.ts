@@ -1,5 +1,4 @@
-// A month's figures by category: from the books when the month is booked, otherwise from the bank payments
-// (the backend sums them with `basis=bank`), so a month whose matches are not checked yet is not shown as empty.
+// A month's figures by category: from the books when the month is booked, otherwise from the bank payments (`basis=bank`).
 import { api, type LedgerSummary } from "../api/client";
 import { monthRange, previousMonth } from "./costTypes";
 
@@ -17,8 +16,7 @@ export async function monthAndBefore(companyId: string, month: string): Promise<
     one(companyId, previousMonth(month), "ledger"), one(companyId, previousMonth(month), "bank"),
   ]);
   if (!books) return [null, null];
-  // The books hold only what was checked. When the bank shows more payments for the month than the books, the
-  // month is not booked yet: show it from the bank (and say so).
+  // The books hold only what was checked: when the bank shows more payments than the books, show the month from the bank.
   const count = (x: LedgerSummary) => x.rows.reduce((n, r) => n + r.entries, 0);
   const fromBank = Boolean(bank && count(bank) > count(books));
   const current: MonthSummary = fromBank ? { summary: { ...bank!, kpis: books.kpis }, fromBank } : { summary: books, fromBank };

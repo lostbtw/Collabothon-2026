@@ -35,7 +35,6 @@ def post_line(client, **kw):
     return client.post("/admin/transactions", json=body, headers=AUTH)
 
 
-# ---------- auth ----------
 def test_bearer_and_consent_are_required(client):
     assert client.get("/v1/accounts").status_code == 401
     assert client.get("/v1/accounts", headers={"Authorization": "Bearer wrong", "Consent-ID": "demo"}).status_code == 401
@@ -49,7 +48,6 @@ def test_admin_needs_bearer(client):
     assert client.get("/health").status_code == 200  # no auth
 
 
-# ---------- accounts and balances ----------
 def test_accounts_list_has_the_four_seed_accounts(client):
     accounts = client.get("/v1/accounts", headers=PSD2).json()["accounts"]
     assert {a["resourceId"] for a in accounts} == {"acc_pln", "acc_eur", "acc_owner", "acc_pizzeria"}
@@ -61,7 +59,7 @@ def test_balance_is_opening_plus_visible_lines(client):
     post_line(client, amount="-180.62")
     b = client.get("/v1/accounts/acc_pln/balances", headers=PSD2).json()["balances"][0]
     assert b["balanceType"] == "closingBooked"
-    # no file loaded: the account starts at role 4's closing balance 24,730.15
+    # no file loaded: the account starts at the scenario's closing balance 24,730.15
     assert b["balanceAmount"] == {"amount": "24549.53", "currency": "PLN"}  # 24730.15 - 180.62
     assert b["referenceDate"] == "2026-11-20"
 
@@ -72,7 +70,6 @@ def test_private_card_has_no_balance_and_unknown_account_is_404(client):
     assert client.get("/v1/accounts/nope/transactions", headers=PSD2).status_code == 404
 
 
-# ---------- delta by entryReference ----------
 def test_delta_returns_only_lines_after_the_reference(client):
     for i in range(3):
         post_line(client, amount=f"-{i + 1}.00")
@@ -128,7 +125,6 @@ def test_date_from_filters_by_booking_date(client):
     assert [t["bookingDate"] for t in got["transactions"]["booked"]] == ["2026-11-15"]
 
 
-# ---------- admin/transactions ----------
 def test_admin_transaction_defaults_and_validation(client):
     r = client.post("/admin/transactions", json={"accountId": "acc_eur", "amount": "-12.5"}, headers=AUTH)
     assert r.status_code == 201
@@ -145,7 +141,6 @@ def test_references_strictly_increase_per_account(client):
     assert post_line(client, accountId="acc_eur", currency="EUR").json()["entryReference"] == "E000000001"
 
 
-# ---------- simulated execution targets ----------
 def test_credit_line_application(client):
     r = client.post("/v1/credit-line-applications",
                     json={"accountId": "acc_pln", "limit": "25000", "tenorDays": 90}, headers=PSD2)
@@ -189,7 +184,6 @@ def test_reset_restores_the_seed(client):
     assert client.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
 
 
-# ---------- load-csv ----------
 def load(client, csv_text=MINI_CSV, **params):
     return client.post("/admin/load-csv", params=params, content=csv_text.encode("utf-8"),
                        headers={**AUTH, "Content-Type": "text/csv"})
@@ -228,7 +222,6 @@ def test_load_csv_rejects_bad_input(client):
     assert client.post("/admin/load-csv", content=MINI_CSV.encode()).status_code == 401
 
 
-# ---------- autoload at start ----------
 def test_autoload_fills_the_account_at_start_and_after_reset(tmp_path):
     path = tmp_path / "pizzeria.csv"
     path.write_text(MINI_CSV, encoding="utf-8")
@@ -257,7 +250,7 @@ def test_autoload_fails_fast_when_the_file_is_missing_or_the_account_unknown(tmp
         create_app(Store(), token=TOKEN, autoload_csv=str(bad))
 
 
-# ---------- the organisers' real file (not in Git; set BANK_TEST_CSV to run) ----------
+# The organisers' real file is not in Git; set BANK_TEST_CSV to run these.
 REAL = os.environ.get("BANK_TEST_CSV")
 
 

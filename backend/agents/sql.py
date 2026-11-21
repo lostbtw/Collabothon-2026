@@ -1,5 +1,4 @@
-"""The chat's free SQL tool. Four independent guards: guard() (one SELECT, LIMIT <= 200), READ ONLY tx with
-3 s timeout, role ordo_readonly (v_* views only), views filtered to the asking company."""
+"""The chat's free SQL tool: one SELECT, a read-only 3 s transaction, role ordo_readonly, company-filtered views."""
 import re
 from decimal import Decimal
 from typing import Any

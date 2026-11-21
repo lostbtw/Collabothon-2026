@@ -32,10 +32,7 @@ export function editableAmount(r: Recommendation): { param: string; label: strin
   return spec && isMoney(value) ? { ...spec, value } : null;
 }
 
-/**
- * Turns what the owner typed into a decimal string: "25 000" -> "25000.00", "25,000.5" -> "25000.50",
- * "1299,90" -> "1299.90". Returns null when it is not a positive amount. Text only, no floating point.
- */
+/** What the owner typed as a decimal string ("25 000" -> "25000.00", "1299,90" -> "1299.90"); null unless positive. */
 export function parseAmount(input: string): string | null {
   let s = input.trim().replace(/[\s ]/g, "");
   if (/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, "");
@@ -63,10 +60,7 @@ export function buildDecision(r: Recommendation, kind: "approve" | "reject", edi
 
 export type InboxLists = { open: Recommendation[]; decided: Recommendation[]; counts: Record<Filter, number>; approvalFor: (id: string) => Approval | undefined };
 
-/**
- * What the page shows. Cards without control level, execution mode, explanation and evidence are
- * dropped (contracts rule 4). `justDecided` are decisions made on this page since it was opened.
- */
+/** What the page shows: cards missing control level, execution mode, explanation or evidence are dropped. */
 export function buildLists(inbox: InboxResponse, all: Recommendation[], approvals: Approval[], justDecided: Record<string, Decided> = {}): InboxLists {
   const open = inbox.items.filter(isRenderableRecommendation).filter((r) => !justDecided[r.id] && !isDecided(r));
   const decided = new Map<string, Recommendation>();

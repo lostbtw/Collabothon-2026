@@ -1,13 +1,4 @@
-"""Bank line (PSD2-shaped JSON in a RawItem) -> Transaction (contracts/schemas/transaction.schema.json).
-
-Rules (spec #3, ticket #23):
-- The account-currency amount is the cash truth (`amount_base`).
-- A card line in the account currency that names a foreign amount ("45.00 USD") keeps that as
-  `original_amount` and stores the implied rate (rule `bank_actual`).
-- A line whose currency differs from the account currency (the pizzeria's CHF lines in a EUR account)
-  is converted with the rate written in the reference text, rounded to cents per line, and flagged
-  `currency_mismatch_fixed` + `rate_from_reference_text` (DQ-01).
-"""
+"""Bank line (PSD2-shaped JSON in a RawItem) -> Transaction; the account-currency amount is the cash truth."""
 import re
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -88,10 +79,7 @@ def _iban(party) -> str | None:
 
 
 def normalise_bank_line(raw_item: dict, account: dict) -> dict:
-    """Turn one `bank_transaction` RawItem into a Transaction dict that validates against the contract.
-
-    `account` needs `id` and `currency` (contracts/schemas/account.schema.json).
-    """
+    """Turn one `bank_transaction` RawItem into a contract Transaction; `account` needs `id` and `currency`."""
     line = raw_item.get("payload") or {}
     for field in ("entryReference", "bookingDate", "transactionAmount"):
         if not line.get(field):
@@ -172,7 +160,7 @@ def normalise_bank_line(raw_item: dict, account: dict) -> dict:
         "original_amount": original_amount,
         "counterparty_name_raw": name or None,
         "counterparty_account": iban,
-        "counterparty_id": None,  # resolved later (#41)
+        "counterparty_id": None,  # resolved later by counterparty.py
         "description": description,
         "transaction_type": transaction_type(
             line.get("proprietaryBankTransactionCode"), amount, f"{name or ''} {description}"
@@ -180,8 +168,8 @@ def normalise_bank_line(raw_item: dict, account: dict) -> dict:
         "card_last4": card,
         "balance_after": money(balance["amount"], balance["currency"]) if balance else None,
         "status": "booked",
-        "category": None,  # set later (#41)
-        "recurring_series_id": None,  # set by the finance engine (role 4)
+        "category": None,  # set later by counterparty.py
+        "recurring_series_id": None,  # set by the finance engine
         "match_status": "unmatched",
         "data_quality": data_quality,
     }

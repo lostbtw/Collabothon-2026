@@ -1,4 +1,4 @@
--- What the owner tells Ordo in Settings (role 6's screens; endpoints in backend/api/routes/owner.py).
+-- What the owner tells Ordo in Settings (endpoints in backend/api/routes/owner.py).
 
 -- People: how each one is paid and how they show up on bank lines, so a payment can be tied to a person.
 alter table people add column pay_type text;

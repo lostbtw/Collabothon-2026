@@ -1,19 +1,4 @@
-"""Recurring series and weekday averages from booked bank lines (D-08, ported from spike 03). Pure, no database.
-
-A *flow* is one booked bank line in the company's base currency. Flows are grouped by counterparty and by the
-payment reference with its digits removed (the *template*), so one counterparty can carry several series: the
-tax office's monthly wage tax, quarterly income tax and quarterly trade tax are three series, not one average.
-
-A group is a recurring series when it occurs once per month (or once per quarter) without gaps, on a date rule
-that fits every occurrence, with a stable amount:
-
-    exact               the same day of the month
-    on_or_after         that day, moved to the next business day on weekends and holidays (PL-CAL-04)
-    after               the business day after that day (card payments booked one day after the purchase)
-    last_business_day   the last business day of the month (pay run)
-
-Everything else is *variable*: projected as the mean amount per weekday over the trailing 8 weeks.
-"""
+"""Recurring series (monthly or quarterly, on a date rule, stable amount) and weekday averages from booked bank lines."""
 import hashlib
 import re
 import unicodedata
@@ -149,11 +134,7 @@ def _as_series(key: str, tmpl: str, flows: list[Flow], country: str, loose: bool
 
 def detect(flows: list[Flow], as_of: date, country: str,
            loose_keys: set[str] = frozenset()) -> tuple[list[Series], list[Flow]]:
-    """Split flows booked up to `as_of` into recurring series and the rest (variable).
-
-    `loose_keys`: counterparties whose amount may vary (clients paid by invoice); only their dates must be regular.
-    A series whose next occurrence is long overdue (more than one period ago) has ended and is not projected.
-    """
+    """Split flows booked up to `as_of` into recurring series and the rest; a long-overdue series has ended."""
     groups: dict[tuple[str, str], list[Flow]] = defaultdict(list)
     for f in sorted(flows, key=lambda f: (f.day, f.transaction.get("id", ""))):
         if f.day <= as_of:
@@ -186,11 +167,7 @@ def _window(as_of: date, start: date | None, quiet: dict[date, set[str]], side: 
 
 def weekday_averages(flows: list[Flow], as_of: date, quiet: dict[date, set[str]] | None = None,
                      start: date | None = None) -> dict[str, dict[int, Decimal]]:
-    """Per counterparty: mean amount per weekday over the trailing weeks (spike 03).
-
-    Only days the company was open count (an owner event "closed" removes its days, for income, spending or both),
-    and only days since the first bank line (`start`): a short history is not diluted over 8 weeks.
-    """
+    """Per counterparty: mean amount per weekday over the trailing weeks, counting only open days since the first line."""
     quiet = quiet or {}
     open_days = {side: _window(as_of, start, quiet, side) for side in ("in", "out")}
     per_weekday = {side: defaultdict(int) for side in open_days}
@@ -214,10 +191,7 @@ def weekday_averages(flows: list[Flow], as_of: date, quiet: dict[date, set[str]]
 
 def weekly_spread(flows: list[Flow], as_of: date, quiet: dict[date, set[str]] | None = None,
                   start: date | None = None) -> tuple[Decimal, int] | None:
-    """Standard deviation of the weekly net sum of everyday flows over the trailing open weeks, and their number.
-
-    A week counts only when the company was open all of it. None when fewer than 2 such weeks exist.
-    """
+    """Standard deviation of the weekly net sum of everyday flows over fully open trailing weeks (None below 2), and their number."""
     quiet = quiet or {}
     weeks = []
     for k in range(VARIABLE_WEEKS):

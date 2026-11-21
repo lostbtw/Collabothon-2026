@@ -1,11 +1,4 @@
-"""Read and write contract entities whole; a repeated idempotency key is a no-op.
-
-    store = Store(conn)
-    store.add("raw_item", item)        # True if stored, False if it (or its idempotency key) already exists
-    store.put("match", match)          # insert or replace by id (state changes)
-    store.get("match", "mat_412")      # dict or None
-    store.list("recommendation", company_id="co_borsuk", status="new")
-"""
+"""Read and write contract entities whole; a repeated idempotency key is a no-op."""
 from typing import Any
 
 import psycopg

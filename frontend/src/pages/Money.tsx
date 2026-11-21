@@ -38,8 +38,7 @@ export function Money() {
   const today = useToday();
   // Old links to Subscriptions open Monthly payments.
   const v = (view === "subscriptions" ? "monthly" : VIEWS.some((x) => x.key === view) ? view : "") as View;
-  // Every view opens on the current month (All payments on all months when it is asked for a kind of payment or a
-  // name). "" means all months.
+  // Every view opens on the current month, All payments on all months ("") when asked for a kind or a name.
   const asked = params.get("month");
   const month = v === "payments" ? (asked ?? (params.get("doc") || params.get("q") ? "" : today.slice(0, 7))) : (asked || today.slice(0, 7));
   const q = params.get("q") ?? "";
@@ -72,7 +71,6 @@ export function Money() {
   );
 }
 
-// ---- By type ----
 function ByType({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const currency = useCompanyInfo()?.base_currency ?? "PLN";
@@ -140,7 +138,6 @@ export function ByTypeView({ month, summary, before, currency, q = "" }: { month
   );
 }
 
-// ---- By person ----
 function ByPerson({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
@@ -189,7 +186,6 @@ export function ByPersonView({ month, data, q = "" }: { month: string; data: Peo
   );
 }
 
-// ---- By client ----
 function ByClient({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
@@ -249,7 +245,6 @@ export function ByClientView({ month, data, fx, q = "" }: { month: string; data:
   );
 }
 
-// ---- Subscriptions ----
 function Monthly({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
@@ -324,7 +319,6 @@ export function MonthlyView({ data, month, q = "" }: { data: SubscriptionsRespon
   );
 }
 
-// ---- All payments ----
 const PAGE = 25;
 
 function AllPayments({ month, selected }: { month: string; selected: string | null }) {

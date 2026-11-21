@@ -1,15 +1,4 @@
-"""How accurately Documents are read, measured against Ground truth (#19).
-
-Pure: no MLflow import, so CI tests it without a model. The evaluation notebook
-(`notebooks/extraction_eval.ipynb`) runs `read_case` as MLflow's predict function and wraps `compare` in
-its scorers.
-
-Counting rules:
-- A field is right when the value read equals the Ground truth, whatever the Document's status.
-- A field is Silently wrong when it is wrong and the Document was accepted without review (`extracted`).
-- A VAT that was not read counts as equal to a Ground truth of 0.00. Any other mismatch is wrong.
-- Tax ids are compared without spaces, dashes, dots, a printed label (NIP, EIN, VAT) or the PL prefix.
-"""
+"""How accurately Documents are read against Ground truth; pure, so CI tests it and the notebook wraps it for MLflow."""
 import json
 import re
 import time
@@ -51,7 +40,7 @@ class Case:
 
 
 def load_november(truth_path: Path, documents_dir: Path) -> list[Case]:
-    """Role 4's November documents; `artefact` paths are relative to `sim/documents/`."""
+    """The November documents of the demo scenario; `artefact` paths are relative to `sim/documents/`."""
     cases = []
     for record in _read(truth_path):
         subset = NOVEMBER_SUBSETS.get(record.get("format"))
@@ -62,8 +51,7 @@ def load_november(truth_path: Path, documents_dir: Path) -> list[Case]:
 
 
 def load_receipt_photos(truth_path: Path, photos_dir: Path, subset: str = "real_photo") -> list[Case]:
-    """Photos of the printed receipts named `<truth id>-<n>.jpg`: real phone photos, or renders of the printed
-    layout (`receipt_render`). No folder is an empty list; a photo without truth is an error."""
+    """Photos of the printed receipts named `<truth id>-<n>.jpg`, real or rendered; a photo without truth is an error."""
     if not photos_dir.is_dir():
         return []
     truths = {record["id"]: truth_of(record) for record in _read(truth_path)}
@@ -200,8 +188,7 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def headline(rows: list[dict[str, Any]]) -> str:
-    """The pitch number: gross first, then photos (and real phone photos, when there are any), Silently wrong
-    fields; then the other fields."""
+    """The pitch number: gross first, then photos and Silently wrong fields; then the other fields."""
     count = len(rows)
     parts = [f"Gross amount read right on {_right(rows, 'gross')} of {count} documents"]
     for label, subsets in (("photos", PHOTO_SUBSETS), ("real phone photos", ("real_photo",))):

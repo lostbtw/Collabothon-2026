@@ -1,10 +1,4 @@
-"""`python -m backend pipeline`: the pipeline process (role 3). Serves the outbox consumer groups `normaliser` and
-`matcher` (backend/pipeline/handlers.py says which events do what).
-
-Claiming is role 2's backend/queue (contracts/events.md: SKIP LOCKED, done after commit, 3 failures -> dead).
-
-Environment: ORDO_DATABASE_URL (backend/settings.py); ORDO_RAW_DIR = where pvc://raw/ is mounted (default /data/raw).
-"""
+"""`python -m backend pipeline`: the pipeline process, consumer groups `normaliser` and `matcher` (see handlers.py)."""
 import logging
 import os
 import time
@@ -26,8 +20,6 @@ MAX_ATTEMPTS = 3
 SWEEP_SECONDS = int(os.environ.get("ORDO_PIPELINE_SWEEP_SECONDS", "60"))
 _CHOOSE = model_chooser()  # the cluster's model for category/kind when rules do not decide; None if disabled
 
-
-# ---------- Postgres context ----------
 
 def make_context(conn: psycopg.Connection) -> Context:
     def _publish(type_, company, payload, correlation, causation):
@@ -64,8 +56,6 @@ def make_context(conn: psycopg.Connection) -> Context:
                    rates=default_rates(), choose=_CHOOSE)
 
 
-# ---------- claiming ----------
-
 def _handle(conn: psycopg.Connection, handlers: dict[str, Any], event: dict) -> None:
     ctx = make_context(conn)
     for handler in handlers.get(event["type"], []):
@@ -81,7 +71,7 @@ def process_pending(conn: psycopg.Connection, consumer: str, retry_after_seconds
 
 
 def sweep_all(conn: psycopg.Connection) -> None:
-    """Missing documents and due-but-unpaid documents (#43), for every company."""
+    """Missing documents and due-but-unpaid documents, for every company."""
     try:
         ctx = make_context(conn)
         for (company,) in conn.execute("select id from companies").fetchall():

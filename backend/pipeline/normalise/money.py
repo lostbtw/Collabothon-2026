@@ -1,4 +1,4 @@
-"""Money helpers. Money is a decimal string plus currency, never a float (CLAUDE.md hard rule 6)."""
+"""Money helpers. Money is a decimal string plus currency, never a float."""
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 CENT = Decimal("0.01")

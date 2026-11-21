@@ -1,5 +1,4 @@
-"""The Sandbox Bank on role 4's Borsuk Labs scenario (sim/scenario/out, in Git): the bank must give exactly the
-entry references, dates and balances the scenario's release plan and ground truth refer to."""
+"""The Sandbox Bank on the Borsuk Labs scenario: exactly the entry references, dates and balances the plan refers to."""
 import json
 from pathlib import Path
 

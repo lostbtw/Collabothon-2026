@@ -1,6 +1,4 @@
-"""Ticket #40: duplicate detection and golden record. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Duplicate detection and golden record."""
 import copy
 import unittest
 from pathlib import Path

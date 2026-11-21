@@ -1,4 +1,4 @@
--- Ordo database, first cut. Owner: role 5.
+-- Ordo database, first cut.
 --
 -- Every contract entity is stored whole in `doc` (jsonb, exactly the shape of contracts/schemas/<entity>.schema.json),
 -- so a schema change in contracts/ needs no migration. The other columns are generated from `doc` and exist only
@@ -143,7 +143,7 @@ create table approvals (
   decided_at   text generated always as (doc->>'decided_at') stored
 );
 
--- Queue (D-07, contracts/events.md): one outbox table, one delivery row per (event, consumer), LISTEN/NOTIFY.
+-- Queue (contracts/events.md): one outbox table, one delivery row per (event, consumer), LISTEN/NOTIFY.
 create table outbox (
   id             text primary key,
   type           text not null,

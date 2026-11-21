@@ -1,4 +1,4 @@
-"""Simulated executor (#36) against the real Sandbox Bank (sim/bank, in-process) and the real tables."""
+"""Simulated executor against the real Sandbox Bank (sim/bank, in-process) and the real tables."""
 import copy
 import sys
 from pathlib import Path
@@ -34,7 +34,7 @@ def demo(db):
 
 
 def action_of(rec_id: str, **param_changes) -> dict:
-    """The fixture Recommendation's proposed_action with changes applied, as role 5 hands it over."""
+    """The fixture Recommendation's proposed_action with changes applied, as the decision endpoint hands it over."""
     rec = next(r for r in read("recommendation") if r["id"] == rec_id)
     action = copy.deepcopy(rec["proposed_action"])
     action["params"].update(param_changes)
@@ -53,7 +53,6 @@ def simulated_events(db):
     return [r[0] for r in db.execute("select payload from outbox where type = 'execution.simulated' order by seq")]
 
 
-# ---------- acceptance ----------
 def test_credit_line_with_the_owners_lower_limit(demo, bank):
     out = run(demo, bank, action_of("rec_cl01", limit={"amount": "25000.00", "currency": "PLN"}))
     assert out["reference"].startswith("SIM-CL-")
@@ -91,7 +90,6 @@ def test_a_mode_other_than_simulated_is_refused_before_anything_happens(demo, ba
     assert bank_executions(bank) == [] and simulated_events(demo) == []
 
 
-# ---------- the other action kinds ----------
 def test_tax_pocket_is_a_payment_draft_to_the_tax_pocket(demo, bank):
     out = run(demo, bank, {"kind": "move_to_tax_pocket", "params": {"amount": {"amount": "14300.00", "currency": "PLN"}}})
     [done] = bank_executions(bank)
@@ -120,7 +118,6 @@ def test_executions_never_move_a_balance(demo, bank):
     assert bank.get("/v1/accounts/acc_pln/balances", headers=PSD2).json() == before
 
 
-# ---------- failures ----------
 def test_unreachable_bank_fails_and_emits_nothing(demo):
     def down(request):
         raise httpx.ConnectError("connection refused", request=request)

@@ -1,6 +1,4 @@
-// Mock mode: answers every API path the app calls, from contracts/fixtures plus the sample data in
-// sample.ts (for what the fixtures do not cover yet). The response shapes follow contracts/openapi.yaml
-// and the shapes agreed with role 1, so live mode needs no code change.
+// Mock mode: answers every API path the app calls from contracts/fixtures plus sample.ts, in the live API's shapes.
 import accountsJson from "@contracts/fixtures/account.json";
 import approvalsJson from "@contracts/fixtures/approval.json";
 import counterpartiesJson from "@contracts/fixtures/counterparty.json";
@@ -50,7 +48,7 @@ const COMPANIES = [
   { id: "co_amalfi", name: "Pizzeria Amalfi (organisers' data)", base_currency: "EUR", country: "DE", as_of_date: "2025-05-15" },
 ];
 
-// Not in the fixtures yet: the "What Ordo did on its own" feed. Numbers follow the demo script in the role 6 spec.
+// Not in the fixtures yet: the "What Ordo did on its own" feed, with the demo script's numbers.
 const ACTIVITY = [
   { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read Jan's receipt and worked out that he paid privately", subject: { type: "document", id: "doc_rcpt412" }, evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt", url: "/documents/doc_rcpt412" }] },
   { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", subject: null, evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/settings#accounts" }] },
@@ -64,15 +62,13 @@ const FX_EXPOSURE = [
   { document_id: "doc_fv1007", direction: "receivable", amount: { amount: "18400.00", currency: "EUR" }, value_today_base: { amount: "81989.00", currency: "PLN" }, horizon_days: 45, expected_shortfall: { amount: "-1426.00", currency: "PLN" }, verdict: "not_worth_it", recommendation_id: "rec_fx02" },
 ];
 
-// Not in the fixtures either: the copies of the PixelBoard invoice that were merged into one record.
-// The kept record came by e-mail; the same invoice also arrived as an e-invoice and as a photo.
+// Not in the fixtures either: the e-mailed PixelBoard invoice, merged with its e-invoice and photo copies.
 const COPIES: OrdoDocument[] = (["ksef", "photo"] as const).map((channel) => {
   const original = (documentsJson as unknown as OrdoDocument[]).find((d) => d.id === "doc_pixel11")!;
   return { ...original, id: `doc_pixel11_${channel}`, channel, duplicate_of: original.id, status: "duplicate" };
 });
 
-// State changed in this tab. The fixtures never change; this sits on top of them so that an approved
-// card leaves To-do and shows up as done, the way the real API behaves.
+// State changed in this tab, on top of the unchanging fixtures, so an approved card leaves To-do as with the real API.
 const decisions = new Map<string, Approval>();
 const documentEdits = new Map<string, OrdoDocument>();
 const undoneMatches = new Set<string>();

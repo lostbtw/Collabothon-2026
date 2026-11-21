@@ -1,5 +1,4 @@
-// Dashboard logic with no React in it. Geometry may use floating point (it is pixels);
-// every number shown to the owner is formatted from the engine's decimal strings.
+// Dashboard logic with no React in it; pixels may be floats, every number shown comes from the engine's decimal strings.
 import type { EvidenceLink, Forecast, Money, Transaction } from "../../api/types.gen";
 import { daysBetween } from "../../lib/dates";
 import { isNegative } from "../../lib/money";

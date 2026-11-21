@@ -1,5 +1,4 @@
-// How the app groups the contract's fixed category list (D-09) into a few cost types an owner understands.
-// The grouping is presentation only: the categories and their amounts come from the backend.
+// Groups the contract's fixed category list into a few cost types an owner understands; presentation only.
 import type { LedgerSummary } from "../api/client";
 import type { Money } from "../api/types.gen";
 
@@ -17,7 +16,7 @@ export const DEFAULT_COST_TYPES: CostType[] = [
   { key: "unexplained", label: "Not explained yet", color: "var(--cat-none)", tag: "Needs a look", categories: ["other"] },
 ];
 
-/** Contract D-09: these categories repeat every month (fixed + subscription). */
+/** These categories repeat every month (fixed + subscription). */
 export const FIXED_CATEGORIES = new Set(["salaries", "contractors", "social_security", "rent_office", "software_subscriptions", "cloud_hosting"]);
 export const INCOME_CATEGORIES = new Set(["revenue_services"]);
 /** Not company costs: a reimbursement is a debt to a person (the cost itself is booked in its own category), owner_private is personal. */

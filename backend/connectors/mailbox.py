@@ -1,20 +1,4 @@
-"""Mailbox connector (#33): receipts and invoices the team forwards to the invoices mailbox, read over IMAP.
-
-Every new message becomes one `email` RawItem (external_id = Message-ID) and every attachment one more RawItem
-(external_id = "<Message-ID>#<n>", parent = the e-mail, metadata `forwarded_by` = the sender's address, the file
-bytes in raw_item_content). FA(3) XML attachments (Polish e-invoices) are of kind `ksef_invoice_xml`, which role 3
-parses without a model; photos and PDFs are `email_attachment`, for the extractor.
-
-Skipped: messages with no usable attachment whose text does not look like an invoice, and inline images under
-20 kB (logos, signatures). A file this mailbox already delivered (same sha256) is not stored twice.
-
-The mailbox is opened read-only: nothing is marked as seen, moved or deleted.
-Cursor: `UIDVALIDITY=<v>;UID=<last uid>` (the fixture's format). A different UIDVALIDITY (another mailbox, or the
-fixture's invented value) means the UIDs changed: the mailbox is read from the beginning; duplicates are skipped.
-
-Environment (credentials are an OpenShift Secret, never in Git): ORDO_IMAP_USER, ORDO_IMAP_PASSWORD,
-ORDO_IMAP_HOST (default imap.gmail.com), ORDO_IMAP_PORT (993), ORDO_IMAP_FOLDER (INBOX).
-"""
+"""Mailbox connector: each forwarded e-mail and each attachment becomes a RawItem; the mailbox is read over IMAP, read-only."""
 from __future__ import annotations
 
 import email
@@ -101,8 +85,7 @@ def message_items(raw: bytes, uid: int) -> list[FetchedItem]:
     msg = email.message_from_bytes(raw, policy=email.policy.default)
     files = _attachments(msg)
     subject = str(msg.get("Subject") or "")
-    # Addresses and links are not words of the message: the mailbox's own name ("...invoices...@gmail.com") would
-    # otherwise make every notification look like an invoice.
+    # Addresses and links are not words: the mailbox's own name ("...invoices...") would make every mail look like an invoice.
     words = ADDRESS_OR_LINK.sub(" ", subject + "\n" + _body_text(msg))
     if not files and not INVOICE_WORDS.search(words):
         return []

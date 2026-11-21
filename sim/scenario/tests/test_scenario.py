@@ -1,9 +1,4 @@
-"""Tests for the Borsuk Labs demo scenario (#15).
-
-Run from the repo root:  python3 -m unittest discover -s sim/scenario/tests -v
-or with pytest:          python -m pytest sim/scenario
-Set FA3_XSD=<folder with schemat.xsd and its imports> to also validate the FA(3) files with xmllint.
-"""
+"""Tests for the Borsuk Labs demo scenario; FA3_XSD=<schema folder> also validates the FA(3) files."""
 import filecmp
 import json
 import os

@@ -1,4 +1,4 @@
-"""Documents and Matches (role 3's data, served by role 5)."""
+"""Documents and Matches."""
 from typing import Any
 
 import psycopg

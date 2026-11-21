@@ -1,4 +1,4 @@
-"""Bank connector (#22) against the real Sandbox Bank (sim/bank, served in-process) and the real tables."""
+"""Bank connector against the real Sandbox Bank (sim/bank, served in-process) and the real tables."""
 import json
 import os
 import sys
@@ -74,7 +74,6 @@ def raw_items(db, source_id="src_bank_pln"):
     return Store(db).list("raw_item", source_id=source_id)
 
 
-# ---------- acceptance 1: an injected line becomes exactly one RawItem within one poll ----------
 def test_injected_line_becomes_one_raw_item_in_one_poll(db, bank, pln):
     line = inject(bank)
     result = poll(db, pln, bank)
@@ -87,7 +86,6 @@ def test_injected_line_becomes_one_raw_item_in_one_poll(db, bank, pln):
     assert Store(db).get("source", "src_bank_pln")["cursor"] == "2026-11-20|E000000001"
 
 
-# ---------- acceptance 2: running twice creates nothing new ----------
 def test_second_poll_creates_nothing(db, bank, pln):
     inject(bank)
     poll(db, pln, bank)
@@ -126,7 +124,6 @@ def test_raw_item_feeds_role_3s_normaliser(db, bank, pln):
     assert txn["account_id"] == "acc_pln" and txn["external_id"] == "E000000001"
 
 
-# ---------- failures ----------
 def test_wrong_token_sets_the_source_to_error(db, bank, pln):
     c = BankConnector(pln, "acc_pln", bank, token="wrong")
     result = run_once(db, c, sleep=lambda s: None)
@@ -167,7 +164,6 @@ def test_server_error_is_retried(db, pln):
     assert result["status"] == "success" and result["attempt"] == 2
 
 
-# ---------- helpers ----------
 def test_cursor_formats():
     assert reference_of("2026-11-21|E000000731") == "E000000731"
     assert reference_of("E000000731") == "E000000731"
@@ -180,7 +176,6 @@ def test_account_comes_from_the_accounts_table_then_config_then_convention(db, p
     assert account_for_source(db, {"id": "src_bank_eur", "config_public": {}}) == "acc_eur"
 
 
-# ---------- the process: schedule, "sync now", recovery, demo mode ----------
 def test_tick_polls_due_sources_and_respects_next_run_at(db, bank, pln):
     inject(bank)
     now = datetime.now(UTC)
@@ -217,7 +212,6 @@ def test_sync_now_button_is_picked_up(db, db_url, bank, pln):
         run = api.post("/api/v1/sources/src_bank_pln/sync").json()
         [result] = _tick(db, bank, datetime.now(UTC))  # adopted once, not run a second time by the schedule
         assert result["id"] == run["id"] and result["trigger"] == "manual" and result["status"] == "success"
-        # acceptance 4: the Sources page data is live
         src = next(s for s in api.get("/api/v1/sources?company_id=co_borsuk").json()["items"] if s["id"] == "src_bank_pln")
         assert src["status"] == "connected" and src["last_synced_at"] and src["items_total"] == 1
         runs = api.get("/api/v1/sync-runs?source_id=src_bank_pln").json()["items"]
@@ -236,7 +230,6 @@ def test_recover_closes_runs_left_running_by_a_dead_process(db, pln):
     assert Store(db).get("source", "src_bank_pln")["status"] == "degraded"
 
 
-# ---------- the invented cursors of contracts/fixtures heal themselves ----------
 def test_fixture_cursor_is_detected_and_the_source_starts_over(db, bank):
     # exactly what `python -m backend.db fixtures` leaves: "already read up to E000000731, 731 items"
     add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-21|E000000731", items_total=731)
@@ -254,8 +247,7 @@ def add_source_noop(db):
 
 
 def test_fixture_cursor_that_matches_a_real_line_is_still_not_trusted(db, bank):
-    """Found live: the pizzeria fixture says E000001125, and the real bank's last line IS E000001125.
-    The cursor is still not ours (that line is not in our database), so everything is read."""
+    """Found live: a fixture cursor naming the bank's real last line is still not ours, so everything is read."""
     for i in range(3):
         inject(bank, amount=f"-{i + 1}.00")
     add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-20|E000000003", items_total=3)
@@ -304,7 +296,6 @@ def test_demo_interval(db, bank, pln):
     assert Store(db).get("source", "src_bank_pln")["poll_interval_seconds"] == 15
 
 
-# ---------- acceptance 3: the pizzeria, 1,125 RawItems (organisers' file, not in Git) ----------
 REAL = os.environ.get("BANK_TEST_CSV")
 
 

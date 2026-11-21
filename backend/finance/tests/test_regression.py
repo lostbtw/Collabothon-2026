@@ -1,11 +1,4 @@
-"""Regression: the demo numbers (#45). Pure, no database.
-
-If one of these fails, the demo script changes, not the engine (spec #4, risk R15). The values are the engine's own
-output at the time of writing; the human decided on 21 Nov 2026 that the script follows them.
-
-Borsuk Labs runs everywhere (role 4's committed scenario). Pizzeria Amalfi needs the organisers' CSV, which is
-git-ignored event material (hard rule 2: no real data in the repo); without it those tests skip and say where to put it.
-"""
+"""Regression: the demo numbers; if one fails, the demo script changes, not the engine (the pizzeria needs its CSV)."""
 from collections import defaultdict
 from decimal import Decimal
 
@@ -34,8 +27,7 @@ def labs_forecast():
 
 @pytest.fixture(scope="module")
 def pizzeria_days():
-    """Pizzeria Amalfi's real balance at the end of each booking day: 2,500.00 EUR opening (not in the file) plus
-    every bank line in the base currency, so the 12 CHF lines booked in the EUR account count in EUR."""
+    """Pizzeria Amalfi's balance at the end of each booking day: 2,500.00 EUR opening plus every line in the base currency."""
     data = pizzeria()
     by_day: dict[str, Decimal] = defaultdict(Decimal)
     for t in data["transactions"]:

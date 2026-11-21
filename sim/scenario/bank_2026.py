@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""Borsuk Labs (SAMPLE) bank lines, 1 Jan - 20 Nov 2026, in the pizzeria CSV format.
-
-Routine rows (Jan-Oct, plus daily card purchases in November) come from a
-seeded generator. The November story rows are written by hand. The closing
-balance on 20 Nov is fixed by the liquidity story (24,730.15 PLN and
-3,100.00 EUR); the opening balance on 1 Jan is computed backwards from it.
-Fixed seed, so the output is byte-identical on every run.
-
-Usage: python3 sim/scenario/bank_2026.py
-Output: sim/scenario/out/bank_<account>.csv
-"""
+"""Borsuk Labs (SAMPLE) bank lines, 1 Jan - 20 Nov 2026, in the pizzeria CSV format; seeded, byte-identical every run."""
 import csv
 import json
 import math
@@ -23,8 +13,7 @@ from world import ACCOUNTS, COMPANY, OUT, PERSON, bank_name
 SEED = 2026
 START, END = date(2026, 1, 1), date(2026, 11, 20)
 
-# Same columns, order, encoding and number format as the organisers'
-# pizzeria CSV (pizzeria-amalfi-bank-statement-2025-v6.csv).
+# Same columns, order, encoding and number format as the organisers' pizzeria CSV.
 COLUMNS = [
     "Account Number", "Booking Date", "Value Date", "Transaction Type",
     "Payment Reference", "Beneficiary/Payer", "Counterparty Account",
@@ -48,8 +37,7 @@ MEBLOSTYL = ("MEBLOSTYL SP Z O O (SAMPLE)", "PL00999900000000000000030003")
 PIEKARNIA = ("PIEKARNIA ZLOTY KLOS SP Z O O (SAMPLE)", "PL00999900000000000000030001")
 KADROWNIA = ("KADROWNIA SP Z O O (SAMPLE)", "PL00999900000000000000030002")
 
-# Pay run on the last bank day: 2 employees, 4 B2B contractors, owner's board fee = 58,000.00.
-# (person id, type, reference, amount); story_2026.py uses the same list for 30 Nov.
+# Pay run on the last bank day (story_2026.py reuses it for 30 Nov): (person id, type, reference, amount).
 PAY_RUN_PLAN = [
     ("per_jan", "SALARY PAYMENT", "WYNAGRODZENIE {mm}", "8200.00"),
     ("per_marta", "SALARY PAYMENT", "WYNAGRODZENIE {mm}", "7400.00"),
@@ -163,8 +151,7 @@ NOV_ROWS = {
         # Tax office series kept separate (payroll withholding vs CIT advance).
         ("20.11", "20.11", "TAX OFFICE TRANSFER", *US_LODZ, "PIT-4 10/2026 NIP 9990000014", "-3850.00"),
         ("20.11", "20.11", "TAX OFFICE TRANSFER", *US_LODZ, "CIT-5 ZALICZKA 10/2026 NIP 9990000014", "-7050.00"),
-        # Same line as contracts/fixtures/transaction.json txn_731 (balance after = 24,730.15): 45 USD at the real
-        # NBP rate of 18 Nov (4.0170) plus a 2.7% card spread.
+        # Same line as fixture txn_731: 45 USD at the real NBP rate of 18 Nov (4.0170) plus a 2.7% card spread.
         ("20.11", "19.11", "GIRO CARD PAYMENT", "PIXELBOARD INC (SAMPLE)", "",
          "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417", "-185.57"),
     ],
@@ -221,8 +208,7 @@ NBP_RATES = json.loads((Path(__file__).parent / "nbp_rates.json").read_text(enco
 
 
 def mid_rate(cur, d):
-    """Real NBP table A mid rate (sim/scenario/nbp_rates.json) of the last table published on or before `d`:
-    the rate a card purchase on day `d` is priced from. After the last table the last one is used."""
+    """Real NBP table A mid rate of the last table on or before `d`; after the last table, the last one."""
     table = NBP_RATES[cur]
     day = d
     for _ in range(400):
@@ -236,10 +222,7 @@ def mid_rate(cur, d):
 
 
 def card_rate(cur, d):
-    """The NBP rate a foreign card purchase on day `d` is priced from: the last table published BEFORE `d`.
-    That is the PL-FX-01 rate the matcher converts the document with, so bank amount / (document x rate) is the
-    card spread alone and never the day-to-day move of the real rate (a real jump of 1.5% plus a 3% spread
-    would leave the matcher's band)."""
+    """The PL-FX-01 rate a foreign card purchase on `d` is priced from, so the matcher sees the card spread alone."""
     return mid_rate(cur, d - timedelta(days=1))
 
 
@@ -263,11 +246,7 @@ def sale_doc(number, issue, due):
 
 
 class Book:
-    """Collects rows per account: (booking, value, type, reference, payer, account, amount).
-
-    A row can carry `doc`: the data of the invoice behind it (used by fa3_2026.py). Documents
-    never consume random numbers, so adding them does not change the bank lines.
-    """
+    """Collects rows per account; a row's `doc` is the invoice behind it and never consumes random numbers."""
 
     def __init__(self):
         self.rows = {acc: [] for acc in ACCOUNTS}
@@ -283,10 +262,7 @@ class Book:
                                        "reference": ref, "amount": row[6], "currency": ACCOUNTS[acc]["currency"]}})
 
     def ordered(self, acc):
-        """Rows in booking order, as (entry reference, insertion index, row).
-
-        The Sandbox Bank (sim/bank) loads a CSV in the same order and numbers the lines E000000001, ...
-        """
+        """Rows in booking order as (entry reference, insertion index, row), numbered as the Sandbox Bank does."""
         rows = sorted(enumerate(self.rows[acc]), key=lambda x: (x[1][0], x[0]))
         return [(f"E{n:09d}", i, row) for n, (i, row) in enumerate(rows, start=1)]
 
@@ -452,8 +428,7 @@ def card_doc(currency=None, gross=None, **extra):
     return doc
 
 
-# Documents behind the hand-written November rows, by reference. Rows not listed have no document
-# (bank fees, ZUS, taxes, the spa (M4) and the owner's private purchases).
+# Documents behind the hand-written November rows; unlisted rows (fees, ZUS, taxes, the spa, private) have none.
 NOV_DOCS = {
     # October invoices paid in November.
     "FV 2026/10/041": sale_doc("2026/10/041", date(2026, 10, 31), date(2026, 11, 4)),
@@ -488,8 +463,7 @@ NOV_DOCS = {
 
 
 def _invented_mid(cur, d):
-    """The invented curve the hand-written November card rates were tuned on. Kept only to recover each row's
-    card spread (its rate over this curve), so the row keeps its spread on top of the real NBP rate."""
+    """The curve the hand-written November card rates were tuned on, kept only to recover each row's card spread."""
     a, b = {"EUR": (4.33, 4.41), "USD": (3.98, 4.06)}[cur]
     t = (d - START).days / (END - START).days
     return a + (b - a) * t + 0.015 * math.sin(d.toordinal() / 9)

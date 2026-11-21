@@ -1,14 +1,4 @@
-"""What-if scenarios, the stress case and credit-line sizing on a Forecast (#44). Pure: a forecast in, numbers out.
-
-Everything is computed from the forecast's own points and components; there is no company name, date or amount in
-this module. The rules (how much later the stress receivable comes, the sizing step) are in settings.py.
-
-    with_changes(f, body)   POST /forecast/scenario: credit_line {limit, from}, shift_receivable {document_id,
-                            new_date}, shift_payable {component_id, days}
-    stress_of(f)            the largest receivable from a late payer comes STRESS_EXTRA_DAYS later still; its low is
-                            measured before that money arrives (payments due the same day go first)
-    credit_line_size(f, s)  the worst shortfall of the forecast and its stress case, rounded up to SIZING_STEP
-"""
+"""What-if scenarios, the stress case and credit-line sizing, computed from a forecast's own points and components."""
 import copy
 from datetime import date, timedelta
 from decimal import ROUND_CEILING, Decimal

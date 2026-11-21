@@ -50,8 +50,7 @@ export function Tile({ label, value, note, tone, to }: { label: string; value: R
   return to ? <Link to={to} className="card tile">{body}</Link> : <div className="card tile">{body}</div>;
 }
 
-/** "↑ 14,100 PLN vs September". `upIsGood` decides the colour: more income is good, more costs are not.
- * Leave out `vs` where the section already says what it is compared with. */
+/** "↑ 14,100 PLN vs September"; `upIsGood` decides the colour: more income is good, more costs are not. */
 export function Change({ now, before, upIsGood, vs }: { now: Money; before: Money | null; upIsGood: boolean; vs?: string }) {
   if (!before) return null;
   const diff = subtract(now.amount, before.amount);
@@ -105,8 +104,7 @@ export function Avatar({ text }: { text: string }) {
   return <span className="avatar" aria-hidden="true">{text}</span>;
 }
 
-/** A button that runs an action (in this build always in the test bank, which the sidebar says once). Its tooltip
- * says what will happen. */
+/** A button that runs an action (always in the test bank, which the sidebar says once); its tooltip says what will happen. */
 export function SimButton({ label, onClick, busy, disabled, primary = true, what }: {
   label: string; onClick: () => void; busy?: boolean; disabled?: boolean; primary?: boolean; what?: string | null;
 }) {

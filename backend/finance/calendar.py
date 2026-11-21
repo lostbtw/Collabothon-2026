@@ -1,9 +1,4 @@
-"""Business days and month arithmetic for the forecast. Pure, no database.
-
-Public holidays are known for Poland and Germany (company country PL or DE); other countries count
-weekends only. PL-CAL-04: a payment due on a weekend or holiday moves to the next business day (UNVERIFIED rule,
-shown as a hint).
-"""
+"""Business days and month arithmetic; PL-CAL-04 moves a payment due on a weekend or PL/DE holiday to the next business day."""
 from datetime import date, timedelta
 from functools import lru_cache
 

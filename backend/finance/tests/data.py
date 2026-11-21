@@ -1,8 +1,4 @@
-"""Forecast inputs from files already in the repo, read the way the app reads them (role 3's normaliser).
-
-- Pizzeria Amalfi: the organisers' CSV (git-ignored event material; tests skip without it).
-- Borsuk Labs: role 4's scenario (sim/scenario/out), same CSV format, plus its story items and People.
-"""
+"""Forecast inputs from the repo's demo data, read the way the app reads them (pizzeria CSV, Borsuk Labs scenario)."""
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -15,7 +11,7 @@ from backend.pipeline.normalise.commerzbank_csv import DEFAULT_CSV, raw_items, r
 ROOT = Path(__file__).resolve().parents[3]
 SCENARIO = ROOT / "sim" / "scenario" / "out"
 PIZZERIA_CSV = next((p for p in (DEFAULT_CSV, SCENARIO / DEFAULT_CSV.name) if p.is_file()), None)
-RATES = {"PLN": "1", "EUR": "4.41", "USD": "4.0613"}  # demo-day rates (spec #4)
+RATES = {"PLN": "1", "EUR": "4.41", "USD": "4.0613"}  # demo-day rates
 STORY_CLOSING = {"acc_pln": Decimal("24730.15"), "acc_eur": Decimal("3100.00")}  # 20 Nov 2026, sim/scenario/world.py
 
 
@@ -29,7 +25,7 @@ def key(name: str) -> str:
 
 def pizzeria() -> dict:
     account = {"id": "acc_pizzeria", "currency": "EUR", "include_in_liquidity": True,
-               "opening_balance": {"amount": "2500.00", "currency": "EUR"}}  # not in the file (spec #4)
+               "opening_balance": {"amount": "2500.00", "currency": "EUR"}}  # not in the file
     return {"company": {"id": "co_amalfi", "base_currency": "EUR", "as_of_date": "2025-05-15", "country": "DE"},
             "accounts": [account], "transactions": bank_lines(PIZZERIA_CSV, account), "rates": {"EUR": "1"}}
 
@@ -66,8 +62,7 @@ def borsuk(without: tuple[str, ...] = ()) -> dict:
     transactions = []
     for account in accounts:
         lines = bank_lines(SCENARIO / f"bank_{account['id']}.csv", account)
-        # The story fixes the closing balance (sim/scenario/world.py); the opening one is derived from it, as the
-        # scenario does, so regenerating the bank lines (e.g. other card rates) never moves the cash story.
+        # The story fixes the closing balance; the opening one is derived from it, so regenerated bank lines never move the cash story.
         booked = sum((Decimal(t["amount_base"]["amount"]) for t in lines), Decimal(0))
         account["opening_balance"] = {"amount": f"{STORY_CLOSING[account['id']] - booked:.2f}",
                                       "currency": account["currency"]}

@@ -1,4 +1,4 @@
-"""Ticket #23: FA(3) XML and inFakt JSON -> Documents, PL-FX-01 conversion."""
+"""FA(3) XML and inFakt JSON -> Documents, PL-FX-01 conversion."""
 import unittest
 from pathlib import Path
 

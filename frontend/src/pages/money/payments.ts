@@ -1,5 +1,4 @@
-// One list of every payment: bank and card lines, plus receipts somebody paid with a private card
-// (they never reach a company account). No React in here, so it can be tested directly.
+// One list of every payment: bank and card lines plus receipts paid with a private card. No React, so it is testable.
 import type { Account, Counterparty, Match, Money, OrdoDocument, Transaction } from "../../api/types.gen";
 import { NOT_COSTS, costTypes, negate, typeOfCategory } from "../../lib/costTypes";
 import { categoryLabel, firstName, plainName } from "../../lib/words";

@@ -1,4 +1,4 @@
-"""Seam: Match + Document -> Ledger entries (#27). Pure, no database."""
+"""Seam: Match + Document -> Ledger entries. Pure, no database."""
 from datetime import date
 
 from backend.db.contracts import LedgerEntry

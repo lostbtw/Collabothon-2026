@@ -1,4 +1,4 @@
-"""Seam: outbox -> finance consumer -> Ledger (#27). Needs the test database (backend/conftest.py)."""
+"""Seam: outbox -> finance consumer -> Ledger. Needs the test database."""
 from decimal import Decimal
 
 import pytest
@@ -14,7 +14,7 @@ from backend.finance.main import process_pending
 
 @pytest.fixture
 def demo(db, db_url):
-    """The API on the fixture data (role 5's stand-ins), as in backend/api/tests."""
+    """The API on the fixture data, as in backend/api/tests."""
     load_fixtures(db)
     with TestClient(create_app(database_url=db_url)) as c:
         yield c
@@ -79,7 +79,7 @@ def test_without_fixture_entries_the_booking_creates_its_own(db):
 
 
 def test_approving_the_hero_receipt_raises_vat_lost_this_year_by_242_90(demo, db):
-    """#46: the counter counts approved entries only, so the owner's approval makes it tick up."""
+    """The counter counts approved entries only, so the owner's approval makes it tick up."""
     before = engine.ledger_kpis(db, "co_borsuk")
     demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
     process_pending(db)

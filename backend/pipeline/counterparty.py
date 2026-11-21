@@ -1,15 +1,4 @@
-"""Counterparty resolution with alias learning, and categories (ticket #41, spec #3).
-
-Resolution order for a bank line or a document:
-  1. exact tax id   2. exact IBAN   3. alias table (normalised raw name)
-  4. name similarity > 0.8: a *suggestion* only. The line stays `counterparty_unresolved` until the owner confirms
-     a Match between it and a document; that confirmation stores the raw spelling as an alias (`learn_from_match`),
-     so the next line with that spelling resolves at step 3 on its own.
-  5. otherwise a new Counterparty; its kind comes from rules, then the model if one is configured.
-
-Category order (D-09): counterparty's default category (history) -> keyword rules -> model constrained to the
-Category enum -> "other". The model is optional (`choose` is None when ORDO_LLM_ENABLED=0 or in tests).
-"""
+"""Counterparty resolution (tax id, IBAN, learned alias, else new) and categories (history, rules, model, "other")."""
 import logging
 import os
 import re
@@ -56,8 +45,6 @@ DEFAULT_CATEGORY_BY_KIND = {"tax_authority": "taxes", "social_security": "social
                             "payment_processor": "revenue_services", "employee": "salaries", "bank": "bank_fees"}
 
 
-# ---------- normalising ----------
-
 def normalise_alias(raw: str | None) -> str:
     """'PIXELBOARD.COM* SAN FRANCISCO 1452' -> 'PIXELBOARD COM SAN FRANCISCO' (reference numbers dropped)."""
     tokens = re.sub(r"[^0-9A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]+", " ", raw or "").upper().split()
@@ -76,8 +63,6 @@ def _iban(text) -> str:
 def _slug(name: str) -> str:
     return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", normalise_alias(name).lower())).strip("_")[:40] or "unknown"
 
-
-# ---------- resolution ----------
 
 def resolve(counterparties: list[dict], *, name: str | None, tax_id: str | None = None,
             iban: str | None = None) -> tuple[str, dict | None, float]:
@@ -140,8 +125,6 @@ def with_alias(cp: dict, raw: str | None) -> dict:
     return {**cp, "aliases": aliases}
 
 
-# ---------- categories ----------
-
 def categorise(text: str, *, counterparty: dict | None, incoming: bool,
                choose: Callable | None = None) -> tuple[str, str, float]:
     """(category, method 'history'|'rule'|'llm', confidence). Always a value of the Category enum."""
@@ -159,7 +142,7 @@ def categorise(text: str, *, counterparty: dict | None, incoming: bool,
     return ("revenue_services" if incoming else "other"), "rule", 0.5
 
 
-# ---------- the optional model (D-09: constrained to the enum) ----------
+# The optional model may only choose from the Category enum.
 
 def model_chooser() -> Callable | None:
     """choose(question, choices) -> one of choices, via the cluster's vLLM (guided choice). None when disabled."""
@@ -188,8 +171,6 @@ def model_chooser() -> Callable | None:
 
     return choose
 
-
-# ---------- applying it to entities ----------
 
 def apply_to_transaction(txn: dict, counterparties: list[dict], company_id: str, choose=None) -> tuple[dict, dict | None]:
     """(updated Transaction, Counterparty to store or None). Sets counterparty_id, category, data_quality."""
@@ -245,9 +226,7 @@ def apply_to_document(doc: dict, counterparties: list[dict], company_id: str, ch
 
 
 def learn_from_match(document: dict, txn: dict, counterparties: list[dict], company_id: str):
-    """The owner confirmed that this document and this bank line are one purchase: both spellings belong to one
-    counterparty. Returns (counterparties to store, updated document or None, updated transaction or None).
-    A counterparty auto-created earlier from the bank spelling gives that alias up to the confirmed one."""
+    """The owner confirmed a document and a bank line as one purchase: both spellings become aliases of one counterparty."""
     side = "seller" if document["direction"] == "purchase" else "buyer"
     party = document[side]
     by_id = {c["id"]: c for c in counterparties}

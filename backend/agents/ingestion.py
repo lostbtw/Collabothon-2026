@@ -1,7 +1,4 @@
-"""Inbox cards from Matches and taxes, template text only. Card per Match:
-  not suggested -> none | reimbursement owed -> reimburse_employee | PL-PRIV-01 / possible_private -> mark_private
-  score < 0.55 -> missing_document | VAT lost, score >= 0.90 -> request_company_invoice | else -> confirm_match
-  Each upcoming tax payment -> tax_reserve."""
+"""Inbox cards from Matches and upcoming tax payments, template text only."""
 import calendar
 from datetime import date, timedelta
 from decimal import Decimal

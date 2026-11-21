@@ -1,8 +1,5 @@
-# Rules for project cfo-ai, evaluated by user-workload monitoring (cluster-monitoring-config.yaml).
-# Alerts show in the console under Observe -> Alerting; no receiver is configured, nothing is sent anywhere.
-#
-# ordo-model: vLLM metrics of gpt-oss-20b only, so the user-workload Prometheus evaluates it (leaf-prometheus).
-# Thresholds sit well above what the model does today: TTFT p95 under 0.25 s, slowest request 30 s.
+# Alert rules for project cfo-ai, shown under Observe -> Alerting; no receiver, nothing is sent anywhere.
+# ordo-model: vLLM metrics only, so user-workload Prometheus evaluates it; thresholds sit well above today's numbers.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -88,8 +85,7 @@ spec:
               gpt-oss-20b spends tokens on reasoning before the answer. A guidellm run with fixed output length
               also triggers this alert.
 ---
-# ordo-workloads: kube-state-metrics belongs to platform monitoring, so Thanos Ruler evaluates this one (no
-# leaf-prometheus label). The namespace label cfo-ai is enforced on every query.
+# ordo-workloads: kube-state-metrics is platform monitoring, so Thanos Ruler evaluates it (namespace cfo-ai enforced).
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:

@@ -1,7 +1,4 @@
-// Sample-mode data for what the contract fixtures do not cover yet: the endpoints role 1 is adding
-// (people, clients, subscriptions, settings, rules, chat history, balance history) and enough extra
-// payments for the Money screens. Mock mode only: live mode asks the backend.
-// Everything here is invented SAMPLE data: companies, people, e-mail addresses and tax ids.
+// Sample-mode data the fixtures do not cover, all invented SAMPLE data; mock mode only, live mode asks the backend.
 import type {
   BalanceHistory, ChatSession, ChatSessionDetail, ClientsResponse, PeopleCosts, Person, Rule, Settings, SubscriptionsResponse,
 } from "./client";
@@ -11,7 +8,7 @@ const pln = (amount: string): Money => ({ amount, currency: "PLN" });
 const addDays = (date: string, n: number): string =>
   new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)) + n)).toISOString().slice(0, 10);
 
-// ---- Ledger summary by month (what GET /ledger/summary?group_by=category&from&to returns) ----
+// What GET /ledger/summary?group_by=category&from&to returns, by month.
 type Row = { key: string; amount_base: Money; change_pct: null; entries: number };
 const rows = (list: [string, string, number][]): Row[] => list.map(([key, amount, entries]) => ({ key, amount_base: pln(amount), change_pct: null, entries }));
 
@@ -34,7 +31,7 @@ export const SUMMARY_BY_MONTH: Record<string, Row[]> = {
 };
 export const SUMMARY_KPIS = { reimbursements_owed: pln("5169.00"), vat_lost_ytd: pln("242.90"), documents_missing: 24, tax_due_next_30d: pln("25200.00") };
 
-// ---- Cash in the bank over the last three months (GET /balance/history) ----
+// Cash in the bank over the last three months (GET /balance/history).
 const HISTORY_START = "2026-08-21";
 const HISTORY: [number, string][] = [
   [0, "93300.00"], [10, "33300.00"], [13, "29600.00"], [18, "106400.00"], [25, "98900.00"], [30, "77900.00"], [35, "64300.00"], [37, "105200.00"],
@@ -43,7 +40,7 @@ const HISTORY: [number, string][] = [
 ];
 export const BALANCE_HISTORY: BalanceHistory = { currency: "PLN", points: HISTORY.map(([d, balance]) => ({ date: addDays(HISTORY_START, d), balance })) };
 
-// ---- Counterparties the extra payments need ----
+// Counterparties the extra payments need.
 const cp = (id: string, name: string, kind: Counterparty["kind"], default_category: string, extra: Partial<Counterparty> = {}): Counterparty =>
   ({ id, company_id: "co_borsuk", name, kind, default_category, ...extra });
 export const SAMPLE_COUNTERPARTIES: Counterparty[] = [
@@ -79,7 +76,7 @@ export const SAMPLE_COUNTERPARTIES: Counterparty[] = [
   cp("cp_parkuj", "Parkuj.pl (SAMPLE)", "supplier", "other"),
 ];
 
-// ---- Extra bank and card lines, in the same shape the bank connector delivers ----
+// Extra bank and card lines, in the shape the bank connector delivers.
 type TxnExtra = Partial<Transaction>;
 const SOURCE: Record<string, string> = { acc_pln: "src_bank_pln", acc_eur: "src_bank_eur", acc_owner: "src_bank_owner" };
 const txn = (id: string, account_id: string, booking_date: string, amount: string, raw: string, counterparty_id: string | null, category: Transaction["category"], match_status: Transaction["match_status"], extra: TxnExtra = {}): Transaction => ({
@@ -133,7 +130,7 @@ export const SAMPLE_TRANSACTIONS: Transaction[] = [
   txn("txn_s_rechenwerk", "acc_eur", "2026-10-01", "-58.90", "RECHENWERK GMBH", "cp_rechenwerk", "software_subscriptions", "matched", { amount: { amount: "-58.90", currency: "EUR" }, amount_base: pln("-260.00") }),
 ];
 
-// ---- What GET /people/costs, /clients and /subscriptions return for the sample company ----
+// What GET /people/costs, /clients and /subscriptions return for the sample company.
 export const PEOPLE_COSTS: PeopleCosts & { items: (PeopleCosts["items"][number] & { parts?: { label: string; amount: Money }[] })[] } = {
   items: [
     { person_id: "per_tomasz", name: "Tomasz Borsuk (SAMPLE)", role: "owner", pay_type: "board_fee", paid: pln("6400.00"), payments: 2, owed: pln("0.00"), receipts_owed: 0, parts: [{ label: "fee", amount: pln("4000.00") }, { label: "social security", amount: pln("2400.00") }] },
@@ -190,7 +187,7 @@ export const MONTHLY_EXTRA: SubscriptionsResponse["items"] = [
   { counterparty_id: "cp_abakus", name: "Abakus accounting office (SAMPLE)", category: "professional_services", monthly: pln("1240.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
 ];
 
-// ---- Settings, people and learned rules (GET /settings, /people, /rules) ----
+// Settings, people and learned rules (GET /settings, /people, /rules).
 export const SETTINGS: Settings = {
   company: { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", tax_id: "999-000-00-14", base_currency: "PLN", vat_period: "monthly", accountant_email: "office@abakus.example" },
   alerts: { safety_buffer: pln("10000.00"), late_client_days: 7, weekly_summary: true },
@@ -213,7 +210,7 @@ export const RULES: Rule[] = [
   { id: "rule_chmura", raw: "CHMURA POLSKA", counterparty_id: "cp_chmura", counterparty_name: "Chmura Polska (SAMPLE)", category: "cloud_hosting", learned_at: "2026-09-02T11:30:00Z" },
 ];
 
-// ---- Chat history (GET /chat/sessions, /chat/sessions/{id}) ----
+// Chat history (GET /chat/sessions, /chat/sessions/{id}).
 type Msg = ChatSessionDetail["messages"][number];
 const turn = (at: string, question: string, answer: string): Msg[] => [{ role: "user", content: question, at }, { role: "assistant", content: answer, at }];
 export const CHAT_HISTORY: (ChatSession & { detail: Msg[] })[] = [
@@ -228,7 +225,7 @@ export const CHAT_HISTORY: (ChatSession & { detail: Msg[] })[] = [
   { session_id: "chat_bonus", title: "Can I afford a December bonus?", last_at: "2026-11-09T18:45:00Z", messages: 2, detail: turn("2026-11-09T18:45:00Z", "Can I afford a 10,000 PLN bonus in December?", "Not before 7 December: cash is below zero from 30 November until Nordwind pays. After that you would still keep about 63,000 PLN.") },
 ];
 
-// ---- Extra agent cards, so To-do shows every kind of item the agents create ----
+// Extra agent cards, so To-do shows every kind of item the agents create.
 const why = (lines: string[], extra: Partial<Recommendation["explanation"]> = {}): Recommendation["explanation"] =>
   ({ why: lines, confidence: 0.8, generated_by: { numbers: "finance-engine", wording: "template", trace_id: null }, ...extra });
 const card0 = (r: Partial<Recommendation> & Pick<Recommendation, "id" | "agent" | "type" | "title" | "summary" | "control_level" | "evidence">): Recommendation => ({
@@ -285,7 +282,7 @@ export const SAMPLE_APPROVALS: Approval[] = [{
   execution: { mode: "simulated", status: "done", executed_at: "2026-11-18T09:02:01Z", reference: "SIM-PD-2026-0398", result: "Sandbox bank added a transfer draft of 640.00 PLN to Marta.", effects: [] },
 }];
 
-// ---- What Ordo reads from a file the owner adds (stands in for the extractor until role 1 deploys it) ----
+// What Ordo reads from a file the owner adds, standing in for the extractor.
 const cents = (amount: string) => BigInt(amount.replace("-", "").replace(".", ""));
 const fromCents = (c: bigint) => `${c / 100n}.${String(c % 100n).padStart(2, "0")}`;
 export function readUpload(docId: string, rawId: string, t: Transaction | undefined, sellerName: string): OrdoDocument {

@@ -1,4 +1,4 @@
-"""Inbox, Recommendations, Decisions, Approvals and the "What I did on my own" feed (role 5)."""
+"""Inbox, Recommendations, Decisions, Approvals and the "What I did on my own" feed."""
 from typing import Any
 
 import psycopg

@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// Generates src/api/types.gen.ts from ../contracts/schemas/*.schema.json.
-// No dependencies. Supports the JSON Schema subset the contracts use:
-// type, enum, properties, required, additionalProperties, items, oneOf, $ref (common.schema.json#/$defs/X).
+// Generates src/api/types.gen.ts from ../contracts/schemas/*.schema.json, no dependencies (the subset the contracts use).
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

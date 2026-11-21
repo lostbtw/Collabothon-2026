@@ -1,4 +1,4 @@
-"""Seam: bank lines + open invoices + Ledger + owner events -> Forecast (#28). Pure, no database."""
+"""Seam: bank lines + open invoices + Ledger + owner events -> Forecast. Pure, no database."""
 from decimal import Decimal
 
 import pytest

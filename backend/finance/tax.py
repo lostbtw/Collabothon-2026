@@ -1,17 +1,4 @@
-"""Polish tax payments as forecast components (#48). Pure: plain inputs in, components out. No database, no LLM.
-
-Rules (the same for every company in this build; rates in settings.py):
-
-  VAT (JPK_V7M)  month; due 25th of the next month; output VAT - deductible input VAT; a negative result is carried
-                 forward to the next month. Only VAT in PLN counts (export, reverse charge: neutral).
-  CIT advance    month; due 20th of the next month; 9% x profit since 1 January - advances already due this year.
-  PIT-4          month salaries are paid; due 20th of the next month; per person, 12% (32% above 120,000 PLN a year).
-  ZUS            month salaries are paid; due 15th of the next month; employer + employee + health share.
-
-A due date on a weekend or a Polish public holiday moves to the next business day. Gross pay is inferred from the net
-pay seen in the bank. A month that is not closed (its last day is not before the as-of date) is estimated for VAT and
-CIT as the mean of the last closed months; PIT-4 and ZUS use the month's salaries as given.
-"""
+"""Polish tax payments (VAT, CIT advance, PIT-4, ZUS) as forecast components; an open month is estimated from closed ones."""
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -77,9 +64,7 @@ def gross_from_net(net: Decimal, p: Decimal = Decimal(1)) -> Decimal:
 
 
 def pit4_advance(gross: Decimal, ytd_base_before: Decimal, p: Decimal = Decimal(1)) -> tuple[Decimal, Decimal]:
-    """(advance, base) for one person and month. base = round(gross*(1-ZUS_EMPLOYEE) - PIT_COSTS_PLN*p) to whole
-    units. The part of base above PIT_THRESHOLD_PLN*p (counting ytd_base_before) is taxed at PIT_RATE_HIGH.
-    advance = round(tax - PIT_REDUCTION_PLN*p) to whole units, never below 0."""
+    """(advance, base) for one person and month; the base above PIT_THRESHOLD_PLN (year to date) is taxed at PIT_RATE_HIGH."""
     base = _whole(Decimal(gross) * (1 - settings.ZUS_EMPLOYEE) - settings.PIT_COSTS_PLN * p)
     threshold = settings.PIT_THRESHOLD_PLN * p
     high = min(base, max(ZERO, Decimal(ytd_base_before) + base - threshold))
@@ -97,8 +82,7 @@ def zus_payment(gross: Decimal) -> Decimal:
 
 
 def tax_document(doc: dict) -> dict | None:
-    """The tax view of a Document (contract shape), or None when it does not count (status duplicate/rejected,
-    no issue_date and no sale_date, no totals.net)."""
+    """The tax view of a Document, or None when it does not count (duplicate or rejected, no date, no net total)."""
     if doc.get("status") in ("duplicate", "rejected"):
         return None
     day = doc.get("sale_date") or doc.get("issue_date")
@@ -168,9 +152,7 @@ def _component(tax: str, y: int, m: int, due: date, amount: Decimal, base: str, 
 
 def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decimal],
                    documents: list[dict], salaries: list[dict]) -> list[dict]:
-    """Forecast components (kind tax / social_security, one date each) for every VAT, CIT advance, PIT-4 and ZUS
-    payment due in (as_of, end]. `documents` are tax_document() results. `salaries` are
-    {"day": date, "key": str, "name": str, "net": Decimal (positive, base currency), "evidence": EvidenceLink|None}."""
+    """Forecast components for every VAT, CIT advance, PIT-4 and ZUS payment due in (as_of, end]."""
     p = pln_unit(base, rates)
 
     output_vat: dict[str, Decimal] = defaultdict(Decimal)
@@ -253,7 +235,6 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     def in_window(due: date) -> bool:
         return as_of < due <= end
 
-    # VAT
     carry = ZERO
     for y, m in months:
         key = _month_key(y, m)
@@ -279,7 +260,6 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                 docs = []
             out.append(_component("vat", y, m, due, amount, base, schedule, not is_closed, _evidence("vat", docs)))
 
-    # CIT advance
     ytd = ZERO
     advances = ZERO
     for y, m in months:

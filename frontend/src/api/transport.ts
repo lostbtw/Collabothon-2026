@@ -33,8 +33,7 @@ function withQuery(path: string, query?: Query): string {
   return qs ? `${path}?${qs}` : path;
 }
 
-// Live reads are shared and kept for a short while: two parts of a page asking for the same list make one request,
-// and going back to a page shows it at once. Any write, and every requestRefresh(), empties the cache.
+// Live reads are shared and cached briefly (one request per list, instant back navigation); any write empties the cache.
 const FRESH_MS = 30_000;
 const cache = new Map<string, { at: number; value: Promise<unknown> }>();
 export function clearCache(): void {
@@ -83,10 +82,7 @@ export async function httpForm<T>(path: string, form: FormData, query?: Query): 
   return (await res.json()) as T;
 }
 
-/**
- * A call to an endpoint the backend has promised but may not serve yet (role 1 is adding them).
- * "Not there" (404, 405, 501) becomes null, so the screen can say so instead of failing.
- */
+/** A call to an endpoint the backend may not serve yet: "not there" (404, 405, 501) becomes null, not an error. */
 export async function optional<T>(call: Promise<T>): Promise<T | null> {
   try {
     return await call;

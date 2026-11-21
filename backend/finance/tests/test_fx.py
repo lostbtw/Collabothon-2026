@@ -1,8 +1,4 @@
-"""Seam: FX Shield (#47): open foreign-currency invoices -> downside, hedge terms and the company's own figures.
-Pure, plus the engine on the test database. Rates: backend/finance/data/nbp_history_3y.json (NBP table A, 3 years).
-There is no profit per deal and no fixed threshold of "large": the model judges against these facts (backend/agents/fx.py).
-The Borsuk Labs demo data is only an example; these tests pin what the code gives on it, so a change cannot move it
-unnoticed."""
+"""Seam: FX Shield on open foreign-currency invoices -> downside, hedge terms and the company's own figures."""
 import json
 from datetime import date
 
@@ -154,8 +150,7 @@ def test_fx_exposure_matches_the_contract_and_has_no_verdict_before_fx_shield_ju
 
 
 def book_forward(db, rate=None):
-    """Lakeshore's forward as the Sandbox Bank booked it: an executed fx_hedge card and its approval (the owner may
-    have edited the rate)."""
+    """Lakeshore's forward as the Sandbox Bank booked it: an executed fx_hedge card and its (possibly edited) approval."""
     from backend.db.store import Store
     s = Store(db)
     s.put("approval", {"id": "apr_fx", "subject_type": "recommendation", "subject_id": "rec_fx_lake",

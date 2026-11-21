@@ -1,4 +1,4 @@
-"""Polish tax rules (#48). Pure tests: no database, no LLM."""
+"""Polish tax rules. Pure tests: no database, no LLM."""
 from datetime import date
 from decimal import Decimal
 

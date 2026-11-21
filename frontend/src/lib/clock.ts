@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 
-// "Now" for the app. The demo runs on the API's clock (health.demo_clock), which is not the laptop's
-// clock when the data is from another day; with real data the two are the same.
+// "Now" for the app: the API's clock (health.demo_clock), which differs from the laptop's when the data is from another day.
 let offsetMs: number | null = null;
 let asked: Promise<void> | null = null;
 

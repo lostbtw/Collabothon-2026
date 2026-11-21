@@ -320,8 +320,7 @@ function Why({ p, onChanged }: { p: Payment; onChanged: () => void }) {
   async function change(category: Category) {
     setError(null);
     try {
-      // With a document the correction goes on it; a bank line alone gets its type changed directly.
-      // Either way the backend remembers it as a rule for this counterparty.
+      // With a document the correction goes on it, else the bank line's type changes; either way it becomes a rule.
       if (d) await api.patchDocument(d.id, { category_suggestion: { category, confidence: 1, method: "history" } });
       else if (t0 && (await api.setTransactionCategory(t0.id, category, companyId)) === null) {
         return setError("Not saved: the backend cannot change a payment's type yet.");

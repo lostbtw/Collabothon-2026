@@ -1,4 +1,4 @@
-"""NBP rates connector (#34) against a fake NBP that keeps the real API's rules, and the real tables."""
+"""NBP rates connector against a fake NBP that keeps the real API's rules, and the real tables."""
 import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -25,8 +25,7 @@ def is_table_day(d: date) -> bool:
 
 
 class FakeNbp:
-    """GET /api/exchangerates/tables/A/{start}/{end}/ like api.nbp.pl: 400 over 93 days or in the future, 404 when the
-    range holds no table, else one table per business day with EUR, USD and CHF."""
+    """GET /api/exchangerates/tables/A/{start}/{end}/ with api.nbp.pl's rules: 400 over 93 days or ahead, 404 without a table."""
 
     def __init__(self, today: date = TODAY):
         self.today = today
@@ -87,7 +86,6 @@ def expected_tables(since: date, until: date) -> int:
     return sum(1 for i in range((until - since).days + 1) if is_table_day(since + timedelta(days=i)))
 
 
-# ---------- acceptance: 3 years of history ----------
 def test_first_run_reads_three_years_in_93_day_windows(db, source, nbp):
     fake, _ = nbp
     result = poll(db, source, nbp)
@@ -109,7 +107,6 @@ def test_tables_are_raw_items_of_the_contract(db, source, nbp):
     assert item["payload"]["rates"]["USD"] == f"{3.90 + (date.fromisoformat(item['payload']['effectiveDate']).toordinal() % 1000) / 10000:.4f}"
 
 
-# ---------- acceptance: idempotent by table number ----------
 def test_second_run_and_a_re_read_create_nothing(db, source, nbp):
     first = poll(db, source, nbp)
     assert poll(db, source, nbp)["items_new"] == 0
@@ -128,7 +125,6 @@ def test_the_next_business_day_brings_one_table(db, source, nbp):
     assert Store(db).get("source", "src_nbp")["cursor"].startswith("2026-11-23|")
 
 
-# ---------- acceptance: the last business day before ----------
 def test_rate_on_sunday_and_on_11_november_is_the_last_business_day_before(db, source, nbp):
     poll(db, source, nbp)
     sunday = rate_on(db, "USD", date(2026, 11, 22))
@@ -157,7 +153,6 @@ def test_rate_on_follows_the_contract_shape_and_unknowns(db, source, nbp):
     assert rate_on(db, "PLN", date(2026, 11, 20))["rate"] == "1"
 
 
-# ---------- weekends and holidays (found on the cluster) ----------
 SATURDAY = date(2026, 11, 21)
 
 
@@ -192,7 +187,6 @@ def test_a_real_outage_on_the_first_read_is_still_an_error(db, source, nbp):
     assert Store(db).get("source", "src_nbp")["status"] == "degraded"
 
 
-# ---------- GET /api/v1/fx/rates ----------
 def test_the_api_serves_the_stored_nbp_rate_and_falls_back_before_it(db, db_url, source, nbp):
     from fastapi.testclient import TestClient
 
@@ -202,7 +196,7 @@ def test_the_api_serves_the_stored_nbp_rate_and_falls_back_before_it(db, db_url,
     seed(db)
     with TestClient(create_app(database_url=db_url)) as api:
         before = api.get("/api/v1/fx/rates", params={"currency": "USD", "date": "2026-11-12"}).json()
-        assert before["source"].startswith("Demo-day rate")  # nothing stored yet: role 5's stand-in answers
+        assert before["source"].startswith("Demo-day rate")  # nothing stored yet: the API's stand-in answers
         poll(db, source, nbp)
         after = api.get("/api/v1/fx/rates", params={"currency": "USD", "date": "2026-11-12"}).json()
         assert after["rate_date"] == "2026-11-10" and after["source"].startswith("NBP table A ")
@@ -210,7 +204,6 @@ def test_the_api_serves_the_stored_nbp_rate_and_falls_back_before_it(db, db_url,
         assert booking["rate_date"] == "2026-11-20"
 
 
-# ---------- failures ----------
 def test_nbp_down_is_retried_then_degraded(db, source, nbp):
     fake, _ = nbp
     fake.down = 10
@@ -235,7 +228,6 @@ def test_a_bad_request_is_not_retried(db, source, nbp):
     assert Store(db).get("source", "src_nbp")["status"] == "error"
 
 
-# ---------- the process ----------
 def test_the_connector_process_polls_src_nbp(db, source, nbp):
     fake, client = nbp
     fake.today = datetime.now(UTC).date()  # the process uses the real date

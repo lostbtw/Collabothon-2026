@@ -1,15 +1,4 @@
-"""Missing documents and documents without a payment (ticket #43, spec #3). Deterministic, no LLM.
-
-Bank lines (Transaction.match_status, counted by role 5's ledger summary as `documents_missing`):
-- money out with no document `GRACE_DAYS` after booking (counted from the company's as-of date) -> missing_document;
-  only for lines from the last `LOOKBACK_DAYS`, so a year of history does not flood the owner;
-- salaries, taxes, social security, bank fees, financing, investment transfers, internal transfers and card-payout
-  income need no document -> no_document_needed.
-Documents (purchase, no bank line, not forwarded by an employee or the owner):
-- not yet due -> a known payable for the forecast, no question;
-- due (or, without a due date, older than GRACE_DAYS) -> the `document_no_transaction` Match with paid_by unknown,
-  which role 5 turns into the "Which payment is this?" question, with the document as evidence.
-"""
+"""Missing documents (money out with no document after GRACE_DAYS) and due purchase documents without a payment."""
 from datetime import date, timedelta
 
 from .counterparty import categorise
@@ -57,7 +46,7 @@ def not_yet_due(doc: dict, as_of: str | None) -> bool:
 
 
 def is_unpaid_question(match: dict) -> bool:
-    """The Match shape that role 5 shows as "Which payment is this?" (score below 0.55)."""
+    """The Match shape shown as "Which payment is this?" (score below 0.55)."""
     return match["match_type"] == "document_no_transaction" and match["paid_by"] == "unknown"
 
 

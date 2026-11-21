@@ -1,11 +1,4 @@
-"""Shared test fixtures for every backend role.
-
-`db_url`: a fresh, migrated Postgres database for this test session.
-  - CI sets ORDO_TEST_DATABASE_URL (a Postgres service).
-  - Locally without Docker: `uv sync --group localdb` installs pgserver, which runs a private Postgres in .venv/.
-  - Neither available: database tests are skipped, the rest still run.
-`db`: a connection to that database; every table is emptied after each test (reference tables are kept).
-"""
+"""Shared fixtures: a migrated test Postgres (ORDO_TEST_DATABASE_URL, or pgserver locally; else DB tests skip)."""
 import os
 import uuid
 from pathlib import Path

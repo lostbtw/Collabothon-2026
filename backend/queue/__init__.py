@@ -1,19 +1,4 @@
-"""The worker side of the Postgres outbox (#35, D-07, contracts/events.md). Owner: role 2.
-
-Every process that handles events (pipeline, extractor, finance, agents) claims its own deliveries the same way:
-
-    from backend import queue
-    handled = queue.process_pending(conn, "finance", lambda event: handle(conn, event))
-
-- claim: one pending delivery of the consumer group, `FOR UPDATE SKIP LOCKED`, so two workers never take the same one;
-  the attempt is counted and committed before the handler runs (a crash still counts);
-- done: only after the handler committed its own writes (at-least-once delivery, handlers are idempotent);
-- a failing handler is retried after `retry_after_seconds`; after `max_attempts` failures the delivery is `dead`, and a
-  `raw_item.received` event marks its RawItem `failed` so the Sources page counts it;
-- `wait(listener)` sleeps until the database announces a new event (LISTEN/NOTIFY) or the timeout passes.
-
-The four loops this replaces behaved exactly like this; nothing about the order, the retries or the commits changed.
-"""
+"""The worker side of the Postgres outbox: claim with SKIP LOCKED, done after the handler commits, dead after max_attempts."""
 from __future__ import annotations
 
 import logging
@@ -32,8 +17,7 @@ log = logging.getLogger("ordo.queue")
 
 def claim(conn: psycopg.Connection, consumer: str, *, retry_after_seconds: int = RETRY_AFTER_SECONDS,
           first_types: Iterable[str] = ()) -> tuple[dict[str, Any], int] | None:
-    """The next pending delivery of `consumer` as (event envelope, attempt number), or None. Not committed: the caller
-    commits (process_pending does it at once). `first_types` are taken before every other type, oldest first."""
+    """The next pending delivery of `consumer` as (envelope, attempt), or None; uncommitted. `first_types` go first."""
     first = list(first_types)
     row = conn.execute(
         """select d.event_id, d.attempts, o.type, o.company_id, o.occurred_at, o.correlation_id, o.payload
@@ -62,7 +46,7 @@ def finish(conn: psycopg.Connection, event_id: str, consumer: str, status: str) 
 
 
 def mark_raw_item_failed(conn: psycopg.Connection, event: dict[str, Any], error: BaseException) -> None:
-    """contracts/events.md rule 5: a dead `raw_item.received` leaves its RawItem `failed`, with the error."""
+    """A dead `raw_item.received` leaves its RawItem `failed`, with the error."""
     if event.get("type") != "raw_item.received":
         return
     raw_id = (event.get("payload") or {}).get("raw_item_id")

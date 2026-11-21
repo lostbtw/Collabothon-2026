@@ -1,6 +1,4 @@
-"""Ticket #41: counterparty resolution with alias learning, categories from the fixed list. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Counterparty resolution with alias learning, categories from the fixed list."""
 import copy
 import unittest
 
@@ -18,7 +16,7 @@ def pixel_line(raw_id: str, ref: str, day: str) -> dict:
 
 
 def confirm(p: Pipeline, document_id: str) -> dict:
-    """What role 5's decision endpoint does: mark the Match confirmed and emit match.decided."""
+    """What the decision endpoint does: mark the Match confirmed and emit match.decided."""
     [match] = p.store.list("match", document_id=document_id)
     p.store.put("match", {**match, "status": "confirmed", "decided_at": "2026-11-21T11:00:00Z",
                           "decided_by": {"role": "owner", "person_id": "per_tomek", "name": None, "email": None}})

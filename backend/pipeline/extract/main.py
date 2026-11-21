@@ -26,7 +26,7 @@ def _handle(conn: psycopg.Connection, event: dict, extract: Extract) -> None:
 
 def process_pending(conn: psycopg.Connection, extract: Extract,
                     retry_after_seconds: int = RETRY_AFTER_SECONDS) -> int:
-    """Claiming is role 2's backend/queue; after MAX_ATTEMPTS failures `fail` records the error on the RawItem."""
+    """After MAX_ATTEMPTS failed claims `fail` records the error on the RawItem."""
     return queue.process_pending(conn, CONSUMER, lambda event: _handle(conn, event, extract),
                                  retry_after_seconds=retry_after_seconds, max_attempts=MAX_ATTEMPTS,
                                  on_dead=fail, name="extractor")

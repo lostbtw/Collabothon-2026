@@ -11,12 +11,7 @@ import { Modal, ModalSection } from "./Modal";
 
 const compact = new Intl.NumberFormat("en", { notation: "compact" });
 
-/**
- * Cash over time: the solid line is what was in the bank, the dashed line what the forecast expects.
- * Red where the balance would be below zero, the lowest point labelled. Hover shows the day's balance and range;
- * a click on a forecast day opens what is expected on it.
- * `flash` pulses the lowest point after a live update.
- */
+/** Cash over time: solid history, dashed forecast, red below zero; hover shows a day, a click opens what is expected on it. */
 export function CashChart({ history, forecast, flash }: { history: BalanceHistory | null; forecast: Forecast | null; flash?: boolean }) {
   const m = useMemo(() => cashModel(history, forecast), [history, forecast]);
   const [hover, setHover] = useState<CashDay | null>(null);

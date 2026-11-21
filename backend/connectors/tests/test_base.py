@@ -1,4 +1,4 @@
-"""The connector base (#21) against the real tables from #20."""
+"""The connector base against the real tables."""
 import hashlib
 from datetime import UTC, datetime, timedelta
 
@@ -75,7 +75,6 @@ def raw_items(db) -> list[dict]:
     return Store(db).list("raw_item", source_id=SOURCE["id"])
 
 
-# ---------- acceptance 1: running twice creates nothing new ----------
 def test_second_run_creates_no_new_raw_items(db, source):
     first = run(db, FakeBank(source, [page("E000000001", "E000000002")]))
     assert first["status"] == "success" and first["items_new"] == 2
@@ -150,7 +149,6 @@ def test_source_status_and_times_on_success(db, source):
                                       "status": "success", "items_new": 1}
 
 
-# ---------- acceptance 2: a failing fetch ends the run with an error and sets the source status ----------
 def test_retries_three_times_then_degraded(db, source):
     waited: list[float] = []
     down = [ConnectorError("bank timed out")] * 4
@@ -216,7 +214,6 @@ def test_a_page_is_all_or_nothing(db, source, monkeypatch):
     assert Store(db).get("sync_run", result["id"])["status"] == "failed"  # not left "running"
 
 
-# ---------- manual trigger and concurrency ----------
 def test_adopts_the_run_created_by_the_sync_now_button(db, source):
     manual = {"id": "run_manual01", "source_id": SOURCE["id"], "connector": "bank_psd2", "trigger": "manual",
               "started_at": "2026-11-21T10:00:00Z", "status": "running"}

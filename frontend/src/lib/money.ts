@@ -1,9 +1,6 @@
 import type { Money } from "../api/types.gen";
 
-/**
- * Formats a Money value for display. Works on the decimal string directly:
- * amounts are never converted to floating point (contracts rule 3).
- */
+/** Formats a Money value for display from its decimal string; amounts never become floating point. */
 export function formatMoney(m: Money | null | undefined, opts: { decimals?: boolean } = {}): string {
   if (!m) return "—";
   const negative = m.amount.startsWith("-");

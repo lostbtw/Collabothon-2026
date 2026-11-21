@@ -1,11 +1,4 @@
-"""PL-FX-01: a foreign-currency document is converted at the NBP table-A mid rate of the last business day
-before its issue date. "Business day" = a day NBP published a table, so weekends and holidays are skipped
-by looking back to the latest published date.
-
-`rates` is any callable `(currency, date) -> (rate: Decimal, table_no: str | None) | None` returning the rate
-published on exactly that date, or None if no table was published. The real one is role 2's NBP connector
-(#34, `/fx/rates`); `StandInRates` covers tests and demos until it lands.
-"""
+"""PL-FX-01: a foreign-currency document converts at the NBP table A mid rate of the last business day before issue."""
 import json
 from datetime import date, timedelta
 from decimal import Decimal
@@ -31,8 +24,7 @@ def _load_standin() -> dict:
 
 
 class StandInRates:
-    """STAND-IN for the NBP rates connector (#34): standin_rates.json, built from role 4's scenario by
-    build_standin_rates.py: real NBP rates up to 20 Nov 2026 (sim/scenario/nbp_rates.json)."""
+    """Stand-in for the NBP rates connector: standin_rates.json, real NBP rates up to 20 Nov 2026."""
 
     def __init__(self, table: dict | None = None):
         # {(currency, "YYYY-MM-DD"): ("rate", "table no or None")}

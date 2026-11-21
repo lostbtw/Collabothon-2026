@@ -13,10 +13,7 @@ const EXIT_MS = 160;
 const isMoney = (v: unknown): v is Money => typeof v === "object" && v !== null && typeof (v as Money).amount === "string";
 const first = (name?: string | null) => (name ?? "").split(" ")[0];
 
-/**
- * What a live event says to the owner, or null when it needs no toast. `sender` is the person who
- * sent the document, when known. Amounts are copied from the event, never calculated.
- */
+/** What a live event says to the owner, or null when it needs no toast. Amounts are copied from the event, never calculated. */
 /** Cards that arrive one per invoice or payment: To-do shows them as one item, so they get no toast each. */
 export const QUIET_TYPES = new Set(["confirm_match", "missing_document"]);
 

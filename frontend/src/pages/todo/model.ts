@@ -1,6 +1,4 @@
-// What To-do (and the To-do card on the Overview) shows, with no React in it.
-// Only owner decisions are listed: an agent's advice that needs no answer ("info") and what Ordo
-// did on its own stay out of the list.
+// What To-do (and its Overview card) shows: owner decisions only, no info advice and nothing Ordo did on its own.
 import type { ActivityItem } from "../../api/client";
 import { isRenderableRecommendation } from "../../api/guards";
 import type { Approval, ControlLevel, Forecast, Money, Recommendation } from "../../api/types.gen";

@@ -1,6 +1,4 @@
-// Typed API client. Entity types are generated from contracts/schemas (types.gen.ts);
-// the response envelopes below follow contracts/openapi.yaml. The calls marked "promised" are the
-// endpoints role 1 is adding; until the live API has them they return null and the screen says so.
+// Typed API client: entity types from contracts/schemas, envelopes from contracts/openapi.yaml; promised calls may return null.
 import { API_BASE, API_MODE } from "../config";
 import { mockEventStream } from "./mock";
 import { http, httpForm, optional, type Query } from "./transport";
@@ -24,8 +22,7 @@ export type FxExposure = {
   expected_shortfall?: Money | null; deal_profit?: Money | null; verdict: string; recommendation_id?: string | null;
 };
 export type ActivityItem = { at: string; agent: string; text: string; subject?: { type: string; id: string } | null; evidence: EvidenceLink[] };
-/** Partial Document: only totals, dates, seller, buyer and category_suggestion.category may be corrected.
- * Each of those is sent whole (the API validates the block it receives), with only the corrected value changed. */
+/** Partial Document: only totals, dates, seller, buyer and category may be corrected; each block is sent whole. */
 export type DocumentPatch = { issue_date?: string; totals?: OrdoDocument["totals"]; seller?: OrdoDocument["seller"]; buyer?: OrdoDocument["buyer"]; category_suggestion?: OrdoDocument["category_suggestion"] };
 export type DecisionRequest = { decision: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: "dashboard" | "chat" };
 export type ChatAnswer = {
@@ -39,7 +36,6 @@ export type ChatAnswer = {
   trace_id?: string | null;
 };
 
-// ---- Promised endpoints (shapes agreed with role 1; see the prompt in the design notes) ----
 export type BalanceHistory = { currency: string; points: { date: string; balance: string }[] };
 /** `parts` (optional): what the cost is made of, e.g. salary + social security. */
 export type PersonCost = { person_id: string; name: string; role: string; pay_type: string | null; paid: Money; payments: number; owed: Money; receipts_owed: number; parts?: { label: string; amount: Money }[] };
@@ -149,8 +145,7 @@ export function subscribeEvents(onEvent: (e: OrdoEvent) => void, companyId?: str
   if (API_MODE === "mock") return mockEventStream(onEvent);
   const source = new EventSource(`${API_BASE}/events/stream${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`);
   const deliver = (m: MessageEvent<string>) => onEvent(JSON.parse(m.data) as OrdoEvent);
-  // The API names each SSE message after its event type ("event: document.extracted"), and a named
-  // message never reaches onmessage: listen for every type, and keep onmessage for unnamed ones.
+  // The API names each SSE message after its event type, and named messages never reach onmessage: listen for every type.
   for (const type of Object.keys(EVENT_TYPES)) source.addEventListener(type, deliver as EventListener);
   source.onmessage = deliver;
   return () => source.close();

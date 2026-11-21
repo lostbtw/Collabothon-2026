@@ -1,4 +1,4 @@
-"""The outbox consumer library (#35) against the real tables (migrations of #20)."""
+"""The outbox consumer library against the real tables."""
 import threading
 import time
 
@@ -20,7 +20,6 @@ def emit(db, type_="transaction.ingested", **payload):
     return event
 
 
-# ---------- acceptance ----------
 def test_a_delivery_is_handled_once_and_marked_done(db):
     event = emit(db)
     seen = []
@@ -91,7 +90,6 @@ def test_a_failed_attempt_writes_nothing_and_the_retry_writes_once(db):
     db.commit()
 
 
-# ---------- options ----------
 def test_first_types_are_taken_first(db):
     later = emit(db, "forecast.updated", forecast_id="fc_1")
     urgent = emit(db, "match.suggested", match_id="mat_1")

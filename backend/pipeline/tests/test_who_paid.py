@@ -1,6 +1,4 @@
-"""Ticket #25: who paid and its consequences. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Who paid and its consequences."""
 import copy
 import unittest
 
@@ -9,7 +7,7 @@ from backend.pipeline.who_paid import (apply_who_paid, document_flags, has_tax_c
                                        match_for_unmatched_document)
 
 COMPANY = {"id": "co_borsuk", "tax_id": "PL9990000014"}
-PEOPLE = [  # SAMPLE people, as role 5 seeds them from role 4's scenario
+PEOPLE = [  # SAMPLE people, as the seed has them
     {"person_id": "per_jan", "name": "Jan Kowalski (SAMPLE)", "email": "jan@borsuk-labs.sample", "role": "employee"},
     {"person_id": "per_owner", "name": "Ewa Borsuk (SAMPLE)", "email": "ewa@borsuk-labs.sample", "role": "owner"},
 ]

@@ -1,13 +1,4 @@
-"""Spike 04's generated month, rebuilt as contract-shaped Documents and Transactions with ground truth.
-
-STAND-IN for role 4's scenario and ground_truth.json (#15). Same seeded generator as
-`git show 77495ef:spikes/04_matching_engine/matching_spike.py`: purchases paid from the company PLN/EUR
-accounts, the owner's private card and employees' private cards; documents arriving as KSeF XML, e-mail PDF
-and phone photo with OCR-like noise; USD/EUR SaaS settled in PLN with a bank spread; bank noise lines.
-Here only the golden copy of each purchase is kept (deduplication is #40). One realism change: foreign-currency card
-lines state the original amount ("45.00 USD"), as real statements and fixture txn_731 do. All names and NIPs are
-invented.
-"""
+"""A seeded generated month of contract-shaped Documents and Transactions with ground truth; all names invented."""
 import random
 from datetime import date, timedelta
 
@@ -159,5 +150,5 @@ def build(seed: int):
 
 
 def build_copies(seed: int):
-    """Every copy of every document, as [(document, purchase event number)], shuffled. For deduplication (#40)."""
+    """Every copy of every document, as [(document, purchase event number)], shuffled, for deduplication."""
     return _generate(seed)[4]

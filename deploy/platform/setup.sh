@@ -566,8 +566,7 @@ check_monitoring() {
 }
 
 grafana_db_role() {
-  # A login role that can only read the tables the dashboards query; read-only and with a statement timeout,
-  # so a heavy panel cannot slow the app down. The password reaches psql on stdin.
+  # A login role that reads only the dashboards' tables, read-only with a statement timeout so a panel cannot slow the app.
   local password
   password="$(oc -n "$NS" get secret ordo-grafana -o jsonpath='{.data.GRAFANA_DB_PASSWORD}' | base64 -d)"
   oc -n "$NS" exec -i deployment/postgresql -- psql -U postgres -d ordo -v ON_ERROR_STOP=1 -q <<SQL
@@ -608,8 +607,7 @@ grafana_url() {
 }
 
 grafana_api() {
-  # grafana_api <method> <path> [JSON body], as admin; the password reaches curl on stdin. URL and password are
-  # looked up once per run: an oc round trip per call made check-grafana take minutes.
+  # grafana_api <method> <path> [JSON body], as admin; URL and password are looked up once per run (password on stdin).
   local method="$1" path="$2" body="${3:-}"
   local args=(-sS --max-time 60 -X "$method" -K - -H 'Content-Type: application/json')
   if [[ -n "$body" ]]; then
@@ -636,8 +634,7 @@ dashboards_loaded() {
 }
 
 grafana_reload_dashboards() {
-  # New dashboards without a restart, so nobody is logged out (sessions live in the pod). The kubelet can take a
-  # few minutes to update the mounted ConfigMap (3.5 min measured), then Grafana rereads the folder every 30 s.
+  # New dashboards without a restart (nobody logged out): the mounted ConfigMap updates in minutes, Grafana rereads it every 30 s.
   grafana_dashboards
   wait_for "Grafana to load the new dashboards" 480 dashboards_loaded
   echo "OK   Grafana serves the dashboards in $OBS/dashboards"
@@ -749,7 +746,7 @@ check_mlflow() {
   oc -n "$NS" exec -i deployment/ordo-extractor -c extractor -- python - "$address" <"$HERE/check_mlflow.py"
 }
 
-# The evaluation notebook's workbench (#19), made in the RHOAI dashboard. It never runs during the demo.
+# The evaluation notebook's workbench, made in the RHOAI dashboard. It never runs during the demo.
 WORKBENCH=model-tests
 WORKBENCH_STOPPED=kubeflow-resource-stopped
 WORKBENCH_ENV=(MLFLOW_TRACKING_URI MLFLOW_WORKSPACE MLFLOW_TRACKING_TOKEN LLM_BASE_URL ORDO_LLM_API_KEY

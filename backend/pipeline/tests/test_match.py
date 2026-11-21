@@ -1,6 +1,4 @@
-"""Ticket #24: match scoring, assignment and routing. Run from the repo root:
-    python -m unittest discover -s backend/pipeline/tests -t .
-"""
+"""Match scoring, assignment and routing."""
 import copy
 import unittest
 from decimal import Decimal
@@ -172,7 +170,7 @@ class KsefPaidToTheCent(unittest.TestCase):
 
 
 class GeneratedWorld(unittest.TestCase):
-    """Spike 04's 5 seeds, golden documents only (dedup is #40)."""
+    """The generator's 5 seeds, golden documents only."""
 
     def test_precision_who_paid_and_vat_lost(self):
         who_total = who_ok_total = 0
@@ -198,7 +196,7 @@ class GeneratedWorld(unittest.TestCase):
                 self.assertEqual(who_wrong, [], "who paid: no wrong definite answer")
                 self.assertEqual(lost, true_lost, "VAT lost total")
         # Misses left are KSeF invoices an employee bought on the company NIP, never forwarded, no bank line:
-        # nothing says who paid, so the owner is asked (paid_by = unknown), as the spec's table requires.
+        # nothing says who paid, so the owner is asked (paid_by = unknown).
         self.assertGreaterEqual(who_ok_total / who_total, 0.97, f"who paid {who_ok_total}/{who_total}")
 
 
@@ -207,8 +205,7 @@ if __name__ == "__main__":
 
 
 class MonthlyInvoicesOfTheSameAmount(unittest.TestCase):
-    """Found on role 4's scenario: a contractor bills 9,800 PLN every month and is paid by transfer on the due date.
-    Each invoice must take its own month's transfer (its number is in the title), not the next month's."""
+    """A contractor billed and paid 9,800 PLN every month: each invoice takes its own month's transfer, not the next."""
 
     @staticmethod
     def invoice(month):

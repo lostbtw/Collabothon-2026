@@ -9,8 +9,7 @@ const listeners = new Set<Listener>();
 let stop: (() => void) | null = null;
 let streamFor: string | null = null;
 
-// The stream replays recent events on every connect. An event is passed on once per browser tab,
-// so a page reload does not repeat old toasts. Add ?replay=1 to the URL to see them again.
+// The stream replays recent events on connect: each is passed on once per tab, unless the URL has ?replay=1.
 const SEEN_KEY = "ordo.seenEvents";
 function loadSeen(): Set<string> {
   try {

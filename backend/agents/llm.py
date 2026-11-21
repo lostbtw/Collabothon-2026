@@ -18,7 +18,7 @@ MAX_TOOL_CALLS = 6
 
 
 def default_client():
-    """Client of the cluster's vLLM (hard rule 1); None when ORDO_LLM_ENABLED=0."""
+    """Client of the cluster's vLLM, never a hosted API; None when ORDO_LLM_ENABLED=0."""
     if os.environ.get("ORDO_LLM_ENABLED", "1") == "0":
         return None
     from openai import DefaultHttpx2Client, OpenAI

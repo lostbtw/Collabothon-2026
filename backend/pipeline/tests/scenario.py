@@ -1,8 +1,4 @@
-"""Role 3's whole pipeline on role 4's demo scenario (sim/scenario/out, #15), for comparison with ground_truth.json.
-
-bank CSVs -> normaliser; FA(3) XML -> parser; November documents -> Documents as a perfect extraction would give
-them (role 1's #17 is measured separately); then counterparties, duplicates, matching + who paid, missing documents.
-"""
+"""The whole pipeline on the demo scenario (sim/scenario/out), for comparison with ground_truth.json."""
 import json
 from datetime import date, timedelta
 from decimal import Decimal
@@ -99,7 +95,7 @@ def november_documents() -> tuple[list[dict], dict[str, str]]:
 
 
 def run() -> dict:
-    """Everything role 3 does, in pipeline order. Returns the intermediate and final results."""
+    """Everything the pipeline does, in order. Returns the intermediate and final results."""
     txns = transactions()
     cps: list[dict] = []
     for i, t in enumerate(txns):

@@ -1,25 +1,4 @@
-"""The connector base every source uses (bank, mailbox, NBP rates). Owner: role 2.
-
-A connector only says how to ask its source for news:
-
-    class BankConnector(Connector):
-        connector = "bank_psd2"          # contracts/schemas/common.schema.json#/$defs/Connector
-        key_prefix = "bank"              # first part of the idempotency key
-
-        def key_scope(self) -> str:      # account / mailbox the external ids are unique in
-            return self.source["config_public"]["account_id"]
-
-        def fetch(self, cursor):         # everything after the cursor, one page
-            ...
-            return FetchResult(items=[FetchedItem(kind="bank_transaction", external_id=ref, payload=line)],
-                               cursor=last_ref, more=has_next_page)
-
-`run_once(conn, connector)` does the rest, as contracts/events.md and the role 2 spec require:
-open a SyncRun, fetch page by page from the stored cursor, key every item, insert it once (the unique index on
-raw_items.idempotency_key turns a repeat into a counted duplicate), emit `raw_item.received`, and advance the
-cursor in the SAME transaction as the items of that page. A failing fetch is retried 3 times (5 s, 20 s, 60 s);
-when that is exhausted the source is `degraded`, an authentication error makes it `error` at once.
-"""
+"""The connector base: `run_once` stores each fetched item once and advances the cursor in the same transaction."""
 from __future__ import annotations
 
 import hashlib
@@ -40,7 +19,6 @@ RETRY_DELAYS = (5, 20, 60)  # seconds before retry 1, 2, 3
 MAX_MESSAGE = 500
 
 
-# ---------- what a connector returns ----------
 @dataclass
 class FetchedItem:
     kind: str  # raw_item.kind: bank_transaction, email, email_attachment, fx_rate_table, ...
@@ -87,8 +65,7 @@ class AuthError(ConnectorError):
 class Connector(ABC):
     connector: str  # Connector enum value of the contract
     key_prefix: str  # first part of the idempotency key: bank, imap, nbp, ...
-    # True: an item whose file (sha256) this source already delivered is a duplicate, even under another id
-    # (the same receipt forwarded twice is one file, not two).
+    # True: a file (sha256) this source already delivered is a duplicate under any id (one receipt forwarded twice).
     dedupe_content: bool = False
 
     def __init__(self, source: dict[str, Any]):
@@ -99,9 +76,7 @@ class Connector(ABC):
         return self.source["id"]
 
     def cursor_external_id(self, cursor: str | None) -> str | None:
-        """The external id of the item the cursor points at, if the cursor names one (bank: the entryReference).
-        A cursor whose item is not in our database is not ours (contracts/fixtures, another bank): the run then
-        starts from the beginning. None = this connector cannot tell, the cursor is trusted."""
+        """The external id the cursor points at, or None when unknown; a cursor whose item we never stored restarts the run."""
         return None
 
     @abstractmethod
@@ -109,9 +84,8 @@ class Connector(ABC):
         """Everything after `cursor` (None = from the beginning), at most one page. Raise ConnectorError on failure."""
 
 
-# ---------- helpers ----------
 def idempotency_key(prefix: str, scope: str, external_id: str, content_sha256: str | None = None) -> str:
-    """sha256 of `<prefix>:<scope>:<external_id>` (plus `:<content sha256>` for files), as in the role 2 spec."""
+    """sha256 of `<prefix>:<scope>:<external_id>` (plus `:<content sha256>` for files)."""
     text = f"{prefix}:{scope}:{external_id}" + (f":{content_sha256}" if content_sha256 else "")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -148,7 +122,6 @@ def _load_source(conn: psycopg.Connection, source_id: str) -> dict[str, Any]:
     return row[0]
 
 
-# ---------- the run ----------
 def run_once(
     conn: psycopg.Connection,
     connector: Connector,
@@ -158,11 +131,7 @@ def run_once(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> dict[str, Any] | None:
-    """One sync of one source. Returns the finished SyncRun, or None when another run of it is in progress.
-
-    `run_id` adopts an existing running SyncRun (the API's "sync now" button creates one with trigger `manual`).
-    `sleep` and `clock` are injectable so tests do not wait for the retry delays.
-    """
+    """One sync of one source: the finished SyncRun, or None when another run of it is in progress."""
     source_id = connector.source["id"]
     # one run per source at a time, across processes
     locked = conn.execute("select pg_try_advisory_lock(hashtext(%s))", (f"connector:{source_id}",)).fetchone()[0]

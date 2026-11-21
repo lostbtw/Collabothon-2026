@@ -1,19 +1,4 @@
-"""Who paid, and what follows (ticket #25, spec #3 "Who paid" decision table).
-
-Deterministic, no LLM. Writes the answer onto a Match (`paid_by`, `payer`, `consequences`); never creates
-Ledger entries (role 4 books them from the decided Match, D-20) or Recommendations (role 5).
-
-Two entry points:
-- `match_for_unmatched_document(...)`: a Document with no bank line on any connected account becomes a
-  `document_no_transaction` Match with its own score and reasons (the hero receipt -> fixture `mat_412`).
-- `apply_who_paid(match, ...)`: fills `paid_by`, `payer`, `consequences` on a Match that matching (#24) built
-  for a document and a bank line.
-
-Spec gaps filled here (see the PR): the score of a `document_no_transaction` Match follows fixture `mat_412`
-(sender_is_employee 0.50, no_bank_line_on_connected_accounts 0.30, card not a company/owner card 0.06);
-"owed to owner" is `reimbursement_owed` + `reimbursement_to` with role `owner`; "possible private" is rule
-PL-PRIV-01 plus its note (the Match has no separate field for it).
-"""
+"""Who paid, and what follows: fills `paid_by`, `payer` and `consequences` on a Match. Deterministic, no LLM."""
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -21,7 +6,7 @@ from .normalise.money import money, round_cents, to_decimal
 
 BASE_CURRENCY = "PLN"
 SIMPLIFIED_INVOICE_LIMIT = Decimal("450.00")  # PL-VAT-02, receipts with the buyer's NIP, 2026 only
-CARD_LAG_DAYS = (-1, 5)  # same window as card matching (#24)
+CARD_LAG_DAYS = (-1, 5)  # same window as card matching
 ACCOUNTANT = "Confirm with your accountant."
 
 PL_VAT_01 = "PL-VAT-01"  # no company tax id on the document: input VAT not deductible
@@ -33,8 +18,6 @@ PL_PRIV_01 = "PL-PRIV-01"  # looks private, paid by the company (hint)
 PRIVATE_WORDS = ("perfum", "kosmetyk", "zabawk", "toy", "grocer", "spożywcz", "spozywcz", "alkohol", "wine",
                  "wino", "playstation", "netflix", "spotify", "biżuteri", "jewel", "fitness", "siłownia", "gym")
 
-
-# ---------- inputs ----------
 
 def _nip(tax_id) -> str:
     return (tax_id or "").upper().removeprefix("PL").replace("-", "").replace(" ", "")
@@ -66,8 +49,6 @@ def owner_of(people: list[dict]) -> dict | None:
 def buyer_is_company(document: dict, company: dict) -> bool:
     return bool(_nip(document["buyer"].get("tax_id"))) and _nip(document["buyer"].get("tax_id")) == _nip(company["tax_id"])
 
-
-# ---------- the decision table ----------
 
 def classify_payer(document: dict, transaction: dict | None, accounts: list[dict], people: list[dict],
                    sender_email: str | None = None) -> tuple[str, dict | None]:
@@ -129,10 +110,9 @@ def looks_private(document: dict) -> bool:
 
 
 def consequences(document: dict, paid_by: str, payer: dict | None, company: dict) -> dict:
-    """`Match.consequences` for one Document, from the spec's decision table."""
+    """`Match.consequences` for one Document, from the who-paid decision table."""
     if document.get("direction") == "sale":
-        # Our own sales invoice: the client pays it. Input-VAT deduction and reimbursements do not apply
-        # (vat_deductible None also keeps role 5 from asking for "an invoice to the company").
+        # Our own sales invoice: the client pays it; no input VAT or reimbursement, and no "invoice to the company" question.
         return {"reimbursement_owed": None, "reimbursement_to": None, "vat_deductible": None, "vat_amount": None,
                 "vat_lost": None, "rule_ids": [], "note": None}
     rule_ids: list[str] = []
@@ -195,7 +175,7 @@ def consequences(document: dict, paid_by: str, payer: dict | None, company: dict
 
 
 def has_tax_consequence(c: dict) -> bool:
-    """Anything here waits for the owner, always (spec #3). Reverse charge alone is neutral."""
+    """Anything here waits for the owner, always. Reverse charge alone is neutral."""
     return bool(c.get("vat_lost") or c.get("reimbursement_owed") or PL_PRIV_01 in (c.get("rule_ids") or []))
 
 
@@ -209,8 +189,6 @@ def document_flags(document: dict, c: dict) -> list[str]:
         extra.append("possible_private")
     return flags + [f for f in extra if f not in flags]
 
-
-# ---------- Match builders ----------
 
 def _search_window(document: dict, as_of: str | None) -> tuple[date, date]:
     issued = date.fromisoformat(document["issue_date"])
@@ -287,7 +265,7 @@ def match_for_unmatched_document(document: dict, *, company: dict, people: list[
 
 def apply_who_paid(match: dict, document: dict, transaction: dict | None, *, company: dict, people: list[dict],
                    accounts: list[dict], sender_email: str | None = None) -> dict:
-    """Fill `paid_by`, `payer` and `consequences` on a Match built by matching (#24). Returns a new dict."""
+    """Fill `paid_by`, `payer` and `consequences` on a Match built by matching. Returns a new dict."""
     paid_by, payer = classify_payer(document, transaction, accounts, people, sender_email)
     return {**match, "paid_by": paid_by, "payer": payer,
             "consequences": consequences(document, paid_by, payer, company)}

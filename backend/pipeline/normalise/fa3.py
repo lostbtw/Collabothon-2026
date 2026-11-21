@@ -1,8 +1,4 @@
-"""FA(3) e-invoice XML (KSeF) -> Document (contracts/schemas/document.schema.json). No LLM: confidence 1.0.
-
-Fields used (spec #3): P_1 issue date, P_2 number, P_6 sale date, P_15 gross, P_13_x / P_14_x net / VAT per
-rate, Podmiot1 seller, Podmiot2 buyer, FaWiersz lines, Platnosc payment, RodzajFaktury kind.
-"""
+"""FA(3) e-invoice XML (KSeF) -> Document; parsed without a model, so confidence 1.0."""
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 
@@ -36,7 +32,7 @@ def _party(node):
     address = node.find("k:Adres", _N) if node is not None else None
     lines = [_text(address, "k:AdresL1"), _text(address, "k:AdresL2")]
     return {
-        "counterparty_id": None,  # resolved later (#41)
+        "counterparty_id": None,  # resolved later by counterparty.py
         "name": _text(ident, "k:Nazwa") or "(no name)",
         "tax_id": _text(ident, "k:NIP"),
         "country": _text(address, "k:KodKraju"),
@@ -134,7 +130,7 @@ def parse_fa3(xml: bytes | str, raw_item: dict, company: dict, rates=None) -> di
         "submitted_by": None,
         "extraction": {"method": "xml_parse", "model": None, "confidence": 1.0, "field_confidence": {},
                        "warnings": warnings, "trace_id": None},
-        "category_suggestion": None,  # set later (#41)
+        "category_suggestion": None,  # set later by counterparty.py
         "status": "extracted",
         "flags": flags,
         "created_at": raw_item["fetched_at"],

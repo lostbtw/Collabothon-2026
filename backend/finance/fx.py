@@ -1,27 +1,4 @@
-"""FX Shield (#47): what an open foreign-currency invoice could lose if the exchange rate moves against the company,
-and the facts a model needs to judge whether that loss is large and critical for this company. Pure functions: no
-database, no LLM (D-02). The code measures and states facts; the model (backend/agents/fx.py) judges.
-
-There is no profit per deal (one invoice or purchase has none) and no fixed threshold of "large": a company's money in
-varies a lot from month to month, so the facts give the model the company's own figures month by month and a list of
-reference amounts to compare the loss with (the weakest month, a typical month, the safety buffer, the cash held). The
-model decides what is large, which reference fits, and whether to hedge. The reference amounts and the shares are
-computed here, so no number the owner sees comes from a model.
-
-Method (role 4 spec #4, spike 05). "We do not predict the rate. We show what you could lose if it moves against you."
-  1. Expected cash date = due date + the client's average delay (as in the forecast); horizon h = days to it.
-  2. Net exposure: invoices of the opposite direction in the same currency, expected within FX_NET_WINDOW_DAYS,
-     offset it; a payable is also covered by the balance held in that currency. A receivable is not: holding the
-     currency adds to its risk. Covered to within FX_NATURAL_SHARE -> naturally hedged, nothing to buy.
-  3. Every historical h-day change r = S(t+h)/S(t) - 1 of the NBP mid rate over the last 3 years (~700 scenarios).
-  4. Loss = value x max(0, -r) for a receivable, value x max(0, +r) for a payable. Bad case = 95th percentile;
-     expected shortfall = mean of the worst 10%. The plain average is near zero and is shown only to say so.
-  5. Company facts: money in and out for each of the last FX_CONTEXT_MONTHS full months, reference amounts, and the
-     forecast's lowest balance from the payment date on, with and without the bad case. A negative balance is
-     undesirable but not critical (a credit line covers it).
-  6. Hedge terms: payable 100% on the due date; on-time client 100% on the due date; late client
-     FX_LATE_HEDGE_RATIO on the expected date. Prices are illustrative, not an offer.
-"""
+"""FX Shield: what an open foreign-currency invoice could lose if the rate moves against the company; the model judges."""
 from bisect import bisect_right
 from collections.abc import Iterable, Mapping
 from datetime import date, timedelta
@@ -40,13 +17,12 @@ NOT_THE_COMPANYS_FLOWS = {"owner_private"}  # categories that are not money of t
 
 
 def money(value: Decimal | str, currency: str) -> dict[str, str]:
-    """Money as in the contracts: decimal string with 2 places plus currency (hard rule 6)."""
+    """Money as in the contracts: decimal string with 2 places plus currency."""
     return {"amount": f"{Decimal(value).quantize(CENT, ROUND_HALF_UP):.2f}", "currency": currency}
 
 
 def history_window(rates: Mapping[str, str], as_of: date, days: int = FX_HISTORY_DAYS) -> list[tuple[date, Decimal]]:
-    """(day, PLN per unit) of the last `days` before the as-of date, oldest first. Tables of later days are ignored,
-    so the numbers do not move when the connector stores a newer table."""
+    """(day, PLN per unit) of the last `days` before the as-of date, oldest first; later tables are ignored."""
     last = as_of - timedelta(days=1)
     first = last - timedelta(days=days)
     out = []
@@ -58,8 +34,7 @@ def history_window(rates: Mapping[str, str], as_of: date, days: int = FX_HISTORY
 
 
 def rate_changes(history: list[tuple[date, Decimal]], horizon_days: int) -> list[Decimal]:
-    """Every historical change over `horizon_days` calendar days: r = S(t+h)/S(t) - 1, S(t+h) being the last
-    published rate on or before t+h."""
+    """Every historical change over `horizon_days` days: r = S(t+h)/S(t) - 1, S(t+h) being the last rate on or before t+h."""
     days = [d for d, _ in history]
     out = []
     for d, rate in history:
@@ -72,7 +47,7 @@ def rate_changes(history: list[tuple[date, Decimal]], horizon_days: int) -> list
 
 
 def percentile(sorted_values: list[Decimal], p: Decimal) -> Decimal:
-    """Linear interpolation between the two nearest ranks (as spike 05)."""
+    """Linear interpolation between the two nearest ranks."""
     k = (len(sorted_values) - 1) * p
     f = int(k)
     c = min(f + 1, len(sorted_values) - 1)
@@ -113,10 +88,7 @@ def balances(accounts: Iterable[dict], transactions: Iterable[dict], as_of: date
 
 
 def company_facts(inputs: dict, forecast: dict) -> dict[str, Any]:
-    """The size and the cash of the company, from its own data. Money in and out are given month by month for the last
-    FX_CONTEXT_MONTHS full months (bank lines in the base currency; transfers between its own accounts and the owner's
-    private spending are not counted): they vary, so there is no single average. `references` are amounts the loss
-    can be compared with; the model picks one."""
+    """The company's own size and cash: money in and out per full month, and reference amounts the loss is compared with."""
     company = inputs["company"]
     as_of = date.fromisoformat(company["as_of_date"])
     base = company["base_currency"]
@@ -197,9 +169,7 @@ def loss_against_references(loss: Decimal, company: dict[str, Any]) -> list[dict
 def assess(item: dict, *, as_of: date, country: str, base: str, spot: Decimal, history: list[tuple[date, Decimal]],
            open_items: list[dict], held: Mapping[str, Decimal], company: dict[str, Any],
            points: list[dict]) -> dict[str, Any] | None:
-    """One open foreign-currency invoice -> its facts (the /fx/exposure item, the card's numbers and what the model
-    judges). `status` is "open", "naturally_hedged" or (plan 005) "hedged". None when there is too little rate
-    history for its currency."""
+    """One open foreign-currency invoice -> its facts for /fx/exposure, the card and the model; None with too little history."""
     if len(history) < FX_MIN_HISTORY:
         return None
     currency = item["amount"]["currency"]
@@ -232,8 +202,7 @@ def assess(item: dict, *, as_of: date, country: str, base: str, spot: Decimal, h
 
 
 def assess_company(inputs: dict, histories: Mapping[str, Mapping[str, str]], forecast: dict) -> list[dict[str, Any]]:
-    """Every open foreign-currency invoice of a company (the forecast's inputs, see engine.load_inputs, and the forecast
-    built from them), soonest first. `histories`: {currency: {day: base-currency units per unit}}."""
+    """Every open foreign-currency invoice of a company, soonest first; `histories` = {currency: {day: units per unit}}."""
     company = inputs["company"]
     as_of = date.fromisoformat(company["as_of_date"])
     base, country = company["base_currency"], company.get("country", "PL")

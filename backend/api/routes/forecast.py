@@ -1,4 +1,4 @@
-"""Forecast endpoints; the numbers come from role 4's finance engine."""
+"""Forecast endpoints; the numbers come from the finance engine."""
 from typing import Any
 
 import psycopg

@@ -1,8 +1,4 @@
-"""Sandbox Bank simulator: a PSD2-shaped (Berlin Group naming) account-information API plus three
-simulated execution targets. Contract: contracts/bank-sim-api.md. Not a certified implementation.
-
-Run:  BANK_TOKEN=... uvicorn bank_sim.app:app --port 8081      (from sim/bank)
-"""
+"""Sandbox Bank simulator: a PSD2-shaped account-information API plus three simulated execution targets."""
 from __future__ import annotations
 
 import os
@@ -21,7 +17,6 @@ REF_RE = re.compile(r"^E\d{9}$")
 DEFAULT_LIMIT = 500
 
 
-# ---------- request bodies ----------
 class CreditLineIn(BaseModel):
     accountId: str
     limit: Decimal = Field(gt=0)
@@ -58,10 +53,8 @@ class AdminTransactionIn(BaseModel):
     transactionCode: str | None = None
 
 
-# ---------- app ----------
 def autoload_plan(csv_path: str | None, csv_account: str, csv_dir: str | None) -> list[tuple[str, str]]:
-    """(account id, file) pairs to load at start: every bank_acc_<x>.csv in csv_dir goes to account acc_<x>
-    (role 4's sim/scenario/out), plus the single csv_path for csv_account (the pizzeria, not in Git)."""
+    """(account id, file) pairs to load at start: every bank_acc_<x>.csv in csv_dir to acc_<x>, plus csv_path to csv_account."""
     plan: list[tuple[str, str]] = []
     if csv_dir:
         folder = Path(csv_dir)
@@ -77,9 +70,7 @@ def autoload_plan(csv_path: str | None, csv_account: str, csv_dir: str | None) -
 
 def create_app(store: Store | None = None, token: str | None = None, autoload_csv: str | None = None,
                autoload_account: str | None = None, autoload_dir: str | None = None) -> FastAPI:
-    """Files loaded at start and after /admin/reset, so a restarted bank is never empty:
-    autoload_dir (env BANK_AUTOLOAD_DIR): a folder of bank_acc_<x>.csv files, each into account acc_<x>;
-    autoload_csv (env BANK_AUTOLOAD_CSV): one file, into autoload_account (env BANK_AUTOLOAD_ACCOUNT, default acc_pizzeria)."""
+    """Files loaded at start and after /admin/reset (BANK_AUTOLOAD_DIR, BANK_AUTOLOAD_CSV), so a restarted bank is never empty."""
     store = store or Store()
     expected = token or os.environ.get("BANK_TOKEN", "demo-token")
     plan = autoload_plan(autoload_csv or os.environ.get("BANK_AUTOLOAD_CSV"),
@@ -123,7 +114,6 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
     def health() -> dict:
         return {"status": "ok", "simulated": True}
 
-    # ----- account information (PSD2-shaped) -----
     @app.get("/v1/accounts", dependencies=psd2)
     def list_accounts() -> dict:
         return {"accounts": [a.to_resource() for a in store.accounts.values()]}
@@ -173,7 +163,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
             body["_links"] = {"next": {"href": href}}
         return body
 
-    # ----- simulated execution targets (nothing here moves a balance) -----
+    # Simulated execution targets: nothing here moves a balance.
     def record(kind: str, ref: str, payload: dict) -> None:
         store.executions.append({"type": kind, "reference": ref, "simulated": True, **payload})
 
@@ -210,7 +200,6 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
         record("payment_draft", ref, out)
         return out
 
-    # ----- admin (generator, releaser, demo operator) -----
     @app.post("/admin/transactions", status_code=201, dependencies=admin)
     def admin_transaction(body: AdminTransactionIn) -> dict:
         acc = account_or_404(body.accountId)

@@ -1,8 +1,4 @@
-// Date helpers. The API sends ISO strings; a date without a time ("2026-11-30") is a calendar day
-// and must not shift with the viewer's time zone.
-//
-// Times are shown in ONE zone for everyone, set here. The demo data is written in UTC, so UTC keeps
-// the story's clock times and deadlines ("by 27 Nov") the same on every laptop.
+// Date helpers: a date without a time is a calendar day, and times show in UTC (the demo data's zone) on every laptop.
 export const DISPLAY_TIME_ZONE = "UTC";
 
 const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);

@@ -1,15 +1,4 @@
-"""Ledger entries from a decided Match (#27, D-20). Pure functions: no database, no LLM (D-02).
-
-The finance engine is the only writer of Ledger entries. When the owner confirms a Match for a purchase, it books
-what the Match's `consequences` call for, directly as approved:
-
-    expense                  always: the cost, gross in the base currency; `vat.deductible` false = VAT lost
-    reimbursement_liability  when someone paid privately (`reimbursement_owed`): the company owes the employee or
-                             the owner (`reimbursement_to`), paid out with the next pay run
-
-A rejected Match, a duplicate, a sales payment or a reimbursement payout books nothing here.
-Entry ids come from the Match (`led_<match>_exp`, `led_<match>_reimb`), so booking the same Match again is a no-op.
-"""
+"""Ledger entries from a decided Match, booked as approved: the expense and, when someone paid privately, the debt to them."""
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
@@ -24,7 +13,7 @@ CATEGORIES = {
 
 
 def money(amount: Decimal | str, currency: str) -> dict[str, str]:
-    """Money as in the contracts: decimal string with 2 places plus currency (hard rule 6)."""
+    """Money as in the contracts: decimal string with 2 places plus currency."""
     return {"amount": f"{Decimal(amount):.2f}", "currency": currency}
 
 

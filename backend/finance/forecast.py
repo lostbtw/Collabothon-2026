@@ -1,21 +1,4 @@
-"""The explainable day-by-day cash forecast (#28, D-08). Pure: plain inputs in, a Forecast dict out.
-
-Method "recurring-schedule + weekday-average v1", from the company's as-of date (D-21: only bank lines booked up
-to it). The forecast has two parts:
-
-  1. Known and regular (high confidence): recurring series (salaries, taxes, rent, subscriptions), open sales
-     invoices at due date + the client's average delay, open bills, reimbursements owed (approved Ledger entries),
-     extra inflows and outflows the owner announced.
-  2. Everyday flows (low confidence): the trailing 8-week mean per weekday of everything that is not regular
-     (taxi, fuel, meals, small purchases; for a shop also its daily card revenue).
-
-Each point carries three balances:
-  balance  part 1 + expected everyday income and spending (the forecast line; alerts use it)
-  low/high a 90% range around it, from this company's own week-to-week variation of everyday flows, widening
-           with every open week (fallback with too little history: spending x1.5 / income x0.5, no spending)
-
-No LLM, no model: every number is traceable to the rows in `evidence` (D-02).
-"""
+"""The explainable day-by-day cash forecast: known and regular flows plus weekday-average everyday flows, with a 90% band."""
 import hashlib
 import json
 from collections import defaultdict
@@ -77,25 +60,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                    own_keys: Iterable[str] = (),
                    horizon_days: int = HORIZON_DAYS, safety_buffer: Decimal | None = None,
                    forecast_id: str | None = None, generated_at: str = "") -> dict[str, Any]:
-    """The Forecast (contracts/schemas/forecast.schema.json) of one company.
-
-    company        {id, base_currency, as_of_date, country}
-    accounts       Account dicts; only `include_in_liquidity` ones count; `opening_balance` = balance before the
-                   first bank line (null = 0)
-    transactions   Transaction dicts (any order); lines after the as-of date are ignored (D-21)
-    rates          base-currency units per 1 unit of each currency, e.g. {"PLN": 1, "EUR": 4.41}
-    open_items     open invoices: {id, kind: receivable|payable, label, key, amount: Money, due_date,
-                   delay_days, confidence}
-    ledger_entries Ledger entries; approved `reimbursement_liability` ones are paid with the next pay run
-    tax_documents  invoices and purchases as tax documents (tax.tax_document); VAT and CIT come from them
-    events         owner events (forecast.schema.json#/properties/events/items)
-    invoice_keys   counterparties paid by invoice: their bank lines are neither a series nor an average
-                   (their open invoices are the forecast), so nothing is counted twice
-    people_keys    team members: only their regular payments (salaries) are projected; their irregular ones
-                   (reimbursement payouts) come from the Ledger
-    own_ibans      the company's own accounts: transfers between them are not flows
-    own_keys       the company itself as a counterparty (same purpose, when only the name is known)
-    """
+    """The Forecast (contracts/schemas/forecast.schema.json) of one company; bank lines after the as-of date are ignored."""
     base = company["base_currency"]
     country = company.get("country") or ""
     as_of = date.fromisoformat(str(company["as_of_date"]))
@@ -107,7 +72,6 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     included, transactions, opening, flows, last_line = _prepare(company, accounts, transactions, rate, own_ibans,
                                                                  own_keys)
 
-    # ---- part 1: recurring series, open invoices, reimbursements, announced flows ------------------------------
     quiet: dict[date, set[str]] = defaultdict(set)   # days without everyday flows: {"in", "out"} (owner events)
     for ev in events:
         if ev["effect"] in ("no_variable_flows", "no_revenue"):
@@ -160,7 +124,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     for item in open_items:
         unit = rate[item["amount"]["currency"]]
         lock = item.get("locked")
-        if lock:  # an executed FX forward fixed this share of the invoice at its rate (#47)
+        if lock:  # an executed FX forward fixed this share of the invoice at its rate
             share = Decimal(lock["ratio"])
             unit = share * Decimal(lock["rate"]) + (1 - share) * unit
         amount = Decimal(item["amount"]["amount"]) * unit
@@ -217,7 +181,6 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                                    "amount_base": money(amount, base), "schedule": f"on {start}",
                                    "dates": [start.isoformat()], "confidence": 0.9, "evidence": [link]})
 
-    # ---- part 2 and the daily points -------------------------------------------------------------------------
     var_in = {k: {wd: v for wd, v in per.items() if v > 0} for k, per in averages.items()}
     var_out = {k: {wd: v for wd, v in per.items() if v < 0} for k, per in averages.items()}
     totals = {"in": Decimal(0), "out": Decimal(0)}
@@ -295,7 +258,6 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         "evidence": accounts_link,
     })
 
-    # ---- summary ---------------------------------------------------------------------------------------------
     min_balance, first_negative, alerts = summarise(points, as_of, base, safety_buffer)
 
     assumptions = [f"Only bank lines booked up to {as_of} are used.",
@@ -357,8 +319,7 @@ def summarise(points: list[dict], as_of: date, base: str, safety_buffer: Decimal
 
 def _prepare(company: dict, accounts: list[dict], transactions: Iterable[dict], rate: dict[str, Decimal],
              own_ibans: Iterable[str], own_keys: Iterable[str] = ()):
-    """Liquidity accounts, their bank lines up to the as-of date, the balance on it, and the flows that can be
-    projected (everything except transfers between the company's own accounts)."""
+    """Liquidity accounts, their bank lines up to the as-of date, its balance, and the flows that are not own transfers."""
     as_of = str(company["as_of_date"])
     own_ibans, own_keys = set(own_ibans), set(own_keys)
     included = {a["id"]: a for a in accounts if a.get("include_in_liquidity")}
@@ -385,8 +346,7 @@ def _prepare(company: dict, accounts: list[dict], transactions: Iterable[dict], 
 def recurring_series_ids(*, company: dict, accounts: list[dict], transactions: Iterable[dict],
                          rates: dict[str, Decimal], own_ibans: Iterable[str] = (),
                          own_keys: Iterable[str] = ()) -> dict[str, str]:
-    """transaction id -> recurring_series_id for every bank line in a detected series (written onto
-    Transactions; role 3 auto-confirms only lines that carry one)."""
+    """transaction id -> recurring_series_id for every bank line in a detected series (only those are auto-confirmed)."""
     rate = {k: Decimal(str(v)) for k, v in rates.items()}
     _, _, _, flows, _ = _prepare(company, accounts, transactions, rate, own_ibans, own_keys)
     series, _ = detect(flows, date.fromisoformat(str(company["as_of_date"])), company.get("country") or "")

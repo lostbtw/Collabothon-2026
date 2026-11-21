@@ -25,7 +25,7 @@ export const sentenceCase = (s: string): string => s.charAt(0).toUpperCase() + s
 export const firstSentence = (s: string): string => /^.*?[.!?](?=\s|$)/.exec(s.trim())?.[0] ?? s;
 export const pct = (share: number): string => `${Math.round(share * 100)}%`;
 
-/** The contract's categories (D-09) in an owner's words. */
+/** The contract's categories in an owner's words. */
 export const CATEGORY_LABEL: Record<string, string> = {
   revenue_services: "Client payment", salaries: "Salaries", contractors: "Contractors", social_security: "Social security", taxes: "Taxes",
   rent_office: "Office rent", software_subscriptions: "Software", cloud_hosting: "Hosting", equipment: "Equipment", travel: "Travel",

@@ -1,4 +1,4 @@
-"""Seam: database -> recompute -> stored Forecast + forecast.updated (#28). Needs the test database."""
+"""Seam: database -> recompute -> stored Forecast + forecast.updated. Needs the test database."""
 import json
 from decimal import Decimal
 
@@ -16,7 +16,7 @@ from backend.pipeline.normalise.bank import transaction_id
 
 from .data import CLOSED_JUNE, PIZZERIA_CSV, SCENARIO, bank_lines, borsuk, pizzeria, scenario_documents
 
-SALES = [  # the story's open sales invoices on 21 Nov (role 4 scenario)
+SALES = [  # the story's open sales invoices on 21 Nov
     ("doc_fv_2026_10_042", "2026/10/042", "Meblostyl sp. z o.o. (SAMPLE)", None, "36900.00", "PLN", "2026-10-31",
      "2026-11-27"),
     ("doc_fv_2026_10_044", "2026/10/044", "Nordwind Logistik GmbH (SAMPLE)", "cp_nordwind", "18400.00", "EUR",
@@ -34,7 +34,7 @@ def events(db, type):
 def labs_db(db):
     """Borsuk Labs in the database: bank lines, open sales invoices, Nordwind's delay, 10 approved debts."""
     seed(db)
-    for p in json.loads((SCENARIO / "people.json").read_text(encoding="utf-8")):  # the full team (role 4 scenario)
+    for p in json.loads((SCENARIO / "people.json").read_text(encoding="utf-8")):  # the full team
         db.execute("insert into people (id, company_id, name, email, role) values (%s, %s, %s, %s, %s) "
                    "on conflict do nothing", (p["id"], p["company_id"], p["name"], p["email"], p["role"]))
     db.commit()
@@ -201,8 +201,7 @@ def pizzeria_expected() -> str:
 
 
 def test_an_invoice_whose_payment_is_in_the_bank_is_not_expected_again(labs_db):
-    """Role 3 leaves most matches `suggested` until the owner confirms them; the money has moved all the same.
-    Found with the full scenario: every sales invoice of the year was expected as a future receipt (1.27 m PLN)."""
+    """Most matches stay `suggested` until the owner confirms them; the money has moved all the same."""
     s = Store(labs_db)
     june = next(t for t in s.list("transaction", company_id="co_borsuk") if t["description"] == "FV 2026/10/041")
     s.put("document", {"id": "doc_paid_june", "company_id": "co_borsuk", "direction": "sale", "status": "extracted",
