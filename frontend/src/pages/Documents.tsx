@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, rawContentUrl, type DocumentDetail as DocumentData, type DocumentPatch } from "../api/client";
+import { api, type DocumentDetail as DocumentData, type DocumentPatch } from "../api/client";
 import type { OrdoDocument, Recommendation } from "../api/types.gen";
 import { ControlBadges } from "../components/ControlBadges";
 import { More, MoreGroup } from "../components/More";
+import { OriginalModal, useOriginal } from "../components/OriginalFile";
 import { PageState } from "../components/PageState";
 import { useCompany } from "../lib/company";
 import { shortDate } from "../lib/dates";
@@ -90,15 +91,24 @@ export function DocumentView({ data, card, onSave }: { data: DocumentData; card?
   );
 }
 
-/** The original file when the API serves one; in mock mode a plain slip drawn from the read fields. */
+/** The original file when the API stores one (click to see it large); else a plain slip drawn from the read fields. */
 function Preview({ d }: { d: OrdoDocument }) {
-  const url = d.raw_item_ids[0] ? rawContentUrl(d.raw_item_ids[0]) : null;
-  if (url && d.channel === "photo") return <div className="card doc-preview"><img src={url} alt={`Original ${words(d.doc_type)} from ${d.seller.name}`} /></div>;
-  if (url) return <div className="card doc-preview"><object data={url} aria-label={`Original ${words(d.doc_type)} from ${d.seller.name}`}><a href={url}>Open the original file</a></object></div>;
+  const original = useOriginal(d);
+  const [open, setOpen] = useState(false);
+  const title = `Original ${words(d.doc_type)} from ${plainName(d.seller.name)}`;
+  if (original?.kind === "image") {
+    return (
+      <div className="card doc-preview">
+        <button type="button" className="original-button" onClick={() => setOpen(true)} title="Show it large"><img src={original.url} alt={title} /></button>
+        {open && <OriginalModal original={original} title={title} onClose={() => setOpen(false)} />}
+      </div>
+    );
+  }
+  if (original) return <div className="card doc-preview"><iframe className="original-pdf" src={original.url} title={title} /><a className="small" href={original.url} target="_blank" rel="noreferrer">Open the PDF in a new tab</a></div>;
   return (
     <div className="card doc-preview">
       <div className="slip">
-        <div className="medium">{d.seller.name}</div>
+        <div className="medium">{plainName(d.seller.name)}</div>
         <div className="caption">{d.seller.tax_id ? `Tax no. ${d.seller.tax_id}` : ""}</div>
         <div className="caption">{d.number}</div>
         <hr />

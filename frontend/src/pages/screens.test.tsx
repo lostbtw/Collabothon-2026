@@ -72,6 +72,17 @@ describe("Money", () => {
     expect(html).toContain("Chmura Polska +12%");
     expect(html).toContain("saves 89 PLN a month");
   });
+  it("search filters the view it is typed in, and keeps the other filters", async () => {
+    const monthly = render(<MonthlyView data={(await api.subscriptions("co_borsuk", "2026-11", "all"))!} month="2026-11" q="chmura" />);
+    expect(monthly).toContain("Chmura Polska");
+    expect(monthly).not.toContain("TaskPilot</span>");
+    expect(render(<ByPersonView month="2026-10" data={(await api.peopleCosts("co_borsuk", "2026-10"))!} q="nobody-is-called-this" />)).toContain("Nothing matches");
+    const [t, a, c, m, d] = await Promise.all([api.transactions("co_borsuk"), api.accounts("co_borsuk"), api.counterparties("co_borsuk"), api.matches("co_borsuk"), api.documents("co_borsuk")]);
+    const all = buildPayments({ transactions: t.items, accounts: a.items, counterparties: c.items, matches: m.items, documents: d.items });
+    const html = render(<PaymentsView all={all} month="" selected={null} onChanged={() => {}} />, "/money/payments?type=staff&q=jan");
+    expect(html).toContain("Staff ✕");
+    expect(html).toContain("“jan” ✕");
+  });
   it("all payments: the list and the panel of the selected payment", async () => {
     const [t, a, c, m, d] = await Promise.all([api.transactions("co_borsuk"), api.accounts("co_borsuk"), api.counterparties("co_borsuk"), api.matches("co_borsuk"), api.documents("co_borsuk")]);
     const all = buildPayments({ transactions: t.items, accounts: a.items, counterparties: c.items, matches: m.items, documents: d.items });
@@ -90,7 +101,7 @@ describe("To-do", () => {
     const [inbox, forecast, recs, approvals, activity] = await Promise.all([api.inbox("co_borsuk"), api.forecast("co_borsuk"), api.recommendations("co_borsuk"), api.approvals("co_borsuk"), api.activity("co_borsuk")]);
     const html = render(<TodoView items={inbox.items} forecast={forecast} recs={recs.items} approvals={approvals.items} activity={activity.items}
       month="2026-10" summary={await october()} people={await api.peopleCosts("co_borsuk", "2026-10")} />, "/todo");
-    expect(html).toContain("Needs your OK");
+    expect(html).toContain("Needs your confirmation");
     expect(html).toContain("Cash runs short from 30 Nov to 7 Dec");
     expect(html).toContain("Options, cheapest first");
     expect(html).toContain(">Send reminder</button>");
@@ -98,7 +109,7 @@ describe("To-do", () => {
     expect(html.replace(/<[^>]+>/g, " ")).not.toMatch(/simulated|SAMPLE/i); // visible text only
     expect(html).toContain("Close October");
     expect(html).toContain("94% done");
-    expect(html).toContain("Done · SIM-PD-2026-0398");
+    expect(html).toContain("SIM-PD-2026-0398");
     expect(html).not.toContain("No need to hedge");
   });
 });

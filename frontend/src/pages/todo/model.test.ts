@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { api } from "../../api/client";
 import { fixtures, resetMockState } from "../../api/mock";
-import { buildTodo, costLabel, doneRecently, topThree } from "./model";
+import { buildTodo, costLabel, doneRecently, headline, sortTodo, topThree } from "./model";
 
 afterEach(resetMockState);
 
@@ -41,9 +41,10 @@ describe("To-do", () => {
     await api.decide("rec_412", { decision: "approved", channel: "dashboard" });
     expect((await load()).needsOk.map((i) => i.id)).not.toContain("rec_412");
     const [activity, approvals, recs] = await Promise.all([api.activity("co_borsuk"), api.approvals("co_borsuk"), api.recommendations("co_borsuk")]);
-    const done = doneRecently(activity.items, approvals.items, recs.items, 4);
-    expect(done.filter((d) => d.level === "approved").map((d) => d.reference)).toEqual(["SIM-PAY-2026-0412", "SIM-PD-2026-0398"]);
-    expect(done).toHaveLength(4);
+    const done = doneRecently(activity.items, approvals.items, recs.items, 2);
+    expect(done.approved.map((d) => d.reference)).toEqual(["SIM-PAY-2026-0412", "SIM-PD-2026-0398"]);
+    expect(done.alone.every((d) => d.level === "analysed_autonomously")).toBe(true);
+    expect(done.alone.length).toBeLessThanOrEqual(2);
   });
 
   it("turns hundreds of match confirmations into one to-do that leads to the payments", async () => {
@@ -53,6 +54,24 @@ describe("To-do", () => {
     const bulk = todo.needsOk.find((i) => i.id === "bulk-confirm_match")!;
     expect(bulk).toMatchObject({ title: "407 invoices matched to payments", primary: { kind: "link", to: "/money/payments?doc=to_check" } });
     expect(todo.count).toBe(7);
+  });
+
+  it("sorts newest first by default, and by urgency, deadline or amount on request", async () => {
+    const todo = await load();
+    const all = [...todo.needsOk, ...todo.check];
+    const newest = sortTodo(all, "newest").map((i) => i.addedAt);
+    expect(newest).toEqual([...newest].sort().reverse());
+    const oldest = sortTodo(all, "oldest").map((i) => i.addedAt);
+    expect(oldest).toEqual([...oldest].sort());
+    expect(sortTodo(all, "urgent")[0].severity).toBe("critical");
+    const due = sortTodo(all, "due").map((i) => i.dueBy).filter(Boolean);
+    expect(due).toEqual([...due].sort());
+    expect(sortTodo(all, "amount").at(-1)!.amount).toBeNull();
+  });
+
+  it("turns a log line into a short headline without ids", () => {
+    expect(headline("Matched doc_pixel11 to txn_731 automatically (45.00 USD x NBP 4.0170 = 180.77 PLN)")).toBe("Matched an invoice to a payment");
+    expect(headline("Read 1,480 items from 5 sources")).toBe("Read 1,480 items from 5 sources");
   });
 
   it("shows no gap item when the forecast has no gap", async () => {

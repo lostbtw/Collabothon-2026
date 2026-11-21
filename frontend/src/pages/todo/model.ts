@@ -4,7 +4,7 @@
 import type { ActivityItem } from "../../api/client";
 import { isRenderableRecommendation } from "../../api/guards";
 import type { Approval, ControlLevel, Forecast, Money, Recommendation } from "../../api/types.gen";
-import { compareAmounts, isZero } from "../../lib/costTypes";
+import { abs, compareAmounts, isZero } from "../../lib/costTypes";
 import { daysBetween, shortDate } from "../../lib/dates";
 import { firstSentence, whole } from "../../lib/words";
 import { canApprove, isDecided } from "../inbox/model";
@@ -32,7 +32,12 @@ const BULK: Partial<Record<Recommendation["type"], { title: (n: number) => strin
 
 export type Gap = { from: string; to: string | null; days: number | null; lowest: { date: string; amount: Money }; short: Money; options: Recommendation[] };
 export type Primary = { kind: "approve" | "details" | "link"; label: string; to?: string };
-export type TodoItem = { id: string; level: ControlLevel; title: string; summary: string; primary: Primary; rec?: Recommendation; gap?: Gap };
+type Severity = Recommendation["severity"];
+/** `addedAt`, `dueBy`, `amount` and `severity` are what the To-do list can be sorted by. */
+export type TodoItem = {
+  id: string; level: ControlLevel; title: string; summary: string; primary: Primary; rec?: Recommendation; gap?: Gap;
+  addedAt: string | null; dueBy: string | null; amount: Money | null; severity: Severity;
+};
 export type Todo = { needsOk: TodoItem[]; check: TodoItem[]; count: number };
 
 /** "Free", "About 317 PLN", or null when the engine gave no cost. */
@@ -50,7 +55,11 @@ function single(r: Recommendation): TodoItem {
   const primary: Primary = r.control_level === "approval_required"
     ? (canApprove(r) ? { kind: "approve", label: approveLabel(r) } : { kind: "details", label: "See details" })
     : link ? { kind: "link", label: CHECK_LABEL[r.type] ?? "Check", to: link } : { kind: "details", label: "See details" };
-  return { id: r.id, level: r.control_level, title: r.title, summary: firstSentence(r.summary), primary, rec: r };
+  const amount = r.impact?.cash_effect ?? r.impact?.cost ?? null;
+  return {
+    id: r.id, level: r.control_level, title: r.title, summary: firstSentence(r.summary), primary, rec: r,
+    addedAt: r.created_at, dueBy: r.valid_until ?? null, amount: amount && !isZero(amount.amount) ? amount : null, severity: r.severity,
+  };
 }
 
 export function buildTodo(items: Recommendation[], forecast: Forecast | null): Todo {
@@ -61,7 +70,10 @@ export function buildTodo(items: Recommendation[], forecast: Forecast | null): T
     const many = all.filter((r) => r.type === type);
     if (many.length < 2) continue;
     many.forEach((r) => bulked.add(r.id));
-    bulkItems.push({ id: `bulk-${type}`, level: many[0].control_level, title: spec.title(many.length), summary: spec.summary, primary: { kind: "link", label: spec.label, to: spec.to } });
+    bulkItems.push({
+      id: `bulk-${type}`, level: many[0].control_level, title: spec.title(many.length), summary: spec.summary, primary: { kind: "link", label: spec.label, to: spec.to },
+      addedAt: newest(many.map((r) => r.created_at)), dueBy: earliest(many.map((r) => r.valid_until)), amount: null, severity: worst(many.map((r) => r.severity)),
+    });
   }
   const open = all.filter((r) => !bulked.has(r.id));
   const alert = forecast?.alerts.find((a) => a.type === "cash_gap") ?? null;
@@ -83,6 +95,7 @@ export function buildTodo(items: Recommendation[], forecast: Forecast | null): T
       title: alert.date_to ? `Cash runs short from ${shortDate(alert.date_from)} to ${shortDate(alert.date_to)}` : `Cash runs short from ${shortDate(alert.date_from)}`,
       summary: cause ? `${firstSentence(cause.summary)} ${howLong}` : howLong,
       primary: { kind: "link", label: "See options", to: "/todo#gap" }, gap,
+      addedAt: newest(options.map((r) => r.created_at)) ?? forecast.generated_at ?? null, dueBy: alert.date_from, amount: alert.max_shortfall, severity: "critical",
     };
   }
   const first = approvals.filter((r) => r.type === "reimburse_employee").map(single);
@@ -92,6 +105,39 @@ export function buildTodo(items: Recommendation[], forecast: Forecast | null): T
   return { needsOk, check, count: needsOk.length + check.length };
 }
 
+const SEVERITY_RANK: Record<Severity, number> = { critical: 2, warning: 1, info: 0 };
+const newest = (dates: (string | null | undefined)[]): string | null => dates.filter((d): d is string => Boolean(d)).sort().at(-1) ?? null;
+const earliest = (dates: (string | null | undefined)[]): string | null => dates.filter((d): d is string => Boolean(d)).sort()[0] ?? null;
+const worst = (list: Severity[]): Severity => list.reduce<Severity>((w, s) => (SEVERITY_RANK[s] > SEVERITY_RANK[w] ? s : w), "info");
+
+export type TodoSort = "newest" | "oldest" | "urgent" | "due" | "amount";
+export const TODO_SORTS: { key: TodoSort; label: string; hint: string }[] = [
+  { key: "newest", label: "Newest first", hint: "The latest Ordo added comes first" },
+  { key: "oldest", label: "Oldest first", hint: "What has waited longest comes first" },
+  { key: "urgent", label: "Most urgent", hint: "Critical first, then by how soon it must be decided" },
+  { key: "due", label: "Deadline soonest", hint: "What expires or is due first comes first" },
+  { key: "amount", label: "Largest amount", hint: "The most money at stake comes first" },
+];
+export const isTodoSort = (s: unknown): s is TodoSort => TODO_SORTS.some((x) => x.key === s);
+
+/** Missing values go last whatever the direction, so an item without a date never jumps to the top. */
+const nullsLast = <T,>(a: T | null, b: T | null, cmp: (x: T, y: T) => number): number => (a === null ? (b === null ? 0 : 1) : b === null ? -1 : cmp(a, b));
+const size = (m: Money) => abs(m.amount);
+
+export function sortTodo(items: TodoItem[], by: TodoSort): TodoItem[] {
+  const added = (a: TodoItem, b: TodoItem) => nullsLast(a.addedAt, b.addedAt, (x, y) => y.localeCompare(x));
+  const due = (a: TodoItem, b: TodoItem) => nullsLast(a.dueBy, b.dueBy, (x, y) => x.localeCompare(y));
+  const cmp: Record<TodoSort, (a: TodoItem, b: TodoItem) => number> = {
+    newest: added,
+    oldest: (a, b) => nullsLast(a.addedAt, b.addedAt, (x, y) => x.localeCompare(y)),
+    urgent: (a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity] || due(a, b) || added(a, b),
+    due: (a, b) => due(a, b) || added(a, b),
+    // Compares the decimal strings; amounts in another currency are not converted, this only orders the list.
+    amount: (a, b) => nullsLast(a.amount, b.amount, (x, y) => compareAmounts(size(y), size(x))) || added(a, b),
+  };
+  return [...items].sort(cmp[by]);
+}
+
 /** The Overview's To-do card: the first two decisions and the first suggestion, three at most. */
 export function topThree(todo: Todo): TodoItem[] {
   const ok = todo.needsOk.slice(0, 2);
@@ -99,22 +145,58 @@ export function topThree(todo: Todo): TodoItem[] {
   return [...ok, ...check, ...todo.needsOk.slice(2)].slice(0, 3);
 }
 
-export type Done = { at: string; level: "analysed_autonomously" | "approved"; text: string; reference?: string | null };
+/** One line of the log. `level` "approved" means the owner decided it (`said_no` when the decision was a no). */
+export type Done = {
+  at: string; level: "analysed_autonomously" | "approved"; text: string; reference?: string | null; saidNo?: boolean;
+  rec?: Recommendation; approval?: Approval; activity?: ActivityItem;
+};
 
-/**
- * What happened lately: the owner's last approvals (with their simulated reference) and what Ordo did
- * alone, newest first. Ordo works far more often than the owner approves, so up to two approvals are
- * always kept in the list.
- */
-export function doneRecently(activity: ActivityItem[], approvals: Approval[], recs: Recommendation[], limit = 3): Done[] {
-  const newest = (a: Done, b: Done) => b.at.localeCompare(a.at);
-  const approved: Done[] = approvals
-    .filter((a) => a.subject_type === "recommendation" && a.decision !== "rejected")
-    .map((a) => {
-      const rec = recs.find((r) => r.id === a.subject_id);
-      return { at: a.decided_at, level: "approved" as const, text: `${rec?.title ?? "Approved action"} · ${shortDate(a.decided_at)}`, reference: a.execution.reference };
-    })
-    .sort(newest).slice(0, Math.min(2, limit));
-  const alone: Done[] = activity.map((a) => ({ at: a.at, level: "analysed_autonomously" as const, text: a.text })).sort(newest).slice(0, limit - approved.length);
-  return [...approved, ...alone].sort(newest);
+const ID_WORDS: Record<string, string> = { doc: "an invoice", txn: "a payment", mat: "a match", rec: "a to-do", led: "a booking", raw: "a file", cp: "a company" };
+
+/** A log line as a short headline: no ids, no bracketed working ("Matched doc_1 to txn_2 (…)" -> "Matched an invoice to a payment"). */
+export function headline(text: string): string {
+  const short = text.replace(/\s*\(.*$/s, "").replace(/\b([a-z]+)_[A-Za-z0-9_]+\b/g, (id, prefix: string) => ID_WORDS[prefix] ?? id).replace(/\s+automatically$/, "").trim();
+  return short.length > 90 ? `${short.slice(0, 87).trimEnd()}…` : short;
+}
+
+const OWNER_TEXT: Record<Approval["subject_type"], [yes: string, no: string]> = {
+  recommendation: ["Approved action", "Said no to an action"],
+  match: ["Confirmed an invoice and its payment", "Undid a match Ordo made"],
+  ledger_entry: ["Confirmed a booking", "Rejected a booking"],
+  document: ["Confirmed a document", "Rejected a document"],
+};
+
+/** Every owner decision as a log line, newest first. */
+export function ownerLog(approvals: Approval[], recs: Recommendation[]): Done[] {
+  return approvals.map((a) => {
+    const rec = a.subject_type === "recommendation" ? recs.find((r) => r.id === a.subject_id) : undefined;
+    const no = a.decision === "rejected";
+    const text = rec ? (no ? `Said no: ${rec.title}` : rec.title) : OWNER_TEXT[a.subject_type][no ? 1 : 0];
+    return { at: a.decided_at, level: "approved" as const, text, reference: a.execution.reference, saidNo: no, rec, approval: a };
+  }).sort(newestFirst);
+}
+
+/** Everything Ordo did on its own as log lines, newest first. */
+export const ordoLog = (activity: ActivityItem[]): Done[] =>
+  activity.map((a) => ({ at: a.at, level: "analysed_autonomously" as const, text: a.text, activity: a })).sort(newestFirst);
+
+const newestFirst = (a: Done, b: Done) => b.at.localeCompare(a.at);
+
+/** What To-do shows under "Done recently": the actions the owner approved, and what Ordo did on its own. */
+export function doneRecently(activity: ActivityItem[], approvals: Approval[], recs: Recommendation[], limit = 3): { approved: Done[]; alone: Done[] } {
+  const approved = ownerLog(approvals, recs).filter((d) => d.approval?.subject_type === "recommendation" && !d.saidNo).slice(0, limit);
+  return { approved, alone: ordoLog(activity).slice(0, limit) };
+}
+
+/** What can be undone from the app: an action the owner approved, or a match Ordo made on its own. */
+export function undoKind(d: Done): "approval" | "match" | null {
+  if (d.level === "approved") return d.approval && !d.saidNo && d.approval.subject_type === "recommendation" ? "approval" : null;
+  return d.activity?.subject?.type === "match" ? "match" : null;
+}
+
+/** Log lines grouped by calendar day (UTC, like every date in the app), newest day first. */
+export function byDay(lines: Done[]): [day: string, lines: Done[]][] {
+  const days = new Map<string, Done[]>();
+  for (const d of [...lines].sort(newestFirst)) days.set(d.at.slice(0, 10), [...(days.get(d.at.slice(0, 10)) ?? []), d]);
+  return [...days.entries()];
 }

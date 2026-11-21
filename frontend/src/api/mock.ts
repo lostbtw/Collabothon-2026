@@ -76,6 +76,7 @@ const COPIES: OrdoDocument[] = (["ksef", "photo"] as const).map((channel) => {
 const decisions = new Map<string, Approval>();
 const documentEdits = new Map<string, OrdoDocument>();
 const undoneMatches = new Set<string>();
+const undoneApprovals = new Set<string>();
 const confirmedMatches = new Set<string>();
 const categoryEdits = new Map<string, Transaction["category"]>();
 const syncedAt = new Map<string, string>();
@@ -103,6 +104,7 @@ export function resetMockState(): void {
   decisions.clear();
   documentEdits.clear();
   undoneMatches.clear();
+  undoneApprovals.clear();
   confirmedMatches.clear();
   categoryEdits.clear();
   syncedAt.clear();
@@ -363,7 +365,14 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
       if (doc) documentEdits.set(doc.id, { ...doc, status: "approved" });
     }
     result = { ...f.approvals[0], subject_type: "match", subject_id: seg[1], decision, decided_at: demoNow(), changes: null, comment: null, execution: { mode: "none", status: "not_applicable", executed_at: null, reference: null, result: null, effects: [] } };
-  } else if (method === "GET" && path === "/approvals") result = { items: [...(company && company !== "co_borsuk" ? [] : SAMPLE_APPROVALS), ...decisions.values()] };
+  } else if (method === "GET" && path === "/approvals") result = { items: [...(company && company !== "co_borsuk" ? [] : SAMPLE_APPROVALS), ...decisions.values()].filter((a) => !undoneApprovals.has(a.id)) };
+  else if (method === "POST" && seg[0] === "approvals" && seg[2] === "undo") {
+    const approval = [...SAMPLE_APPROVALS, ...decisions.values()].find((a) => a.id === seg[1] && !undoneApprovals.has(a.id));
+    if (!approval) throw new MockNotFound(`No approval ${seg[1]}`);
+    undoneApprovals.add(approval.id);
+    for (const [recId, a] of decisions) if (a.id === approval.id) decisions.delete(recId);
+    result = { ...approval, execution: { ...approval.execution, result: `Undone: ${approval.execution.reference ?? "the action"} was reversed in the test bank.` } };
+  }
   else if (method === "GET" && path === "/activity") result = { items: (company && company !== "co_borsuk" ? [] : ACTIVITY).filter((a) => !(a.subject?.type === "match" && undoneMatches.has(a.subject.id))) };
   else if (method === "POST" && path === "/chat") {
     const ask = (body ?? {}) as { message?: string; company_id?: string; session_id?: string | null };

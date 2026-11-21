@@ -1,9 +1,10 @@
 // The panel next to All payments: one payment, the paper behind it, and what the owner can do about it.
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Link } from "react-router-dom";
-import { api, rawContentUrl } from "../../api/client";
+import { api } from "../../api/client";
 import type { Approval, Category, OrdoDocument, Recommendation } from "../../api/types.gen";
 import { Icon } from "../../components/Icon";
+import { OriginalModal, useOriginal } from "../../components/OriginalFile";
 import { CloseButton, DoneChip, SimButton, StatusLabel } from "../../components/ui";
 import { useCompany } from "../../lib/company";
 import { longDate } from "../../lib/dates";
@@ -276,10 +277,21 @@ function OnFile({ p, onFile }: { p: Payment; onFile: (f: File) => void }) {
   );
 }
 
-/** A small picture of the document: the original file when the API serves it, else drawn from what was read. */
+/** A small picture of the document: the original file when the API stores one (opens large on click), else drawn from what was read. */
 function Slip({ d }: { d: OrdoDocument }) {
-  const url = d.raw_item_ids[0] ? rawContentUrl(d.raw_item_ids[0]) : null;
-  if (url && (d.channel === "photo" || d.channel === "upload")) return <div className="slip"><img src={url} alt={`${d.doc_type} from ${plainName(d.seller.name)}`} /></div>;
+  const original = useOriginal(d);
+  const [open, setOpen] = useState(false);
+  const title = `${d.doc_type === "receipt" ? "Receipt" : "Invoice"} from ${plainName(d.seller.name)}`;
+  if (original) {
+    return (
+      <>
+        <button type="button" className="slip photo" onClick={() => setOpen(true)} aria-label={`Show the ${title.toLowerCase()} large`} title="Show it large">
+          {original.kind === "image" ? <img src={original.url} alt="" /> : <span className="slip-pdf"><Icon name="file" size={22} />PDF</span>}
+        </button>
+        {open && <OriginalModal original={original} title={title} onClose={() => setOpen(false)} />}
+      </>
+    );
+  }
   return (
     <div className="slip" aria-hidden="true">
       <span className="medium">{plainName(d.seller.name).toUpperCase()}</span>

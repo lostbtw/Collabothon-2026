@@ -1,11 +1,11 @@
-// Money: every payment in and out, with the invoice behind it. One place, five ways to look at it.
+// Finances: every payment in and out, with the invoice behind it. One place, five ways to look at it.
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, type ClientsResponse, type LedgerSummary, type PeopleCosts, type SubscriptionsResponse } from "../api/client";
 import type { Recommendation } from "../api/types.gen";
 import { Icon } from "../components/Icon";
 import { Avatar, Change, Chevron, MonthSelect, PageHead, Skeleton, SlidingTabs, StatusLabel, Tile, Waiting, nth } from "../components/ui";
-import { COST_TYPES, add, isZero, monthFigures, monthOnly, percent, previousMonth, recentMonths, subtract, typeOfCategory } from "../lib/costTypes";
+import { add, costTypes, isZero, monthFigures, monthOnly, percent, previousMonth, recentMonths, subtract, typeOfCategory } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
@@ -28,10 +28,14 @@ type View = (typeof VIEWS)[number]["key"];
 
 const none = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
 
+const SEARCH_HINT: Record<View, string> = { "": "Search types", people: "Search people", clients: "Search clients", monthly: "Search monthly payments", payments: "Search payments" };
+/** Case-insensitive "contains" over a few texts; an empty search matches everything. */
+const matches = (q: string, ...texts: (string | null | undefined)[]) => !q.trim() || texts.some((t) => t?.toLowerCase().includes(q.trim().toLowerCase()));
+const NoMatch = ({ q }: { q: string }) => <p className="t2" style={{ padding: 12 }}>Nothing matches “{q.trim()}”.</p>;
+
 export function Money() {
   const { view = "", id } = useParams();
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
   const today = useToday();
   // Old links to Subscriptions open Monthly payments.
   const v = (view === "subscriptions" ? "monthly" : VIEWS.some((x) => x.key === view) ? view : "") as View;
@@ -43,37 +47,34 @@ export function Money() {
   const keep = (key: string) => `/money${key ? `/${key}` : ""}${params.get("month") ? `?month=${month}` : ""}`;
 
   function setMonth(m: string) { params.set("month", m); setParams(params); }
-  function search(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const text = String(new FormData(e.currentTarget).get("q") ?? "").trim();
-    const p = new URLSearchParams(month ? { month } : {});
-    if (text) p.set("q", text);
-    navigate(`/money/payments?${p}`);
+  function search(text: string) {
+    const p = new URLSearchParams(params);
+    if (text) p.set("q", text); else p.delete("q");
+    setParams(p, { replace: true });
   }
   return (
     <>
-      <PageHead title="Money" sub="Every payment in and out, with the invoice behind it." />
+      <PageHead title="Finances" sub="Every payment in and out, with the invoice behind it." />
       <div className="toolbar">
         <MonthSelect value={month} months={recentMonths(today, 12)} onChange={setMonth} allowAll={v === "payments"} />
         <SlidingTabs label="Views" active={v} items={VIEWS.map((x) => ({ key: x.key, label: x.label, to: keep(x.key) }))} />
         <span className="grow" />
-        <form className="search" role="search" onSubmit={search}>
+        <form className="search" role="search" onSubmit={(e: FormEvent<HTMLFormElement>) => e.preventDefault()}>
           <Icon name="search" size={14} />
-          <input key={q} type="search" name="q" placeholder="Search payments" defaultValue={q} aria-label="Search payments"
-            onChange={(e) => { if (v === "payments") { if (e.target.value) params.set("q", e.target.value); else params.delete("q"); setParams(params, { replace: true }); } }} />
+          <input type="search" name="q" placeholder={SEARCH_HINT[v]} value={q} aria-label={SEARCH_HINT[v]} onChange={(e) => search(e.target.value)} />
         </form>
       </div>
-      {v === "" && <ByType month={month} />}
-      {v === "people" && <ByPerson month={month} />}
-      {v === "clients" && <ByClient month={month} />}
-      {v === "monthly" && <Monthly month={month} />}
+      {v === "" && <ByType month={month} q={q} />}
+      {v === "people" && <ByPerson month={month} q={q} />}
+      {v === "clients" && <ByClient month={month} q={q} />}
+      {v === "monthly" && <Monthly month={month} q={q} />}
       {v === "payments" && <AllPayments month={month} selected={id ?? null} />}
     </>
   );
 }
 
 // ---- By type ----
-function ByType({ month }: { month: string }) {
+function ByType({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const currency = useCompanyInfo()?.base_currency ?? "PLN";
   const refresh = useRefreshKey();
@@ -81,15 +82,16 @@ function ByType({ month }: { month: string }) {
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   const [current, before] = state.data ?? [null, null];
   if (!current) return <Waiting what="costs by type" />;
-  return <ByTypeView month={month} summary={current.summary} fromBank={current.fromBank} before={before} currency={currency} />;
+  return <ByTypeView month={month} summary={current.summary} fromBank={current.fromBank} before={before} currency={currency} q={q} />;
 }
 
-export function ByTypeView({ month, summary, fromBank, before, currency }: { month: string; summary: LedgerSummary; fromBank?: boolean; before: LedgerSummary | null; currency: string }) {
+export function ByTypeView({ month, summary, fromBank, before, currency, q = "" }: { month: string; summary: LedgerSummary; fromBank?: boolean; before: LedgerSummary | null; currency: string; q?: string }) {
   const f = monthFigures(summary, currency);
   const prev = before?.rows.length ? monthFigures(before, currency) : null;
   const entries = (cats: string[]) => summary.rows.filter((r) => cats.includes(r.key)).reduce((n, r) => n + r.entries, 0);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (key: string) => setOpen((o) => { const n = new Set(o); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  const types = f.types.filter((t) => matches(q, t.type.label, t.type.tag, ...t.categories.map((c) => categoryLabel(c.key))));
   if (!f.hasData) return <p className="t2">No payments in {monthOnly(month)}.</p>;
   return (
     <>
@@ -102,8 +104,9 @@ export function ByTypeView({ month, summary, fromBank, before, currency }: { mon
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Type</span><span className="cell" style={{ width: 120 }}>Repeats</span><span className="cell r" style={{ width: 90 }}>Payments</span><span className="cell r" style={{ width: 140 }}>{monthOnly(month)}</span><span className="cell r" style={{ width: 70 }}>Share</span><span style={{ width: 16 }} /></div>
-        {f.types.map((t, i) => {
-          const isOpen = open.has(t.type.key);
+        {types.length === 0 && <NoMatch q={q} />}
+        {types.map((t, i) => {
+          const isOpen = open.has(t.type.key) || (q.trim() !== "" && !matches(q, t.type.label, t.type.tag));
           return (
             <div key={t.type.key} className="group" style={nth(i)}>
               <button type="button" className="trow group-head" aria-expanded={isOpen} onClick={() => toggle(t.type.key)}>
@@ -140,16 +143,17 @@ export function ByTypeView({ month, summary, fromBank, before, currency }: { mon
 }
 
 // ---- By person ----
-function ByPerson({ month }: { month: string }) {
+function ByPerson({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
   const state = useApi(() => api.peopleCosts(companyId, month).catch(() => null), [companyId, month, refresh]);
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   if (!state.data) return <Waiting what="costs per person" />;
-  return <ByPersonView month={month} data={state.data} />;
+  return <ByPersonView month={month} data={state.data} q={q} />;
 }
 
-export function ByPersonView({ month, data }: { month: string; data: PeopleCosts }) {
+export function ByPersonView({ month, data, q = "" }: { month: string; data: PeopleCosts; q?: string }) {
+  const people = data.items.filter((p) => matches(q, plainName(p.name), ROLE_LABEL[p.role] ?? p.role, PAY_LABEL[p.pay_type ?? ""]));
   const owed = data.items.reduce((s, p) => add(s, p.owed.amount), "0.00");
   const receipts = data.items.reduce((n, p) => n + p.receipts_owed, 0);
   const currency = data.totals.staff.currency;
@@ -165,7 +169,8 @@ export function ByPersonView({ month, data }: { month: string; data: PeopleCosts
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Person</span><span className="cell" style={{ width: 140 }}>How we pay</span><span className="cell r" style={{ width: 260 }}>Cost in {monthOnly(month)}</span><span className="cell r" style={{ width: 120 }}>Owed to them</span><span style={{ width: 16 }} /></div>
-        {data.items.map((p, i) => (
+        {people.length === 0 && <NoMatch q={q} />}
+        {people.map((p, i) => (
           <Link style={nth(i)} key={p.person_id} to={`/money/payments?month=${month}&q=${encodeURIComponent(plainName(p.name).split(" ").at(-1) ?? "")}`} className="trow">
             <span className="cell grow" style={{ gap: 12 }}>
               <Avatar text={initials(p.name)} />
@@ -187,17 +192,18 @@ export function ByPersonView({ month, data }: { month: string; data: PeopleCosts
 }
 
 // ---- By client ----
-function ByClient({ month }: { month: string }) {
+function ByClient({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
   const state = useApi(() => Promise.all([none(api.clients(companyId, month)), none(api.inbox(companyId))]), [companyId, month, refresh]);
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   const [clients, inbox] = state.data ?? [null, null];
   if (!clients) return <Waiting what="clients and what they owe" />;
-  return <ByClientView month={month} data={clients} fx={inbox?.items.filter((r) => r.agent === "fx" && r.control_level === "approval_required") ?? []} />;
+  return <ByClientView month={month} data={clients} q={q} fx={inbox?.items.filter((r) => r.agent === "fx" && r.control_level === "approval_required") ?? []} />;
 }
 
-export function ByClientView({ month, data, fx }: { month: string; data: ClientsResponse; fx: Recommendation[] }) {
+export function ByClientView({ month, data, fx, q = "" }: { month: string; data: ClientsResponse; fx: Recommendation[]; q?: string }) {
+  const clients = data.items.filter((c) => matches(q, plainName(c.name), c.currency, ...c.open_invoices.map((i) => i.number)));
   const biggest = [...data.items].sort((a, b) => b.share_of_income - a.share_of_income)[0];
   return (
     <>
@@ -208,7 +214,8 @@ export function ByClientView({ month, data, fx }: { month: string; data: Clients
       </div>
       <div className="card table">
         <div className="trow head"><span className="cell grow">Client</span><span className="cell r" style={{ width: 150 }}>Paid in {monthOnly(month)}</span><span className="cell r" style={{ width: 200 }}>Still owes</span><span className="cell r" style={{ width: 120 }}>Status</span><span style={{ width: 16 }} /></div>
-        {data.items.map((c, i) => {
+        {clients.length === 0 && <NoMatch q={q} />}
+        {clients.map((c, i) => {
           const late = Math.max(0, ...c.open_invoices.map((i) => i.days_late));
           const due = c.open_invoices.map((i) => i.due_date).filter((d): d is string => Boolean(d)).sort()[0];
           const one = c.open_invoices.length === 1 ? c.open_invoices[0] : null;
@@ -245,13 +252,13 @@ export function ByClientView({ month, data, fx }: { month: string; data: Clients
 }
 
 // ---- Subscriptions ----
-function Monthly({ month }: { month: string }) {
+function Monthly({ month, q }: { month: string; q: string }) {
   const { companyId } = useCompany();
   const refresh = useRefreshKey();
   const state = useApi(() => api.subscriptions(companyId, month, "all").catch(() => null), [companyId, month, refresh]);
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   if (!state.data) return <Waiting what="monthly payments" />;
-  return <MonthlyView data={state.data} month={month} />;
+  return <MonthlyView data={state.data} month={month} q={q} />;
 }
 
 /** Two names and how many more, so a tile stays one line or two. */
@@ -259,7 +266,7 @@ const worthALook = (notes: string[]): string =>
   notes.length === 0 ? "No price rises, nothing paid twice" : notes.slice(0, 2).join(" · ") + (notes.length > 2 ? ` and ${notes.length - 2} more` : "");
 
 /** Everything paid every month, grouped by type; each type opens to its payments. */
-export function MonthlyView({ data, month }: { data: SubscriptionsResponse; month: string }) {
+export function MonthlyView({ data, month, q = "" }: { data: SubscriptionsResponse; month: string; q?: string }) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const twice = data.items.filter((s) => s.flags.includes("paid_twice"));
   const up = data.items.filter((s) => s.flags.includes("price_up"));
@@ -268,7 +275,8 @@ export function MonthlyView({ data, month }: { data: SubscriptionsResponse; mont
   const sum = (items: typeof data.items) => whole({ amount: items.reduce((t, x) => add(t, x.monthly.amount), "0.00"), currency });
   const rise = (s: (typeof data.items)[number]) => (s.previous_monthly && !isZero(s.previous_monthly.amount) ? `+${percent(subtract(s.monthly.amount, s.previous_monthly.amount), s.previous_monthly.amount)}%` : null);
   const FLAG: Record<string, [string, string]> = { paid_twice: ["Paid twice", "bad"], paid_privately: ["Paid privately", "warn"] };
-  const groups = COST_TYPES.map((t) => ({ type: t, items: data.items.filter((s) => typeOfCategory(s.category).key === t.key) })).filter((g) => g.items.length);
+  const found = data.items.filter((s) => matches(q, plainName(s.name), categoryLabel(s.category), typeOfCategory(s.category).label, ...s.paid_by.map((x) => x.label)));
+  const groups = costTypes().map((t) => ({ type: t, items: found.filter((s) => typeOfCategory(s.category).key === t.key) })).filter((g) => g.items.length);
   const toggle = (key: string) => setOpen((o) => { const n = new Set(o); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   if (data.items.length === 0) return <p className="t2">Nothing repeats every month yet.</p>;
   return (
@@ -281,8 +289,9 @@ export function MonthlyView({ data, month }: { data: SubscriptionsResponse; mont
           tone={twice.length + up.length ? "warn" : undefined} />
       </div>
       <div className="card table">
+        {groups.length === 0 && <NoMatch q={q} />}
         {groups.map((g) => {
-          const isOpen = open.has(g.type.key);
+          const isOpen = open.has(g.type.key) || q.trim() !== "";
           return (
             <div key={g.type.key} className="group">
               <button type="button" className="trow group-head" aria-expanded={isOpen} onClick={() => toggle(g.type.key)}>

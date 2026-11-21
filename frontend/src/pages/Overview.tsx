@@ -117,7 +117,7 @@ function TodoCard({ items, forecast, loading }: { items: Recommendation[] | null
         <Link to="/todo" className="small">See all</Link>
       </div>
       {loading && <><span className="skeleton line" style={{ width: "80%" }} /><span className="skeleton line" style={{ width: "60%" }} /><span className="skeleton line" style={{ width: "70%" }} /></>}
-      {todo && todo.count === 0 && <span className="t2">Nothing waits for you. Ordo will add a to-do when something needs your OK.</span>}
+      {todo && todo.count === 0 && <span className="t2">Nothing waits for you. Ordo will add a to-do when something needs your confirmation.</span>}
       {todo && topThree(todo).map((item) => <TodoRow key={item.id} item={item} />)}
     </div>
   );
