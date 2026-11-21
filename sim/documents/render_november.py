@@ -345,7 +345,10 @@ def render(d: dict, exe: str, work: Path) -> Path:
     target = ROOT / "sim" / "documents" / d["artefact"]
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.suffix == ".pdf":
+        target.unlink(missing_ok=True)
         run_browser(exe, work / "profile", html_file, f"--print-to-pdf={target}")
+        if not target.exists():  # a browser that hands the job to an already open window exits 0 and writes nothing
+            raise RuntimeError(f"{exe} wrote no {target.name}; close that browser or set CHROME to another one")
     else:
         size = (420, 2400) if is_receipt else (900, 1400)
         paper = screenshot(exe, work / "profile", html_file, *size)
