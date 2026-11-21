@@ -117,3 +117,12 @@ def test_a_card_claim_with_nothing_behind_it_is_not_shown(db):
     assert "created a card" not in reply["answer"]
     assert not any(r["agent"] == "chat" and "Cut costs" in r["title"]
                    for r in Store(db).list("recommendation", company_id="co_borsuk"))
+
+
+def test_a_reminder_reply_carries_no_money_guardrail_note(db):
+    load_fixtures(db)
+    from backend.agents import chat
+
+    reply = chat.answer(db, "co_borsuk", "Ask Nordwind to pay their invoice earlier", None, model=None)
+
+    assert reply["created_recommendation_id"] and reply["guardrail"] is None
