@@ -44,9 +44,11 @@ spec:
                 secretKeyRef:
                   name: ordo-db
                   key: ORDO_DATABASE_URL
-            # The Sandbox Bank does not run on the cluster yet: read only the mailbox and the NBP rates.
-            - name: ORDO_CONNECTORS_ONLY
-              value: imap_mailbox,fx_rates
+            - name: ORDO_BANK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sandbox-bank-token
+                  key: BANK_TOKEN
           resources:
             requests:
               cpu: 50m

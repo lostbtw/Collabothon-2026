@@ -9,4 +9,5 @@ data:
   LLM_BASE_URL: https://gpt-oss-20b-predictor.cfo-ai.svc.cluster.local:8443/v1
   LLM_MODEL: gpt-oss-20b
   ORDO_DOCLING_URL: http://docling-serve.cfo-ai.svc.cluster.local:5001
+  ORDO_BANK_URL: http://ordo-bank.cfo-ai.svc.cluster.local:8081
   ORDO_SSE_REPLAY_FIXTURES: "0"
