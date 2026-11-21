@@ -220,7 +220,6 @@ function CloseMonth({ month, summary, people, toCheck, openReimbursements }: { m
       </div>
       {sent ? <DoneChip />
         : <span style={{ alignSelf: "flex-start" }}><SimButton label="Send to accountant" primary={false} disabled={!ready} what="Records the month as sent to your accountant." onClick={() => setSent(true)} /></span>}
-      {!ready && <span className="caption t3">When every cost has an invoice and a type, send {monthOnly(month)} to your accountant in one click.</span>}
     </div>
   );
 }
