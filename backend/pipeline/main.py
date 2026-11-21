@@ -4,13 +4,11 @@
 Claiming follows contracts/events.md and role 5's agent loop (SKIP LOCKED, done after commit, 3 failures -> dead).
 When role 2's backend/queue library lands, this loop switches to it.
 
-Environment: ORDO_DATABASE_URL (backend/settings.py); ORDO_RAW_DIR = where pvc://raw/ is mounted (default /data/raw);
-photos and PDFs need role 1's extractor settings (ORDO_DOCLING_URL, ORDO_LLM_BASE_URL; ORDO_EXTRACT_ENABLED=0 = off).
+Environment: ORDO_DATABASE_URL (backend/settings.py); ORDO_RAW_DIR = where pvc://raw/ is mounted (default /data/raw).
 """
 import logging
 import os
 import time
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -27,21 +25,6 @@ log = logging.getLogger("ordo.pipeline")
 MAX_ATTEMPTS = 3
 SWEEP_SECONDS = int(os.environ.get("ORDO_PIPELINE_SWEEP_SECONDS", "60"))
 _CHOOSE = model_chooser()  # the cluster's model for category/kind when rules do not decide; None if disabled
-
-
-def extractor():
-    """Role 1's extract_document() (#17): docling-serve + gpt-oss on the cluster. None if ORDO_EXTRACT_ENABLED=0."""
-    if os.environ.get("ORDO_EXTRACT_ENABLED", "1") == "0":
-        return None
-    from .extract import extract_document
-
-    def extract(data: bytes, content_type: str, today: str | None) -> dict:
-        return extract_document(data, content_type, today=date.fromisoformat(today) if today else None)
-
-    return extract
-
-
-_EXTRACT = extractor()
 
 
 # ---------- Postgres context ----------
@@ -78,7 +61,7 @@ def make_context(conn: psycopg.Connection) -> Context:
         return None
 
     return Context(store=Store(conn), publish=_publish, company=_company, people=_people, raw_bytes=_raw_bytes,
-                   rates=default_rates(), choose=_CHOOSE, extract=_EXTRACT)
+                   rates=default_rates(), choose=_CHOOSE)
 
 
 # ---------- claiming ----------
