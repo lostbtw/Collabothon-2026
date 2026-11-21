@@ -8,9 +8,11 @@ actions; the finance consumer calls it after new bank lines and approved Ledger 
     3. write `recurring_series_id` onto the bank lines of detected series (role 3 auto-confirms only those)
     4. store the forecast and emit `forecast.updated`; unchanged inputs (same `inputs_hash`) do nothing
 """
+import json
 import logging
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import psycopg
@@ -18,16 +20,26 @@ import psycopg
 from backend.db.events import new_event, publish
 from backend.db.store import Store
 
+from . import fx
 from .forecast import build_forecast, recurring_series_ids
 from .scenarios import credit_line_size, stress_of, with_changes
 from .series import name_key
 from .settings import (BUFFER_MONTHS, BUFFER_ROUND, BUFFER_SHARE, DEFAULT_PAYMENT_DAYS, DEMO_DAY_RATES_PLN,
-                       EVENT_TAIL_DAYS, HORIZON_DAYS)
+                       EVENT_TAIL_DAYS, FX_HISTORY_DAYS, FX_LOSS_LIMIT_PLN, FX_MIN_HISTORY, HORIZON_DAYS)
 
 try:  # role 2's NBP connector (#34): stored table A rates
     from backend.connectors.nbp import rate_on
 except ImportError:  # pragma: no cover
     rate_on = None
+
+try:  # role 2's stored NBP tables (#34); FX Shield falls back to the committed 3-year file without them
+    from backend.connectors.nbp import history as nbp_history
+except ImportError:  # pragma: no cover
+    nbp_history = None
+
+DATA = Path(__file__).resolve().parent / "data"
+FX_HISTORY_FILE = DATA / "nbp_history_3y.json"
+OWNER_PROFITS_FILE = DATA / "owner_deal_profits.json"
 
 log = logging.getLogger("ordo.finance")
 PRODUCER = "finance"
@@ -310,3 +322,63 @@ def stress(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
 def credit_line(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     """The credit line that covers the worst case: {limit, shortfall, basis, rule, stress}."""
     return credit_line_size(latest_base(conn, company_id) or recompute(conn, company_id))
+
+
+# ---------- FX Shield (#47) ----------
+def fx_history_pln(conn: psycopg.Connection | None, currency: str, as_of: date) -> dict[str, str]:
+    """{day: PLN per unit}: the NBP tables the connector stored, or the committed 3-year file when fewer than
+    FX_MIN_HISTORY of them fall in the 3 years before the as-of date."""
+    stored: dict[str, str] = {}
+    if conn is not None and nbp_history is not None:
+        stored = dict(nbp_history(conn, currency, as_of - timedelta(days=FX_HISTORY_DAYS + 1)))
+    if len(fx.history_window(stored, as_of)) >= FX_MIN_HISTORY:
+        return stored
+    return json.loads(FX_HISTORY_FILE.read_text(encoding="utf-8")).get(currency.upper(), {})
+
+
+def fx_history(conn: psycopg.Connection | None, currency: str, base: str, as_of: date) -> dict[str, str]:
+    """{day: base-currency units per unit}. NBP quotes PLN per unit; another base divides by its own PLN rate."""
+    if base == "PLN":
+        return fx_history_pln(conn, currency, as_of)
+    base_pln = fx_history_pln(conn, base, as_of)
+    pln = {d: "1" for d in base_pln} if currency == "PLN" else fx_history_pln(conn, currency, as_of)
+    return {d: f"{Decimal(r) / Decimal(base_pln[d])}" for d, r in pln.items() if d in base_pln}
+
+
+def owner_profits(conn: psycopg.Connection, company_id: str) -> dict[str, dict[str, str]]:
+    """{document id: Money}: the profit the owner stated for a deal, matched by invoice number. Stand-in until
+    Settings stores it: backend/finance/data/owner_deal_profits.json (invented SAMPLE statements)."""
+    stated = json.loads(OWNER_PROFITS_FILE.read_text(encoding="utf-8")).get(company_id, {})
+    if not stated:
+        return {}
+    return {d["id"]: {"amount": stated[d["number"]]["amount"], "currency": stated[d["number"]]["currency"]}
+            for d in Store(conn).list("document", company_id=company_id) if d.get("number") in stated}
+
+
+def fx_assessments(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
+    """FX Shield's numbers for every open foreign-currency invoice of the company (fx.assess_company)."""
+    inputs = load_inputs(conn, company_id)
+    company = inputs["company"]
+    base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
+    currencies = {i["amount"]["currency"] for i in inputs["open_items"]} - {base}
+    histories = {c: fx_history(conn, c, base, as_of) for c in currencies}
+    loss_limit = FX_LOSS_LIMIT_PLN / DEMO_DAY_RATES_PLN.get(base, Decimal(1))
+    return fx.assess_company(inputs, histories, owner_profits(conn, company_id), loss_limit)
+
+
+EXPOSURE_FIELDS = ("document_id", "direction", "amount", "value_today_base", "expected_cash_date", "horizon_days",
+                   "scenarios", "bad_case_p95", "expected_shortfall", "deal_profit", "profit_source", "verdict")
+
+
+def fx_exposure(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
+    """GET /fx/exposure (contracts/openapi.yaml): one item per open foreign-currency invoice, with its FX card."""
+    cards: dict[str, str] = {}
+    for r in Store(conn).list("recommendation", company_id=company_id, agent="fx"):
+        subject = (r.get("subject") or {}).get("id")
+        if subject and r["status"] in ("new", "seen", "approved", "executed_simulated"):
+            cards.setdefault(subject, r["id"])
+    items = []
+    for a in fx_assessments(conn, company_id):
+        item = {k: a[k] for k in EXPOSURE_FIELDS if a.get(k) is not None}
+        items.append({**item, "recommendation_id": cards.get(a["document_id"])})
+    return {"items": items}

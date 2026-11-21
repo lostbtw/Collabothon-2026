@@ -41,3 +41,21 @@ SIZING_STEP = _get("SIZING_STEP", Decimal("5000"), Decimal)  # credit line: the 
 # Exchange rates: the stored NBP table A rate (role 2's connector). Only while no table is stored, the demo-day
 # rate of spec #4 is used ("4.41 PLN per EUR and 4.0613 PLN per USD, used everywhere").
 DEMO_DAY_RATES_PLN = {"PLN": Decimal("1"), "EUR": Decimal("4.41"), "USD": Decimal("4.0613")}
+
+# FX Shield (#47, spec #4). Prices are illustrative placeholders, not an offer.
+FX_HISTORY_DAYS = _get("FX_HISTORY_DAYS", 1095)                      # 3 years of NBP rates before the as-of date
+FX_MIN_HISTORY = _get("FX_MIN_HISTORY", 500)                         # fewer stored rates: use the committed 3-year file
+FX_NET_WINDOW_DAYS = _get("FX_NET_WINDOW_DAYS", 15)                  # opposite invoices this close in time offset each other
+FX_NATURAL_SHARE = _get("FX_NATURAL_SHARE", Decimal("0.05"), Decimal)      # net exposure under this share: naturally hedged
+FX_PROFIT_SHARE = _get("FX_PROFIT_SHARE", Decimal("0.25"), Decimal)        # hedge when the shortfall reaches this share of profit
+FX_COST_MAX_SHARE = _get("FX_COST_MAX_SHARE", Decimal("0.5"), Decimal)     # ... and the forward costs at most this share of it
+FX_LOSS_LIMIT_PLN = _get("FX_LOSS_LIMIT_PLN", Decimal("2000"), Decimal)    # the owner's loss limit in PLN (spec default)
+FX_FORWARD_COST = _get("FX_FORWARD_COST", Decimal("0.003"), Decimal)       # illustrative forward margin, share of value
+FX_OPTION_COST = _get("FX_OPTION_COST", Decimal("0.012"), Decimal)         # illustrative option premium, share of value
+FX_DEFAULT_MARGIN = _get("FX_DEFAULT_MARGIN", Decimal("0.17"), Decimal)    # margin when the bank lines cannot give one
+FX_MAX_MARGIN = _get("FX_MAX_MARGIN", Decimal("0.6"), Decimal)             # a measured margin above this is not believed
+FX_MIN_MARGIN_LINES = _get("FX_MIN_MARGIN_LINES", 20)                # categorised bank lines needed to measure the margin
+FX_LATE_DAYS = _get("FX_LATE_DAYS", 3)                               # a client this many days late on average is late
+FX_LATE_HEDGE_RATIO = _get("FX_LATE_HEDGE_RATIO", Decimal("0.8"), Decimal) # share hedged for a late client
+FX_MENTION_SHARE = _get("FX_MENTION_SHARE", Decimal("0.25"), Decimal)      # "not worth it" card only from this share of the loss limit
+FX_MENTION_NATURAL = _get("FX_MENTION_NATURAL", Decimal("10"), Decimal)    # "naturally hedged" card only from this many loss limits
