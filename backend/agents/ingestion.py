@@ -6,7 +6,7 @@ from typing import Any
 
 import psycopg
 
-from backend.agents.text import fmt_money, ordinal_day, short_date
+from backend.agents.text import fmt_money, short_date
 from backend.api.recommendations import save_recommendation
 from backend.db.events import new_event, publish
 from backend.db.store import Store
@@ -224,7 +224,7 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any]) -> list
                      "url": f"/forecast/{forecast['id']}#{comp['id']}"}, *comp.get("evidence", [])]
         rec = _base(
             event["company_id"], "tax_reserve", subject,
-            title=f"Set aside {fmt_money(amount, cents=False)} for {tax} on the {ordinal_day(due)}",
+            title=f"Set aside {fmt_money(amount, cents=False)} for {tax} on {short_date(due.isoformat())}",
             summary=f"{comp['label']}: {fmt_money(amount)} is due on {due.isoformat()}. Moving it to your tax account now "
                     f"keeps it from being spent.",
             control_level="approval_required", execution_mode="simulated", severity="warning",
