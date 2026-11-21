@@ -4,10 +4,10 @@ from datetime import date
 
 import httpx
 import psycopg
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from backend import settings
-from backend.api import stand_ins
+from backend.api import speech, stand_ins
 from backend.api.deps import ApiError, company_id, conn, now_iso
 from backend.api.ports import finance_engine
 from backend.connectors.nbp import rate_on
@@ -28,11 +28,15 @@ def _llm_reachable(base_url: str) -> bool:
 
 
 @router.get("/health")
-def health():
+def health(request: Request):
     base_url = settings.llm_base_url()
+    voice = None
+    if speech.configured():
+        voice = {"model": settings.whisper_model(), "reachable": speech.reachable(request.app.state.speech_transport)}
     return {
         "status": "ok",
         "llm": {"base_url": base_url, "model": settings.llm_model(), "reachable": _llm_reachable(base_url)},
+        "speech": voice,
         "demo_clock": now_iso(),
     }
 

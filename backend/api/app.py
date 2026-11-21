@@ -30,7 +30,8 @@ class _GzipExceptStream:
             await self.gzip(scope, receive, send)
 
 
-def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | None = None) -> FastAPI:
+def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | None = None,
+               speech_transport: Any = None) -> FastAPI:
     url = database_url or settings.database_url()
 
     @asynccontextmanager
@@ -44,6 +45,7 @@ def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | 
     app = FastAPI(title="Ordo API", version="0.1.0", lifespan=lifespan)
     app.add_middleware(_GzipExceptStream)
     app.state.chat_model = chat_model or default_client
+    app.state.speech_transport = speech_transport
     for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream, owner):
         app.include_router(module.router, prefix="/api/v1")
 
