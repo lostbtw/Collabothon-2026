@@ -92,7 +92,7 @@ def test_a_mode_other_than_simulated_is_refused_before_anything_happens(demo, ba
 def test_tax_pocket_is_a_payment_draft_to_the_tax_pocket(demo, bank):
     out = run(demo, bank, {"kind": "move_to_tax_pocket", "params": {"amount": {"amount": "14300.00", "currency": "PLN"}}})
     [done] = bank_executions(bank)
-    assert done["creditorName"] == "Tax pocket (SAMPLE)" and done["amount"] == "14300.00"
+    assert done["creditorName"] == "Tax account (SAMPLE)" and done["amount"] == "14300.00"
     assert out["reference"].startswith("SIM-PD-")
 
 

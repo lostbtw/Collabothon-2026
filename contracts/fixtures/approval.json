@@ -24,7 +24,7 @@
       "status": "done",
       "executed_at": "2026-11-21T10:19:31Z",
       "reference": "SIM-CL-2026-0007",
-      "result": "Sandbox bank accepted the application: limit 25,000 PLN, available from 2026-11-27.",
+      "result": "Commerzbank accepted the application: limit 25,000 PLN, available from 2026-11-27.",
       "effects": [
         {
           "kind": "forecast",

@@ -267,7 +267,7 @@ export const SAMPLE_RECOMMENDATIONS: Recommendation[] = [
 export const SAMPLE_APPROVALS: Approval[] = [{
   id: "apr_s640", subject_type: "recommendation", subject_id: "rec_640", decision: "approved",
   decided_by: { name: "Tomasz Borsuk (SAMPLE)", role: "owner" }, decided_at: "2026-11-18T09:02:00Z", channel: "dashboard", comment: null, changes: null,
-  execution: { mode: "simulated", status: "done", executed_at: "2026-11-18T09:02:01Z", reference: "SIM-PD-2026-0398", result: "Sandbox bank added a transfer draft of 640.00 PLN to Marta.", effects: [] },
+  execution: { mode: "simulated", status: "done", executed_at: "2026-11-18T09:02:01Z", reference: "SIM-PD-2026-0398", result: "Commerzbank added a transfer draft of 640.00 PLN to Marta.", effects: [] },
 }];
 
 const cents = (amount: string) => BigInt(amount.replace("-", "").replace(".", ""));

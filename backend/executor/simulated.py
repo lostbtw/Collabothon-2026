@@ -11,7 +11,7 @@ import psycopg
 from backend.connectors.bank import bank_token, make_client
 from backend.db.events import new_event, publish
 
-TAX_POCKET = "Tax pocket (SAMPLE)"
+TAX_POCKET = "Tax account (SAMPLE)"
 
 
 class ExecutionRefused(Exception):
@@ -66,14 +66,14 @@ def _post(client: httpx.Client, token: str, path: str, body: dict[str, Any]) -> 
     try:
         resp = client.post(path, json=body, headers={"Authorization": f"Bearer {token}", "Consent-ID": "demo"})
     except httpx.HTTPError as exc:
-        raise ExecutionFailed(f"Sandbox Bank unreachable: {exc}") from exc
+        raise ExecutionFailed(f"Commerzbank unreachable: {exc}") from exc
     if resp.status_code >= 400:
         detail = resp.text[:200]
         try:
             detail = resp.json().get("detail", detail)
         except ValueError:
             pass
-        raise ExecutionFailed(f"Sandbox Bank refused the action (HTTP {resp.status_code}): {detail}")
+        raise ExecutionFailed(f"Commerzbank refused the action (HTTP {resp.status_code}): {detail}")
     return resp.json()
 
 
