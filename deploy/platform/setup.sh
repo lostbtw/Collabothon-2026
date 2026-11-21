@@ -127,7 +127,7 @@ bank_csv() {
   fi
   oc -n "$NS" create configmap bank-pizzeria-csv --from-file="statement.csv=$file" --dry-run=client -o yaml |
     oc label --local -f - app.kubernetes.io/part-of=ordo -o yaml |
-    oc apply -f -
+    oc apply --server-side --force-conflicts -f -
   if oc -n "$NS" get deployment ordo-bank >/dev/null 2>&1; then
     oc -n "$NS" rollout restart deployment/ordo-bank
     oc -n "$NS" rollout status deployment/ordo-bank --timeout=300s
