@@ -26,7 +26,7 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
   const lowLabel = m.low ? `${whole(m.low.amount)} · ${shortDate(m.low.date)}` : "";
   return (
     <div className="chart">
-      <svg viewBox={`0 0 ${m.w} ${m.h}`} role="img" onClick={open} style={{ cursor: hover?.expected ? "pointer" : undefined }} aria-label={m.low ? `Cash over time. Lowest expected point ${lowLabel}.` : "Cash over time."} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${m.w} ${m.h}`} role="img" onClick={open} style={{ cursor: hover?.expected ? "pointer" : undefined }} aria-label={m.low ? `Balance over time. Lowest expected point ${lowLabel}.` : "Balance over time."} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         {m.zones.map((z) => (
           <g key={z.from}>
             <rect x={z.x1} y={m.plot.top} width={Math.max(2, z.x2 - z.x1)} height={m.plot.bottom - m.plot.top} className="chart-zone" />
@@ -72,7 +72,7 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
         <div className="chart-tip" style={{ left: `${Math.min(86, Math.max(14, (hover.x / m.w) * 100))}%` }}>
           <div className="caption t3">{shortDate(hover.date)} · {hover.expected ? "expected" : "in the bank"}</div>
           <div className="medium">{whole(hover.balance)}</div>
-          {hover.low && hover.high && <div className="caption t3">could be {whole(hover.low)} to {whole(hover.high)}</div>}
+          {hover.low && hover.high && <div className="caption t3">likely between {whole(hover.low)} and {whole(hover.high)}</div>}
           {hover.expected && <div className="caption accent">Click for details</div>}
         </div>
       )}
@@ -108,7 +108,7 @@ function DayModal({ day, onClose }: { day: CashDay; onClose: () => void }) {
     <Modal title={longDate(day.date)} onClose={onClose} head={<span className="status suggestion">Expected</span>}>
       <div className="facts">
         <div className="stack" style={{ gap: 0 }}><span className="small t3">Balance at the end of the day</span><span className={below ? "bad medium" : "medium"}>{whole(day.balance)}</span></div>
-        {day.low && day.high && <div className="stack" style={{ gap: 0 }}><span className="small t3">Could be</span><span>{whole(day.low)} to {whole(day.high)}</span></div>}
+        {day.low && day.high && <div className="stack" style={{ gap: 0 }}><span className="small t3">Likely range</span><span>{whole(day.low)} to {whole(day.high)}</span></div>}
         {net && <div className="stack" style={{ gap: 0 }}><span className="small t3">Change that day</span><span className={net.amount.startsWith("-") ? undefined : "good"}>{net.amount.startsWith("-") ? "" : "+"}{whole(net)}</span></div>}
       </div>
       {list("Money in", ins)}

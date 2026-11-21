@@ -61,13 +61,13 @@ def _describe(action: dict[str, Any]) -> str:
         return f"Commerzbank accepted the credit-line application: limit {_amount(p.get('limit'))}{tenor}."
     if kind == "create_payment_draft":
         when = f" for {p['pay_on']}" if p.get("pay_on") else ""
-        return f"Transfer draft of {_amount(p.get('amount'))} added to the payment run{when} in the Sandbox Bank."
+        return f"Transfer draft of {_amount(p.get('amount'))} added to the payment run{when} at Commerzbank."
     if kind == "book_fx_forward":
         return (f"Forward booked at Commerzbank: sell {_amount(p.get('notional'))} at {p.get('rate')} "
                 f"on {p.get('value_date')}.")
     if kind == "move_to_tax_pocket":
-        return f"{_amount(p.get('amount'))} moved to the tax pocket in the Sandbox Bank."
-    return f"{kind.replace('_', ' ')} done in the Sandbox Bank."
+        return f"{_amount(p.get('amount'))} moved to your tax account at Commerzbank."
+    return f"{kind.replace('_', ' ')} done at Commerzbank."
 
 
 def _stand_in_execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:

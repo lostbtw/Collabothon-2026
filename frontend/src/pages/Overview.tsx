@@ -275,7 +275,7 @@ function Explained({ f, month, summary, transactions, names }: { f: MonthFigures
         </div>
       )}
       <span className="grow" />
-      <Link to={`/money/payments?month=${month}&doc=missing`} className="button" style={{ alignSelf: "flex-start" }}>Check them</Link>
+      <Link to={`/money/payments?month=${month}&doc=missing`} className="button" style={{ alignSelf: "flex-start" }}>Review</Link>
     </div>
   );
 }
@@ -289,12 +289,12 @@ function CashSection({ history, forecast, flash }: { history: BalanceHistory | n
     <section className="section" id="cash">
       <div className="section-head">
         <div className="stack grow" style={{ gap: 2 }}>
-          <h2>Cash over time</h2>
-          <span className="small t2">{history ? `The last 3 months, and the next ${weeks} weeks from payments we already know about` : `The next ${weeks} weeks, from payments we already know about`}</span>
+          <h2>Balance over time</h2>
+          <span className="small t2">{history ? `Last 3 months, and a ${weeks}-week forecast from known payments` : `A ${weeks}-week forecast from known payments`}</span>
         </div>
         {history && <span className="legend"><i />In the bank</span>}
         {forecast && <span className="legend"><i className="dashed" />Expected</span>}
-        {forecast?.points.some((p) => p.low && p.high) && <span className="legend"><b className="legend-band" />Could be</span>}
+        {forecast?.points.some((p) => p.low && p.high) && <span className="legend"><b className="legend-band" />Likely range</span>}
         <button type="button" onClick={() => ask.open("What if I hire a developer for 15,000 PLN a month from January?")}>Add a plan</button>
       </div>
       <div className="card stack">

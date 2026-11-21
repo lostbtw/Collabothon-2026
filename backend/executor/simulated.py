@@ -99,7 +99,7 @@ def _payment_draft(conn, client, token, company, p, *, creditor: str | None = No
     out = _post(client, token, "/v1/payment-drafts", body)
     when = f" for {out['requestedExecutionDate']}" if out.get("requestedExecutionDate") else ""
     return out["reference"], (f"Transfer draft of {_amount_text(out['amount'], out.get('currency') or currency)} "
-                              f"to {name} added to the payment run{when} in the Sandbox Bank.")
+                              f"to {name} added to the payment run{when} at Commerzbank.")
 
 
 def _fx_forward(conn, client, token, company, p) -> tuple[str, str]:
