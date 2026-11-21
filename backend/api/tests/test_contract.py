@@ -54,6 +54,7 @@ CALLS = [
     ("delete", "/rules/{id}", "/rules/rule_nope", {"params": BORSUK}, 404),
     ("get", "/chat/sessions", "/chat/sessions", {"params": BORSUK}, 200),
     ("get", "/chat/sessions/{id}", "/chat/sessions/chat_nope", {"params": BORSUK}, 404),
+    ("delete", "/chat/sessions/{id}", "/chat/sessions/chat_nope", {"params": BORSUK}, 404),
     ("get", "/balance/history", "/balance/history", {"params": BORSUK}, 200),
 ]
 STREAM = "/events/stream"
