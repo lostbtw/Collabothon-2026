@@ -142,7 +142,12 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         })
 
     for item in open_items:
-        amount = Decimal(item["amount"]["amount"]) * rate[item["amount"]["currency"]]
+        unit = rate[item["amount"]["currency"]]
+        lock = item.get("locked")
+        if lock:  # an executed FX forward fixed this share of the invoice at its rate (#47)
+            share = Decimal(lock["ratio"])
+            unit = share * Decimal(lock["rate"]) + (1 - share) * unit
+        amount = Decimal(item["amount"]["amount"]) * unit
         if item["kind"] == "payable":
             amount = -abs(amount)
         due = date.fromisoformat(item["due_date"])
@@ -153,6 +158,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         certain[expected] += amount
         why = f"expected {expected} = due date {due}" + (f" + this client's average delay of {delay} days"
                                                            if delay else "")
+        if lock:
+            why += f"; {Decimal(lock['ratio']):.0%} at the forward rate {lock['rate']} ({lock['reference']})"
         foreign = item["amount"]["currency"] != base
         components.append({
             "id": f"c_{item['id']}", "label": item["label"] + (f", {shown(Decimal(item['amount']['amount']), item['amount']['currency'])}"
