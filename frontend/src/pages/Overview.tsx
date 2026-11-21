@@ -67,7 +67,7 @@ export function CashCard({ accounts, forecast, loading }: { accounts: AccountsRe
   return (
     <div className="card stack" style={{ gap: 16 }}>
       <div className="stack" style={{ gap: 4 }}>
-        <span className="t2">Cash in the bank</span>
+        <span className="t2">Bank balance</span>
         {loading ? <span className="skeleton big" /> : <span className="hero">{total ? whole(total) : "—"}</span>}
       </div>
       {cash.length > 0 && (
