@@ -2,7 +2,7 @@
 
 match.suggested  -> ingestion card (5.10)
 forecast.updated -> tax reserve card (5.10), credit-line card of the liquidity agent (5.6),
-                    reminders for late client invoices (receivables)
+                    reminders for late client invoices (receivables), FX Shield cards per foreign-currency invoice (#47)
 
 Claiming is role 2's backend/queue (contracts/events.md: SKIP LOCKED, done after commit, 3 failures -> dead).
 """
@@ -12,7 +12,7 @@ from typing import Any
 
 import psycopg
 
-from backend.agents import ingestion, liquidity, receivables
+from backend.agents import fx, ingestion, liquidity, receivables
 from backend import queue
 from backend.settings import database_url
 
@@ -22,7 +22,8 @@ MAX_ATTEMPTS = 3
 
 HANDLERS: dict[str, list[Callable[[psycopg.Connection, dict[str, Any]], Any]]] = {
     "match.suggested": [ingestion.on_match_suggested],
-    "forecast.updated": [ingestion.on_forecast_updated, liquidity.on_forecast_updated, receivables.on_forecast_updated],
+    "forecast.updated": [ingestion.on_forecast_updated, liquidity.on_forecast_updated, receivables.on_forecast_updated,
+                        fx.on_forecast_updated],
 }
 
 

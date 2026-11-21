@@ -25,7 +25,7 @@ from .forecast import build_forecast, recurring_series_ids
 from .scenarios import credit_line_size, stress_of, with_changes
 from .series import name_key
 from .settings import (BUFFER_MONTHS, BUFFER_ROUND, BUFFER_SHARE, DEFAULT_PAYMENT_DAYS, DEMO_DAY_RATES_PLN,
-                       EVENT_TAIL_DAYS, FX_HISTORY_DAYS, FX_LOSS_LIMIT_PLN, FX_MIN_HISTORY, HORIZON_DAYS)
+                       EVENT_TAIL_DAYS, FX_HISTORY_DAYS, FX_MIN_HISTORY, HORIZON_DAYS)
 
 try:  # role 2's NBP connector (#34): stored table A rates
     from backend.connectors.nbp import rate_on
@@ -39,7 +39,6 @@ except ImportError:  # pragma: no cover
 
 DATA = Path(__file__).resolve().parent / "data"
 FX_HISTORY_FILE = DATA / "nbp_history_3y.json"
-OWNER_PROFITS_FILE = DATA / "owner_deal_profits.json"
 
 log = logging.getLogger("ordo.finance")
 PRODUCER = "finance"
@@ -185,6 +184,25 @@ def _open_items(s: Store, company: dict, as_of: str) -> tuple[list[dict], set[st
     return items, invoice_keys
 
 
+def fx_locks(s: Store, company_id: str) -> dict[str, dict[str, str]]:
+    """{document id: {rate, ratio, reference}} of every FX forward the owner approved and the Sandbox Bank booked
+    (an executed fx_hedge card, #47): that share of the invoice no longer moves with the rate."""
+    locks = {}
+    for r in s.list("recommendation", company_id=company_id, agent="fx", status="executed_simulated"):
+        subject = (r.get("subject") or {}).get("id")
+        action = r.get("proposed_action") or {}
+        if r.get("type") != "fx_hedge" or not subject or action.get("kind") != "book_fx_forward":
+            continue
+        params = dict(action.get("params") or {})
+        approval = s.get("approval", r["approval_id"]) if r.get("approval_id") else None
+        for path, value in ((approval or {}).get("changes") or {}).items():  # the owner may have edited the action
+            if path.startswith("proposed_action.params."):
+                params[path.removeprefix("proposed_action.params.")] = value
+        reference = ((approval or {}).get("execution") or {}).get("reference") or r["id"]
+        locks[subject] = {"rate": str(params["rate"]), "ratio": str(params.get("hedge_ratio", 1)), "reference": reference}
+    return locks
+
+
 def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     """Everything the pure forecast needs, read from the database."""
     s = Store(conn)
@@ -193,6 +211,8 @@ def load_inputs(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     transactions = s.list("transaction", company_id=company_id)
     accounts = _accounts(s.list("account", company_id=company_id), transactions)
     open_items, invoice_keys = _open_items(s, company, as_of)
+    locks = fx_locks(s, company_id)
+    open_items = [{**i, "locked": locks[i["id"]]} if i["id"] in locks else i for i in open_items]
     people = conn.execute("select name from people where company_id = %s", (company_id,)).fetchall()
     people_keys = {name_key(n) for (n,) in people}
     people_keys |= {c["id"] for c in s.list("counterparty", company_id=company_id) if c.get("person_id")}
@@ -345,16 +365,6 @@ def fx_history(conn: psycopg.Connection | None, currency: str, base: str, as_of:
     return {d: f"{Decimal(r) / Decimal(base_pln[d])}" for d, r in pln.items() if d in base_pln}
 
 
-def owner_profits(conn: psycopg.Connection, company_id: str) -> dict[str, dict[str, str]]:
-    """{document id: Money}: the profit the owner stated for a deal, matched by invoice number. Stand-in until
-    Settings stores it: backend/finance/data/owner_deal_profits.json (invented SAMPLE statements)."""
-    stated = json.loads(OWNER_PROFITS_FILE.read_text(encoding="utf-8")).get(company_id, {})
-    if not stated:
-        return {}
-    return {d["id"]: {"amount": stated[d["number"]]["amount"], "currency": stated[d["number"]]["currency"]}
-            for d in Store(conn).list("document", company_id=company_id) if d.get("number") in stated}
-
-
 def fx_assessments(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
     """FX Shield's numbers for every open foreign-currency invoice of the company (fx.assess_company)."""
     inputs = load_inputs(conn, company_id)
@@ -362,23 +372,33 @@ def fx_assessments(conn: psycopg.Connection, company_id: str) -> list[dict[str, 
     base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
     currencies = {i["amount"]["currency"] for i in inputs["open_items"]} - {base}
     histories = {c: fx_history(conn, c, base, as_of) for c in currencies}
-    loss_limit = FX_LOSS_LIMIT_PLN / DEMO_DAY_RATES_PLN.get(base, Decimal(1))
-    return fx.assess_company(inputs, histories, owner_profits(conn, company_id), loss_limit)
+    return fx.assess_company(inputs, histories, build_forecast(**inputs))
 
 
 EXPOSURE_FIELDS = ("document_id", "direction", "amount", "value_today_base", "expected_cash_date", "horizon_days",
-                   "scenarios", "bad_case_p95", "expected_shortfall", "deal_profit", "profit_source", "verdict")
+                   "scenarios", "bad_case_p95", "expected_shortfall", "verdict")
 
 
 def fx_exposure(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
-    """GET /fx/exposure (contracts/openapi.yaml): one item per open foreign-currency invoice, with its FX card."""
-    cards: dict[str, str] = {}
-    for r in Store(conn).list("recommendation", company_id=company_id, agent="fx"):
+    """GET /fx/exposure (contracts/openapi.yaml): one item per open foreign-currency invoice. The verdict is what FX
+    Shield decided (its card): a hedge (`hedged` once approved), no hedge, or already covered; no verdict yet when
+    the invoice has not been judged."""
+    cards: dict[str, dict[str, Any]] = {}
+    mine = Store(conn).list("recommendation", company_id=company_id, agent="fx")
+    for r in sorted(mine, key=lambda r: r["created_at"]):  # the newest card of an invoice wins
         subject = (r.get("subject") or {}).get("id")
-        if subject and r["status"] in ("new", "seen", "approved", "executed_simulated"):
-            cards.setdefault(subject, r["id"])
+        if subject and r["status"] in ("new", "seen", "approved", "executed_simulated", "expired"):
+            cards[subject] = r
     items = []
     for a in fx_assessments(conn, company_id):
         item = {k: a[k] for k in EXPOSURE_FIELDS if a.get(k) is not None}
-        items.append({**item, "recommendation_id": cards.get(a["document_id"])})
+        card = cards.get(a["document_id"])
+        if a["status"] in ("naturally_hedged", "hedged"):
+            item["verdict"] = a["status"]
+        elif card and card["type"] == "fx_hedge":
+            item["verdict"] = "hedged" if card["status"] in ("approved", "executed_simulated") else "hedge_proposed"
+        elif card:
+            item["verdict"] = "not_worth_it"
+        shown = card if card and card["status"] != "expired" else None  # an ignored invoice has no card to open
+        items.append({**item, "recommendation_id": shown["id"] if shown else None})
     return {"items": items}

@@ -1,6 +1,0 @@
-{
-  "_comment": "Profit the owner stated for a deal, by company and invoice number. Invented SAMPLE statements; stand-in until Settings stores it per document. Read by backend/finance/engine.py owner_profits().",
-  "co_borsuk": {
-    "2026/11/045": {"amount": "8000.00", "currency": "PLN", "note": "SAMPLE: profit on the Lakeshore Robotics order (spec #4)"}
-  }
-}
