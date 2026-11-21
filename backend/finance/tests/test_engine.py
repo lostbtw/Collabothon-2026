@@ -12,8 +12,9 @@ from backend.db.seed import seed
 from backend.db.store import Store
 from backend.finance import engine
 from backend.finance.handlers import DIRTY, on_inputs_changed, recompute_due
+from backend.pipeline.normalise.bank import transaction_id
 
-from .data import CLOSED_JUNE, PIZZERIA_CSV, SCENARIO, bank_lines, borsuk, pizzeria
+from .data import CLOSED_JUNE, PIZZERIA_CSV, SCENARIO, bank_lines, borsuk, pizzeria, scenario_documents
 
 SALES = [  # the story's open sales invoices on 21 Nov (role 4 scenario)
     ("doc_fv_2026_10_042", "2026/10/042", "Meblostyl sp. z o.o. (SAMPLE)", None, "36900.00", "PLN", "2026-10-31",
@@ -46,11 +47,20 @@ def labs_db(db):
         s.add("transaction", t, company_id="co_borsuk")
     s.put("counterparty", {"id": "cp_nordwind", "company_id": "co_borsuk", "name": "Nordwind Logistik GmbH (SAMPLE)",
                            "kind": "customer", "typical_payment_delay_days": 23}, company_id="co_borsuk")
+    scenario = {d["number"]: d for d in scenario_documents()}
+    story = {"2026/10/041", "2026/10/042", "2026/10/043", "2026/10/044"}  # stored below with their story ids
+
+    def totals(number, gross, ccy):  # net and VAT from the scenario's invoice; Lakeshore 2026/11/045 has none
+        t = {"gross": {"amount": gross, "currency": ccy}}
+        if number in scenario:
+            t |= {"net": scenario[number]["totals"]["net"], "vat": scenario[number]["totals"]["vat"]}
+        return t
+
     for id_, number, buyer, cp, gross, ccy, issued, due in SALES:
         s.put("document", {"id": id_, "company_id": "co_borsuk", "direction": "sale", "status": "approved",
                            "number": number, "issue_date": issued, "due_date": due,
                            "buyer": {"name": buyer, "counterparty_id": cp},
-                           "totals": {"gross": {"amount": gross, "currency": ccy}}}, company_id="co_borsuk")
+                           "totals": totals(number, gross, ccy)}, company_id="co_borsuk")
     paid = [("doc_fv_2026_10_041", "Piekarnia Złoty Kłos sp. z o.o. (SAMPLE)", "8610.00", "2026-11-04", "FV 2026/10/041"),
             ("doc_fv_2026_10_043", "Kadrownia sp. z o.o. (SAMPLE)", "4920.00", "2026-11-15", "ZAPLATA ZA FV 2026/10/043")]
     for id_, buyer, gross, due, reference in paid:  # October invoices already paid in November (matched)
@@ -58,9 +68,22 @@ def labs_db(db):
         s.put("document", {"id": id_, "company_id": "co_borsuk", "direction": "sale", "status": "approved",
                            "number": id_[7:].replace("_", "/"), "issue_date": "2026-10-31", "due_date": due,
                            "buyer": {"name": buyer, "counterparty_id": None},
-                           "totals": {"gross": {"amount": gross, "currency": "PLN"}}}, company_id="co_borsuk")
+                           "totals": totals(id_[7:].replace("_", "/"), gross, "PLN")}, company_id="co_borsuk")
         s.put("match", {"id": f"mat_{id_}", "match_type": "sales_invoice_payment", "document_id": id_,
                         "transaction_id": line["id"], "status": "confirmed"}, company_id="co_borsuk")
+    transaction_ids = {t["id"] for t in data["transactions"]}
+    for doc in scenario_documents():  # the rest of the books: history is paid and matched, none of it is open
+        if doc["number"] in story:
+            continue
+        doc = dict(doc)
+        line = doc.get("bank_line")
+        if doc["direction"] == "sale" and line:
+            doc.pop("due_date")
+            txn = transaction_id(line["account"], line["entry_reference"])
+            assert txn in transaction_ids
+            s.put("match", {"id": f"mat_{doc['id']}", "match_type": "sales_invoice_payment", "document_id": doc["id"],
+                            "transaction_id": txn, "status": "confirmed"}, company_id="co_borsuk")
+        s.put("document", doc, company_id="co_borsuk")
     for e in data["ledger_entries"]:
         s.put("ledger_entry", {**e, "company_id": "co_borsuk", "date": "2026-11-20", "category": "reimbursements",
                                "amount": e["amount_base"], "paid_by": "not_applicable", "approval_id": "apr_t",
@@ -74,7 +97,7 @@ def test_recompute_stores_the_forecast_and_emits_forecast_updated(labs_db):
     Forecast.model_validate(forecast)
     assert forecast["opening_balance"]["amount"] == "38401.15"
     assert forecast["first_negative_date"] == "2026-11-30"
-    assert forecast["min_balance"]["amount"]["amount"] == "-12970.34"
+    assert forecast["min_balance"]["amount"]["amount"] == "-13178.34"
     nordwind = next(c for c in forecast["components"] if "Nordwind" in c["label"] and c["kind"] == "known_receivable")
     assert nordwind["dates"] == ["2026-12-07"] and nordwind["amount_base"]["amount"] == "81144.00"
     assert engine.latest_base(labs_db, "co_borsuk")["id"] == forecast["id"]
@@ -128,11 +151,11 @@ def test_input_events_are_debounced_per_company(labs_db):
 def test_role_5_api_recomputes_with_the_engine_and_takes_owner_events(labs_db, db_url):
     with TestClient(create_app(database_url=db_url)) as client:
         forecast = client.post("/api/v1/forecast/recompute", params={"company_id": "co_borsuk"}).json()
-        assert forecast["min_balance"]["amount"]["amount"] == "-12970.34"
+        assert forecast["min_balance"]["amount"]["amount"] == "-13178.34"
         repair = {"label": "Server repair", "date_from": "2026-12-02", "date_to": "2026-12-02",
                   "effect": "extra_outflow", "amount": {"amount": "2000.00", "currency": "PLN"}}
         after = client.post("/api/v1/forecast/events", json=repair, params={"company_id": "co_borsuk"}).json()
-        assert after["min_balance"]["amount"]["amount"] == "-14970.34"
+        assert after["min_balance"]["amount"]["amount"] == "-15178.34"
         assert client.get("/api/v1/forecast/latest", params={"company_id": "co_borsuk"}).json()["id"] == after["id"]
 
 

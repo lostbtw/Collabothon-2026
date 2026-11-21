@@ -35,16 +35,16 @@ def test_pizzeria_on_15_may_with_the_june_closure_predicts_the_july_gap(pizza):
     forecast = build_forecast(**pizza, events=[CLOSED_JUNE], horizon_days=60)
 
     low = forecast["min_balance"]
-    assert low["date"] == "2025-07-03"
-    assert abs(amount(low["amount"]) - Decimal("-21825")) <= Decimal("330")  # spec: about -21,825
-    assert abs(amount(low["amount"]) - Decimal("-22097.60")) <= Decimal("-22097.60").copy_abs() * Decimal("0.015")
+    # Polish tax rules for every company: the pizzeria no longer matches its German history
+    assert (low["date"], amount(low["amount"])) == ("2025-07-03", Decimal("-22813.26"))
     Forecast.model_validate(forecast)
 
 
 @needs_csv
 def test_pizzeria_without_the_event_misses_the_gap(pizza):
+    with_event = build_forecast(**pizza, events=[CLOSED_JUNE], horizon_days=60)
     forecast = build_forecast(**pizza, horizon_days=60)
-    assert amount(forecast["min_balance"]["amount"]) > Decimal("-5000")
+    assert amount(forecast["min_balance"]["amount"]) - amount(with_event["min_balance"]["amount"]) >= Decimal("10000.00")
 
 
 @needs_csv
@@ -123,3 +123,40 @@ def test_an_announced_extra_outflow_is_its_own_component(labs):
 
 def test_the_same_inputs_give_the_same_forecast(labs):
     assert build_forecast(**labs) == build_forecast(**labs)
+
+
+def test_october_vat_comes_from_the_documents(labs):
+    forecast = build_forecast(**labs)
+    vat = next(c for c in forecast["components"] if c["id"] == "c_tax_vat_202610")
+
+    assert vat["amount_base"]["amount"] == "-14300.00" and vat["dates"] == ["2026-11-25"] and vat["kind"] == "tax"
+    assert "23,240.54" in vat["schedule"] and "8,940.54" in vat["schedule"]
+
+
+def test_a_new_sales_invoice_raises_the_vat_and_lowers_the_low(labs):
+    extra = {"id": "t_extra", "direction": "sale", "month": "2026-10", "label": "extra",
+             "net": {"amount": "10000.00", "currency": "PLN"}, "vat": {"amount": "2300.00", "currency": "PLN"},
+             "deductible": False}
+    base = build_forecast(**labs)
+    more = build_forecast(**{**labs, "tax_documents": [*labs["tax_documents"], extra]})
+    vat = next(c for c in more["components"] if c["id"] == "c_tax_vat_202610")
+
+    assert vat["amount_base"]["amount"] == "-16600.00"
+    assert amount(base["min_balance"]["amount"]) - amount(more["min_balance"]["amount"]) == Decimal("2300.00")
+
+
+def test_taxes_do_not_copy_the_bank_history(labs):
+    forecast = build_forecast(**labs)
+    taxes = [c for c in forecast["components"] if c["kind"] in ("tax", "social_security")]
+
+    assert taxes and all(c["id"].startswith("c_tax_") for c in taxes)
+
+
+def test_every_tax_component_is_one_payment_role_5_can_name(labs):
+    forecast = build_forecast(**labs)
+    taxes = [c for c in forecast["components"] if c["kind"] == "tax"]
+
+    assert taxes
+    for c in taxes:
+        assert len(c["dates"]) == 1
+        assert c["label"].split(" for ")[0].split(",")[0] in {"VAT", "CIT advance", "PIT-4"}

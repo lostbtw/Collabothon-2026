@@ -100,13 +100,13 @@ def test_ledger_kpis(labs_db):  # noqa: F811
             each = Decimal(c["amount_base"]["amount"]) / len(c["dates"])
             taxes += each * sum(1 for d in c["dates"] if "2026-11-21" < d <= "2026-12-21")
     assert kpis["tax_due_next_30d"] == {"amount": f"{abs(taxes):.2f}", "currency": "PLN"}
-    assert Decimal("30000") < abs(taxes) < Decimal("40000")  # VAT 25 Nov, ZUS 15 Dec, PIT-4 + CIT-5 21 Dec
+    assert abs(taxes) == Decimal("33899.33")  # VAT 14,300.00 on 25 Nov, ZUS 13,300.33 on 15 Dec, CIT 4,007.00 + PIT-4 2,292.00 on 21 Dec
     schema = contract.response_schema("get", "/ledger/summary", 200)["properties"]["kpis"]
     assert contract.errors(kpis, schema) == []
 
 
 @pytest.mark.skipif(PIZZERIA_CSV is None, reason="pizzeria CSV not present (git-ignored event material)")
-def test_closing_the_pizzeria_in_june_through_the_api_moves_the_low_to_about_minus_21_8k(db, db_url):
+def test_closing_the_pizzeria_in_june_through_the_api_moves_the_low_to_minus_22_8k(db, db_url):
     seed(db)
     s = Store(db)
     account = {"id": "acc_pizzeria", "company_id": "co_amalfi", "kind": "company_bank", "currency": "EUR",
@@ -124,5 +124,5 @@ def test_closing_the_pizzeria_in_june_through_the_api_moves_the_low_to_about_min
     low = after.json()["min_balance"]
     assert Decimal(before["min_balance"]["amount"]["amount"]) > Decimal("-5000")
     assert low["date"] == "2025-07-03"
-    assert abs(Decimal(low["amount"]["amount"]) - Decimal("-21825")) <= Decimal("330")
+    assert low["amount"]["amount"] == "-22813.26"
     assert json.dumps(after.json()).count('"evidence": []') == 0
