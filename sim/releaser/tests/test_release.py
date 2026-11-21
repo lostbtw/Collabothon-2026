@@ -66,7 +66,7 @@ def parsed(fake):
 def test_the_plan_has_what_role_4_promised():
     counts = Counter((i["mode"], i["channel"]) for i in PLAN)
     assert counts[("backfill", "bank")] == 1070
-    assert len(release.select(PLAN, "backfill")) == 530  # 470 e-mail + 40 accounting API (fallback e-mail) + 20 photos
+    assert len(release.select(PLAN, "backfill")) == 531  # 470 e-mail + 41 accounting API (fallback e-mail) + 20 photos
     assert len(release.select(PLAN, "drip")) == 15 and len(release.select(PLAN, "live")) == 1
 
 
@@ -79,11 +79,11 @@ def test_every_artefact_exists():
 def test_backfill_puts_every_document_into_the_mailbox_once(tmp_path):
     fake = FakeImap()
     counts = release.release(mailbox(fake), release.select(PLAN, "backfill"))
-    assert counts["released"] == 530 and len(fake.messages) == 530
+    assert counts["released"] == 531 and len(fake.messages) == 531
     ids = [m["Message-ID"] for m in parsed(fake)]
-    assert len(set(ids)) == 530
+    assert len(set(ids)) == 531
     again = release.release(mailbox(fake), release.select(PLAN, "backfill"))
-    assert again["released"] == 0 and again["already_in_mailbox"] == 530 and len(fake.messages) == 530
+    assert again["released"] == 0 and again["already_in_mailbox"] == 531 and len(fake.messages) == 531
 
 
 def test_backfill_until_and_limit():
@@ -98,7 +98,7 @@ def test_backfill_until_and_limit():
 
 def test_dry_run_touches_nothing():
     counts = release.release(None, release.select(PLAN, "backfill"), dry_run=True)
-    assert counts["would_release"] == 530 and counts["released"] == 0
+    assert counts["would_release"] == 531 and counts["released"] == 0
 
 
 def test_the_lakeshore_invoice_without_a_sender_comes_from_the_owner():
@@ -133,7 +133,7 @@ def test_the_connector_reads_released_mail_as_documents():
         assert got[1].metadata["forwarded_by"] == release.sender_of(item)  # who sent it: role 3's who-paid input
         senders.add(release.sender_of(item))
     xml_items = sum(i["artefact"].endswith(".xml") for i in items)
-    assert kinds == {"ksef_invoice_xml": xml_items, "email_attachment": 530 - xml_items}
+    assert kinds == {"ksef_invoice_xml": xml_items, "email_attachment": 531 - xml_items}
     assert "jan@borsuk-labs.sample" in senders
 
 
