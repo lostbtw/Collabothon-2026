@@ -56,11 +56,48 @@ def list_approvals(company: str = Depends(company_id), s: Store = Depends(store)
     return {"items": s.list("approval", company_id=company)}
 
 
-@router.get("/activity")
-def activity(company: str = Depends(company_id), since: str | None = None, s: Store = Depends(store)):
-    """What the agents did alone (control level analysed_autonomously). Undo of an auto-confirmed match is a
-    reject through /matches/{id}/decision, so each item names its subject."""
+COPY_NAME = {"ksef": "KSeF invoice", "accounting_api": "inFakt invoice", "email": "e-mailed PDF", "photo": "photo",
+             "upload": "uploaded file"}
+
+
+def _merge_events(c: psycopg.Connection, company: str) -> dict[str, tuple[str, dict]]:
+    """Latest `document.duplicate_detected` per duplicate document: (occurred_at, payload)."""
+    rows = c.execute("select occurred_at, payload from outbox where company_id = %s "
+                     "and type = 'document.duplicate_detected' order by seq", (company,)).fetchall()
+    return {payload["document_id"]: (at.strftime("%Y-%m-%dT%H:%M:%SZ"), payload) for at, payload in rows}
+
+
+def duplicate_items(s: Store, c: psycopg.Connection, company: str) -> list[dict[str, Any]]:
+    """Duplicates the pipeline merged on its own (#40): one golden record kept, the other copy marked duplicate."""
+    events = _merge_events(c, company)
     items = []
+    for doc in s.list("document", company_id=company, status="duplicate"):
+        golden = s.get("document", doc["duplicate_of"]) if doc.get("duplicate_of") else None
+        if golden is None:
+            continue
+        at, payload = events.get(doc["id"], (None, {}))
+        reason = payload.get("reason") if payload.get("duplicate_of") == golden["id"] else None
+        number = golden.get("number") or doc.get("number")
+        what = f"{number} from {golden['seller']['name']}" if number else golden["seller"]["name"]
+        items.append({
+            "at": at or doc.get("created_at") or "",
+            "agent": "ingestion",
+            "text": f"Kept one copy of {what}: the {COPY_NAME.get(doc.get('channel'), 'copy')} is a duplicate of the "
+                    f"{COPY_NAME.get(golden.get('channel'), 'original')}" + (f" ({reason})" if reason else ""),
+            "subject": {"type": "document", "id": doc["id"]},
+            "evidence": [{"kind": "document", "id": golden["id"], "label": "Kept copy", "url": f"/documents/{golden['id']}"},
+                         {"kind": "document", "id": doc["id"], "label": "Duplicate", "url": f"/documents/{doc['id']}"}],
+        })
+    return items
+
+
+@router.get("/activity")
+def activity(company: str = Depends(company_id), since: str | None = None, s: Store = Depends(store),
+             c: psycopg.Connection = Depends(conn)):
+    """What the agents did alone (control level analysed_autonomously). Undo of an auto-confirmed match is a
+    reject through /matches/{id}/decision, so each item names its subject. Merged duplicates come from role 3's
+    pipeline (`document.duplicate_detected`)."""
+    items = duplicate_items(s, c, company)
     for m in s.list("match", company_id=company, status="auto_confirmed"):
         reason = "; ".join(r["detail"] for r in m.get("reasons", [])[:2])
         items.append({
