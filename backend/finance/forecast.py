@@ -113,7 +113,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
 
     salaries = [{"day": f.day, "key": f.key, "name": f.name, "net": -f.amount, "evidence": _txn_link(f, base)}
                 for f in flows if f.transaction.get("transaction_type") == "salary" and f.amount < 0]
-    salaries += [{"day": d, "key": s.key, "name": s.label, "net": -s.amount, "evidence": None}
+    salaries += [{"day": d, "key": s.key, "name": s.label, "net": -s.amount,
+                  "evidence": _txn_link(s.flows[-1], base) if s.flows else None}
                  for s in series if s.kind == "salary" for d in s.dates(as_of, end, country)]
     for comp in tax_components(as_of=as_of, end=end, base=base, rates=rate, documents=tax_documents,
                                salaries=salaries):

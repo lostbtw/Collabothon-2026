@@ -138,6 +138,7 @@ def test_vat_of_an_open_month_is_an_estimate_from_the_closed_months():
     assert c["amount_base"]["amount"] == "-2300.00"
     assert "mean of the last 3 closed months" in c["schedule"]
     assert c["evidence"][0]["kind"] == "rule"
+    assert {e["id"] for e in c["evidence"][1:]} == {"s8", "s9", "s10"}
     assert c["breakdown"][-1] == {"label": "November is not over yet: the VAT is the average of Aug, Sep and Oct",
                                   "op": "note", "amount": None}
 

@@ -257,6 +257,7 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
     est_profit = _mean([profit(_month_key(*c)) for c in recent])
     estimate_note = f"mean of the last {n_recent} closed months"
     recent_names = _month_names(recent)
+    recent_keys = [_month_key(*c) for c in recent]
     out: list[dict] = []
 
     def not_closed(m: int, what: str) -> dict:
@@ -290,7 +291,7 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             else:
                 schedule = f"{when}output VAT − deductible input VAT, {estimate_note}" + (
                     f" − carried forward {_shown(used_carry)}" if used_carry else "")
-                docs = []
+                docs = [(vat, d) for k in recent_keys for _, vat, d in month_docs[k] if vat > 0]
                 steps = [_step("VAT to pay in an average month", "start", est_position, base)]
             if used_carry:
                 steps.append(_step("Overpaid VAT carried from earlier months", "minus", used_carry, base))
@@ -317,7 +318,7 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                         f"{_shown(advances - due_amount)}")
             if not is_closed:
                 schedule += f"; month profit is the {estimate_note}"
-            docs = [(net, d) for net, _, d in month_docs[key]] if is_closed else []
+            docs = [(net, d) for k in ([key] if is_closed else recent_keys) for net, _, d in month_docs[k]]
             steps = [_step("Profit since 1 January", "start", ytd, base),
                      _step(f"{settings.CIT_RATE * 100:.0f} % tax on that profit", "equals", settings.CIT_RATE * ytd, base)]
             if advances - due_amount:

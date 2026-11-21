@@ -33,7 +33,7 @@ def _component(f: dict, component_id: str | None = None, document_id: str | None
     for c in f["components"]:
         if component_id and c["id"] == component_id:
             return c
-        if document_id and (c["id"] == f"c_{document_id}" or any(
+        if document_id and (c["id"] == f"c_{document_id}" or c["kind"] not in ("tax", "social_security") and any(
                 e.get("kind") == "document" and e.get("id") == document_id for e in c.get("evidence", []))):
             return c
     raise KeyError(component_id or document_id)
