@@ -68,20 +68,23 @@ def duplicate_reason(a: dict, b: dict) -> str | None:
 
 
 def priority(doc: dict) -> int:
-    """Lower is better: KSeF XML 0, accounting API 1, PDF / e-mail 2, photo 3."""
+    """Lower is better: KSeF XML 0, accounting API 1, e-mailed PDF 2, photo or upload-form file 3 (the form is
+    used for phone photos; the Document does not say whether the uploaded file was a photo or a PDF)."""
     channel = doc.get("channel")
     method = (doc.get("extraction") or {}).get("method")
     if channel == "ksef" or method == "xml_parse":
         return 0
     if channel == "accounting_api" or method == "api":
         return 1
-    if channel == "photo" or method == "llm_vision":
+    if channel in ("photo", "upload") or method == "llm_vision":
         return 3
     return 2
 
 
 def _rank(doc: dict):
-    return priority(doc), doc.get("created_at") or "", doc["id"]
+    """Best copy first: channel priority, then the more confident extraction, then the earlier one."""
+    confidence = (doc.get("extraction") or {}).get("confidence")
+    return priority(doc), -(confidence if confidence is not None else 0.0), doc.get("created_at") or "", doc["id"]
 
 
 # ---------- clustering ----------
