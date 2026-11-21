@@ -7,7 +7,7 @@ import { useCompany, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
 import { requestRefresh } from "../lib/refresh";
 import { Icon } from "./Icon";
-import { Evidence } from "./More";
+import { Sources } from "./Sources";
 import { CloseButton } from "./ui";
 
 /** Same as --t-exit in styles/app.css. */
@@ -195,7 +195,7 @@ function Answer({ text, answer: a }: { text: string; answer?: ChatAnswer }) {
           <tbody>{a.table.rows.map((r, i) => <tr key={i}>{r.map((cell, j) => <td key={j}>{String(cell ?? "")}</td>)}</tr>)}</tbody>
         </table>
       )}
-      {a && a.evidence.length > 0 && <Evidence links={a.evidence} />}
+      {a && a.evidence.length > 0 && <Sources links={a.evidence} />}
     </div>
   );
 }
