@@ -7,7 +7,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-EXPERIMENTS = ["ordo-extraction", "ordo-agents"]
+EXPERIMENTS = ["ordo-extraction", "ordo-agents", "ordo-evaluation"]
 WORKSPACE = "cfo-ai"
 SERVICE_CA = "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
 

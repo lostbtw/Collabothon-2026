@@ -130,7 +130,18 @@ The stage switches the RHOAI component `mlflowoperator` to `Managed` in DataScie
 
 The app traces into it from three processes: `ordo-extractor` (experiment `ordo-extraction`), `ordo-agents` and `ordo-api` (experiment `ordo-agents`, the liquidity wording and chat turns). `ordo-config` carries `MLFLOW_TRACKING_URI` (the in-cluster address), `MLFLOW_WORKSPACE=cfo-ai` and the service CA as `MLFLOW_TRACKING_SERVER_CERT_PATH`; those three Deployments also get `MLFLOW_TRACKING_TOKEN` from secret `llm-token`. A process without `MLFLOW_TRACKING_URI`, or one that cannot reach MLflow at start, runs without tracing and logs `tracing off`. Tracing adds about 45 MiB per process.
 
-`check-mlflow`: prints the conditions, the in-cluster address and the UI URL, then from the `ordo-extractor` pod (trusting the service CA) checks `/health` and reads, or creates, the experiments `ordo-extraction` and `ordo-agents` as `cfo-app`.
+`check-mlflow`: prints the conditions, the in-cluster address and the UI URL, then from the `ordo-extractor` pod (trusting the service CA) checks `/health` and reads, or creates, the experiments `ordo-extraction`, `ordo-agents` and `ordo-evaluation` as `cfo-app`.
+
+## Evaluation workbench
+
+```bash
+deploy/platform/setup.sh eval-workbench   # MLflow settings onto workbench model-tests, start it
+deploy/platform/setup.sh stop-workbench   # stop it again: it never runs during the demo
+```
+
+The evaluation notebook `notebooks/extraction_eval.ipynb` (#19) runs in the Jupyter workbench `model-tests` in `cfo-ai` (made in the RHOAI dashboard: Data Science CPU image, 2 CPU / 4 Gi, repo cloned in its volume). `eval-workbench` gives its notebook container what `ordo-extractor` has: `envFrom` ConfigMap `ordo-config` (model, docling and MLflow addresses, workspace `cfo-ai`) and `MLFLOW_TRACKING_TOKEN` from secret `llm-token`; the model and docling keys were already set in the dashboard. It also sets `MLFLOW_GENAI_EVAL_MAX_WORKERS=1`, so documents are read one at a time and the timings are real. It then removes the `kubeflow-resource-stopped` annotation, waits for the pod, and `check-workbench` prints which variables are set (names only) and the workbench URL. `stop-workbench` sets the annotation and waits until the pod is gone.
+
+The notebook reads the 47 November documents and the real receipt photos in `notebooks/receipt_photos/` through `extract_document()`. It compares gross, date, seller NIP and VAT with the Ground truth and logs one evaluation run (`mlflow.genai.evaluate`, one trace per document) to experiment `ordo-evaluation`. Phone photos go through `notebooks/strip_exif.py` before they are committed.
 
 ## Demo day
 
