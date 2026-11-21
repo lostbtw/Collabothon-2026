@@ -181,3 +181,25 @@ def test_check_bank_against_the_real_sandbox_bank():
         res = release.check_bank(PLAN, "http://bank", "t",
                                  get=lambda url, headers: empty.get(url.removeprefix("http://bank"), headers=headers).json())
         assert res["missing"] == 1070
+
+
+# ---------- one at a time (a short demo) ----------
+def test_next_sends_one_not_yet_sent_drip_document_each_time():
+    fake = FakeImap()
+    drip = release.select(PLAN, "drip")
+    sent_order = []
+    for _ in range(3):
+        box = mailbox(fake)
+        todo = [i for i in drip if release.message_id(i) not in box.message_ids()]
+        release.release(box, todo[:1], fresh=True, log=lambda s: None)
+        sent_order.append(todo[0]["document_id"])
+    assert sent_order == [i["document_id"] for i in drip[:3]]  # in plan order, never the same twice
+    assert len(fake.messages) == 3 and len({m["Message-ID"] for m in parsed(fake)}) == 3
+
+
+def test_fresh_mail_is_dated_now_not_on_the_scenario_day():
+    fake = FakeImap()
+    item = release.select(PLAN, "drip")[0]
+    release.release(mailbox(fake), [item], fresh=True, log=lambda s: None)
+    assert parsed(fake)[0]["Date"].datetime.year == datetime.now().year
+    assert "2026-11-02" not in fake.appended_dates[0]

@@ -58,12 +58,6 @@ class AdminTransactionIn(BaseModel):
     transactionCode: str | None = None
 
 
-class ClockIn(BaseModel):
-    now: str | None = None  # YYYY-MM-DD or an ISO datetime (only the date is used)
-    advanceDays: int | None = None
-    accountId: str | None = None
-
-
 # ---------- app ----------
 def autoload_plan(csv_path: str | None, csv_account: str, csv_dir: str | None) -> list[tuple[str, str]]:
     """(account id, file) pairs to load at start: every bank_acc_<x>.csv in csv_dir goes to account acc_<x>
@@ -161,7 +155,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
             raise HTTPException(400, "FORMAT_ERROR: bookingStatus must be 'booked' (or 'both')")
         if entryReferenceFrom is not None and not REF_RE.match(entryReferenceFrom):
             raise HTTPException(400, "FORMAT_ERROR: entryReferenceFrom must look like E000000731")
-        lines = store.visible(acc)
+        lines = list(acc.lines)
         if entryReferenceFrom:
             lines = [ln for ln in lines if ln.entry_reference > entryReferenceFrom]
         if dateFrom:
@@ -187,7 +181,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
     def credit_line(body: CreditLineIn) -> dict:
         acc = account_or_404(body.accountId)
         ref = store.new_reference("CL")
-        available = store.today(acc.resource_id) + timedelta(days=1)
+        available = store.today() + timedelta(days=1)
         out = {"reference": ref, "status": "accepted", "availableFrom": available.isoformat(),
                "accountId": acc.resource_id, "limit": money(body.limit), "tenorDays": body.tenorDays}
         record("credit_line_application", ref, out)
@@ -209,7 +203,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
     def payment_draft(body: PaymentDraftIn) -> dict:
         acc = account_or_404(body.debtorAccount)
         ref = store.new_reference("PD")
-        when = body.requestedExecutionDate or store.today(acc.resource_id)
+        when = body.requestedExecutionDate or store.today()
         out = {"reference": ref, "status": "draft", "debtorAccount": acc.resource_id,
                "creditorName": body.creditorName, "amount": money(body.amount), "currency": acc.currency,
                "remittance": body.remittance, "requestedExecutionDate": when.isoformat()}
@@ -222,7 +216,7 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
         acc = account_or_404(body.accountId)
         if body.amount == 0:
             raise HTTPException(400, "FORMAT_ERROR: amount must not be zero")
-        booking = body.bookingDate or store.today(acc.resource_id)
+        booking = body.bookingDate or store.today()
         name = body.creditorName if body.amount < 0 else body.debtorName
         name = name or body.creditorName or body.debtorName
         code = body.transactionCode or ("CARD_PAYMENT" if body.cardLast4 else "TRANSFER")
@@ -250,32 +244,6 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
                 "firstBookingDate": lines[0].booking_date.isoformat(),
                 "lastBookingDate": lines[-1].booking_date.isoformat(),
                 "lastEntryReference": lines[-1].entry_reference}
-
-    @app.post("/admin/clock", dependencies=admin)
-    def set_clock(body: ClockIn) -> dict:
-        """Set the as-of date (lines booked after it stay hidden), or advance it by N days.
-        With accountId only that company's as-of date moves; without it the global one does."""
-        if (body.now is None) == (body.advanceDays is None):
-            raise HTTPException(400, "FORMAT_ERROR: give exactly one of 'now' and 'advanceDays'")
-        if body.accountId:
-            account_or_404(body.accountId)
-        if body.now is not None:
-            try:
-                target = date.fromisoformat(body.now[:10])
-            except ValueError as exc:
-                raise HTTPException(400, "FORMAT_ERROR: now must be YYYY-MM-DD") from exc
-        else:
-            target = store.today(body.accountId) + timedelta(days=body.advanceDays)
-        store.set_clock(target, body.accountId)
-        return clock_state()
-
-    def clock_state() -> dict:
-        return {"now": store.global_now.isoformat() if store.global_now else None,
-                "accounts": {k: v.isoformat() for k, v in store.account_now.items()}}
-
-    @app.get("/admin/clock", dependencies=admin)
-    def get_clock() -> dict:
-        return clock_state()
 
     @app.get("/admin/executions", dependencies=admin)
     def executions() -> dict:

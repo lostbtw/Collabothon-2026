@@ -5,6 +5,12 @@ NS=cfo-ai
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 APP="$ROOT/deploy/app"
+OBS="$ROOT/deploy/observability"
+UWM_NS=openshift-user-workload-monitoring
+MODEL_JOB=gpt-oss-20b-metrics
+ORDO_RULES=(ordo-model ordo-workloads)
+# What Grafana's read-only database role may read (deploy/observability/dashboards/).
+GRAFANA_TABLES="outbox, outbox_delivery, outbox_subscription, recommendations, sources, sync_runs, companies"
 IMAGES=(backend sim web)
 M1_QUESTION="How much cash do we have today, and what is the next large payment?"
 EXISTING_SECRETS=(llm-token docling-api-key)
@@ -14,6 +20,8 @@ SECRET_VALUES=(
   "sandbox-bank-token BANK_TOKEN"
   "docling-api-key DOCLING_SERVE_API_KEY"
   "llm-token token"
+  "ordo-grafana GF_SECURITY_ADMIN_PASSWORD"
+  "ordo-grafana GRAFANA_DB_PASSWORD"
 )
 
 wait_for() {
@@ -70,6 +78,17 @@ secrets() {
 
   create_random_secret github-webhook WebHookSecretKey
   create_random_secret sandbox-bank-token BANK_TOKEN
+  grafana_secret
+}
+
+grafana_secret() {
+  if secret_exists ordo-grafana; then
+    echo "secret ordo-grafana already exists, kept"
+  else
+    oc -n "$NS" create secret generic ordo-grafana \
+      --from-literal=GF_SECURITY_ADMIN_PASSWORD="$(random_hex)" \
+      --from-literal=GRAFANA_DB_PASSWORD="$(random_hex)"
+  fi
 }
 
 apply() {
@@ -359,6 +378,245 @@ check_m1() {
   ((failed == 0))
 }
 
+uwm_ready() {
+  [[ "$(oc -n "$UWM_NS" get pod prometheus-user-workload-0 \
+    -o jsonpath='{.status.containerStatuses[?(@.name=="prometheus")].ready}' 2>/dev/null)" == true ]]
+}
+
+thanos() {
+  # GET a Thanos Querier API path through its route, with your own oc token (read from stdin, not in argv).
+  local path="$1" host
+  shift
+  host="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath='{.spec.host}')"
+  curl -fsS -G -H @- "$@" "https://$host$path" <<<"Authorization: Bearer $(oc whoami -t)"
+}
+
+promql() {
+  thanos /api/v1/query --data-urlencode "query=$1" | jq -c '.data.result'
+}
+
+expected_rules() {
+  oc -n "$NS" get prometheusrule "${ORDO_RULES[@]}" -o json | jq '[.items[].spec.groups[].rules[]] | length'
+}
+
+ordo_rules() {
+  # One line per loaded rule of the groups in ORDO_RULES: "<group> <rule> <health>".
+  local groups
+  groups="$(oc -n "$NS" get prometheusrule "${ORDO_RULES[@]}" -o json | jq -c '[.items[].spec.groups[].name]')"
+  thanos /api/v1/rules | jq -r --argjson groups "$groups" '.data.groups[] | select(.name as $n | $groups | index($n))
+    | .name as $g | .rules[] | "\($g) \(.name) \(.health)"' | sort -u
+}
+
+rules_evaluated() {
+  local expected lines
+  expected="$(expected_rules)"
+  lines="$(ordo_rules)" || return 1
+  [[ "$(grep -c . <<<"$lines")" -eq "$expected" ]] && ! grep -q ' unknown$' <<<"$lines"
+}
+
+monitoring() {
+  local current
+  current="$(oc -n openshift-monitoring get configmap cluster-monitoring-config -o jsonpath='{.data.config\.yaml}' 2>/dev/null)" ||
+    current=""
+  oc apply -f "$OBS/user-workload-monitoring-config.yaml"
+  if [[ -z "$current" ]]; then
+    oc apply -f "$OBS/cluster-monitoring-config.yaml"
+  elif grep -Eq '^enableUserWorkload: *true *$' <<<"$current"; then
+    echo "user-workload monitoring is already on, cluster-monitoring-config kept"
+  else
+    echo "configmap openshift-monitoring/cluster-monitoring-config holds other settings;" \
+      "add 'enableUserWorkload: true' to its config.yaml by hand. Now it is:" >&2
+    echo "$current" >&2
+    exit 1
+  fi
+  wait_for "prometheus-user-workload-0" 600 uwm_ready
+  oc apply -f "$OBS/prometheus-rules.yaml"
+  wait_for "the first evaluation of the ordo rules" 300 rules_evaluated
+  check_monitoring
+}
+
+check_monitoring() {
+  local up model expected lines bad firing failed=0
+  up="$(promql "up{namespace=\"$NS\",job=\"$MODEL_JOB\"}" | jq -r '.[0].value[1] // empty')" || up=""
+  if [[ "$up" == 1 ]]; then
+    echo "OK   user-workload Prometheus scrapes gpt-oss-20b ($MODEL_JOB)"
+  else
+    echo "FAIL no healthy scrape of $MODEL_JOB; is user-workload monitoring on? oc -n $UWM_NS get pods" >&2
+    failed=1
+  fi
+
+  model="$(promql "max by (__name__) ({namespace=\"$NS\",__name__=~\"vllm:num_requests_running|vllm:num_requests_waiting|vllm:kv_cache_usage_perc\"})" |
+    jq -r 'map({(.metric.__name__): (.value[1] | tonumber)}) | add // {}
+      | if length == 3 then "\(.["vllm:num_requests_running"]) running, \(.["vllm:num_requests_waiting"]) waiting, KV cache \(.["vllm:kv_cache_usage_perc"] * 100 | floor) %" else empty end')" ||
+    model=""
+  if [[ -n "$model" ]]; then
+    echo "OK   vLLM metrics are queryable: $model"
+  else
+    echo "FAIL vLLM metrics of $NS are not in Thanos Querier" >&2
+    failed=1
+  fi
+
+  expected="$(expected_rules)"
+  lines="$(ordo_rules)" || lines=""
+  bad="$(grep -v ' ok$' <<<"$lines" || true)"
+  if [[ -n "$lines" && "$(grep -c . <<<"$lines")" -eq "$expected" && -z "$bad" ]]; then
+    echo "OK   all $expected ordo rules are loaded and evaluate without errors"
+  else
+    echo "FAIL ordo rules: $(grep -c . <<<"$lines") of $expected loaded" >&2
+    if [[ -n "$bad" ]]; then
+      echo "$bad" >&2
+    fi
+    failed=1
+  fi
+
+  firing="$(promql "ALERTS{namespace=\"$NS\",alertstate=\"firing\"}" | jq -r '[.[].metric.alertname] | unique | join(", ")')" ||
+    firing=""
+  echo "     firing now in $NS: ${firing:-nothing}"
+  ((failed == 0))
+}
+
+grafana_db_role() {
+  # A login role that can only read the tables the dashboards query; read-only and with a statement timeout,
+  # so a heavy panel cannot slow the app down. The password reaches psql on stdin.
+  local password
+  password="$(oc -n "$NS" get secret ordo-grafana -o jsonpath='{.data.GRAFANA_DB_PASSWORD}' | base64 -d)"
+  oc -n "$NS" exec -i deployment/postgresql -- psql -U postgres -d ordo -v ON_ERROR_STOP=1 -q <<SQL
+do \$\$ begin
+  if not exists (select 1 from pg_roles where rolname = 'grafana_ro') then
+    create role grafana_ro login;
+  end if;
+end \$\$;
+alter role grafana_ro with login password '$password' connection limit 10;
+alter role grafana_ro set default_transaction_read_only = on;
+alter role grafana_ro set statement_timeout = '15s';
+grant connect on database ordo to grafana_ro;
+grant usage on schema public to grafana_ro;
+grant select on $GRAFANA_TABLES to grafana_ro;
+SQL
+  echo "OK   database role grafana_ro reads: $GRAFANA_TABLES"
+}
+
+grafana_dashboards() {
+  oc -n "$NS" create configmap grafana-dashboards --from-file="$OBS/dashboards" --dry-run=client -o yaml |
+    oc label --local -f - app.kubernetes.io/part-of=ordo -o yaml |
+    oc apply --server-side --force-conflicts -f -
+}
+
+grafana() {
+  grafana_secret
+  grafana_db_role
+  grafana_dashboards
+  oc apply -f "$OBS/grafana.yaml"
+  # Datasources are read at start; a restart picks up a changed provisioning ConfigMap. Dashboards reload alone.
+  oc -n "$NS" rollout restart deployment/grafana
+  oc -n "$NS" rollout status deployment/grafana --timeout=300s
+  check_grafana
+}
+
+grafana_url() {
+  echo "https://$(oc -n "$NS" get route ordo-grafana -o jsonpath='{.spec.host}')"
+}
+
+grafana_api() {
+  # grafana_api <method> <path> [JSON body], as admin; the password reaches curl on stdin. URL and password are
+  # looked up once per run: an oc round trip per call made check-grafana take minutes.
+  local method="$1" path="$2" body="${3:-}"
+  local args=(-sS --max-time 60 -X "$method" -K - -H 'Content-Type: application/json')
+  if [[ -n "$body" ]]; then
+    args+=(--data-binary "$body")
+  fi
+  if [[ -z "${GRAFANA_URL:-}" ]]; then
+    GRAFANA_URL="$(grafana_url)"
+  fi
+  if [[ -z "${GRAFANA_PASSWORD:-}" ]]; then
+    GRAFANA_PASSWORD="$(oc -n "$NS" get secret ordo-grafana -o jsonpath='{.data.GF_SECURITY_ADMIN_PASSWORD}' | base64 -d)"
+  fi
+  curl "${args[@]}" "$GRAFANA_URL$path" <<<"user = \"admin:$GRAFANA_PASSWORD\""
+}
+
+dashboards_loaded() {
+  # True when Grafana serves every dashboard file with the same panels (type and title) as on disk.
+  local file uid want have
+  for file in "$OBS"/dashboards/*.json; do
+    uid="$(jq -r '.uid' "$file")"
+    want="$(jq -c '[.panels[] | [.type, .title]]' "$file")"
+    have="$(grafana_api GET "/api/dashboards/uid/$uid" | jq -c '[.dashboard.panels[]? | [.type, .title]]')" || return 1
+    [[ "$want" == "$have" ]] || return 1
+  done
+}
+
+grafana_reload_dashboards() {
+  # New dashboards without a restart, so nobody is logged out (sessions live in the pod). The kubelet can take a
+  # few minutes to update the mounted ConfigMap (3.5 min measured), then Grafana rereads the folder every 30 s.
+  grafana_dashboards
+  wait_for "Grafana to load the new dashboards" 480 dashboards_loaded
+  echo "OK   Grafana serves the dashboards in $OBS/dashboards"
+  check_grafana
+}
+
+check_grafana() {
+  local url uid status expected found plugins unknown file query title answer errors ok=0 failed=0
+  url="$(grafana_url)"
+  GRAFANA_URL="$url"
+  if [[ "$(curl -fsS --max-time 30 "$url/api/health" | jq -r '.database')" == ok ]]; then
+    echo "OK   Grafana answers at $url"
+  else
+    echo "FAIL Grafana does not answer at $url" >&2
+    return 1
+  fi
+
+  for uid in prometheus ordo-postgres; do
+    status="$(grafana_api GET "/api/datasources/uid/$uid/health" | jq -r '"\(.status): \(.message)"')" || status=""
+    if [[ "$status" == OK:* ]]; then
+      echo "OK   datasource $uid: ${status#OK: }"
+    else
+      echo "FAIL datasource $uid: ${status:-no answer}" >&2
+      failed=1
+    fi
+  done
+
+  expected="$(find "$OBS/dashboards" -name '*.json' | wc -l)"
+  found="$(grafana_api GET '/api/search?type=dash-db&tag=ordo' | jq 'length')" || found=0
+  if ((found == expected)); then
+    echo "OK   $found dashboards loaded in folder Ordo"
+  else
+    echo "FAIL $found of $expected dashboards loaded" >&2
+    failed=1
+  fi
+
+  # A panel type Grafana does not know renders as "Panel plugin not found" (ids are case-sensitive: nodeGraph).
+  plugins="$(grafana_api GET '/api/plugins?type=panel' | jq -c '[.[].id]')" || plugins='[]'
+  unknown="$(jq -r --argjson known "$plugins" '.panels[] | select(.type as $t | $known | index($t) | not)
+    | "\(.title) (\(.type))"' "$OBS"/dashboards/*.json)"
+  if [[ -z "$unknown" ]]; then
+    echo "OK   every panel type is a Grafana panel plugin"
+  else
+    echo "FAIL panels with an unknown type:" >&2
+    echo "$unknown" >&2
+    failed=1
+  fi
+
+  # Every panel query, run through Grafana against the last 6 hours: catches broken SQL and PromQL.
+  for file in "$OBS"/dashboards/*.json; do
+    while IFS= read -r query; do
+      title="$(jq -r '.title' <<<"$query")"
+      answer="$(grafana_api POST /api/ds/query \
+        "$(jq -c '{queries: [.query], from: "now-6h", to: "now"}' <<<"$query")")" || answer='{"message": "no answer"}'
+      errors="$(jq -r '[(.message // empty), (.results[]? | .error // empty)] | join("; ")' <<<"$answer")"
+      if [[ -z "$errors" ]]; then
+        ok=$((ok + 1))
+      else
+        echo "FAIL $title: $errors" >&2
+        failed=1
+      fi
+    done < <(jq -c '.title as $d | .panels[] | .title as $p | .targets[]
+      | {title: "\($d) / \($p) / \(.refId)", query: (. + {intervalMs: 60000, maxDataPoints: 500})}' "$file")
+  done
+  echo "     $ok panel queries answered without errors"
+  echo "     log in as admin; password: oc -n $NS extract secret/ordo-grafana --keys=GF_SECURITY_ADMIN_PASSWORD --to=-"
+  ((failed == 0))
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -381,8 +639,13 @@ case "$stage" in
   app) app ;;
   db-fixtures) db_fixtures ;;
   check-m1) check_m1 ;;
+  monitoring) monitoring ;;
+  check-monitoring) check_monitoring ;;
+  grafana) grafana ;;
+  grafana-dashboards) grafana_reload_dashboards ;;
+  check-grafana) check_grafana ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

@@ -17,7 +17,6 @@ Auth: `Authorization: Bearer <static token from Secret>` + header `Consent-ID: d
 | `POST /v1/payment-drafts` | Simulated execution target for reimbursements: `{debtorAccount, creditorName, amount, remittance, requestedExecutionDate}` -> `{reference, status: "draft"}` |
 | `POST /admin/transactions` | Generator only: inject one booked line `{accountId, bookingDate, amount, currency, creditorName/debtorName, remittance, cardLast4?}` |
 | `POST /admin/load-csv?profile=commerzbank_csv&accountId=` | Load the organisers' pizzeria CSV as an account (keeps CHF quirk as-is, so the normaliser must fix it) |
-| `POST /admin/clock` | Set/advance the demo clock `{now}`; lines with bookingDate > now stay hidden |
 
 Booked line example:
 

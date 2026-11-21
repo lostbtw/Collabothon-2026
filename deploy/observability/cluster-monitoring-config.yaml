@@ -1,0 +1,11 @@
+# Cluster-wide, needs cluster-admin. Turns on monitoring for user-defined projects, so the ServiceMonitor KServe made
+# for the model (gpt-oss-20b-metrics) is scraped and the rules in prometheus-rules.yaml are evaluated.
+# Applied by `setup.sh monitoring`, which refuses to replace this ConfigMap if it already holds other settings.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    enableUserWorkload: true

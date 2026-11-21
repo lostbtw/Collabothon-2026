@@ -114,16 +114,6 @@ def test_pages_are_followed_in_one_poll(db, bank, pln):
     assert Store(db).get("source", "src_bank_pln")["cursor"].endswith("|E000000005")
 
 
-def test_lines_hidden_by_the_as_of_date_arrive_when_it_moves(db, bank, pln):
-    inject(bank, ref_date="2026-11-10")
-    inject(bank, ref_date="2026-11-25")
-    bank.post("/admin/clock", json={"now": "2026-11-20", "accountId": "acc_pln"}, headers=ADMIN)
-    assert poll(db, pln, bank)["items_new"] == 1
-    bank.post("/admin/clock", json={"now": "2026-11-30", "accountId": "acc_pln"}, headers=ADMIN)
-    assert poll(db, pln, bank)["items_new"] == 1
-    assert len(raw_items(db)) == 2
-
-
 def test_raw_item_feeds_role_3s_normaliser(db, bank, pln):
     """The payload is what backend/pipeline reads: the line normalises into a valid Transaction."""
     from backend.db.contracts import MODELS
