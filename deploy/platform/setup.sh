@@ -23,7 +23,11 @@ SECRET_VALUES=(
   "llm-token token"
   "ordo-grafana GF_SECURITY_ADMIN_PASSWORD"
   "ordo-grafana GRAFANA_DB_PASSWORD"
+  "whisper-api-key API_KEY"
 )
+WHISPER="$ROOT/deploy/models"
+WHISPER_SAMPLES="$WHISPER/whisper-samples"
+WHISPER_CANDIDATES=(deepdml/faster-whisper-large-v3-turbo-ct2 Systran/faster-whisper-large-v3 Systran/faster-whisper-medium)
 
 wait_for() {
   local what="$1" seconds="$2"
@@ -79,6 +83,7 @@ secrets() {
 
   create_random_secret github-webhook WebHookSecretKey
   create_random_secret sandbox-bank-token BANK_TOKEN
+  create_random_secret whisper-api-key API_KEY
   grafana_secret
 }
 
@@ -353,6 +358,42 @@ guardrails_off() {
   oc -n "$NS" rollout restart deployment/ordo-api
   oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
   echo "OK   the chat runs without NeMo Guardrails"
+}
+
+whisper() {
+  create_random_secret whisper-api-key API_KEY
+  oc apply -f "$WHISPER/whisper.yaml"
+  oc -n "$NS" rollout status deployment/whisper --timeout=1800s
+  oc apply -f "$APP/whisper-config.yaml" -f "$APP/api.yaml"
+  oc -n "$NS" rollout restart deployment/ordo-api
+  oc -n "$NS" rollout status deployment/ordo-api --timeout=300s
+  check_whisper
+}
+
+whisper_in_api() {
+  local dir="$1"
+  shift
+  tar -C "$dir" -cf - . |
+    oc -n "$NS" exec -i deployment/ordo-api -c api -- python -c "$(cat "$WHISPER/bench_whisper.py")" "$@"
+}
+
+check_whisper() {
+  if ! oc -n "$NS" exec -i deployment/ordo-api -c api -- python - <"$WHISPER/check_whisper.py" ||
+    ! whisper_in_api "$WHISPER_SAMPLES" --check; then
+    echo "FAIL whisper: see oc -n $NS logs deployment/whisper (and -c fetch-model for the download)" >&2
+    return 1
+  fi
+}
+
+whisper_bench() {
+  local dir="${1:-$WHISPER_SAMPLES}"
+  if [[ ! -f "$dir/samples.json" ]]; then
+    echo "usage: $0 whisper-bench [folder with samples.json and its clips, default $WHISPER_SAMPLES]" >&2
+    exit 2
+  fi
+  whisper_in_api "$dir" "${WHISPER_CANDIDATES[@]}" || true
+  oc -n "$NS" rollout restart deployment/whisper
+  oc -n "$NS" rollout status deployment/whisper --timeout=900s
 }
 
 db_fixtures() {
@@ -788,6 +829,7 @@ SMOKE_DOC=doc_rcpt412
 SMOKE_RECEIPT="$ROOT/sim/documents/november/$SMOKE_DOC.jpg"
 SMOKE_TRUTH="$ROOT/sim/scenario/out/november_documents.json"
 SMOKE_BODY=""
+SMOKE_SPEECH=pl_cash.webm
 
 smoke_ok() {
   echo "OK   $1: $2"
@@ -930,7 +972,8 @@ smoke_checks() {
   smoke_workloads
   smoke_routes
   smoke_mlflow
-  smoke_in_pod ordo-api api api </dev/null
+  smoke_in_pod ordo-api api api "$(jq -r --arg file "$SMOKE_SPEECH" '.clips[] | select(.file == $file) | .text' \
+    "$WHISPER_SAMPLES/samples.json")" <"$WHISPER_SAMPLES/$SMOKE_SPEECH"
   smoke_extract
 }
 
@@ -970,6 +1013,9 @@ case "$stage" in
   tag-demo) tag_demo ;;
   app) app ;;
   db-fixtures) db_fixtures ;;
+  whisper) whisper ;;
+  check-whisper) check_whisper ;;
+  whisper-bench) whisper_bench "$@" ;;
   ogx) ogx ;;
   check-ogx) check_ogx ;;
   ogx-off) ogx_off ;;
@@ -989,7 +1035,7 @@ case "$stage" in
   stop-workbench) stop_workbench ;;
   smoke) smoke ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|whisper|check-whisper|whisper-bench|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
