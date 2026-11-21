@@ -5,13 +5,15 @@ import { api, type ClientsResponse, type LedgerSummary, type PeopleCosts, type S
 import type { Recommendation } from "../api/types.gen";
 import { Icon } from "../components/Icon";
 import { Avatar, Change, Chevron, MonthSelect, PageHead, StatusLabel, Tile, Waiting } from "../components/ui";
-import { add, isZero, lastFullMonth, monthFigures, monthOnly, monthRange, percent, previousMonth, recentMonths, subtract } from "../lib/costTypes";
+import { add, isZero, lastFullMonth, monthFigures, monthOnly, percent, previousMonth, recentMonths, subtract } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { shortDate } from "../lib/dates";
 import { formatMoney } from "../lib/money";
 import { useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { PAY_LABEL, ROLE_LABEL, categoryLabel, initials, pct, plainName, whole } from "../lib/words";
+import { monthAndBefore } from "../lib/monthSummary";
+import { FromBank } from "./Overview";
 import { PaymentPanel } from "./money/PaymentPanel";
 import { DOC_CHIP, buildPayments, filterPayments, typeOf, type Payment } from "./money/payments";
 
@@ -76,23 +78,21 @@ function ByType({ month }: { month: string }) {
   const { companyId } = useCompany();
   const currency = useCompanyInfo()?.base_currency ?? "PLN";
   const refresh = useRefreshKey();
-  const state = useApi(() => Promise.all([
-    none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(month) })),
-    none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(previousMonth(month)) })),
-  ]), [companyId, month, refresh]);
+  const state = useApi(() => monthAndBefore(companyId, month), [companyId, month, refresh]);
   if (state.loading && !state.data) return <p className="t3">Loading…</p>;
-  const [summary, before] = state.data ?? [null, null];
-  if (!summary) return <Waiting what="costs by type" />;
-  return <ByTypeView month={month} summary={summary} before={before} currency={currency} />;
+  const [current, before] = state.data ?? [null, null];
+  if (!current) return <Waiting what="costs by type" />;
+  return <ByTypeView month={month} summary={current.summary} fromBank={current.fromBank} before={before} currency={currency} />;
 }
 
-export function ByTypeView({ month, summary, before, currency }: { month: string; summary: LedgerSummary; before: LedgerSummary | null; currency: string }) {
+export function ByTypeView({ month, summary, fromBank, before, currency }: { month: string; summary: LedgerSummary; fromBank?: boolean; before: LedgerSummary | null; currency: string }) {
   const f = monthFigures(summary, currency);
   const prev = before?.rows.length ? monthFigures(before, currency) : null;
   const entries = (cats: string[]) => summary.rows.filter((r) => cats.includes(r.key)).reduce((n, r) => n + r.entries, 0);
-  if (!f.hasData) return <p className="t2">Nothing was booked in {monthOnly(month)}.</p>;
+  if (!f.hasData) return <p className="t2">No payments in {monthOnly(month)}.</p>;
   return (
     <>
+      {fromBank && <div className="hstack"><FromBank /><span className="small t2">Summed from the bank lines: these payments are not matched to invoices and booked yet.</span></div>}
       <div className="row">
         <Tile label={`Costs in ${monthOnly(month)}`} value={whole(f.costs)} note={prev && <Change now={f.costs} before={prev.costs} upIsGood={false} vs={monthOnly(previousMonth(month))} />} />
         <Tile label="Fixed every month" value={whole(f.fixed)} note={`${percent(f.fixed.amount, f.costs.amount)}% of all costs`} />

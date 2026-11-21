@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordo-connectors
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-connectors
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"connectors\")].image"}]'
+spec:
+  # One poller: two would read the same mailbox and race for the same cursor.
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ordo-connectors
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: ordo-connectors
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      serviceAccountName: cfo-app
+      containers:
+        - name: connectors
+          image: ordo-backend:latest
+          args: ["connectors"]
+          envFrom:
+            - configMapRef:
+                name: ordo-config
+            # ORDO_IMAP_USER and ORDO_IMAP_PASSWORD of the invoices mailbox (see deploy/secrets.example.yaml).
+            # Optional: without it the mailbox is simply not read.
+            - secretRef:
+                name: ordo-mailbox
+                optional: true
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+            # The Sandbox Bank does not run on the cluster yet: read only the mailbox and the NBP rates.
+            - name: ORDO_CONNECTORS_ONLY
+              value: imap_mailbox,fx_rates
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

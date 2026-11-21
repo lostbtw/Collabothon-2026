@@ -10,6 +10,7 @@ import psycopg
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
+from backend.api import owner
 from backend.api.deps import company_id, conn, store
 from backend.api.money import amount_of, money
 from backend.api.ports import finance_engine
@@ -45,21 +46,27 @@ GROUP_KEYS = {
 
 @router.get("/ledger/summary")
 def ledger_summary(company: str = Depends(company_id), group_by: str = "category", from_: str | None = Query(None, alias="from"),
-                   to: str | None = None, s: Store = Depends(store), c: psycopg.Connection = Depends(conn)):
+                   to: str | None = None, basis: str = "ledger", s: Store = Depends(store), c: psycopg.Connection = Depends(conn)):
     """Rows: plain sums over non-void entries in from/to (no LLM).
+
+    `basis=bank` sums the bank lines per category instead (group_by category only): what left and came in, before
+    the matches are checked and booked. The owner's screens use it for months the books do not cover yet.
 
     Kpis: role 4's engine.ledger_kpis() (approved entries, the as-of year, not limited by from/to), or the stand-in
     below while the engine is not importable."""
     base = base_currency(c, company)
     entries = [e for e in _entries(s, company, from_, to) if e["status"] != "void"]
-    key = GROUP_KEYS.get(group_by, GROUP_KEYS["category"])
-    sums: dict[str, Decimal] = defaultdict(Decimal)
-    counts: dict[str, int] = defaultdict(int)
-    for e in entries:
-        sums[key(e)] += amount_of(e["amount_base"])
-        counts[key(e)] += 1
-    rows = [{"key": k, "amount_base": money(v, base), "change_pct": None, "entries": counts[k]}
-            for k, v in sorted(sums.items(), key=lambda kv: kv[1])]
+    if basis == "bank":
+        rows = owner.bank_summary(c, company, from_, to)
+    else:
+        key = GROUP_KEYS.get(group_by, GROUP_KEYS["category"])
+        sums: dict[str, Decimal] = defaultdict(Decimal)
+        counts: dict[str, int] = defaultdict(int)
+        for e in entries:
+            sums[key(e)] += amount_of(e["amount_base"])
+            counts[key(e)] += 1
+        rows = [{"key": k, "amount_base": money(v, base), "change_pct": None, "entries": counts[k]}
+                for k, v in sorted(sums.items(), key=lambda kv: kv[1])]
 
     engine = finance_engine()
     if engine is not None and hasattr(engine, "ledger_kpis"):

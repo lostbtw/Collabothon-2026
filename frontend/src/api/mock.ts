@@ -77,6 +77,7 @@ const decisions = new Map<string, Approval>();
 const documentEdits = new Map<string, OrdoDocument>();
 const undoneMatches = new Set<string>();
 const confirmedMatches = new Set<string>();
+const categoryEdits = new Map<string, Transaction["category"]>();
 const syncedAt = new Map<string, string>();
 type Upload = { raw: RawItem; doc: OrdoDocument; match: Match | null; readyAt: number };
 const uploads: Upload[] = [];
@@ -103,6 +104,7 @@ export function resetMockState(): void {
   documentEdits.clear();
   undoneMatches.clear();
   confirmedMatches.clear();
+  categoryEdits.clear();
   syncedAt.clear();
   uploads.length = 0;
   sessions = initialSessions();
@@ -208,7 +210,8 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     // A bank line follows its newest match: a file read for it makes it "suggested", a confirmed match makes it "matched".
     transactions: [...fixtures.transactions, ...SAMPLE_TRANSACTIONS].map((t) => {
       const m = matches.filter((x) => x.transaction_id === t.id && x.status !== "rejected").at(-1);
-      return m && t.match_status !== "matched" ? { ...t, match_status: m.status === "suggested" ? ("suggested" as const) : ("matched" as const) } : t;
+      const typed = categoryEdits.has(t.id) ? { ...t, category: categoryEdits.get(t.id)! } : t;
+      return m && t.match_status !== "matched" ? { ...typed, match_status: m.status === "suggested" ? ("suggested" as const) : ("matched" as const) } : typed;
     }),
   };
   const page = <I,>(items: I[]) => ({ items, next_cursor: null });
@@ -268,6 +271,12 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     result = page(f.transactions.filter((t) => accountIds.has(t.account_id) && (!q.get("account_id") || t.account_id === q.get("account_id"))));
   }
   else if (method === "GET" && seg[0] === "transactions" && seg.length === 2) result = find(f.transactions, seg[1]);
+  else if (method === "PATCH" && seg[0] === "transactions" && seg.length === 2) {
+    const t = find(f.transactions, seg[1]);
+    const category = (body as { category?: string } | undefined)?.category ?? t.category;
+    categoryEdits.set(t.id, category as Transaction["category"]);
+    result = { ...t, category };
+  }
   else if (method === "GET" && path === "/counterparties") result = { items: byCompany(f.counterparties, company) };
   else if (method === "GET" && path === "/matches") result = { items: f.matches.filter((m) => !q.get("status") || m.status === q.get("status")) };
   else if (method === "GET" && path === "/inbox") {
@@ -276,7 +285,7 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/ledger") result = page(byCompany(f.ledger, company));
   else if (method === "GET" && path === "/ledger/summary") {
     onlyBorsuk(company, "ledger summary");
-    // A month is asked for with from/to; without them, the last full month.
+    // A month is asked for with from/to; without them, the last full month. Sample books and sample bank lines agree.
     result = { rows: SUMMARY_BY_MONTH[(q.get("from") ?? "2026-10").slice(0, 7)] ?? [], kpis: SUMMARY_KPIS };
   }
   else if (method === "GET" && path === "/balance/history") { onlyBorsuk(company, "balance history"); result = BALANCE_HISTORY; }

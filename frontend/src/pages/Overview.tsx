@@ -6,7 +6,7 @@ import type { Approval, Forecast, Recommendation, Transaction } from "../api/typ
 import { useAsk } from "../components/AskOrdo";
 import { CashChart } from "../components/CashChart";
 import { Change, MonthSelect, PageHead, StatusLabel, Tile } from "../components/ui";
-import { compareAmounts, isZero, lastFullMonth, monthFigures, monthOnly, monthRange, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
+import { compareAmounts, isZero, lastFullMonth, monthFigures, monthOnly, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
 import { useLive } from "../lib/live";
@@ -14,6 +14,7 @@ import { formatMoney } from "../lib/money";
 import { requestRefresh, useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { plainName, whole } from "../lib/words";
+import { monthAndBefore } from "../lib/monthSummary";
 import { upcoming } from "./dashboard/model";
 import { buildDecision } from "./inbox/model";
 import { buildTodo, topThree, type TodoItem } from "./todo/model";
@@ -35,14 +36,13 @@ export function Overview() {
     none(api.accounts(companyId)), none(api.forecast(companyId)), none(api.balanceHistory(companyId)), none(api.inbox(companyId)),
   ]), [companyId, refresh]);
   const figures = useApi(() => Promise.all([
-    none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(shown) })),
-    none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(previousMonth(shown)) })),
+    monthAndBefore(companyId, shown),
     none(api.transactions(companyId)),
     none(api.counterparties(companyId)),
   ]), [companyId, shown, refresh]);
 
   const [accounts, forecast, history, inbox] = now.data ?? [null, null, null, null];
-  const [summary, before, transactions, parties] = figures.data ?? [null, null, null, null];
+  const [[current, before], transactions, parties] = figures.data ?? [[null, null], null, null];
   const names = Object.fromEntries((parties?.items ?? []).map((c) => [c.id, plainName(c.name)]));
   const currency = company?.base_currency ?? forecast?.base_currency ?? "PLN";
   return (
@@ -56,7 +56,7 @@ export function Overview() {
         </div>
       </section>
       <MonthSection month={shown} months={recentMonths(today, 6)} onMonth={setMonth}
-        summary={summary} before={before} transactions={transactions?.items ?? []} names={names} currency={currency} loading={figures.loading && !figures.data} />
+        summary={current?.summary ?? null} fromBank={current?.fromBank ?? false} before={before} transactions={transactions?.items ?? []} names={names} currency={currency} loading={figures.loading && !figures.data} />
       <CashSection history={history} forecast={forecast} flash={flash} />
     </>
   );
@@ -149,8 +149,8 @@ export function TodoRow({ item }: { item: TodoItem }) {
   );
 }
 
-function MonthSection({ month, months, onMonth, summary, before, transactions, names, currency, loading }: {
-  month: string; months: string[]; onMonth: (m: string) => void; summary: LedgerSummary | null; before: LedgerSummary | null; transactions: Transaction[];
+function MonthSection({ month, months, onMonth, summary, fromBank, before, transactions, names, currency, loading }: {
+  month: string; months: string[]; onMonth: (m: string) => void; summary: LedgerSummary | null; fromBank: boolean; before: LedgerSummary | null; transactions: Transaction[];
   names: Record<string, string>; currency: string; loading: boolean;
 }) {
   const f = monthFigures(summary, currency);
@@ -160,10 +160,11 @@ function MonthSection({ month, months, onMonth, summary, before, transactions, n
     <section className="section">
       <div className="section-head">
         <MonthSelect value={month} months={months} onChange={onMonth} look="section" />
+        {fromBank && <FromBank />}
         <span className="grow" />
         {prev && <span className="small t3">Compared with {vs}</span>}
       </div>
-      {loading ? <p className="t3">…</p> : !summary ? <p className="t2">No month figures yet: the books for this company are empty.</p> : !f.hasData ? <p className="t2">Nothing was booked in {monthOnly(month)}.</p> : (
+      {loading ? <p className="t3">…</p> : !summary ? <p className="t2">No month figures yet: the books for this company are empty.</p> : !f.hasData ? <p className="t2">No payments in {monthOnly(month)}.</p> : (
         <>
           <div className="row">
             <Tile label="Income" value={whole(f.income)} note={prev && <Change now={f.income} before={prev.income} upIsGood vs={vs} />} />
@@ -270,4 +271,9 @@ function CashSection({ history, forecast, flash }: { history: BalanceHistory | n
       </div>
     </section>
   );
+}
+
+/** Said wherever a month is summed from the bank lines because its payments are not in the books yet. */
+export function FromBank() {
+  return <span className="chip warn" title="Summed from the bank lines. These payments are not matched to invoices and booked yet.">From the bank, not checked yet</span>;
 }

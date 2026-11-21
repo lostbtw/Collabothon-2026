@@ -84,8 +84,12 @@ export const api = {
   matches: (companyId?: string, status?: string) => http<{ items: Match[] }>("GET", "/matches", { query: { ...co(companyId), status } }),
   inbox: (companyId?: string) => http<InboxResponse>("GET", "/inbox", { query: co(companyId) }),
   ledger: (companyId?: string) => http<Page<LedgerEntry>>("GET", "/ledger", { query: co(companyId) }),
-  ledgerSummary: (companyId?: string, opts: { groupBy?: string; from?: string; to?: string } = {}) =>
-    http<LedgerSummary>("GET", "/ledger/summary", { query: { ...co(companyId), group_by: opts.groupBy, from: opts.from, to: opts.to } }),
+  /** `basis: "bank"` sums the bank lines per category instead of the books: for months whose payments are not booked yet. */
+  ledgerSummary: (companyId?: string, opts: { groupBy?: string; from?: string; to?: string; basis?: "ledger" | "bank" } = {}) =>
+    http<LedgerSummary>("GET", "/ledger/summary", { query: { ...co(companyId), group_by: opts.groupBy, from: opts.from, to: opts.to, basis: opts.basis } }),
+  /** The owner changes a bank line's type; Ordo remembers it as a rule for that counterparty. */
+  setTransactionCategory: (id: string, category: string, companyId?: string) =>
+    optional(http<Transaction>("PATCH", `/transactions/${id}`, { query: co(companyId), body: { category } })),
   forecast: (companyId?: string, horizonDays = 45) => http<Forecast>("GET", "/forecast/latest", { query: { ...co(companyId), horizon_days: horizonDays } }),
   recommendations: (companyId?: string) => http<{ items: Recommendation[] }>("GET", "/recommendations", { query: co(companyId) }),
   recommendation: (id: string) => http<Recommendation>("GET", `/recommendations/${id}`),

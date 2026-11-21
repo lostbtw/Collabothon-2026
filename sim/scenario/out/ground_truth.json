@@ -13114,7 +13114,7 @@
       "artefact": "november/nov_019.pdf",
       "direction": "purchase",
       "doc_type": "invoice",
-      "number": "FV/EM/00683/11/2026",
+      "number": "FV/EM/00006/11/2026",
       "issue_date": "2026-11-10",
       "gross": {
         "amount": "4899.00",
@@ -13405,7 +13405,7 @@
       "artefact": "november/nov_028.pdf",
       "direction": "purchase",
       "doc_type": "invoice",
-      "number": "FV/BS/00688/11/2026",
+      "number": "FV/BS/00038/11/2026",
       "issue_date": "2026-11-14",
       "gross": {
         "amount": "386.40",
