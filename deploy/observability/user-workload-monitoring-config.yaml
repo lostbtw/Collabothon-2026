@@ -1,0 +1,11 @@
+# The Prometheus that monitors user projects. 48 h instead of the default 24 h, so Saturday's runs are still there on
+# demo morning. Storage is the pod's emptyDir: a restart of prometheus-user-workload-0 starts the history again.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+data:
+  config.yaml: |
+    prometheus:
+      retention: 48h

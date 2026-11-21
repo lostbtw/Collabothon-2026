@@ -1,0 +1,120 @@
+# Rules for project cfo-ai, evaluated by user-workload monitoring (cluster-monitoring-config.yaml).
+# Alerts show in the console under Observe -> Alerting; no receiver is configured, nothing is sent anywhere.
+#
+# ordo-model: vLLM metrics of gpt-oss-20b only, so the user-workload Prometheus evaluates it (leaf-prometheus).
+# Thresholds sit well above what the model does today: TTFT p95 under 0.25 s, slowest request 30 s.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ordo-model
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    openshift.io/prometheus-rule-evaluation-scope: leaf-prometheus
+spec:
+  groups:
+    - name: ordo-model.recording
+      interval: 30s
+      rules:
+        - record: model_name:vllm_time_to_first_token_seconds:p95_5m
+          expr: histogram_quantile(0.95, sum by (model_name, le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))
+        - record: model_name:vllm_e2e_request_latency_seconds:p95_5m
+          expr: histogram_quantile(0.95, sum by (model_name, le) (rate(vllm:e2e_request_latency_seconds_bucket[5m])))
+        - record: model_name:vllm_generation_tokens:rate1m
+          expr: sum by (model_name) (rate(vllm:generation_tokens_total[1m]))
+        - record: model_name:vllm_prompt_tokens:rate1m
+          expr: sum by (model_name) (rate(vllm:prompt_tokens_total[1m]))
+        - record: model_name:vllm_requests:rate5m
+          expr: sum by (model_name) (rate(vllm:request_success_total[5m]))
+        # Share of answers that stopped at max_tokens instead of finishing.
+        - record: model_name:vllm_requests_cut_off:ratio_15m
+          expr: |
+            sum by (model_name) (increase(vllm:request_success_total{finished_reason="length"}[15m]))
+              / sum by (model_name) (increase(vllm:request_success_total[15m]))
+    - name: ordo-model.alerts
+      rules:
+        - alert: OrdoModelDown
+          expr: absent(up{job="gpt-oss-20b-metrics"} == 1)
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: gpt-oss-20b is not answering
+            description: >-
+              Prometheus cannot scrape the vLLM pod of gpt-oss-20b. The extractor stops reading documents and the
+              agents fall back to template text. A model restart (Recreate) also takes a few minutes.
+        - alert: OrdoModelRequestsQueued
+          expr: max by (model_name) (vllm:num_requests_waiting) > 0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: Requests have waited for the GPU for 2 minutes
+            description: >-
+              {{ $value }} requests are waiting in vLLM. The extractor and the agents compete for gpt-oss-20b,
+              so the live receipt chain will miss its 30 s target.
+        - alert: OrdoModelKvCacheFull
+          expr: max by (model_name) (vllm:kv_cache_usage_perc) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: The KV cache of gpt-oss-20b is over 90 % full
+            description: New requests queue or get preempted. Long OCR prompts or many parallel agent calls fill it.
+        - alert: OrdoModelPreempting
+          expr: sum by (model_name) (increase(vllm:num_preemptions_total[10m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: vLLM preempted requests in the last 10 minutes
+            description: The KV cache ran out and running requests were paused and recomputed, which makes them slow.
+        - alert: OrdoModelSlowFirstToken
+          expr: model_name:vllm_time_to_first_token_seconds:p95_5m > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: First token takes over 2 s (p95, 5 min)
+            description: Normal is under 0.25 s. The GPU is saturated or prompts got much longer.
+        - alert: OrdoModelAnswersCutOff
+          expr: model_name:vllm_requests_cut_off:ratio_15m > 0.2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Over 20 % of model answers stop at max_tokens
+            description: >-
+              A cut-off answer is not valid JSON, so extraction fails and agent cards fall back to templates.
+              gpt-oss-20b spends tokens on reasoning before the answer. A guidellm run with fixed output length
+              also triggers this alert.
+---
+# ordo-workloads: kube-state-metrics belongs to platform monitoring, so Thanos Ruler evaluates this one (no
+# leaf-prometheus label). The namespace label cfo-ai is enforced on every query.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ordo-workloads
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+spec:
+  groups:
+    - name: ordo-workloads.alerts
+      rules:
+        - alert: OrdoDeploymentUnavailable
+          expr: max by (deployment) (kube_deployment_status_replicas_unavailable{namespace="cfo-ai"}) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.deployment }} has had no ready pod for 5 minutes"
+            description: >-
+              Covers every Deployment in cfo-ai: the ordo-* processes, docling-serve, postgresql and the model.
+              Check with: oc -n cfo-ai describe deployment {{ $labels.deployment }}
+        - alert: OrdoPodRestarting
+          expr: max by (pod, container) (increase(kube_pod_container_status_restarts_total{namespace="cfo-ai"}[15m])) > 2
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pod }}/{{ $labels.container }} restarted more than twice in 15 minutes"
+            description: "Read the last crash with: oc -n cfo-ai logs {{ $labels.pod }} -c {{ $labels.container }} --previous"
