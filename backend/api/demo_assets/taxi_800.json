@@ -1,0 +1,78 @@
+{
+ "buyer": {
+  "name": "Borsuk Labs sp. z o.o. (SAMPLE)",
+  "tax_id": "999-000-00-14",
+  "address": "ul. Piotrkowska 990 lok. 4B\n90-999 Łódź",
+  "country": "PL"
+ },
+ "lines": [
+  {
+   "net": "740.74",
+   "quantity": 1,
+   "vat_rate": "8",
+   "unit_price": "800.00",
+   "description": "Przejazd Łódź - Lotnisko Chopina"
+  }
+ ],
+ "number": "PARAGON/TX/04417/11/2026",
+ "seller": {
+  "name": "Taxi Express Łódź sp. z o.o. (SAMPLE)",
+  "tax_id": "999-003-14-49",
+  "address": "ul. Kolejowa 958\n90-999 Łódź",
+  "country": "PL"
+ },
+ "status": "extracted",
+ "totals": {
+  "net": {
+   "amount": "740.74",
+   "currency": "PLN"
+  },
+  "vat": {
+   "amount": "59.26",
+   "currency": "PLN"
+  },
+  "gross": {
+   "amount": "800.00",
+   "currency": "PLN"
+  }
+ },
+ "payment": {
+  "paid": true,
+  "method": "card",
+  "paid_date": "2026-11-21",
+  "card_last4": "4821",
+  "bank_account": null
+ },
+ "doc_type": "receipt",
+ "due_date": null,
+ "sale_date": null,
+ "vat_lines": [
+  {
+   "net": "740.74",
+   "vat": "59.26",
+   "rate": "8"
+  }
+ ],
+ "extraction": {
+  "model": null,
+  "method": "manual",
+  "trace_id": null,
+  "warnings": [],
+  "confidence": 0.97,
+  "field_confidence": {
+   "net": 0.97,
+   "vat": 0.97,
+   "gross": 0.97,
+   "number": 0.97,
+   "issue_date": 0.97,
+   "buyer_tax_id": 0.97,
+   "seller_tax_id": 0.97
+  }
+ },
+ "issue_date": "2026-11-21",
+ "category_suggestion": {
+  "method": "rule",
+  "category": "travel",
+  "confidence": 0.85
+ }
+}
