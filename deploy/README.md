@@ -22,6 +22,7 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `ordo-pipeline` | `ordo-backend` | Normalises and matches |
 | `ordo-extractor` | `ordo-backend` | Reads photos and PDFs through docling-serve and gpt-oss-20b |
 | `ordo-agents` | `ordo-backend` | Turns new Matches and forecasts into inbox cards (ingestion, liquidity, receivables agents) |
+| `ordo-finance` | `ordo-backend` | Books the Ledger from decided Matches and recomputes the forecast after every change (debounced 2 s per company) |
 | `ordo-mcp` | `ordo-backend` | The agents' tools as an MCP server, in-cluster only at `http://ordo-mcp.cfo-ai.svc.cluster.local:8000/mcp`; also OGX's way to the model (`/model/v1`) |
 | `ordo-ogx` (OGXServer) | OGX `rh` distribution | OGX in front of the model; runs the agents' tool loop and calls `ordo-mcp` (only after `setup.sh ogx`) |
 | `ordo-bank` | `ordo-sim` | The Sandbox Bank, in-cluster only at `http://ordo-bank.cfo-ai.svc.cluster.local:8081` |
