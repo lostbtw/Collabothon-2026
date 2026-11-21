@@ -320,7 +320,7 @@ function Explained({ f, month, summary, transactions, names }: { f: MonthFigures
     <div className="card stack" style={{ gap: 12 }}>
       <h2>Explained</h2>
       <span className="hero">{isZero(f.costs.amount) ? "—" : `${explained}%`}</span>
-      <span className="t2">of {monthOnly(month)}'s costs are sorted into a type.</span>
+      <span className="t2">of {monthOnly(month)}'s costs have a category.</span>
       <div className="progress"><span style={{ width: `${explained}%` }} /></div>
       <div className="kv"><span className="t2">Payments without an invoice</span><span>{summary.kpis.documents_missing}</span></div>
       <div className="kv"><span className="t2">Not explained yet</span><span>{whole(f.unexplained)}</span></div>

@@ -131,7 +131,7 @@ def test_upcoming_vat_in_the_forecast_becomes_a_tax_reserve_card(db, world):
 
     [rec] = recommendations(world)
     assert rec["type"] == "tax_reserve"
-    assert rec["title"] == "Set aside 14,300 PLN for VAT on the 25th"
+    assert rec["title"] == "Set aside 14,300 PLN for VAT on 25 Nov"
     assert (rec["control_level"], rec["execution_mode"]) == ("approval_required", "simulated")
     assert rec["proposed_action"]["kind"] == "move_to_tax_pocket"
     assert rec["proposed_action"]["params"]["amount"] == {"amount": "14300.00", "currency": "PLN"}
