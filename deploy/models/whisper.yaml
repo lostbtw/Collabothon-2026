@@ -110,7 +110,7 @@ spec:
             - name: WHISPER_MODEL
               value: deepdml/faster-whisper-large-v3-turbo-ct2
             - name: WHISPER_MODELS
-              value: deepdml/faster-whisper-large-v3-turbo-ct2 Systran/faster-whisper-large-v3 Systran/faster-whisper-medium
+              value: deepdml/faster-whisper-large-v3-turbo-ct2
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
