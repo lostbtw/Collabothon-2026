@@ -7,6 +7,7 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 APP="$ROOT/deploy/app"
 OBS="$ROOT/deploy/observability"
 UWM_NS=openshift-user-workload-monitoring
+DSC=default-dsc
 MODEL_JOB=gpt-oss-20b-metrics
 ORDO_RULES=(ordo-model ordo-workloads)
 # What Grafana's read-only database role may read (deploy/observability/dashboards/).
@@ -617,6 +618,48 @@ check_grafana() {
   ((failed == 0))
 }
 
+mlflow_crd_ready() {
+  oc get crd mlflows.mlflow.opendatahub.io >/dev/null 2>&1
+}
+
+mlflow_operator_ready() {
+  [[ "$(oc get datasciencecluster "$DSC" \
+    -o jsonpath='{.status.conditions[?(@.type=="MLflowOperatorReady")].status}' 2>/dev/null)" == True ]]
+}
+
+mlflow_available() {
+  [[ "$(oc get mlflow mlflow -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null)" == True ]]
+}
+
+mlflow() {
+  oc patch datasciencecluster "$DSC" --type merge \
+    -p '{"spec":{"components":{"mlflowoperator":{"managementState":"Managed"}}}}'
+  wait_for "the MLflow CRD" 600 mlflow_crd_ready
+  wait_for "condition MLflowOperatorReady on $DSC" 600 mlflow_operator_ready
+  local role
+  role="$(oc -n "$NS" get rolebinding cfo-app-mlflow-integration -o jsonpath='{.roleRef.name}' 2>/dev/null)" || role=""
+  if [[ -n "$role" && "$role" != mlflow-operator-mlflow-integration ]]; then
+    oc -n "$NS" delete rolebinding cfo-app-mlflow-integration
+  fi
+  oc apply -f "$HERE/mlflow.yaml"
+  wait_for "MLflow to become Available" 600 mlflow_available
+  check_mlflow
+}
+
+check_mlflow() {
+  local address url
+  address="$(oc get mlflow mlflow -o jsonpath='{.status.address.url}')"
+  url="$(oc get mlflow mlflow -o jsonpath='{.status.url}')"
+  oc get mlflow mlflow -o jsonpath='{range .status.conditions[*]}     {.type}={.status} {.message}{"\n"}{end}'
+  echo "     in-cluster: ${address:-none}"
+  echo "     UI:         ${url:-none}"
+  if [[ -z "$address" ]]; then
+    echo "FAIL MLflow reports no in-cluster address" >&2
+    return 1
+  fi
+  oc -n "$NS" exec -i deployment/ordo-extractor -c extractor -- python - "$address" <"$HERE/check_mlflow.py"
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -644,8 +687,10 @@ case "$stage" in
   grafana) grafana ;;
   grafana-dashboards) grafana_reload_dashboards ;;
   check-grafana) check_grafana ;;
+  mlflow) mlflow ;;
+  check-mlflow) check_mlflow ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

@@ -100,6 +100,16 @@ The dashboards are generated: change the queries in `deploy/observability/make_d
 
 `check-grafana`: Grafana answers, both datasources pass their health check, both dashboards are loaded, every panel type is a panel plugin Grafana knows (a wrong id such as `nodegraph` instead of `nodeGraph` shows as "Panel plugin not found"), and every panel query of every dashboard runs through Grafana's query API against the last 6 hours without an error.
 
+## MLflow
+
+```bash
+deploy/platform/setup.sh mlflow
+```
+
+The stage switches the RHOAI component `mlflowoperator` to `Managed` in DataScienceCluster `default-dsc` (an operator change: never after Saturday 18:00), waits for the operator, then applies `deploy/platform/mlflow.yaml`: the cluster-scoped `MLflow` CR `mlflow` (MLflow 3.14, SQLite and artifacts on one 5 Gi PVC, 1 replica, 2 Gi limit) and a RoleBinding that gives SA `cfo-app` the ClusterRole `mlflow-operator-mlflow-integration` (the operator installs it with that prefix) in `cfo-ai`. MLflow keeps its own storage, apart from the ledger database. Each namespace is an MLflow workspace; the app writes to workspace `cfo-ai` with the `llm-token` bearer token.
+
+`check-mlflow`: prints the conditions, the in-cluster address and the UI URL, then from the `ordo-extractor` pod (trusting the service CA) checks `/health` and reads, or creates, the experiments `ordo-extraction` and `ordo-agents` as `cfo-app`.
+
 ## Demo day
 
 `setup.sh freeze` turns the webhook builds off, so a push no longer changes the cluster; after that, deploy a fix with `setup.sh build <name>`. `redeploy` does not turn the webhooks back on. `setup.sh tag-demo` tags the current images as `demo`.
