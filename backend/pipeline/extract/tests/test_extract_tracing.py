@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 import pytest
 
 from backend import tracing
@@ -10,40 +8,6 @@ from backend.pipeline.extract import ExtractionError
 from backend.pipeline.extract.main import process_pending
 from backend.pipeline.extract.tests.test_extract_pipeline import HERO_MARKDOWN, FakeModel, extract
 from backend.pipeline.extract.tests.test_extract_worker import FakeExtract, api, upload  # noqa: F401
-
-
-class Recorder:
-    def __init__(self):
-        self.spans, self.outputs, self.tags, self.open = [], {}, {}, []
-
-    @contextmanager
-    def span(self, name, inputs=None, span_type="CHAIN"):
-        self.spans.append((name, len(self.open), inputs or {}))
-        self.open.append(name)
-        try:
-            yield name
-        finally:
-            self.open.pop()
-
-    def record_outputs(self, current, value):
-        if current is not None:
-            self.outputs[current] = value
-
-    def tag(self, **tags):
-        self.tags.update({key: value for key, value in tags.items() if value is not None})
-
-    def trace_id(self):
-        return "tr-test" if self.open else None
-
-
-@pytest.fixture
-def traced(monkeypatch):
-    recorder = Recorder()
-    monkeypatch.setattr(tracing, "span", recorder.span)
-    monkeypatch.setattr(tracing, "outputs", recorder.record_outputs)
-    monkeypatch.setattr(tracing, "tag", recorder.tag)
-    monkeypatch.setattr(tracing, "trace_id", recorder.trace_id)
-    return recorder
 
 
 def test_an_extraction_stores_the_id_of_the_trace_it_ran_in(traced):

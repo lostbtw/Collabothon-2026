@@ -16,6 +16,7 @@ from typing import Any
 
 import psycopg
 
+from backend import tracing
 from backend.agents import liquidity, tools
 from backend.agents.llm import run_tool_loop
 from backend.agents.numbers import unexpected_numbers
@@ -113,7 +114,8 @@ def request_action(conn: psycopg.Connection, company: str, description: str, kin
         "control_level": "recommendation", "execution_mode": "none", "status": "new", "severity": "info",
         "created_at": _now(), "valid_until": None,
         "explanation": {"why": ["Requested in the chat"], "calculation": [], "alternatives": [], "assumptions": [],
-                        "confidence": 1.0, "generated_by": {"numbers": "finance-engine", "wording": "template", "trace_id": None}},
+                        "confidence": 1.0, "generated_by": {"numbers": "finance-engine", "wording": "template",
+                                                          "trace_id": tracing.trace_id()}},
         "evidence": [{"kind": "external", "id": "chat", "label": "Your chat message", "excerpt": description[:200]}],
         "proposed_action": None, "impact": None, "subject": None, "approval_id": None,
     }
@@ -370,22 +372,30 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
     created = guardrail = table = None
     text = evidence = None
     session_id = session_id or f"chat_{uuid.uuid4().hex[:10]}"
+    trace_id = None
     if model is not None:
-        messages = [{"role": "system", "content": SYSTEM}, *history(conn, session_id, company),
-                    {"role": "user", "content": message}]
-        result, results = run_tool_loop(model, conn, company, messages, CHAT_TOOLS, FINAL_SCHEMA, trace=trace)
-        for r in results:
-            if isinstance(r, dict) and r.get("recommendation_id") and any(t["tool"] == "request_action" for t in trace):
-                created, guardrail = r["recommendation_id"], GUARDRAIL_MONEY
-        if result and not unexpected_numbers([result["answer"]], [results, message]):
-            text, evidence = result["answer"], _evidence(results)
-            sql = next((r for r in reversed(results) if isinstance(r, dict) and "columns" in r), None)
-            if sql:
-                table = {"columns": sql["columns"], "rows": sql["rows"], "sql": sql["sql"]}
-                evidence.append({"kind": "sql", "id": "q_chat", "label": "The query behind the table", "excerpt": sql["sql"]})
+        with tracing.span("chat.turn", {"message": message, "session_id": session_id}) as step:
+            tracing.tag(agent="chat", company_id=company, session_id=session_id)
+            trace_id = tracing.trace_id()
+            messages = [{"role": "system", "content": SYSTEM}, *history(conn, session_id, company),
+                        {"role": "user", "content": message}]
+            result, results = run_tool_loop(model, conn, company, messages, CHAT_TOOLS, FINAL_SCHEMA, trace=trace)
             for r in results:
-                if isinstance(r, dict) and r.get("forecast_id"):
-                    evidence += [e for e in _component_evidence(conn, r["forecast_id"]) if e not in evidence]
+                if isinstance(r, dict) and r.get("recommendation_id") and any(t["tool"] == "request_action" for t in trace):
+                    created, guardrail = r["recommendation_id"], GUARDRAIL_MONEY
+            if result and not unexpected_numbers([result["answer"]], [results, message]):
+                text, evidence = result["answer"], _evidence(results)
+                sql = next((r for r in reversed(results) if isinstance(r, dict) and "columns" in r), None)
+                if sql:
+                    table = {"columns": sql["columns"], "rows": sql["rows"], "sql": sql["sql"]}
+                    evidence.append({"kind": "sql", "id": "q_chat", "label": "The query behind the table", "excerpt": sql["sql"]})
+                for r in results:
+                    if isinstance(r, dict) and r.get("forecast_id"):
+                        evidence += [e for e in _component_evidence(conn, r["forecast_id"]) if e not in evidence]
+            outcome = "accepted" if text is not None else "no_answer" if not result else "rejected_numbers"
+            tracing.tag(outcome=outcome, created_recommendation_id=created)
+            tracing.outputs(step, {"outcome": outcome, "answer": text, "tool_calls": trace,
+                                   "created_recommendation_id": created})
     if text is None:
         text, evidence, fallback_trace, fallback_created, fallback_guardrail = deterministic(conn, company, message)
         trace = trace or fallback_trace
@@ -400,6 +410,6 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
         "tool_calls": trace,
         "created_recommendation_id": created,
         "guardrail": guardrail,
-        "trace_id": None,
+        "trace_id": trace_id,
         "suggested_questions": SUGGESTED.get(company, SUGGESTED["co_borsuk"]),
     }

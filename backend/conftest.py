@@ -73,3 +73,44 @@ def db(db_url):
         if tables:
             conn.execute("truncate " + ", ".join(f'"{t}"' for t in tables) + " cascade")
         conn.commit()
+
+
+class TraceRecorder:
+    def __init__(self):
+        self.spans, self.outputs, self.tags, self.open = [], {}, {}, []
+
+    def span(self, name, inputs=None, span_type="CHAIN"):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def opened():
+            self.spans.append((name, len(self.open), inputs or {}))
+            self.open.append(name)
+            try:
+                yield name
+            finally:
+                self.open.pop()
+
+        return opened()
+
+    def record_outputs(self, current, value):
+        if current is not None:
+            self.outputs[current] = value
+
+    def tag(self, **tags):
+        self.tags.update({key: value for key, value in tags.items() if value is not None})
+
+    def trace_id(self):
+        return "tr-test" if self.open else None
+
+
+@pytest.fixture
+def traced(monkeypatch):
+    from backend import tracing
+
+    recorder = TraceRecorder()
+    monkeypatch.setattr(tracing, "span", recorder.span)
+    monkeypatch.setattr(tracing, "outputs", recorder.record_outputs)
+    monkeypatch.setattr(tracing, "tag", recorder.tag)
+    monkeypatch.setattr(tracing, "trace_id", recorder.trace_id)
+    return recorder
