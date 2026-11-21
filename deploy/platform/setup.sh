@@ -829,6 +829,7 @@ SMOKE_DOC=doc_rcpt412
 SMOKE_RECEIPT="$ROOT/sim/documents/november/$SMOKE_DOC.jpg"
 SMOKE_TRUTH="$ROOT/sim/scenario/out/november_documents.json"
 SMOKE_BODY=""
+SMOKE_SPEECH=pl_cash.webm
 
 smoke_ok() {
   echo "OK   $1: $2"
@@ -971,7 +972,8 @@ smoke_checks() {
   smoke_workloads
   smoke_routes
   smoke_mlflow
-  smoke_in_pod ordo-api api api </dev/null
+  smoke_in_pod ordo-api api api "$(jq -r --arg file "$SMOKE_SPEECH" '.clips[] | select(.file == $file) | .text' \
+    "$WHISPER_SAMPLES/samples.json")" <"$WHISPER_SAMPLES/$SMOKE_SPEECH"
   smoke_extract
 }
 

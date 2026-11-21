@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import time
 
@@ -185,6 +186,39 @@ def bank():
     return "OK", f"{base} is the Sandbox Bank (simulated) with {', '.join(BANK_ACCOUNTS)}"
 
 
+def words(text):
+    return re.findall(r"\w+", text.lower())
+
+
+def whisper(audio, expected):
+    def check():
+        base = os.environ.get("ORDO_WHISPER_URL", "").rstrip("/")
+        if not base:
+            return "SKIP", "ORDO_WHISPER_URL is not set in ordo-api, the chat has no voice input"
+        key = os.environ.get("ORDO_WHISPER_API_KEY", "")
+        model = os.environ.get("ORDO_WHISPER_MODEL", "")
+        expect(key and model, "ORDO_WHISPER_API_KEY or ORDO_WHISPER_MODEL is not set in ordo-api")
+        expect(audio and expected, "no Polish clip or expected text was passed to smoke.py")
+        root = base.removesuffix("/v1")
+        auth = {"Authorization": f"Bearer {key}"}
+        with httpx.Client(timeout=60) as client:
+            anonymous = client.get(f"{root}/health").status_code
+            expect(anonymous in (401, 403), f"{root}/health answered HTTP {anonymous} without the key")
+            loaded = answer(client.get(f"{root}/api/ps", headers=auth), "/api/ps")["models"]
+            expect(model in loaded, f"{model} is not loaded, loaded: {loaded}")
+            started = time.monotonic()
+            body = answer(client.post(f"{base}/audio/transcriptions", headers=auth,
+                                      files={"file": ("pl.webm", audio, "audio/webm")},
+                                      data={"model": model, "language": "pl", "temperature": "0"}),
+                          "/audio/transcriptions")
+            seconds = time.monotonic() - started
+        text = body.get("text", "").strip()
+        expect(words(text) == words(expected), f"the Polish clip read as {text!r}, expected {expected!r}")
+        return "OK", f"{model} read the Polish clip as {text!r} in {seconds:.1f} s; HTTP {anonymous} without the key"
+
+    return check
+
+
 def docling_serve():
     from backend.pipeline.extract import docling
 
@@ -242,6 +276,7 @@ def main(argv):
         report("ogx", ogx)
         report("ordo-mcp", mcp)
         report("ordo-bank", bank)
+        report("whisper", whisper(sys.stdin.buffer.read(), argv[1] if len(argv) > 1 else ""))
     elif mode == "extract" and len(argv) == 4:
         name, amount, currency = argv[1:]
         data = sys.stdin.buffer.read()
@@ -249,7 +284,7 @@ def main(argv):
         report("mlflow tracing", mlflow_tracing)
         report("e2e receipt", e2e_receipt(name, data, amount, currency))
     else:
-        print("usage: smoke.py api | smoke.py extract <file name> <gross> <currency> < receipt", file=sys.stderr)
+        print("usage: smoke.py api [expected Polish text] < clip | smoke.py extract <file name> <gross> <currency> < receipt", file=sys.stderr)
         return 2
     return 0
 

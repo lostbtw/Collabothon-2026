@@ -207,10 +207,10 @@ spec:
           resources:
             requests:
               cpu: "2"
-              memory: 3Gi
+              memory: 2Gi
             limits:
               cpu: "8"
-              memory: 8Gi
+              memory: 6Gi
       volumes:
         - name: models
           persistentVolumeClaim:

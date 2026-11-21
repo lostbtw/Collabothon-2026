@@ -29,6 +29,7 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `ordo-bank` | `ordo-sim` | The Sandbox Bank, in-cluster only at `http://ordo-bank.cfo-ai.svc.cluster.local:8081` |
 | `postgresql` | `rhel9/postgresql-16` | The database |
 | `gpt-oss-20b-predictor`, `docling-serve` | see `deploy/models/` | The model and OCR |
+| `whisper` | Speaches 0.8.3 (CPU) | Speech to text for the chat's voice input, Whisper large-v3-turbo; in-cluster only at `http://whisper.cfo-ai.svc.cluster.local:8000/v1`, with an API key (only after `setup.sh whisper`) |
 
 The Sandbox Bank keeps its state in memory. Each start loads Borsuk Labs' accounts from `sim/scenario/out` (inside the image) and the pizzeria account from ConfigMap `bank-pizzeria-csv`. A new `ordo-sim` image, which every push to `main` builds, restarts the bank, so executions are lost.
 
@@ -47,13 +48,15 @@ deploy/platform/setup.sh redeploy
 
 | Stage | Checks |
 |---|---|
-| `smoke` (`make smoke`) | The whole cluster in about 40 s, one line per check, nothing written to the demo data: every Deployment and the InferenceService ready; every Route answers as it should (a Route without a probe in `setup.sh` fails); MLflow up. From `ordo-api`: the database, the outbox (no dead delivery, nothing waiting over 2 min), gpt-oss-20b (refuses calls without a token, answers one question), the guardrails mask an IBAN, OGX, `ordo-mcp` lists its tools, the Sandbox Bank. From `ordo-extractor`: docling-serve, then the hero backup receipt `doc_rcpt412.jpg` read end to end (docling-serve, gpt-oss-20b, the checks) against its Ground truth within 30 s, traced to MLflow experiment `ordo-smoke`. Ends with `smoke: N checks, all OK` or the components that failed |
+| `smoke` (`make smoke`) | The whole cluster in about 40 s, one line per check, nothing written to the demo data: every Deployment and the InferenceService ready; every Route answers as it should (a Route without a probe in `setup.sh` fails); MLflow up. From `ordo-api`: the database, the outbox (no dead delivery, nothing waiting over 2 min), gpt-oss-20b (refuses calls without a token, answers one question), the guardrails mask an IBAN, OGX, `ordo-mcp` lists its tools, the Sandbox Bank, Whisper (refuses calls without the key, reads `pl_cash.webm` word for word). From `ordo-extractor`: docling-serve, then the hero backup receipt `doc_rcpt412.jpg` read end to end (docling-serve, gpt-oss-20b, the checks) against its Ground truth within 30 s, traced to MLflow experiment `ordo-smoke`. Ends with `smoke: N checks, all OK` or the components that failed |
 | `check-m2` | The web route opens the app; `/api/v1/health` reports the model reachable; the API serves data; `check-bank` |
 | `check-bank` | `ordo-api` and `ordo-connectors` reach the Sandbox Bank and see its four accounts |
 | `check-m1` | The chat answers with text from gpt-oss-20b |
 | `verify` | Postgres and the raw volume work from a pod, every container has requests and limits, no secret value is in Git |
 | `check-ogx` | One chat question goes through OGX; prints the model OGX used, each tool it called over MCP and the answer |
 | `check-guardrails [rails]` | The rails mask an IBAN, block "Which stock should I buy?" and let the five tool questions pass; then (without `rails`) the chat refuses the stock question, stores and answers an IBAN message masked, and answers the read-only tool questions |
+| `check-whisper` | From `ordo-api`: Whisper refuses calls without the key, the configured model is loaded, and one Polish, English and Russian clip read back word for word |
+| `whisper-bench [folder]` | Every candidate model over the clips in `deploy/models/whisper-samples` (or a folder with its own `samples.json`); restarts Whisper afterwards |
 | `check-monitoring` | Prometheus scrapes gpt-oss-20b, its vLLM metrics are queryable, every rule in `deploy/observability/prometheus-rules.yaml` evaluates without errors; lists the alerts firing in `cfo-ai` |
 
 ## OGX + MCP
@@ -91,6 +94,28 @@ The server is in-cluster behind kube-rbac-proxy (`https://ordo-guardrails.cfo-ai
 `deploy/platform/setup.sh guardrails-off` switches the chat back to running without the check; the server stays up. The first check after a server start takes about 10 s (spaCy loads), the rest about 1 s.
 
 Where to look: `oc -n cfo-ai logs deployment/ordo-guardrails -c nemo-guardrails` shows every check and the topic rail's answer.
+
+## Speech to text (Whisper)
+
+```bash
+deploy/platform/setup.sh whisper
+```
+
+This creates secret `whisper-api-key` if it is missing, applies `deploy/models/whisper.yaml`, waits for Whisper (the first start downloads the model, about 1.6 GB), applies `deploy/app/whisper-config.yaml` and `deploy/app/api.yaml`, restarts `ordo-api` and runs `check-whisper`.
+
+Whisper is [Speaches](https://github.com/speaches-ai/speaches) 0.8.3 (OpenAI-compatible `POST /v1/audio/transcriptions`, faster-whisper int8) on CPU: the GPU belongs to gpt-oss-20b. The init container `fetch-model` downloads the model into the PVC `whisper-models` (10 Gi) and does nothing when it is already there; the server itself runs with `HF_HUB_OFFLINE=1`, so neither audio nor anything else leaves the cluster. The pod is Ready only once the model is in memory, so the first owner question is not the slow one. It runs as UID 1000 under SCC `nonroot-v2` (ServiceAccount `whisper`): the image's home folder is closed to OpenShift's random UID. Every path, `/health` included, needs `Authorization: Bearer <API_KEY>`; `ordo-api` gets `ORDO_WHISPER_URL` and `ORDO_WHISPER_MODEL` from ConfigMap `ordo-whisper-client` and `ORDO_WHISPER_API_KEY` from the secret, all optional, so the API runs without Whisper. Logging is at `info`, which writes no transcript.
+
+| Model | Clips right (15 FLEURS, pl/en/ru) | Seconds per 8–12 s clip | |
+|---|---|---|---|
+| `deepdml/faster-whisper-large-v3-turbo-ct2` | 15/15 | 3.3–3.7 | **chosen** |
+| `Systran/faster-whisper-large-v3` | 14/15 | 5.9–7.6 | misses the 5 s budget |
+| `Systran/faster-whisper-medium` | not run | | fallback only |
+
+Measured on 21 Nov with 8 CPU threads; a short clip costs about the same as a long one (Whisper pads to 30 s). The 1.2 GB of memory for turbo alone sits under a 6 Gi limit so `whisper-bench` can load all three. The other two models stay on the volume for `whisper-bench`; nothing loads them otherwise.
+
+`deploy/models/whisper-samples/` holds nine synthetic clips (piper, CC0 voices, webm/opus as the browser records); `deploy/models/make_whisper_samples.sh` makes them again from `samples.json`. Recordings of real voices are only for `whisper-bench <folder>` and stay out of Git.
+
+Two quirks of Speaches 0.8.3: `DELETE /api/ps/{model}` deadlocks the server (every later request hangs until a restart), so nothing unloads a model; and two benchmarks at once share the CPU and double every time.
 
 ## Monitoring
 
