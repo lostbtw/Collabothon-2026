@@ -1,0 +1,18 @@
+{
+  "voices": {
+    "pl": "pl/pl_PL/gosia/medium/pl_PL-gosia-medium",
+    "en": "en/en_US/joe/medium/en_US-joe-medium",
+    "ru": "ru/ru_RU/denis/medium/ru_RU-denis-medium"
+  },
+  "clips": [
+    {"file": "pl_cash.webm", "language": "pl", "text": "Ile mam gotówki?"},
+    {"file": "pl_pay.webm", "language": "pl", "text": "Zapłać dostawcy mąki 1200 złotych w piątek."},
+    {"file": "pl_long.webm", "language": "pl", "text": "Ile gotówki będzie na koncie pizzerii w przyszły piątek i czy wystarczy jej na wypłaty dla pracowników oraz czynsz za lokal, a jeśli nie, to ile pieniędzy zabraknie i co proponujesz zrobić?"},
+    {"file": "en_cash.webm", "language": "en", "text": "How much cash do I have?"},
+    {"file": "en_pay.webm", "language": "en", "text": "Pay the flour supplier 1200 euros on Friday."},
+    {"file": "en_long.webm", "language": "en", "text": "How much cash will the pizzeria have in its account next Friday, and will it be enough to pay the staff wages and the rent for the restaurant, and if not, how much money will be missing and what do you suggest we do about it?"},
+    {"file": "ru_cash.webm", "language": "ru", "text": "Сколько у меня денег?"},
+    {"file": "ru_pay.webm", "language": "ru", "text": "Заплати поставщику муки 1200 евро в пятницу."},
+    {"file": "ru_long.webm", "language": "ru", "text": "Сколько денег будет на счёте пиццерии в следующую пятницу, и хватит ли их на зарплату сотрудникам и аренду помещения, а если нет, то сколько денег не хватит и что ты предлагаешь сделать?"}
+  ]
+}
