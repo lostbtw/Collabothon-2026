@@ -63,7 +63,7 @@ function single(r: Recommendation): TodoItem {
 }
 
 export function buildTodo(items: Recommendation[], forecast: Forecast | null): Todo {
-  const all = items.filter(isRenderableRecommendation).filter((r) => !isDecided(r) && r.type !== "info" && r.control_level !== "analysed_autonomously");
+  const all = items.filter(isRenderableRecommendation).filter((r) => !isDecided(r) && (r.type !== "info" || r.control_level === "recommendation") && r.control_level !== "analysed_autonomously");
   const bulkItems: TodoItem[] = [];
   const bulked = new Set<string>();
   for (const [type, spec] of Object.entries(BULK) as [Recommendation["type"], NonNullable<(typeof BULK)[Recommendation["type"]]>][]) {

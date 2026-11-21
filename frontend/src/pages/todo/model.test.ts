@@ -8,13 +8,12 @@ afterEach(resetMockState);
 const load = async () => buildTodo((await api.inbox("co_borsuk")).items, await api.forecast("co_borsuk"));
 
 describe("To-do", () => {
-  it("lists only owner decisions: three to approve, three to check", async () => {
+  it("lists owner decisions and single advice: three to approve, four to check", async () => {
     const todo = await load();
     expect(todo.needsOk.map((i) => i.id)).toEqual(["rec_412", "gap", "rec_fx01"]);
-    expect(todo.check.map((i) => i.id)).toEqual(["rec_private01", "rec_missing01", "rec_vatname01"]);
-    expect(todo.count).toBe(6);
-    // FX Shield's "no need to hedge" needs no answer, so it is not a to-do.
-    expect([...todo.needsOk, ...todo.check].some((i) => i.id === "rec_fx02")).toBe(false);
+    // FX Shield's "no need to hedge" is advice (control level recommendation): it is shown under To check.
+    expect(todo.check.map((i) => i.id)).toEqual(["rec_fx02", "rec_private01", "rec_missing01", "rec_vatname01"]);
+    expect(todo.count).toBe(7);
   });
 
   it("groups the ways to close the cash gap under it, cheapest first", async () => {
@@ -29,12 +28,12 @@ describe("To-do", () => {
     const todo = await load();
     expect(todo.needsOk[0].primary).toEqual({ kind: "approve", label: "Pay back" });
     expect(todo.needsOk[2].primary).toEqual({ kind: "approve", label: "Fix the rate" });
-    expect(todo.check[1].primary).toEqual({ kind: "link", label: "Check", to: "/money/payments?month=2026-10&doc=missing" });
+    expect(todo.check[2].primary).toEqual({ kind: "link", label: "Check", to: "/money/payments?month=2026-10&doc=missing" });
     expect(todo.needsOk[0].summary).toBe("Jan paid for a monitor with his own card and sent the receipt.");
   });
 
   it("puts two decisions and one suggestion on the Overview", async () => {
-    expect(topThree(await load()).map((i) => i.id)).toEqual(["rec_412", "gap", "rec_private01"]);
+    expect(topThree(await load()).map((i) => i.id)).toEqual(["rec_412", "gap", "rec_fx02"]);
   });
 
   it("drops a decided action and shows it under Done recently with its simulated reference", async () => {
@@ -53,7 +52,7 @@ describe("To-do", () => {
     const todo = buildTodo([...(await api.inbox("co_borsuk")).items, ...matches], await api.forecast("co_borsuk"));
     const bulk = todo.needsOk.find((i) => i.id === "bulk-confirm_match")!;
     expect(bulk).toMatchObject({ title: "407 invoices matched to payments", primary: { kind: "link", to: "/money/payments?doc=to_check" } });
-    expect(todo.count).toBe(7);
+    expect(todo.count).toBe(8);
   });
 
   it("sorts newest first by default, and by urgency, deadline or amount on request", async () => {
