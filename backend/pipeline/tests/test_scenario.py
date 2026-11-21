@@ -8,11 +8,7 @@ from backend.pipeline.tests import scenario as sc
 from backend.pipeline.tests.schema_check import schema_errors
 
 # Differences that come from the scenario data, reported to role 4. The test fails on anything else.
-KNOWN_SCENARIO_ISSUES = {
-    # The FA(3) XML and its PDF copy carry different invoice numbers (FV/EM/00006 vs 00683, FV/BS/00038 vs 00688),
-    # so they look like two invoices; the PDF copy takes the bank line and the XML stays unpaid.
-    "fa3_20261110_01": "dup_01 numbers differ", "fa3_20261114_01": "dup_02 numbers differ",
-}
+KNOWN_SCENARIO_ISSUES: dict[str, str] = {}  # dup_01 / dup_02 numbers now match their FA(3) originals
 NEVER_MISSING = {"bank_fee", "tax_or_social_security", "salary", "reimbursement_payout", "internal_transfer"}
 
 
@@ -50,7 +46,7 @@ class Scenario(unittest.TestCase):
                 wrong.append((t["document_id"], want, got))
         self.assertEqual(wrong, [])
         self.assertEqual(set(missed) - set(KNOWN_SCENARIO_ISSUES), set())
-        self.assertGreaterEqual(right, 538)
+        self.assertGreaterEqual(right, 540)
 
     def test_who_paid_and_vat_lost(self):
         who = [t["document_id"] for t in self.truth["documents"] if t["match_type"] != "duplicate_document"

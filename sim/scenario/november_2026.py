@@ -200,8 +200,11 @@ def lakeshore():
 
 def november_documents():
     book = build()
-    fa3_ids = {(d["bank"]["account"], d["bank"]["row_index"]): d["id"]
-               for d in fa3_collect(book) if d.get("ksef") and d.get("bank")}
+    fa3_ids, fa3_numbers = {}, {}
+    for d in fa3_collect(book):
+        if d.get("ksef") and d.get("bank"):
+            key = (d["bank"]["account"], d["bank"]["row_index"])
+            fa3_ids[key], fa3_numbers[key] = d["id"], d["number"]
     nov = [d for d in book.docs if FIRST <= d["issue"] <= LAST and d.get("bank") and d["direction"] == "purchase"]
     nov.sort(key=lambda d: (d["issue"], d["bank"]["account"], d["bank"]["row_index"]))
 
@@ -215,6 +218,7 @@ def november_documents():
         key = (d["bank"]["account"], d["bank"]["row_index"])
         if key in fa3_ids:  # M5: the same invoice also came from KSeF as FA(3) XML
             entry["duplicate_of"] = fa3_ids[key]
+            entry["number"] = fa3_numbers[key]  # a copy of an invoice carries the invoice's own number
             entry["messiness"].append("M5")
             entry["flags"].append("duplicate_suspected")
         entry["_ref"] = None if d.get("daily") else d["bank"]["reference"]  # duplicates: hand-written lines only
