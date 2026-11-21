@@ -1,4 +1,6 @@
 """Seam: outbox -> finance consumer -> Ledger (#27). Needs the test database (backend/conftest.py)."""
+from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -6,7 +8,12 @@ from backend.api.app import create_app
 from backend.db.events import events_after, new_event, publish
 from backend.db.fixtures import load_fixtures
 from backend.db.store import Store
+from backend.finance import engine
 from backend.finance.main import process_pending
+
+WAITS_FOR_ROLE_5 = pytest.mark.xfail(
+    reason="role 5 serves GET /ledger/summary kpis from engine.ledger_kpis() (request issue for #46); "
+           "until then the route counts proposed entries and only the requested month")
 
 
 @pytest.fixture
@@ -73,3 +80,38 @@ def test_without_fixture_entries_the_booking_creates_its_own(db):
     process_pending(db)
 
     assert {e["id"] for e in booked(db).values()} == {"led_mat_412_exp", "led_mat_412_reimb"}
+
+
+def test_approving_the_hero_receipt_raises_vat_lost_this_year_by_242_90(demo, db):
+    """#46: the counter counts approved entries only, so the owner's approval makes it tick up."""
+    before = engine.ledger_kpis(db, "co_borsuk")
+    demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
+    process_pending(db)
+    after = engine.ledger_kpis(db, "co_borsuk")
+
+    assert Decimal(after["vat_lost_ytd"]["amount"]) - Decimal(before["vat_lost_ytd"]["amount"]) == Decimal("242.90")
+    assert after["vat_lost_ytd"] == {"amount": "242.90", "currency": "PLN"}
+    assert Decimal(after["reimbursements_owed"]["amount"]) - Decimal(before["reimbursements_owed"]["amount"]) \
+        == Decimal("1299.00")
+
+
+def test_a_rejected_hero_receipt_leaves_vat_lost_this_year_unchanged(demo, db):
+    before = engine.ledger_kpis(db, "co_borsuk")["vat_lost_ytd"]
+    demo.post("/api/v1/matches/mat_412/decision", json={"decision": "rejected"})
+    process_pending(db)
+
+    assert engine.ledger_kpis(db, "co_borsuk")["vat_lost_ytd"] == before == {"amount": "0.00", "currency": "PLN"}
+
+
+@WAITS_FOR_ROLE_5
+def test_the_summary_the_app_shows_rises_by_242_90_when_the_hero_receipt_is_approved(demo, db):
+    """The Overview page asks for one month; 'VAT lost this year' must still be the whole year."""
+    month = {"company_id": "co_borsuk", "group_by": "category", "from": "2026-11-01", "to": "2026-11-30"}
+    before = demo.get("/api/v1/ledger/summary", params=month).json()["kpis"]
+    demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
+    process_pending(db)
+    after = demo.get("/api/v1/ledger/summary", params=month).json()["kpis"]
+
+    assert before["vat_lost_ytd"] == {"amount": "0.00", "currency": "PLN"}
+    assert after["vat_lost_ytd"] == {"amount": "242.90", "currency": "PLN"}
+    assert after == engine.ledger_kpis(db, "co_borsuk")
