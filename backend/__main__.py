@@ -14,6 +14,7 @@ ENTRYPOINTS = {
     "connectors": ("backend.connectors.main", "role 2"),
     "pipeline": ("backend.pipeline.main", "role 3"),
     "agents": ("backend.agents.main", "role 5"),
+    "finance": ("backend.finance.main", "role 4"),
     "mcp": ("backend.agents.mcp_server", "role 5"),
 }
 

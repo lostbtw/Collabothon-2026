@@ -5,7 +5,7 @@ import sys
 import pytest
 
 
-@pytest.mark.parametrize("name", ["api", "connectors", "pipeline", "agents"])
+@pytest.mark.parametrize("name", ["api", "connectors", "pipeline", "agents", "finance"])
 def test_each_entrypoint_starts_and_exits_cleanly(name):
     result = subprocess.run(
         [sys.executable, "-m", "backend", name, "--check"],
