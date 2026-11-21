@@ -1,0 +1,85 @@
+{
+ "buyer": {
+  "name": "(none printed)",
+  "tax_id": null,
+  "address": null,
+  "country": "PL"
+ },
+ "lines": [
+  {
+   "net": "105.68",
+   "quantity": 1,
+   "vat_rate": "23",
+   "unit_price": "129.99",
+   "description": "Mysz bezprzewodowa"
+  },
+  {
+   "net": "32.51",
+   "quantity": 1,
+   "vat_rate": "23",
+   "unit_price": "39.99",
+   "description": "Podkładka pod mysz"
+  }
+ ],
+ "number": "003381/11/2026",
+ "seller": {
+  "name": "Sklep Komputerowy Bajt sp. z o.o. (SAMPLE)",
+  "tax_id": "999-030-00-06",
+  "address": "ul. Elektroniczna 970\n90-999 Łódź",
+  "country": "PL"
+ },
+ "status": "extracted",
+ "totals": {
+  "net": {
+   "amount": "138.19",
+   "currency": "PLN"
+  },
+  "vat": {
+   "amount": "31.79",
+   "currency": "PLN"
+  },
+  "gross": {
+   "amount": "169.98",
+   "currency": "PLN"
+  }
+ },
+ "payment": {
+  "paid": true,
+  "method": "card",
+  "paid_date": "2026-11-21",
+  "card_last4": "7730",
+  "bank_account": null
+ },
+ "doc_type": "receipt",
+ "due_date": null,
+ "sale_date": null,
+ "vat_lines": [
+  {
+   "net": "138.19",
+   "vat": "31.79",
+   "rate": "23"
+  }
+ ],
+ "extraction": {
+  "model": null,
+  "method": "manual",
+  "trace_id": null,
+  "warnings": [],
+  "confidence": 0.97,
+  "field_confidence": {
+   "net": 0.97,
+   "vat": 0.97,
+   "gross": 0.97,
+   "number": 0.97,
+   "issue_date": 0.97,
+   "buyer_tax_id": 0.97,
+   "seller_tax_id": 0.97
+  }
+ },
+ "issue_date": "2026-11-21",
+ "category_suggestion": {
+  "method": "rule",
+  "category": "equipment",
+  "confidence": 0.85
+ }
+}

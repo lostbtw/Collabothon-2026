@@ -30,16 +30,15 @@ def test_one_call_stores_the_e_mail_and_its_photo_and_announces_them(client, db)
 def test_every_call_is_a_new_file_and_retires_the_previous_demo_receipt(client, db):
     demo(client, db)
     first = client.get("/api/v1/demo/receipt").json()
-    s = Store(db)
-    s.put("document", {"id": "doc_demo_taxi", "company_id": "co_borsuk", "status": "extracted",
-                       "seller": {"name": "Taxi Express Łódź sp. z o.o. (SAMPLE)", "tax_id": "999-003-14-49"}},
-          company_id="co_borsuk")
+    [first_doc] = Store(db).list("document", first_raw_item_id=first["raw_item_ids"][1])
 
     second = client.get("/api/v1/demo/receipt").json()
 
     assert set(first["raw_item_ids"]).isdisjoint(second["raw_item_ids"])
-    assert second["retired_documents"] == ["doc_demo_taxi"]
-    assert s.get("document", "doc_demo_taxi")["status"] == "rejected"
+    assert second["retired_documents"] == [first_doc["id"]]
+    assert Store(db).get("document", first_doc["id"])["status"] == "rejected"
+    [second_doc] = Store(db).list("document", first_raw_item_id=second["raw_item_ids"][1])
+    assert second_doc["status"] != "duplicate"
 
 
 def test_an_unknown_receipt_is_refused(client, db):
@@ -67,3 +66,18 @@ def test_a_client_payment_is_booked_in_the_sandbox_bank(client, db, sandbox_bank
     assert line["transactionAmount"] == {"amount": "18400.00", "currency": "EUR"} or "18400" in str(line)
     booked = sandbox_bank.get("/v1/accounts/acc_eur/transactions", headers={"Authorization": "Bearer test-bank-token", "Consent-ID": "demo"}).json()
     assert "INVOICE 2026/10/044" in str(booked)
+
+
+def test_the_receipt_is_a_document_at_once_without_reading_the_photo(client, db):
+    demo(client, db)
+
+    body = client.get("/api/v1/demo/receipt").json()
+
+    photo_id = body["raw_item_ids"][1]
+    [document] = Store(db).list("document", first_raw_item_id=photo_id)
+    assert document["totals"]["gross"] == {"amount": "800.00", "currency": "PLN"}
+    assert document["seller"]["name"] == "Taxi Express Łódź sp. z o.o. (SAMPLE)"
+    assert document["submitted_by"]["person_id"] in ("per_jan_testowy", "per_jan")
+    assert Store(db).get("raw_item", photo_id)["processing_status"] == "processed"
+    types = [r[0] for r in db.execute("select type from outbox where correlation_id = %s order by seq", (photo_id,))]
+    assert types[:2] == ["raw_item.received", "document.extracted"]

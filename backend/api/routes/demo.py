@@ -8,8 +8,9 @@
     https://<app>/api/v1/demo/all                  (both)
 
 /demo/receipt: Ordo receives an e-mail from the employee Jan Testowy with the receipt photo attached, exactly as the mailbox
-connector would store it (role 2's `message_items`, src_mail, raw_item.received). The real pipeline then reads the
-photo, matches it, makes the "Pay Jan back" to-do and updates the forecast; the open app shows the toasts and
+connector would store it (role 2's `message_items`, src_mail, raw_item.received). The photo is not read by the model:
+its fields are preset (demo_assets/*.json) and handed to the extraction worker, which builds the document at once.
+The pipeline then matches it, makes the "Pay Jan back" to-do and updates the forecast; the open app shows the toasts and
 reloads its numbers by itself.
 
 /demo/payment: the client's transfer is booked in the Sandbox Bank (its admin endpoint); the bank connector picks it up
@@ -19,6 +20,8 @@ Every receipt call is a new e-mail: the previous demo receipt is retired first (
 superseded), so the duplicate check does not swallow the next one. Set ORDO_DEMO_TRIGGER=0 to switch it off.
 The sender's address is read from the people table, never written in the code.
 """
+import copy
+import json
 import os
 import uuid
 from datetime import UTC, datetime
@@ -36,14 +39,15 @@ from backend.connectors.bank import bank_token, make_client
 from backend.connectors.base import idempotency_key, raw_item_id
 from backend.connectors.mailbox import message_items
 from backend.db.events import new_event, publish
+from backend.pipeline.extract import worker
 
 router = APIRouter()
 
 ASSETS = Path(__file__).resolve().parent.parent / "demo_assets"
 RECEIPTS = {
-    "taxi": {"file": "taxi_800.jpg", "seller_tax_id": "9990031449", "subject": "Fwd: taxi na lotnisko",
+    "taxi": {"file": "taxi_800.jpg", "fields": "taxi_800.json", "seller_tax_id": "9990031449", "subject": "Fwd: taxi na lotnisko",
              "body": "Hej, taksówka na lotnisko do klienta, 800 zł z mojej karty. Paragon w załączniku. Jan"},
-    "bajt": {"file": "bajt_169.jpg", "seller_tax_id": "9990300006", "subject": "Fwd: mysz i podkładka",
+    "bajt": {"file": "bajt_169.jpg", "fields": "bajt_169.json", "seller_tax_id": "9990300006", "subject": "Fwd: mysz i podkładka",
              "body": "Hej, kupiłem mysz i podkładkę do biura, zapłaciłem swoją kartą. Paragon w załączniku. Jan"},
 }
 SENDERS = ("per_jan_testowy", "per_jan")
@@ -133,13 +137,18 @@ def send_receipt(c: psycopg.Connection, company: str, receipt: str) -> dict[str,
         if item.content is not None:
             c.execute("insert into raw_item_content (raw_item_id, content_type, bytes) values (%s, %s, %s) "
                       "on conflict do nothing", (rid, item.content_type, item.content))
-        publish(c, new_event("raw_item.received", company, {"raw_item_id": rid, "kind": item.kind,
-                                                            "source_id": source["id"]},
-                             producer="connector", correlation_id=rid), commit=False)
+        event = new_event("raw_item.received", company, {"raw_item_id": rid, "kind": item.kind, "source_id": source["id"]},
+                          producer="connector", correlation_id=rid)
+        publish(c, event, commit=False)
+        if item.kind == "email_attachment":
+            # The photo's fields are preset (no reading by the model): the extraction worker builds the document from
+            # them right here, exactly as after a real read, so the toasts and the to-do come within a second or two.
+            fields = json.loads((ASSETS / spec["fields"]).read_text(encoding="utf-8"))
+            worker.handle(c, event, lambda _data, _type: copy.deepcopy(fields))
     c.commit()
     return {"status": "sent", "from": name, "receipt": receipt, "raw_item_ids": list(ids.values()),
             "retired_documents": retired, "sent_at": fetched,
-            "next": "The open app shows 'New receipt' and 'New to-do' in about 10-15 seconds."}
+            "next": "The open app shows 'New receipt' and 'New to-do' within a few seconds."}
 
 
 @router.api_route("/demo/receipt", methods=["GET", "POST"], include_in_schema=False)
