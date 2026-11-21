@@ -7,6 +7,7 @@ Without the model (stand-in until #8), a small intent router calls the same tool
 Chat never moves money: CHAT_TOOLS has no execution or decision tool, and a request to move money becomes an
 inbox card (request_action) that the owner decides like any other.
 """
+import calendar
 import re
 import uuid
 from datetime import date
@@ -220,12 +221,24 @@ def _as_of(conn: psycopg.Connection, company: str) -> date:
 
 
 def _closed_period(message: str, as_of: date) -> tuple[str, str] | None:
+    """"1-30 June" -> that range; "all of June", "the whole of June", "in June" -> the whole month. The next such
+    month on or after the as-of date."""
     m = re.search(r"(\d{1,2})\s*[-–—]\s*(\d{1,2})\.?\s+([A-Za-zÀ-ž]+)", message)
-    if not m or m.group(3).lower() not in MONTHS:
-        return None
-    month = MONTHS[m.group(3).lower()]
-    year = as_of.year if date(as_of.year, month, int(m.group(2))) >= as_of else as_of.year + 1
-    return date(year, month, int(m.group(1))).isoformat(), date(year, month, int(m.group(2))).isoformat()
+    if m and m.group(3).lower() in MONTHS:
+        month, first, last = MONTHS[m.group(3).lower()], int(m.group(1)), int(m.group(2))
+    else:
+        tokens = re.findall(r"[A-Za-zÀ-ž]+", message.lower())
+        cues = {"of", "whole", "all", "in", "for", "during", "cały", "caly", "ganzen", "ganz", "im"}
+        named = next((t for i, t in enumerate(tokens) if t in MONTHS and i > 0 and tokens[i - 1] in cues), None)
+        if named is None:
+            return None
+        month, first, last = MONTHS[named], 1, None
+    year = as_of.year
+    end_day = last or calendar.monthrange(year, month)[1]
+    if date(year, month, end_day) < as_of:
+        year += 1
+        end_day = last or calendar.monthrange(year, month)[1]
+    return date(year, month, first).isoformat(), date(year, month, end_day).isoformat()
 
 
 def _evidence(results: list[Any]) -> list[dict[str, Any]]:

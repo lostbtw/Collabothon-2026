@@ -1,4 +1,5 @@
 import { useMemo, useState, type MouseEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import type { BalanceHistory } from "../api/client";
 import type { Forecast } from "../api/types.gen";
 import { cashDayAt, cashModel, type CashDay } from "../lib/cashChart";
@@ -15,7 +16,11 @@ const compact = new Intl.NumberFormat("en", { notation: "compact" });
 export function CashChart({ history, forecast, flash }: { history: BalanceHistory | null; forecast: Forecast | null; flash?: boolean }) {
   const m = useMemo(() => cashModel(history, forecast), [history, forecast]);
   const [hover, setHover] = useState<CashDay | null>(null);
+  const navigate = useNavigate();
   if (!m) return <p className="t2">No balance data yet.</p>;
+  // A day with an expected payment opens the rows behind it (the invoice, the bank lines of a series).
+  const target = hover?.events.find((e) => e.url)?.url ?? null;
+  const open = () => { if (target) navigate(target.replace(/^https?:\/\/[^/]+/, "")); };
 
   function onMove(e: MouseEvent<SVGSVGElement>) {
     const box = e.currentTarget.getBoundingClientRect();
@@ -25,7 +30,7 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
   const lowLabel = m.low ? `${whole(m.low.amount)} · ${shortDate(m.low.date)}` : "";
   return (
     <div className="chart">
-      <svg viewBox={`0 0 ${m.w} ${m.h}`} role="img" aria-label={m.low ? `Cash over time. Lowest expected point ${lowLabel}.` : "Cash over time."} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${m.w} ${m.h}`} role="img" onClick={open} style={{ cursor: target ? "pointer" : undefined }} aria-label={m.low ? `Cash over time. Lowest expected point ${lowLabel}.` : "Cash over time."} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         {m.zones.map((z) => (
           <g key={z.from}>
             <rect x={z.x1} y={m.plot.top} width={Math.max(2, z.x2 - z.x1)} height={m.plot.bottom - m.plot.top} className="chart-zone" />
@@ -72,7 +77,8 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
           <div className="caption t3">{shortDate(hover.date)} · {hover.expected ? "expected" : "in the bank"}</div>
           <div className="medium">{whole(hover.balance)}</div>
           {hover.low && hover.high && <div className="caption t3">could be {whole(hover.low)} to {whole(hover.high)}</div>}
-          {hover.events.map((ev) => <div key={ev.id} className="caption">{ev.label}: {whole(ev.amount)}</div>)}
+          {hover.events.map((ev) => <div key={ev.id} className="caption">{ev.label}: {whole(ev.amount)}{ev.source ? <span className="t3"> · from {ev.source}</span> : null}</div>)}
+          {target && <div className="caption accent">Click to open</div>}
         </div>
       )}
     </div>
