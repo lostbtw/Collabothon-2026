@@ -20,7 +20,7 @@ from backend.agents.llm import run_tool_loop
 from backend.agents.numbers import unexpected_numbers
 from backend.agents.sql import VIEWS, run_readonly_sql
 from backend.agents.text import fmt_money, short_date
-from backend.api import stand_ins
+from backend.api import owner, stand_ins
 from backend.api.forecasting import add_forecast_event as store_forecast_event
 from backend.api.recommendations import save_recommendation
 from backend.db.store import Store
@@ -120,6 +120,44 @@ def request_action(conn: psycopg.Connection, company: str, description: str, kin
     return {"recommendation_id": card["id"], "title": card["title"]}
 
 
+def _month_before(month: str) -> str:
+    year, mon = int(month[:4]), int(month[5:7])
+    return f"{year - 1}-12" if mon == 1 else f"{year}-{mon - 1:02d}"
+
+
+def get_clients(conn: psycopg.Connection, company: str, month: str | None = None) -> dict[str, Any]:
+    """What each client paid in the month and what they still owe, with days late (owner.clients)."""
+    month = month or _as_of(conn, company).isoformat()[:7]
+    data = owner.clients(conn, company, month, persist_delays=False)
+    clients = [{"name": c["name"], "paid_in_month": c["paid_in_month"], "still_owes": c["open_total_base"],
+                "late_invoices": [{"number": i["number"], "amount": i["gross"], "days_late": i["days_late"]}
+                                  for i in c["open_invoices"] if i["days_late"] > 0],
+                "usually_pays_days_late": c["typical_payment_delay_days"]} for c in data["items"]]
+    return {"month": month, "clients": clients, "totals": data["totals"],
+            "evidence": [{"kind": "external", "id": "clients", "label": "Clients and what they owe", "url": "/money/clients"}]}
+
+
+def get_month_costs(conn: psycopg.Connection, company: str, month: str | None = None) -> dict[str, Any]:
+    """Costs of a month by category next to the month before, from the bank payments (owner.bank_summary)."""
+    month = month or _as_of(conn, company).isoformat()[:7]
+    before = _month_before(month)
+
+    def sums(m: str) -> dict[str, Decimal]:
+        start, end = owner.month_range(m)
+        return {r["key"]: -Decimal(r["amount_base"]["amount"]) for r in owner.bank_summary(conn, company, start, end)
+                if Decimal(r["amount_base"]["amount"]) < 0 and r["key"] not in owner.NOT_COSTS}
+
+    now, then = sums(month), sums(before)
+    base = owner.settings(conn, company)["company"]["base_currency"]
+    rows = [{"category": k, "amount": owner.money(now.get(k, Decimal(0)), base), "month_before": owner.money(then.get(k, Decimal(0)), base),
+             "change": owner.money(now.get(k, Decimal(0)) - then.get(k, Decimal(0)), base)} for k in sorted(set(now) | set(then))]
+    rows.sort(key=lambda r: -abs(Decimal(r["change"]["amount"])))
+    total_now, total_then = sum(now.values(), Decimal(0)), sum(then.values(), Decimal(0))
+    return {"month": month, "month_before": before, "costs": owner.money(total_now, base), "costs_month_before": owner.money(total_then, base),
+            "change": owner.money(total_now - total_then, base), "by_category": rows,
+            "evidence": [{"kind": "external", "id": f"costs_{month}", "label": f"Costs of {month} by type", "url": f"/money?month={month}"}]}
+
+
 def _schema(name, description, properties=None, required=()):
     return {"type": "function", "function": {"name": name, "description": description, "parameters": {
         "type": "object", "properties": properties or {}, "required": list(required), "additionalProperties": False}}}
@@ -140,6 +178,10 @@ CHAT_TOOLS: dict[str, tools.Tool] = {
         "effect": {"type": "string", "enum": ["no_variable_flows", "no_revenue", "extra_inflow", "extra_outflow"]},
         "amount": {"type": "object"}}, ["label", "date_from", "date_to", "effect"]), add_forecast_event),
     "get_fx_exposure": (_schema("get_fx_exposure", "Open foreign-currency invoices and their exchange-rate risk"), get_fx_exposure),
+    "get_clients": (_schema("get_clients", "Clients: what each paid in a month, what they still owe, which invoices are late",
+                            {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_clients),
+    "get_month_costs": (_schema("get_month_costs", "Costs of a month by category compared with the month before (why costs went up or down)",
+                                {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_month_costs),
     "request_action": (_schema("request_action", "Put a request that would move money into the owner's inbox", {
         "description": {"type": "string"}, "kind": {"type": "string", "enum": ["payment", "transfer", "credit_line", "fx_hedge"]}},
         ["description"]), request_action),
@@ -262,13 +304,52 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
                              "url": f"/recommendations/{open_credit_lines[0]['id']}"})
         return answer, evidence, [{"tool": "get_forecast", "arguments": {}, "duration_ms": 0}], None, None
 
+    if re.search(r"\bowe|owes|owing|receivable|clients?\b|late pay", text):
+        result = get_clients(conn, company)
+        t = result["totals"]
+        late = [(c["name"].replace(" (SAMPLE)", ""), i) for c in result["clients"] for i in c["late_invoices"]]
+        answer = f"Clients owe you {fmt_money(t['open_base'])}."
+        answer += (" " + f"{fmt_money(t['late_base'])} of it is late: " + "; ".join(
+            f"{name} ({fmt_money(i['amount'])}, {i['days_late']} days late)" for name, i in late[:3]) + ".") if late else " Nothing is late."
+        return answer, _evidence([result]), [{"tool": "get_clients", "arguments": {}, "duration_ms": 0}], None, None
+
+    if re.search(r"cost|spend|spent|expens", text):
+        result = get_month_costs(conn, company)
+        change = Decimal(result["change"]["amount"])
+        moved = [r for r in result["by_category"] if Decimal(r["change"]["amount"]) != 0][:3]
+        answer = (f"Costs in {result['month']} so far: {fmt_money(result['costs'])}, "
+                  f"{fmt_money({'amount': str(abs(change)), 'currency': result['change']['currency']})} "
+                  f"{'more' if change > 0 else 'less'} than in {result['month_before']}.")
+        if moved:
+            answer += " Biggest changes: " + "; ".join(
+                f"{r['category'].replace('_', ' ')} {'+' if Decimal(r['change']['amount']) > 0 else '-'}"
+                f"{fmt_money({'amount': str(abs(Decimal(r['change']['amount']))), 'currency': r['change']['currency']})}" for r in moved) + "."
+        return answer, _evidence([result]), [{"tool": "get_month_costs", "arguments": {}, "duration_ms": 0}], None, None
+
+    if re.search(r"bonus|afford|stać|leisten", text):
+        forecast = tools.latest_forecast(conn, company)
+        if not forecast:
+            return "There is no forecast yet.", [], [], None, None
+        low, buffer = forecast["min_balance"], forecast.get("safety_buffer")
+        room = Decimal(low["amount"]["amount"]) - Decimal(buffer["amount"] if buffer else "0")
+        if room > 0:
+            answer = (f"Yes, up to about {fmt_money({'amount': str(room), 'currency': low['amount']['currency']})}: the lowest expected "
+                      f"balance is {liquidity.signed_amount(low['amount'])} on {short_date(low['date'])}"
+                      + (f", and your safety buffer is {fmt_money(buffer)}." if buffer else "."))
+        else:
+            answer = (f"Not now: the lowest expected balance is {liquidity.signed_amount(low['amount'])} on {short_date(low['date'])}"
+                      + (f", below your safety buffer of {fmt_money(buffer)}." if buffer else ".")
+                      + (f" After {short_date(forecast['alerts'][0]['date_to'])} it is back above zero." if forecast.get("alerts") and forecast["alerts"][0].get("date_to") else ""))
+        g = tools.get_forecast(conn, company)
+        return answer, _evidence([g]), [{"tool": "get_forecast", "arguments": {}, "duration_ms": 0}], None, None
+
     if re.search(r"cash|balance|how much|money|ile|wie viel|saldo", text):
         result = get_cash_position(conn, company)
         answer = f"You have {fmt_money(result['total_liquidity_base'])} of company cash today."
         return answer, _evidence([result]), [{"tool": "get_cash_position", "arguments": {}, "duration_ms": 0}], None, None
 
-    return ("I can explain your cash forecast, your inbox cards and your ledger, and note future events such as "
-            "closed days. Try one of the suggested questions."), [], [], None, None
+    return ("I can answer about your cash and its forecast, what clients owe, costs by month, your to-dos, and note future "
+            "events such as closed days. Try one of the suggested questions."), [], [], None, None
 
 
 def answer(conn: psycopg.Connection, company: str, message: str, session_id: str | None, model: Any) -> dict[str, Any]:
