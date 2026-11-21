@@ -713,6 +713,57 @@ check_mlflow() {
   oc -n "$NS" exec -i deployment/ordo-extractor -c extractor -- python - "$address" <"$HERE/check_mlflow.py"
 }
 
+# The evaluation notebook's workbench (#19), made in the RHOAI dashboard. It never runs during the demo.
+WORKBENCH=model-tests
+WORKBENCH_STOPPED=kubeflow-resource-stopped
+WORKBENCH_ENV=(MLFLOW_TRACKING_URI MLFLOW_WORKSPACE MLFLOW_TRACKING_TOKEN LLM_BASE_URL ORDO_LLM_API_KEY
+  ORDO_DOCLING_URL ORDO_DOCLING_API_KEY)
+
+workbench_ready() {
+  [[ "$(oc -n "$NS" get pod "$WORKBENCH-0" \
+    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" == True ]]
+}
+
+workbench_gone() {
+  ! oc -n "$NS" get pod "$WORKBENCH-0" >/dev/null 2>&1
+}
+
+eval_workbench() {
+  # The settings the ordo-extractor has (ordo-config + the MLflow token), then start: no stop annotation.
+  oc -n "$NS" get notebook "$WORKBENCH" -o json | jq --arg name "$WORKBENCH" --arg stopped "$WORKBENCH_STOPPED" '
+    del(.metadata.annotations[$stopped])
+    | .spec.template.spec.containers |= map(if .name != $name then . else
+        .envFrom = ([(.envFrom // [])[] | select(.configMapRef.name != "ordo-config")]
+                    + [{configMapRef: {name: "ordo-config"}}])
+        | .env = ([(.env // [])[] | select(.name != "MLFLOW_TRACKING_TOKEN" and .name != "MLFLOW_GENAI_EVAL_MAX_WORKERS")]
+                  + [{name: "MLFLOW_TRACKING_TOKEN", valueFrom: {secretKeyRef: {name: "llm-token", key: "token"}}},
+                     {name: "MLFLOW_GENAI_EVAL_MAX_WORKERS", value: "1"}])
+      end)' | oc replace -f -
+  # A changed template rolls the pod; give the old one time to go before waiting for the new one.
+  sleep 10
+  wait_for "workbench $WORKBENCH to be ready" 600 workbench_ready
+  check_workbench
+}
+
+check_workbench() {
+  local host
+  oc -n "$NS" exec "$WORKBENCH-0" -c "$WORKBENCH" -- bash -c '
+    failed=0
+    for name in "$@"; do
+      if [[ -n "${!name:-}" ]]; then echo "OK   $name is set"; else echo "FAIL $name is not set" >&2; failed=1; fi
+    done
+    exit $failed' _ "${WORKBENCH_ENV[@]}"
+  host="$(oc -n redhat-ods-applications get route data-science-gateway -o jsonpath='{.spec.host}' 2>/dev/null)" || host=""
+  echo "     open https://${host:-<data-science-gateway>}/notebook/$NS/$WORKBENCH/lab"
+  echo "     then Collabothon-2026/notebooks/extraction_eval.ipynb (git pull first); stop it with: $0 stop-workbench"
+}
+
+stop_workbench() {
+  oc -n "$NS" annotate notebook "$WORKBENCH" "$WORKBENCH_STOPPED=$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite
+  wait_for "workbench $WORKBENCH to stop" 300 workbench_gone
+  echo "OK   workbench $WORKBENCH is stopped: no pod $WORKBENCH-0"
+}
+
 oc whoami >/dev/null
 
 stage="${1:-}"
@@ -745,8 +796,11 @@ case "$stage" in
   check-grafana) check_grafana ;;
   mlflow) mlflow ;;
   check-mlflow) check_mlflow ;;
+  eval-workbench) eval_workbench ;;
+  check-workbench) check_workbench ;;
+  stop-workbench) stop_workbench ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
