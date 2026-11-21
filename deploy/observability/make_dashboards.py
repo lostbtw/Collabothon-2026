@@ -243,59 +243,87 @@ where d.status = 'dead'
 order by o.seq desc
 limit 50"""
 
+# Files that go through OCR (docling-serve + gpt-oss-20b): the live-demo receipt chain.
+OCR_KINDS = "'email_attachment', 'upload', 'chat_photo'"
+
+# Stat titles stay short: a 4-column panel shows about 14 characters. The description (i) says the rest.
+NOT_YET = ("mappings", [{"type": "special", "options": {"match": "null",
+                                                        "result": {"text": "not yet", "color": "transparent"}}}])
+LEGEND_RIGHT = {"legend": {"displayMode": "table", "placement": "right", "showLegend": True},
+                "tooltip": {"mode": "multi", "sort": "desc"}}
+
 p = Board()
-p.stat("Events in time range", 0, 0, 4, 4,
+p.stat("Events", 0, 0, 4, 4,
        sql("A", "select count(*) from outbox where $__timeFilter(occurred_at)"), PG,
-       thresholds=steps("blue", None), desc="Every event written to the outbox (contracts/events.md).")
-p.stat("Waiting deliveries", 4, 0, 4, 4,
+       thresholds=steps("blue", None),
+       desc="Events written to the outbox in the selected time range (contracts/events.md).")
+p.stat("Waiting", 4, 0, 4, 4,
        sql("A", "select count(*) from outbox_delivery where status = 'pending' and consumer <> 'sse'"), PG,
        thresholds=steps("green", None, "orange", 1, "red", 100),
-       desc="Events a consumer group has not handled yet, all time. A group with no running process only grows.")
-p.stat("Oldest waiting delivery", 8, 0, 4, 4,
+       desc="Deliveries a consumer group has not handled yet, all time. Should be near 0. A group with no running "
+            "process only grows; the Queues table says which group.")
+p.stat("Oldest wait", 8, 0, 4, 4,
        sql("A", """select coalesce(extract(epoch from now() - min(o.occurred_at)), 0)
 from outbox_delivery d join outbox o on o.id = d.event_id
 where d.status = 'pending' and d.consumer <> 'sse'"""), PG,
-       unit="s", thresholds=steps("green", None, "orange", 60, "red", 300))
-p.stat("Dead deliveries", 12, 0, 4, 4,
+       unit="s", thresholds=steps("green", None, "orange", 60, "red", 300),
+       desc="How long the oldest waiting delivery has waited. Healthy: seconds.")
+p.stat("Dead", 12, 0, 4, 4,
        sql("A", "select count(*) from outbox_delivery where status = 'dead'"), PG,
-       thresholds=steps("green", None, "red", 1), desc="A handler failed 3 times. The table at the bottom lists them.")
-p.stat("Receipt → document, p50", 16, 0, 4, 4,
-       sql("A", """select percentile_cont(0.5) within group (order by extract(epoch from c.occurred_at - p.occurred_at))
+       thresholds=steps("green", None, "red", 1),
+       desc="Deliveries whose handler failed 3 times and gave up. The table at the bottom lists them.")
+p.stat("To document", 16, 0, 4, 4,
+       sql("A", f"""select percentile_cont(0.5) within group (order by extract(epoch from c.occurred_at - p.occurred_at))
 from outbox c join outbox p on p.id = c.causation_id
-where c.type = 'document.extracted' and p.type = 'raw_item.received' and $__timeFilter(c.occurred_at)"""), PG,
+where c.type = 'document.extracted' and p.type = 'raw_item.received'
+  and p.payload->>'kind' in ({OCR_KINDS}) and $__timeFilter(c.occurred_at)"""), PG,
        unit="s", decimals=0, thresholds=steps("green", None, "orange", 15, "red", 30),
-       desc="From raw_item.received to document.extracted: docling-serve OCR plus the gpt-oss-20b extraction.")
-p.stat("Receipt → inbox card, p50", 20, 0, 4, 4,
-       sql("A", """select percentile_cont(0.5) within group (order by extract(epoch from rc.occurred_at - raw.occurred_at))
+       desc="Median seconds from a photo or PDF arriving to its Document: docling-serve OCR plus the gpt-oss-20b "
+            "extraction. KSeF XML invoices skip OCR (about 5 s) and are left out, so they do not hide the slow path.")
+p.stat("To inbox card", 20, 0, 4, 4,
+       sql("A", f"""select percentile_cont(0.5) within group (order by extract(epoch from rc.occurred_at - raw.occurred_at))
   from outbox m
   join outbox raw on raw.type = 'raw_item.received' and raw.correlation_id = m.correlation_id
   join recommendations r on r.subject_id = m.payload->>'match_id'
   join outbox rc on rc.type = 'recommendation.created' and rc.payload->>'recommendation_id' = r.id
-  where m.type = 'match.suggested' and $__timeFilter(rc.occurred_at)"""), PG,
+  where m.type = 'match.suggested' and raw.payload->>'kind' in ({OCR_KINDS})
+    and $__timeFilter(rc.occurred_at)"""), PG,
        unit="s", decimals=0, thresholds=steps("green", None, "orange", 30, "red", 120),
-       desc="The live-demo chain, target under 30 s. The last hop joins through recommendations.subject_id, "
-            "because recommendation.created carries no correlation_id.")
+       desc="Median seconds from a photo or PDF arriving to its card in the owner's inbox: the live-demo chain, "
+            "target under 30 s. The last hop joins through recommendations.subject_id, because "
+            "recommendation.created carries no correlation_id.")
 
-p.add("nodegraph", "Data flow in the time range", 0, 4, 14, 13,
+p.add("nodeGraph", "Data flow in the time range", 0, 4, 13, 15,
       [sql("nodes", NODES), sql("edges", EDGES)], PG,
-      desc="Processes and the events between them. Edge: events in the time range, waiting and dead deliveries. "
-           "Node: deliveries still waiting for that consumer group (all time). Orange: something waits over 2 min; "
-           "red: dead deliveries. 'ui' gets the events no worker subscribes to (toasts, inbox badge).",
-      options={"nodes": {}, "edges": {}})
-p.table("Queues per consumer group", 14, 4, 10, 13, sql("A", QUEUES), PG,
-        overrides=[column("Oldest waiting", *cell_color(steps("green", None, "orange", 60, "red", 300), "s")),
+      desc="Processes and the events between them. Circle: a process; inside, what waits for it (all time) or, "
+           "for a process that only sends, how many events it sent. Arrow: events from one process to another in "
+           "the time range; hover it for the event types. Green: fine; orange: something waits over 2 min; red: "
+           "dead deliveries. 'ui' is the browser, which gets events no worker reads (toasts, inbox badge). Use "
+           "the + and - buttons to zoom, drag to move.",
+      options={"nodes": {}, "edges": {}},
+      overrides=[column("mainstat", ("displayName", "count")),
+                 column("secondarystat", ("displayName", "dead or waiting")),
+                 column("color", ("displayName", "green ok · orange waits > 2 min · red dead"))])
+p.table("Queues per consumer group", 13, 4, 11, 15, sql("A", QUEUES), PG,
+        custom={"align": "auto", "minWidth": 60},
+        overrides=[column("Consumer group", ("custom.width", 125)),
+                   column("Oldest waiting", *cell_color(steps("green", None, "orange", 60, "red", 300), "s")),
                    column("Dead", *cell_color(steps("transparent", None, "red", 1))),
                    column("Waiting", *cell_color(steps("transparent", None, "orange", 1, "red", 100)))],
         desc="outbox_delivery by consumer group, all time. 'sse' is left out: the browser stream reads by sequence "
              "and never marks its rows done.")
 
-p.series("Events per minute by type", 0, 17, 12, 8,
+p.series("Events per minute by type", 0, 19, 24, 8,
          [sql("A", """select $__timeGroupAlias(occurred_at, $__interval), type as metric, count(*) as value
 from outbox
 where $__timeFilter(occurred_at)
 group by 1, 2
-order by 1""", "time_series")], PG, bars=True, stack=True, interval="1m")
-p.series("Time per stage (average)", 12, 17, 12, 8,
+order by 1""", "time_series")], PG, bars=True, stack=True, interval="1m",
+         options={**LEGEND_RIGHT, "legend": {**LEGEND_RIGHT["legend"], "calcs": ["sum"],
+                                             "sortBy": "Total", "sortDesc": True}},
+         desc="How busy the pipeline is. A tall bar of raw_item.received is a connector backfill; drag across a "
+              "region to zoom in.")
+p.series("Time per stage (average)", 0, 27, 24, 8,
          [sql("A", f"""select $__timeGroupAlias(c.occurred_at, $__interval), p.type || ' → ' || c.type as metric,
   avg(extract(epoch from c.occurred_at - p.occurred_at)) as value
 from outbox c
@@ -308,20 +336,25 @@ select $__timeGroupAlias(rc.occurred_at, $__interval), 'match.suggested → reco
 {TO_CARD}
 group by 1
 order by 1""", "time_series")], PG, unit="s", interval="1m",
-         desc="Seconds between an event and the event that caused it. Event times have whole-second precision.")
+         options={**LEGEND_RIGHT, "legend": {**LEGEND_RIGHT["legend"], "calcs": ["mean", "max"],
+                                             "sortBy": "Max", "sortDesc": True}},
+         desc="Seconds between an event and the event that caused it, averaged per minute. The slowest step is at "
+              "the top of the legend. Event times have whole-second precision.")
 
-p.table("Receipts and invoices, newest first", 0, 25, 24, 10, sql("A", RECEIPTS), PG,
-        overrides=[column("To document", *cell_color(steps("green", None, "orange", 15, "red", 30), "s")),
-                   column("To match", *cell_color(steps("green", None, "orange", 20, "red", 60), "s")),
-                   column("To inbox card", *cell_color(steps("green", None, "orange", 30, "red", 120), "s")),
+p.table("Receipts and invoices, newest first", 0, 35, 24, 10, sql("A", RECEIPTS), PG,
+        overrides=[column("To document", *cell_color(steps("green", None, "orange", 15, "red", 30), "s"), NOT_YET),
+                   column("To match", *cell_color(steps("green", None, "orange", 20, "red", 60), "s"), NOT_YET),
+                   column("To inbox card", *cell_color(steps("green", None, "orange", 30, "red", 120), "s"),
+                          NOT_YET),
                    column("Received", ("unit", "dateTimeAsLocal"))],
-        desc="One line per document that entered the pipeline, followed through its correlation_id. "
-             "Empty cell: that step has not happened (yet).")
+        desc="One line per document that entered the pipeline, followed through its correlation_id: seconds from "
+             "arrival to its Document, its Match and its inbox card. 'not yet': that step has not happened.")
 
-p.table("Connectors: last sync per source", 0, 35, 12, 8, sql("A", CONNECTORS), PG,
+p.table("Connectors: last sync per source", 0, 45, 12, 8, sql("A", CONNECTORS), PG,
         overrides=[column("Last run age", *cell_color(steps("green", None, "orange", 120, "red", 600), "s")),
-                   column("Failed runs", *cell_color(steps("transparent", None, "red", 1)))])
-p.table("Dead deliveries", 12, 35, 12, 8, sql("A", DEAD), PG,
+                   column("Failed runs", *cell_color(steps("transparent", None, "red", 1)))],
+        desc="Is each source still being read? Last run age should stay below a few poll intervals.")
+p.table("Dead deliveries", 12, 45, 12, 8, sql("A", DEAD), PG,
         overrides=[column("Event time", ("unit", "dateTimeAsLocal"))],
         desc="Handlers that failed 3 times (contracts/events.md rule 5).")
 
@@ -342,17 +375,23 @@ m.stat("Model", 0, 0, 4, 4, prom("A", f'max(up{{{NS},job="gpt-oss-20b-metrics"}}
        mappings=[{"type": "value", "options": {"0": {"text": "Down", "color": "red"},
                                                "1": {"text": "Up", "color": "green"}}}],
        desc="Prometheus can scrape the vLLM pod of gpt-oss-20b.")
-m.stat("Requests running", 4, 0, 4, 4, prom("A", f"sum(vllm:num_requests_running{{{NS}}})"), PROM,
-       thresholds=steps("blue", None))
-m.stat("Requests waiting for the GPU", 8, 0, 4, 4, prom("A", f"sum(vllm:num_requests_waiting{{{NS}}})"), PROM,
-       thresholds=steps("green", None, "red", 1))
+m.stat("Running", 4, 0, 4, 4, prom("A", f"sum(vllm:num_requests_running{{{NS}}})"), PROM,
+       thresholds=steps("blue", None), desc="Requests gpt-oss-20b is working on right now.")
+m.stat("Waiting", 8, 0, 4, 4, prom("A", f"sum(vllm:num_requests_waiting{{{NS}}})"), PROM,
+       thresholds=steps("green", None, "red", 1),
+       desc="Requests queued because the GPU is full. Above 0 for long = the extractor and the agents slow each "
+            "other down.")
 m.stat("KV cache", 12, 0, 4, 4, prom("A", f"max(vllm:kv_cache_usage_perc{{{NS}}})"), PROM,
-       unit="percentunit", decimals=0, thresholds=steps("green", None, "orange", 0.7, "red", 0.9))
-m.stat("First token, p95 (5 min)", 16, 0, 4, 4,
+       unit="percentunit", decimals=0, thresholds=steps("green", None, "orange", 0.7, "red", 0.9),
+       desc="The model's working memory for requests in flight. Near 100 % means new requests wait.")
+m.stat("First token", 16, 0, 4, 4,
        prom("A", f"max(model_name:vllm_time_to_first_token_seconds:p95_5m{{{NS}}})"), PROM,
-       unit="s", decimals=2, thresholds=steps("green", None, "orange", 1, "red", 2))
-m.stat("Tokens/s generated", 20, 0, 4, 4, prom("A", f"sum(model_name:vllm_generation_tokens:rate1m{{{NS}}})"),
-       PROM, decimals=0, thresholds=steps("blue", None))
+       unit="s", decimals=2, thresholds=steps("green", None, "orange", 1, "red", 2),
+       desc="p95 over 5 min of the time until the first token of an answer. Normal: under 0.25 s. Empty when "
+            "there were no requests.")
+m.stat("Tokens/s", 20, 0, 4, 4, prom("A", f"sum(model_name:vllm_generation_tokens:rate1m{{{NS}}})"),
+       PROM, decimals=0, thresholds=steps("blue", None),
+       desc="Tokens generated per second over the last minute. gpt-oss-20b does about 50 for one request on the L4.")
 
 m.series("Time to first token", 0, 4, 12, 8,
          [prom("A", quantile(0.5, "vllm:time_to_first_token_seconds"), "p50"),
@@ -377,7 +416,9 @@ m.series("GPU use", 0, 28, 8, 8, [prom("A", "DCGM_FI_DEV_GPU_UTIL", "GPU {{gpu}}
          unit="percent", min_=0, max_=100)
 m.series("GPU memory", 8, 28, 8, 8,
          [prom("A", "DCGM_FI_DEV_FB_USED", "used"), prom("B", "DCGM_FI_DEV_FB_FREE", "free")], PROM,
-         unit="mbytes", stack=True, desc="gpt-oss-20b takes about 21.7 GB of the L4's 23 GB (D-12).")
+         unit="mbytes", stack=True, min_=0,
+         desc="Flat by design: vLLM reserves 90 % of the GPU at start (--gpu-memory-utilization=0.90), so "
+              "gpt-oss-20b holds about 21.7 GB of the L4's 23 GB whether busy or idle (D-12).")
 m.series("GPU power and temperature", 16, 28, 8, 8,
          [prom("A", "DCGM_FI_DEV_POWER_USAGE", "power"), prom("B", "DCGM_FI_DEV_GPU_TEMP", "temperature")], PROM,
          overrides=[column("power", ("unit", "watt")),

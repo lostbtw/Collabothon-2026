@@ -37,8 +37,8 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Events in time range",
-      "description": "Every event written to the outbox (contracts/events.md).",
+      "title": "Events",
+      "description": "Events written to the outbox in the selected time range (contracts/events.md).",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -94,8 +94,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Waiting deliveries",
-      "description": "Events a consumer group has not handled yet, all time. A group with no running process only grows.",
+      "title": "Waiting",
+      "description": "Deliveries a consumer group has not handled yet, all time. Should be near 0. A group with no running process only grows; the Queues table says which group.",
       "gridPos": {
         "x": 4,
         "y": 0,
@@ -159,8 +159,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Oldest waiting delivery",
-      "description": "",
+      "title": "Oldest wait",
+      "description": "How long the oldest waiting delivery has waited. Healthy: seconds.",
       "gridPos": {
         "x": 8,
         "y": 0,
@@ -225,8 +225,8 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Dead deliveries",
-      "description": "A handler failed 3 times. The table at the bottom lists them.",
+      "title": "Dead",
+      "description": "Deliveries whose handler failed 3 times and gave up. The table at the bottom lists them.",
       "gridPos": {
         "x": 12,
         "y": 0,
@@ -286,8 +286,8 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Receipt → document, p50",
-      "description": "From raw_item.received to document.extracted: docling-serve OCR plus the gpt-oss-20b extraction.",
+      "title": "To document",
+      "description": "Median seconds from a photo or PDF arriving to its Document: docling-serve OCR plus the gpt-oss-20b extraction. KSeF XML invoices skip OCR (about 5 s) and are left out, so they do not hide the slow path.",
       "gridPos": {
         "x": 16,
         "y": 0,
@@ -308,7 +308,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "select percentile_cont(0.5) within group (order by extract(epoch from c.occurred_at - p.occurred_at))\nfrom outbox c join outbox p on p.id = c.causation_id\nwhere c.type = 'document.extracted' and p.type = 'raw_item.received' and $__timeFilter(c.occurred_at)"
+          "rawSql": "select percentile_cont(0.5) within group (order by extract(epoch from c.occurred_at - p.occurred_at))\nfrom outbox c join outbox p on p.id = c.causation_id\nwhere c.type = 'document.extracted' and p.type = 'raw_item.received'\n  and p.payload->>'kind' in ('email_attachment', 'upload', 'chat_photo') and $__timeFilter(c.occurred_at)"
         }
       ],
       "fieldConfig": {
@@ -353,8 +353,8 @@
     {
       "id": 6,
       "type": "stat",
-      "title": "Receipt → inbox card, p50",
-      "description": "The live-demo chain, target under 30 s. The last hop joins through recommendations.subject_id, because recommendation.created carries no correlation_id.",
+      "title": "To inbox card",
+      "description": "Median seconds from a photo or PDF arriving to its card in the owner's inbox: the live-demo chain, target under 30 s. The last hop joins through recommendations.subject_id, because recommendation.created carries no correlation_id.",
       "gridPos": {
         "x": 20,
         "y": 0,
@@ -375,7 +375,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "select percentile_cont(0.5) within group (order by extract(epoch from rc.occurred_at - raw.occurred_at))\n  from outbox m\n  join outbox raw on raw.type = 'raw_item.received' and raw.correlation_id = m.correlation_id\n  join recommendations r on r.subject_id = m.payload->>'match_id'\n  join outbox rc on rc.type = 'recommendation.created' and rc.payload->>'recommendation_id' = r.id\n  where m.type = 'match.suggested' and $__timeFilter(rc.occurred_at)"
+          "rawSql": "select percentile_cont(0.5) within group (order by extract(epoch from rc.occurred_at - raw.occurred_at))\n  from outbox m\n  join outbox raw on raw.type = 'raw_item.received' and raw.correlation_id = m.correlation_id\n  join recommendations r on r.subject_id = m.payload->>'match_id'\n  join outbox rc on rc.type = 'recommendation.created' and rc.payload->>'recommendation_id' = r.id\n  where m.type = 'match.suggested' and raw.payload->>'kind' in ('email_attachment', 'upload', 'chat_photo')\n    and $__timeFilter(rc.occurred_at)"
         }
       ],
       "fieldConfig": {
@@ -419,14 +419,14 @@
     },
     {
       "id": 7,
-      "type": "nodegraph",
+      "type": "nodeGraph",
       "title": "Data flow in the time range",
-      "description": "Processes and the events between them. Edge: events in the time range, waiting and dead deliveries. Node: deliveries still waiting for that consumer group (all time). Orange: something waits over 2 min; red: dead deliveries. 'ui' gets the events no worker subscribes to (toasts, inbox badge).",
+      "description": "Processes and the events between them. Circle: a process; inside, what waits for it (all time) or, for a process that only sends, how many events it sent. Arrow: events from one process to another in the time range; hover it for the event types. Green: fine; orange: something waits over 2 min; red: dead deliveries. 'ui' is the browser, which gets events no worker reads (toasts, inbox badge). Use the + and - buttons to zoom, drag to move.",
       "gridPos": {
         "x": 0,
         "y": 4,
-        "w": 14,
-        "h": 13
+        "w": 13,
+        "h": 15
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -458,7 +458,44 @@
       ],
       "fieldConfig": {
         "defaults": {},
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mainstat"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "count"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "secondarystat"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "dead or waiting"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "color"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "green ok · orange waits > 2 min · red dead"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "nodes": {},
@@ -471,10 +508,10 @@
       "title": "Queues per consumer group",
       "description": "outbox_delivery by consumer group, all time. 'sse' is left out: the browser stream reads by sequence and never marks its rows done.",
       "gridPos": {
-        "x": 14,
+        "x": 13,
         "y": 4,
-        "w": 10,
-        "h": 13
+        "w": 11,
+        "h": 15
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -497,10 +534,22 @@
         "defaults": {
           "custom": {
             "align": "auto",
-            "filterable": false
+            "minWidth": 60
           }
         },
         "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Consumer group"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 125
+              }
+            ]
+          },
           {
             "matcher": {
               "id": "byName",
@@ -620,11 +669,11 @@
       "id": 9,
       "type": "timeseries",
       "title": "Events per minute by type",
-      "description": "",
+      "description": "How busy the pipeline is. A tall bar of raw_item.received is a connector backfill; drag across a region to zoom in.",
       "gridPos": {
         "x": 0,
-        "y": 17,
-        "w": 12,
+        "y": 19,
+        "w": 24,
         "h": 8
       },
       "datasource": {
@@ -662,9 +711,14 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Total",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -677,11 +731,11 @@
       "id": 10,
       "type": "timeseries",
       "title": "Time per stage (average)",
-      "description": "Seconds between an event and the event that caused it. Event times have whole-second precision.",
+      "description": "Seconds between an event and the event that caused it, averaged per minute. The slowest step is at the top of the legend. Event times have whole-second precision.",
       "gridPos": {
-        "x": 12,
-        "y": 17,
-        "w": 12,
+        "x": 0,
+        "y": 27,
+        "w": 24,
         "h": 8
       },
       "datasource": {
@@ -720,9 +774,15 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -735,10 +795,10 @@
       "id": 11,
       "type": "table",
       "title": "Receipts and invoices, newest first",
-      "description": "One line per document that entered the pipeline, followed through its correlation_id. Empty cell: that step has not happened (yet).",
+      "description": "One line per document that entered the pipeline, followed through its correlation_id: seconds from arrival to its Document, its Match and its inbox card. 'not yet': that step has not happened.",
       "gridPos": {
         "x": 0,
-        "y": 25,
+        "y": 35,
         "w": 24,
         "h": 10
       },
@@ -803,6 +863,21 @@
               {
                 "id": "unit",
                 "value": "s"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "not yet",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           },
@@ -842,6 +917,21 @@
               {
                 "id": "unit",
                 "value": "s"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "not yet",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           },
@@ -881,6 +971,21 @@
               {
                 "id": "unit",
                 "value": "s"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "not yet",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           },
@@ -910,10 +1015,10 @@
       "id": 12,
       "type": "table",
       "title": "Connectors: last sync per source",
-      "description": "",
+      "description": "Is each source still being read? Last run age should stay below a few poll intervals.",
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 45,
         "w": 12,
         "h": 8
       },
@@ -1029,7 +1134,7 @@
       "description": "Handlers that failed 3 times (contracts/events.md rule 5).",
       "gridPos": {
         "x": 12,
-        "y": 35,
+        "y": 45,
         "w": 12,
         "h": 8
       },

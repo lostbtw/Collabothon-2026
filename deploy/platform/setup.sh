@@ -518,20 +518,47 @@ grafana_url() {
 }
 
 grafana_api() {
-  # grafana_api <method> <path> [JSON body], as admin; the password reaches curl on stdin.
-  local method="$1" path="$2" body="${3:-}" password
-  local args=(-sS -X "$method" -K - -H 'Content-Type: application/json')
+  # grafana_api <method> <path> [JSON body], as admin; the password reaches curl on stdin. URL and password are
+  # looked up once per run: an oc round trip per call made check-grafana take minutes.
+  local method="$1" path="$2" body="${3:-}"
+  local args=(-sS --max-time 60 -X "$method" -K - -H 'Content-Type: application/json')
   if [[ -n "$body" ]]; then
     args+=(--data-binary "$body")
   fi
-  password="$(oc -n "$NS" get secret ordo-grafana -o jsonpath='{.data.GF_SECURITY_ADMIN_PASSWORD}' | base64 -d)"
-  curl "${args[@]}" "$(grafana_url)$path" <<<"user = \"admin:$password\""
+  if [[ -z "${GRAFANA_URL:-}" ]]; then
+    GRAFANA_URL="$(grafana_url)"
+  fi
+  if [[ -z "${GRAFANA_PASSWORD:-}" ]]; then
+    GRAFANA_PASSWORD="$(oc -n "$NS" get secret ordo-grafana -o jsonpath='{.data.GF_SECURITY_ADMIN_PASSWORD}' | base64 -d)"
+  fi
+  curl "${args[@]}" "$GRAFANA_URL$path" <<<"user = \"admin:$GRAFANA_PASSWORD\""
+}
+
+dashboards_loaded() {
+  # True when Grafana serves every dashboard file with the same panels (type and title) as on disk.
+  local file uid want have
+  for file in "$OBS"/dashboards/*.json; do
+    uid="$(jq -r '.uid' "$file")"
+    want="$(jq -c '[.panels[] | [.type, .title]]' "$file")"
+    have="$(grafana_api GET "/api/dashboards/uid/$uid" | jq -c '[.dashboard.panels[]? | [.type, .title]]')" || return 1
+    [[ "$want" == "$have" ]] || return 1
+  done
+}
+
+grafana_reload_dashboards() {
+  # New dashboards without a restart, so nobody is logged out (sessions live in the pod). The kubelet can take a
+  # few minutes to update the mounted ConfigMap (3.5 min measured), then Grafana rereads the folder every 30 s.
+  grafana_dashboards
+  wait_for "Grafana to load the new dashboards" 480 dashboards_loaded
+  echo "OK   Grafana serves the dashboards in $OBS/dashboards"
+  check_grafana
 }
 
 check_grafana() {
-  local url uid status expected found file query title answer errors ok=0 failed=0
+  local url uid status expected found plugins unknown file query title answer errors ok=0 failed=0
   url="$(grafana_url)"
-  if [[ "$(curl -fsS "$url/api/health" | jq -r '.database')" == ok ]]; then
+  GRAFANA_URL="$url"
+  if [[ "$(curl -fsS --max-time 30 "$url/api/health" | jq -r '.database')" == ok ]]; then
     echo "OK   Grafana answers at $url"
   else
     echo "FAIL Grafana does not answer at $url" >&2
@@ -554,6 +581,18 @@ check_grafana() {
     echo "OK   $found dashboards loaded in folder Ordo"
   else
     echo "FAIL $found of $expected dashboards loaded" >&2
+    failed=1
+  fi
+
+  # A panel type Grafana does not know renders as "Panel plugin not found" (ids are case-sensitive: nodeGraph).
+  plugins="$(grafana_api GET '/api/plugins?type=panel' | jq -c '[.[].id]')" || plugins='[]'
+  unknown="$(jq -r --argjson known "$plugins" '.panels[] | select(.type as $t | $known | index($t) | not)
+    | "\(.title) (\(.type))"' "$OBS"/dashboards/*.json)"
+  if [[ -z "$unknown" ]]; then
+    echo "OK   every panel type is a Grafana panel plugin"
+  else
+    echo "FAIL panels with an unknown type:" >&2
+    echo "$unknown" >&2
     failed=1
   fi
 
@@ -603,9 +642,10 @@ case "$stage" in
   monitoring) monitoring ;;
   check-monitoring) check_monitoring ;;
   grafana) grafana ;;
+  grafana-dashboards) grafana_reload_dashboards ;;
   check-grafana) check_grafana ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|check-grafana|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac

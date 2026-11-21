@@ -114,8 +114,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Requests running",
-      "description": "",
+      "title": "Running",
+      "description": "Requests gpt-oss-20b is working on right now.",
       "gridPos": {
         "x": 4,
         "y": 0,
@@ -172,8 +172,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Requests waiting for the GPU",
-      "description": "",
+      "title": "Waiting",
+      "description": "Requests queued because the GPU is full. Above 0 for long = the extractor and the agents slow each other down.",
       "gridPos": {
         "x": 8,
         "y": 0,
@@ -235,7 +235,7 @@
       "id": 4,
       "type": "stat",
       "title": "KV cache",
-      "description": "",
+      "description": "The model's working memory for requests in flight. Near 100 % means new requests wait.",
       "gridPos": {
         "x": 12,
         "y": 0,
@@ -302,8 +302,8 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "First token, p95 (5 min)",
-      "description": "",
+      "title": "First token",
+      "description": "p95 over 5 min of the time until the first token of an answer. Normal: under 0.25 s. Empty when there were no requests.",
       "gridPos": {
         "x": 16,
         "y": 0,
@@ -370,8 +370,8 @@
     {
       "id": 6,
       "type": "stat",
-      "title": "Tokens/s generated",
-      "description": "",
+      "title": "Tokens/s",
+      "description": "Tokens generated per second over the last minute. gpt-oss-20b does about 50 for one request on the L4.",
       "gridPos": {
         "x": 20,
         "y": 0,
@@ -887,7 +887,7 @@
       "id": 14,
       "type": "timeseries",
       "title": "GPU memory",
-      "description": "gpt-oss-20b takes about 21.7 GB of the L4's 23 GB (D-12).",
+      "description": "Flat by design: vLLM reserves 90 % of the GPU at start (--gpu-memory-utilization=0.90), so gpt-oss-20b holds about 21.7 GB of the L4's 23 GB whether busy or idle (D-12).",
       "gridPos": {
         "x": 8,
         "y": 28,
@@ -927,6 +927,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "mbytes",
+          "min": 0,
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
