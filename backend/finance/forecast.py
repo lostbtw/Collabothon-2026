@@ -50,7 +50,7 @@ def _next_pay_run(as_of: date, country: str) -> date:
 
 
 # Part of inputs_hash: raise it when the forecast's output changes, or a stored forecast from older code is reused.
-ENGINE_VERSION = 2
+ENGINE_VERSION = 3
 
 
 def inputs_hash(**inputs: Any) -> str:
