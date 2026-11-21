@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type AccountsResponse, type BalanceHistory, type LedgerSummary } from "../api/client";
-import type { Approval, Forecast, Recommendation, Transaction } from "../api/types.gen";
+import type { Approval, Forecast, Money, Recommendation, Transaction } from "../api/types.gen";
 import { useAsk } from "../components/AskOrdo";
 import { CashChart } from "../components/CashChart";
 import { Change, DoneChip, MonthSelect, PageHead, SimButton, Skeleton, StatusLabel, Tile } from "../components/ui";
@@ -57,6 +57,7 @@ export function Overview() {
       <MonthSection month={shown} months={recentMonths(today, 6)} onMonth={setMonth}
         summary={current?.summary ?? null} fromBank={current?.fromBank ?? false} before={before} transactions={transactions?.items ?? []} names={names} currency={currency} loading={figures.loading && !figures.data} />
       <CashSection history={history} forecast={forecast} flash={flash} />
+      <TaxSection forecast={forecast} dueIn30={current?.summary.kpis.tax_due_next_30d ?? null} loading={now.loading && !now.data} />
     </>
   );
 }
@@ -154,6 +155,47 @@ export function TodoRow({ item }: { item: TodoItem }) {
         : p.kind === "approve" && item.rec ? <SimButton label={p.label} busy={busy} what={item.rec.proposed_action?.preview} onClick={() => approve(item.rec!)} />
         : <button type="button" onClick={() => navigate(p.to ?? `/todo#${item.id}`)}>{p.kind === "details" ? "See details" : p.label}</button>}
     </div>
+  );
+}
+
+const ESTIMATE = " (estimate)";
+
+/** Every tax and social-security payment the forecast expects, with the engine's formula behind each amount. */
+export function TaxSection({ forecast, dueIn30, loading }: { forecast: Forecast | null; dueIn30: Money | null; loading?: boolean }) {
+  const taxes = (forecast?.components ?? [])
+    .flatMap((c) => (c.kind === "tax" || c.kind === "social_security") && c.dates?.[0] ? [{ ...c, date: c.dates[0] }] : [])
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  return (
+    <section className="section" id="taxes">
+      <div className="section-head">
+        <div className="stack grow" style={{ gap: 2 }}>
+          <h2>Taxes</h2>
+          <span className="small t2">VAT, CIT advance, PIT-4 and ZUS the forecast expects, moved to the next business day</span>
+        </div>
+        {dueIn30 && <span className="small t2">Due in the next 30 days: <span className="medium">{whole(dueIn30)}</span></span>}
+      </div>
+      <div className="card stack" style={{ gap: 0 }}>
+        {loading ? <Skeleton rows={4} /> : !forecast ? <span className="t2">No forecast yet.</span>
+          : taxes.length === 0 ? <span className="t2">No tax payment in the next {forecast.horizon_days} days.</span>
+          : taxes.map((c) => {
+            const estimate = c.label.endsWith(ESTIMATE);
+            const formula = c.schedule?.split(": ").slice(1).join(": ") ?? "";
+            return (
+              <div key={c.id} className="list-row">
+                <span className="t3" style={{ minWidth: 56 }}>{shortDate(c.date)}</span>
+                <div className="stack grow" style={{ gap: 2 }}>
+                  <span className="hstack" style={{ gap: 8 }}>
+                    <span className="medium">{estimate ? c.label.slice(0, -ESTIMATE.length) : c.label}</span>
+                    {estimate && <span className="chip warn" title="The month is not closed yet: mean of the last closed months">estimate</span>}
+                  </span>
+                  {formula && <span className="caption t3">{formula}</span>}
+                </div>
+                <span className="medium">{whole({ amount: c.amount_base.amount.replace("-", ""), currency: c.amount_base.currency })}</span>
+              </div>
+            );
+          })}
+      </div>
+    </section>
   );
 }
 
