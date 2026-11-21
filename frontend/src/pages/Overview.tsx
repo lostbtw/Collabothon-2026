@@ -194,8 +194,10 @@ function PanelPart({ title, children }: { title: string; children: React.ReactNo
 }
 
 function TaxDetails({ c }: { c: TaxComponent }) {
-  const steps = (c.breakdown ?? []).filter((s) => s.op !== "note");
-  const notes = (c.breakdown ?? []).filter((s) => s.op === "note");
+  const all = c.breakdown ?? [];
+  const end = all.length - [...all].reverse().findIndex((s) => s.op !== "note");
+  const steps = all.slice(0, end > all.length ? 0 : end);
+  const notes = all.slice(steps.length);
   const last = steps.length - 1;
   const rule = c.evidence?.find((e) => e.kind === "rule");
   const sources = (c.evidence ?? []).filter((e) => e.kind !== "rule");
@@ -209,11 +211,15 @@ function TaxDetails({ c }: { c: TaxComponent }) {
             <div className="stack" style={{ gap: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
               {steps.map((s, i) => {
                 const total = i === last;
+                const subtotal = s.op === "equals" && !total;
+                if (s.op === "note") return (
+                  <div key={i} style={{ padding: "8px 14px", borderTop: i ? "1px solid var(--border)" : undefined, background: "var(--sunken)", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{s.label}</div>
+                );
                 return (
                   <div key={i} className="hstack" style={{ gap: 12, padding: "10px 14px", borderTop: i ? "1px solid var(--border)" : undefined, background: total ? "var(--accent-soft)" : undefined }}>
                     <span style={{ width: 20, height: 20, flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "var(--pill)", background: OP_SIGN[s.op] ? "var(--sunken)" : "transparent", color: "var(--text-2)", fontSize: 13 }}>{OP_SIGN[s.op]}</span>
-                    <span className="grow" style={{ fontSize: 14, fontWeight: total ? 600 : 400, color: total ? "var(--text)" : "var(--text-2)" }}>{s.label}</span>
-                    {s.amount && <span style={{ ...NUM, fontSize: total ? 16 : 14, fontWeight: total ? 600 : 500, color: total ? "var(--accent)" : "var(--text)" }}>{formatMoney(s.amount)}</span>}
+                    <span className="grow" style={{ fontSize: 14, fontWeight: total || subtotal ? 600 : 400, color: total || subtotal ? "var(--text)" : "var(--text-2)" }}>{s.label}</span>
+                    {s.amount && <span style={{ ...NUM, fontSize: total ? 16 : 14, fontWeight: total || subtotal ? 600 : 500, color: total ? "var(--accent)" : "var(--text)" }}>{formatMoney(s.amount)}</span>}
                   </div>
                 );
               })}
