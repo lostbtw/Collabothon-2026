@@ -33,8 +33,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: ordo-config
-            # ORDO_IMAP_USER and ORDO_IMAP_PASSWORD of the invoices mailbox (see deploy/secrets.example.yaml).
-            # Optional: without it the mailbox is simply not read.
             - secretRef:
                 name: ordo-mailbox
                 optional: true

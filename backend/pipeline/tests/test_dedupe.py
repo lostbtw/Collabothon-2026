@@ -14,7 +14,6 @@ BORSUK = {"id": "co_borsuk", "tax_id": "9990000014"}
 
 
 def three_copies():
-    """One hosting invoice as KSeF XML, a PDF by e-mail (OCR-ish seller name) and a phone photo (no number read)."""
     xml = parse_fa3(XML, {"id": "raw_ksef0417", "fetched_at": "2026-11-05T09:00:00Z"}, BORSUK)
     pdf = copy.deepcopy(xml)
     pdf.update(id="doc_mail0417", channel="email", raw_item_ids=["raw_mail0417a1"], created_at="2026-11-05T08:10:00Z",
@@ -48,10 +47,10 @@ class ThreeChannels(unittest.TestCase):
         first = add_document(photo, [])
         self.assertEqual((first["merges"], first["golden_changed"]), ([], None))
         second = add_document(pdf, [photo])
-        self.assertEqual(second["golden_changed"], "doc_photo0417")  # the PDF outranks the photo
+        self.assertEqual(second["golden_changed"], "doc_photo0417")
         state = {d["id"]: d for d in [photo] + second["documents"]}
         third = add_document(xml, list(state.values()))
-        self.assertEqual(third["golden_changed"], "doc_mail0417")  # then the XML outranks the PDF
+        self.assertEqual(third["golden_changed"], "doc_mail0417")
         state.update({d["id"]: d for d in third["documents"]})
         self.assertEqual(state["doc_ksef0417"]["status"], "extracted")
         self.assertEqual({state[i]["duplicate_of"] for i in ("doc_mail0417", "doc_photo0417")}, {"doc_ksef0417"})
@@ -62,8 +61,6 @@ class ThreeChannels(unittest.TestCase):
 
 
 class UploadedPhotoOfTheHeroReceipt(unittest.TestCase):
-    """Seen on the cluster: an upload-form copy read badly (confidence 0.6, no number) took over the hero photo."""
-
     def setUp(self):
         self.photo = copy.deepcopy(next(d for d in fixture("document") if d["id"] == "doc_rcpt412"))
         self.upload = copy.deepcopy(self.photo)

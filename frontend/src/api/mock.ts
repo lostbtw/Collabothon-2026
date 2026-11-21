@@ -48,7 +48,6 @@ const COMPANIES = [
   { id: "co_amalfi", name: "Pizzeria Amalfi (organisers' data)", base_currency: "EUR", country: "DE", as_of_date: "2025-05-15" },
 ];
 
-// Not in the fixtures yet: the "What Ordo did on its own" feed, with the demo script's numbers.
 const ACTIVITY = [
   { at: "2026-11-21T10:14:56Z", agent: "ingestion", text: "Read Jan's receipt and worked out that he paid privately", subject: { type: "document", id: "doc_rcpt412" }, evidence: [{ kind: "document", id: "doc_rcpt412", label: "Receipt", url: "/documents/doc_rcpt412" }] },
   { at: "2026-11-21T10:00:00Z", agent: "ingestion", text: "Read 1,480 items from 5 sources", subject: null, evidence: [{ kind: "external", id: "sources", label: "Sources", url: "/settings#accounts" }] },
@@ -56,19 +55,16 @@ const ACTIVITY = [
   { at: "2026-11-21T09:57:00Z", agent: "ingestion", text: "Matched 212 payments, including a 45.00 USD invoice to a 185.57 PLN card line", subject: { type: "match", id: "mat_pixel11" }, evidence: [{ kind: "match", id: "mat_pixel11", label: "Cross-currency match", url: "/matches/mat_pixel11" }] },
 ];
 
-// Not in the fixtures: FX Shield's exposure list. Same numbers as rec_fx01 / rec_fx02 and as the API's stand-in.
 const FX_EXPOSURE = [
   { document_id: "doc_fvlake01", direction: "receivable", amount: { amount: "40000.00", currency: "USD" }, value_today_base: { amount: "162452.00", currency: "PLN" }, expected_cash_date: "2027-01-05", horizon_days: 45, expected_shortfall: { amount: "-6595.00", currency: "PLN" }, deal_profit: { amount: "8000.00", currency: "PLN" }, verdict: "hedge_proposed", recommendation_id: "rec_fx01" },
   { document_id: "doc_fv1007", direction: "receivable", amount: { amount: "18400.00", currency: "EUR" }, value_today_base: { amount: "81989.00", currency: "PLN" }, horizon_days: 45, expected_shortfall: { amount: "-1426.00", currency: "PLN" }, verdict: "not_worth_it", recommendation_id: "rec_fx02" },
 ];
 
-// Not in the fixtures either: the e-mailed PixelBoard invoice, merged with its e-invoice and photo copies.
 const COPIES: OrdoDocument[] = (["ksef", "photo"] as const).map((channel) => {
   const original = (documentsJson as unknown as OrdoDocument[]).find((d) => d.id === "doc_pixel11")!;
   return { ...original, id: `doc_pixel11_${channel}`, channel, duplicate_of: original.id, status: "duplicate" };
 });
 
-// State changed in this tab, on top of the unchanging fixtures, so an approved card leaves To-do as with the real API.
 const decisions = new Map<string, Approval>();
 const documentEdits = new Map<string, OrdoDocument>();
 const undoneMatches = new Set<string>();
@@ -82,10 +78,8 @@ let sessions: Session[] = [];
 let settings: Settings = structuredClone(SETTINGS);
 let people: Person[] = structuredClone(PEOPLE);
 let rules = structuredClone(RULES);
-/** How long Ordo "reads" an added file in sample mode. */
 const READ_MS = 1500;
 
-// The mock's clock: the demo moment, moving forward from when the page was opened.
 const DEMO_START = Date.parse("2026-11-21T10:15:00Z");
 const openedAt = Date.now();
 const demoNow = (): string => new Date(DEMO_START + (Date.now() - openedAt)).toISOString();
@@ -109,12 +103,10 @@ export function resetMockState(): void {
   rules = structuredClone(RULES);
 }
 
-/** Tests: make every added file "read" now instead of after READ_MS. */
 export function finishMockReads(): void {
   for (const u of uploads) u.readyAt = 0;
 }
 
-/** Applies a partial correction to a document, level by level (totals.gross replaces only gross). */
 function mergeDeep<T>(base: T, patch: unknown): T {
   if (typeof patch !== "object" || patch === null || Array.isArray(patch) || typeof base !== "object" || base === null) return patch as T;
   const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
@@ -129,7 +121,6 @@ const allRecommendations = (): Recommendation[] => [...fixtures.recommendations,
 
 type DecisionBody = { decision?: Approval["decision"]; comment?: string | null; changes?: Record<string, unknown> | null; channel?: Approval["channel"] };
 
-/** What the sandbox bank would answer. Amounts are echoed from the request, never calculated here. */
 function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
   const template = fixtures.approvals[0];
   const decision = body.decision ?? "approved";
@@ -160,7 +151,6 @@ function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
   return approval;
 }
 
-/** Sample answers for the questions the demo asks; anything else gets the forecast summary. */
 function mockAnswer(message: string, forecast: Forecast): Pick<ChatAnswer, "answer" | "evidence"> {
   const reply = (answer: string, ...evidence: ChatAnswer["evidence"]) => ({ answer, evidence });
   if (/\bjan\b/i.test(message)) return reply(CHAT_HISTORY[0].detail[1].content, { kind: "external", id: "per_jan", label: "Jan's costs", url: "/money/people" }, { kind: "match", id: "mat_412", label: "Owed to Jan", url: "/matches/mat_412" });
@@ -168,7 +158,6 @@ function mockAnswer(message: string, forecast: Forecast): Pick<ChatAnswer, "answ
   if (/cost/i.test(message)) return reply(CHAT_HISTORY[1].detail[1].content, { kind: "external", id: "2026-10", label: "October by type", url: "/money?month=2026-10" });
   if (/owe/i.test(message)) return reply(CHAT_HISTORY[2].detail[1].content, { kind: "external", id: "clients", label: "Clients", url: "/money/clients" });
   if (/bonus|afford/i.test(message)) {
-    // Like the real agent: the forecast, the accounts and every payment the answer leans on.
     const accounts = fixtures.accounts.filter((a) => a.company_id === "co_borsuk").map((a) => ({ kind: "external" as const, id: a.id, label: `Account ${a.name}`, url: `/accounts/${a.id}` }));
     const lines = SAMPLE_TRANSACTIONS.filter((t) => t.amount_base.amount.startsWith("-")).map((t) => ({ kind: "transaction" as const, id: t.id, label: `${t.counterparty_name_raw}, ${t.booking_date}, ${formatMoney(t.amount_base)}`, url: `/transactions/${t.id}` }));
     return reply(CHAT_HISTORY[5].detail[1].content, ...accounts, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" }, ...lines);
@@ -208,7 +197,6 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     counterparties: [...fixtures.counterparties, ...SAMPLE_COUNTERPARTIES],
     rawItems: [...fixtures.rawItems, ...uploads.map((u) => u.raw)],
     matches,
-    // A bank line follows its newest match: a file read for it makes it "suggested", a confirmed match makes it "matched".
     transactions: [...fixtures.transactions, ...SAMPLE_TRANSACTIONS].map((t) => {
       const m = matches.filter((x) => x.transaction_id === t.id && x.status !== "rejected").at(-1);
       const typed = categoryEdits.has(t.id) ? { ...t, category: categoryEdits.get(t.id)! } : t;
@@ -264,7 +252,6 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/accounts") {
     const items = byCompany(f.accounts, company);
     const forecast = byCompany(f.forecasts, company)[0];
-    // One account: its balance is the total. Several currencies: only the finance engine may add them up.
     const single = items.filter((a) => a.include_in_liquidity && a.balance).length === 1 ? items.find((a) => a.include_in_liquidity && a.balance)!.balance : null;
     result = { items, total_liquidity_base: forecast?.opening_balance ?? single ?? null };
   } else if (method === "GET" && path === "/transactions") {
@@ -286,7 +273,6 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   } else if (method === "GET" && path === "/ledger") result = page(byCompany(f.ledger, company));
   else if (method === "GET" && path === "/ledger/summary") {
     onlyBorsuk(company, "ledger summary");
-    // A month is asked for with from/to; without them, the last full month. Sample books and sample bank lines agree.
     result = { rows: SUMMARY_BY_MONTH[(q.get("from") ?? "2026-10").slice(0, 7)] ?? [], kpis: SUMMARY_KPIS };
   }
   else if (method === "GET" && path === "/balance/history") { onlyBorsuk(company, "balance history"); result = BALANCE_HISTORY; }
@@ -295,7 +281,6 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
     const month = q.get("month") ?? "2026-10";
     if (month === "2026-10" || month === "2026-09") result = PEOPLE_COSTS;
     else if (month === "2026-11") {
-      // November so far: only Piotr's invoice is paid; what the company owes people stays.
       const items = PEOPLE_COSTS.items.map((p) => ({ ...p, parts: undefined, paid: { amount: p.person_id === "per_piotr" ? "10500.00" : "0.00", currency: "PLN" }, payments: p.person_id === "per_piotr" ? 1 : 0 }))
         .filter((p) => p.paid.amount !== "0.00" || p.owed.amount !== "0.00");
       result = { items, totals: { staff: { amount: "10500.00", currency: "PLN" }, social_security: { amount: "0.00", currency: "PLN" }, share_of_costs: 0.44 } };
@@ -382,11 +367,9 @@ export async function mockRequest<T>(method: string, url: string, body?: unknown
   else if (method === "GET" && path === "/fx/exposure") result = { items: company && company !== "co_borsuk" ? [] : FX_EXPOSURE };
   else throw new MockNotFound(`Mock mode has no handler for ${method} ${path}`);
 
-  // Fixtures are shared module state: hand out copies so a page cannot mutate them.
   return (result === undefined ? undefined : structuredClone(result)) as T;
 }
 
-/** Mock event stream: replays contracts/fixtures/event.json once, one event every `intervalMs`. */
 export function mockEventStream(onEvent: (e: OrdoEvent) => void, intervalMs = 1500): () => void {
   const timers = fixtures.events.map((e, i) => setTimeout(() => onEvent(structuredClone(e)), intervalMs * (i + 1)));
   return () => timers.forEach(clearTimeout);

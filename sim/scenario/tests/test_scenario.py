@@ -10,10 +10,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent.parent  # sim/scenario
+HERE = Path(__file__).resolve().parent.parent
 COMMITTED = HERE / "out"
 SCRIPTS = ["bank_2026.py", "story_2026.py", "fa3_2026.py", "november_2026.py", "release_2026.py"]
-NOT_GENERATED = {"pizzeria-amalfi-bank-statement-2025-v6.csv"}  # organisers' file, git-ignored
+NOT_GENERATED = {"pizzeria-amalfi-bank-statement-2025-v6.csv"}
 
 
 def generate(out):
@@ -56,7 +56,7 @@ class Scenario(unittest.TestCase):
         sys.path.insert(0, str(HERE))
         try:
             import story_2026
-            story_2026.check(story_2026.story_items(), self.load("people.json"))  # SystemExit on failure
+            story_2026.check(story_2026.story_items(), self.load("people.json"))
         finally:
             sys.path.remove(str(HERE))
 

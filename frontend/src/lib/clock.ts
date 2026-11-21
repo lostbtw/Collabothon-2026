@@ -10,7 +10,6 @@ function loadOffset(): Promise<void> {
   return asked;
 }
 
-/** The API's current time in ms, refreshed every `intervalMs`. Null until the clock is known. */
 export function useNow(intervalMs = 1000): number | null {
   const [now, setNow] = useState<number | null>(offsetMs === null ? null : Date.now() + offsetMs);
   useEffect(() => {
@@ -23,7 +22,6 @@ export function useNow(intervalMs = 1000): number | null {
   return now;
 }
 
-/** "8 s ago", "3 min ago", "2 h ago", "4 days ago". */
 export function ago(iso: string, nowMs: number): string {
   const s = Math.max(0, Math.round((nowMs - Date.parse(iso)) / 1000));
   if (s < 60) return `${s} s ago`;

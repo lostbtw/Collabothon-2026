@@ -34,7 +34,6 @@ def demo(db):
 
 
 def action_of(rec_id: str, **param_changes) -> dict:
-    """The fixture Recommendation's proposed_action with changes applied, as the decision endpoint hands it over."""
     rec = next(r for r in read("recommendation") if r["id"] == rec_id)
     action = copy.deepcopy(rec["proposed_action"])
     action["params"].update(param_changes)
@@ -68,7 +67,7 @@ def test_reimbursement_becomes_a_payment_draft_to_the_employee(demo, bank):
     assert out["reference"].startswith("SIM-PD-")
     [done] = bank_executions(bank)
     assert done["type"] == "payment_draft" and done["status"] == "draft"
-    assert done["creditorName"] == "Jan Kowalski (SAMPLE)"  # per_jan, from the People table
+    assert done["creditorName"] == "Jan Kowalski (SAMPLE)"
     assert done["amount"] == "1299.00" and done["requestedExecutionDate"] == "2026-11-30"
     assert done["debtorAccount"] == "acc_pln" and done["remittance"] == "Zwrot kosztow - monitor 20.11.2026"
     assert "1,299 PLN" in out["result"] and "Jan Kowalski" in out["result"]

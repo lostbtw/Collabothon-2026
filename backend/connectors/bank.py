@@ -27,7 +27,6 @@ def make_client(timeout: float = 10.0) -> httpx.Client:
 
 
 def reference_of(cursor: str | None) -> str | None:
-    """`2026-11-21|E000000731` or `E000000731` -> `E000000731`; anything else -> None (start from the beginning)."""
     if not cursor:
         return None
     ref = cursor.rsplit("|", 1)[-1].strip()
@@ -35,7 +34,6 @@ def reference_of(cursor: str | None) -> str | None:
 
 
 def account_for_source(conn: psycopg.Connection, source: dict[str, Any]) -> str:
-    """The bank account a source polls: the Account linked to it, else `config_public.account_id`, else src_bank_<x> -> acc_<x>."""
     row = conn.execute("select id from accounts where doc->>'source_id' = %s order by id limit 1",
                        (source["id"],)).fetchone()
     conn.commit()
@@ -80,7 +78,6 @@ class BankConnector(Connector):
         return FetchResult(items=items, cursor=new_cursor, more=more)
 
     def _page(self, after: str | None, limit: int) -> tuple[list[dict[str, Any]], bool]:
-        """One page of booked lines after `after`, and whether another page follows."""
         params: dict[str, Any] = {"bookingStatus": "booked", "limit": limit}
         if after:
             params["entryReferenceFrom"] = after

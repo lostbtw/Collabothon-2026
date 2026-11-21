@@ -38,7 +38,6 @@ def _money(params: dict[str, Any], key: str) -> tuple[str, str | None]:
 
 
 def _company_account(conn: psycopg.Connection, company: str, currency: str | None) -> str:
-    """The company's own bank account to act on: one in `currency` if there is one, else its first account."""
     rows = conn.execute(
         """select id, doc->>'currency' from accounts where company_id = %s
            and coalesce(doc->>'kind', 'company_bank') = 'company_bank' order by id""", (company,)).fetchall()
@@ -58,7 +57,6 @@ def _person_name(conn: psycopg.Connection, person_id: str | None) -> str | None:
 
 
 def _local_reference(conn: psycopg.Connection, prefix: str, decided_at: str | None) -> str:
-    """A simulated reference for actions with no bank target (same format as the API's stand-in)."""
     seq = conn.execute("select nextval('sim_reference_seq')").fetchone()[0]
     year = (decided_at or datetime.now(UTC).isoformat())[:4]
     return f"SIM-{prefix}-{year}-{seq:04d}"
@@ -134,7 +132,6 @@ BANK_ACTIONS = {
 def execute_action(conn: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str, *,
                    client: httpx.Client | None = None, token: str | None = None,
                    execution_mode: str = "simulated") -> dict[str, str]:
-    """Run one approved action in simulation. Returns {"reference", "result"} and emits `execution.simulated`."""
     if execution_mode != "simulated":
         raise ExecutionRefused(f"execution mode {execution_mode!r} is refused: every action runs SIMULATED in this build")
     kind = (action or {}).get("kind")

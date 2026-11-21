@@ -4,7 +4,6 @@ import type { Money } from "../api/types.gen";
 
 export type CostType = { key: string; label: string; color: string; tag: string; categories: string[]; own?: boolean };
 
-/** In the order of the validated colour palette, so neighbours in the cost bar stay distinguishable. */
 export const DEFAULT_COST_TYPES: CostType[] = [
   { key: "staff", label: "Staff", color: "var(--cat-1)", tag: "Fixed", categories: ["salaries", "contractors", "social_security"] },
   { key: "taxes", label: "Taxes", color: "var(--cat-2)", tag: "Monthly", categories: ["taxes"] },
@@ -16,16 +15,12 @@ export const DEFAULT_COST_TYPES: CostType[] = [
   { key: "unexplained", label: "Not explained yet", color: "var(--cat-none)", tag: "Needs a look", categories: ["other"] },
 ];
 
-/** These categories repeat every month (fixed + subscription). */
 export const FIXED_CATEGORIES = new Set(["salaries", "contractors", "social_security", "rent_office", "software_subscriptions", "cloud_hosting"]);
 export const INCOME_CATEGORIES = new Set(["revenue_services"]);
-/** Not company costs: a reimbursement is a debt to a person (the cost itself is booked in its own category), owner_private is personal. */
 export const NOT_COSTS = new Set(["reimbursements", "owner_private"]);
 
-// The owner's own cost types, kept in this browser: each takes some categories away from the default types.
 const OWN_KEY = "ordo.costTypes.own";
 export const OWN_COLORS = ["#0f8b8d", "#a3478f", "#8c6d1f", "#4b6a88", "#c2452d", "#5c7d2e"];
-/** Categories an own type may take: costs only, and never "Not explained yet". */
 export const ASSIGNABLE_CATEGORIES = DEFAULT_COST_TYPES.flatMap((t) => t.categories).filter((c) => c !== "other");
 
 function readOwn(): CostType[] {
@@ -45,7 +40,6 @@ export function saveOwnCostTypes(list: CostType[]): void {
   try { globalThis.localStorage?.setItem(OWN_KEY, JSON.stringify(own)); } catch { /* kept until reload */ }
 }
 
-/** Default types without the categories the owner moved, then the owner's types, "Not explained yet" last. */
 export function costTypes(): CostType[] {
   const taken = new Set(own.flatMap((t) => t.categories));
   const defaults = DEFAULT_COST_TYPES.map((t) => ({ ...t, categories: t.categories.filter((c) => !taken.has(c)) }));
@@ -73,21 +67,18 @@ const fromCents = (value: bigint): string => {
 export const add = (a: string, b: string): string => fromCents(cents(a) + cents(b));
 export const negate = (a: string): string => fromCents(-cents(a));
 export const subtract = (a: string, b: string): string => fromCents(cents(a) - cents(b));
-/** For sorting: negative when a < b. */
 export const compareAmounts = (a: string, b: string): number => (cents(a) < cents(b) ? -1 : cents(a) > cents(b) ? 1 : 0);
 export const abs = (a: string): string => fromCents(cents(a) < 0n ? -cents(a) : cents(a));
 export const isZero = (a: string): boolean => cents(a) === 0n;
-/** Share of `part` in `whole` as a whole percent, 0 when `whole` is zero. */
 export const percent = (part: string, whole: string): number => {
   const w = cents(whole);
-  // A share for display, not an amount: a float is fine here.
   return w === 0n ? 0 : Math.round((Number(cents(part)) / Number(w)) * 100);
 };
 
 export type MonthFigures = {
   currency: string;
   income: Money;
-  costs: Money;          // positive number: money that left for company costs
+  costs: Money;
   leftOver: Money;
   fixed: Money;
   other: Money;
@@ -96,7 +87,6 @@ export type MonthFigures = {
   hasData: boolean;
 };
 
-/** Turns the backend's per-category summary of one month into what the Overview shows. Sums only, no estimates. */
 export function monthFigures(summary: LedgerSummary | null, currency: string): MonthFigures {
   const zero = "0.00";
   let income = zero, costs = zero, fixed = zero, unexplained = zero;
@@ -104,7 +94,7 @@ export function monthFigures(summary: LedgerSummary | null, currency: string): M
   for (const row of summary?.rows ?? []) {
     if (NOT_COSTS.has(row.key)) continue;
     if (INCOME_CATEGORIES.has(row.key)) { income = add(income, row.amount_base.amount); continue; }
-    const out = negate(row.amount_base.amount); // ledger costs are negative; show them as positive spend
+    const out = negate(row.amount_base.amount);
     costs = add(costs, out);
     if (FIXED_CATEGORIES.has(row.key)) fixed = add(fixed, out);
     if (row.key === "other") unexplained = add(unexplained, out);
@@ -122,30 +112,24 @@ export function monthFigures(summary: LedgerSummary | null, currency: string): M
   };
 }
 
-/** "2026-10" -> first and last day, for the summary's from/to. */
 export function monthRange(month: string): { from: string; to: string } {
   const [y, mo] = month.split("-").map(Number);
   const last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}` };
 }
 
-/** The month before `month` ("2026-10" -> "2026-09"). */
 export function previousMonth(month: string): string {
   const [y, mo] = month.split("-").map(Number);
   return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
 }
 
-/** The last complete month before a date ("2026-11-21" -> "2026-10"). */
 export const lastFullMonth = (date: string): string => previousMonth(date.slice(0, 7));
 
-/** "2026-10" -> "October 2026" */
 export const monthName = (month: string): string =>
   new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-15T12:00:00Z`));
-/** "2026-10" -> "October" */
 export const monthOnly = (month: string): string =>
   new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(new Date(`${month}-15T12:00:00Z`));
 
-/** The `n` months up to and including the month of `today`, newest first. */
 export function recentMonths(today: string, n = 6): string[] {
   const out = [today.slice(0, 7)];
   while (out.length < n) out.push(previousMonth(out[out.length - 1]));

@@ -9,7 +9,6 @@ metadata:
   annotations:
     image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"finance\")].image"}]'
 spec:
-  # One worker: the consumer group `finance` books the Ledger and recomputes the forecast (debounced 2 s per company).
   replicas: 1
   revisionHistoryLimit: 3
   strategy:

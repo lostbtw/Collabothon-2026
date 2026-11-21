@@ -38,7 +38,6 @@ def _code(transaction_type: str) -> str:
 
 
 def parse_commerzbank_csv(raw: bytes) -> tuple[str | None, list[Line]]:
-    """Return (iban of the file's account, lines in chronological order with increasing entry references)."""
     reader = csv.DictReader(io.StringIO(_decode(raw)), delimiter=";")
     missing = REQUIRED - set(reader.fieldnames or [])
     if missing:
@@ -54,7 +53,6 @@ def parse_commerzbank_csv(raw: bytes) -> tuple[str | None, list[Line]]:
         parsed.append((booking, idx, row))
     if not parsed:
         raise CsvError("no data rows")
-    # Chronological order, and the file's reverse within a day, so entry references only grow.
     parsed.sort(key=lambda t: (t[0], -t[1]))
     iban = parsed[0][2]["Account Number"].strip() or None
     lines = [

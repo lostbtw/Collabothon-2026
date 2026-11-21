@@ -18,8 +18,6 @@ PLAN = release.load_plan()
 
 
 class FakeImap:
-    """imaplib.IMAP4_SSL's answers for login, select, uid search/fetch (Message-ID headers), append, logout."""
-
     def __init__(self, existing: list[bytes] = ()):
         self.messages: list[bytes] = list(existing)
         self.appended_dates: list[str] = []
@@ -65,7 +63,7 @@ def parsed(fake):
 def test_the_plan_has_what_role_4_promised():
     counts = Counter((i["mode"], i["channel"]) for i in PLAN)
     assert counts[("backfill", "bank")] == 1070
-    assert len(release.select(PLAN, "backfill")) == 531  # 470 e-mail + 41 accounting API (fallback e-mail) + 20 photos
+    assert len(release.select(PLAN, "backfill")) == 531
     assert len(release.select(PLAN, "drip")) == 15 and len(release.select(PLAN, "live")) == 1
 
 
@@ -124,10 +122,10 @@ def test_the_connector_reads_released_mail_as_documents():
     by_id = {release.message_id(i): i for i in items}
     for uid, raw in enumerate(fake.messages, start=1):
         got = message_items(raw, uid)
-        assert len(got) == 2, raw[:200]  # the e-mail and its one file
+        assert len(got) == 2, raw[:200]
         kinds[got[1].kind] += 1
         item = by_id[got[0].external_id]
-        assert got[1].metadata["forwarded_by"] == release.sender_of(item)  # who sent it: the who-paid input
+        assert got[1].metadata["forwarded_by"] == release.sender_of(item)
         senders.add(release.sender_of(item))
     xml_items = sum(i["artefact"].endswith(".xml") for i in items)
     assert kinds == {"ksef_invoice_xml": xml_items, "email_attachment": 531 - xml_items}
@@ -187,7 +185,7 @@ def test_next_sends_one_not_yet_sent_drip_document_each_time():
         todo = [i for i in drip if release.message_id(i) not in box.message_ids()]
         release.release(box, todo[:1], fresh=True, log=lambda s: None)
         sent_order.append(todo[0]["document_id"])
-    assert sent_order == [i["document_id"] for i in drip[:3]]  # in plan order, never the same twice
+    assert sent_order == [i["document_id"] for i in drip[:3]]
     assert len(fake.messages) == 3 and len({m["Message-ID"] for m in parsed(fake)}) == 3
 
 

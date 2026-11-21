@@ -13,7 +13,7 @@ FIXTURES = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
 def fixture_items():
     for path in sorted(FIXTURES.glob("*.json")):
         if path.stem == "event":
-            continue  # events live in the outbox, see test_outbox
+            continue
         for i, item in enumerate(json.loads(path.read_text(encoding="utf-8"))):
             yield pytest.param(path.stem, item, id=f"{path.stem}[{i}]")
 
@@ -36,12 +36,12 @@ def first_fixture(entity, id):
 @pytest.mark.parametrize(
     "entity,fixture_id",
     [
-        ("raw_item", "raw_mail412"),          # raw_item.idempotency_key
-        ("transaction", "txn_731"),    # (account_id, external_id)
-        ("document", "doc_rcpt412"),          # document.raw_item_ids[0]
-        ("match", "mat_412"),                 # (document_id, match_type) while suggested
-        ("recommendation", "rec_412"),        # (type, subject.id) while new or seen
-        ("forecast", "fc_20261121a"),         # (company_id, inputs_hash) for base forecasts
+        ("raw_item", "raw_mail412"),
+        ("transaction", "txn_731"),
+        ("document", "doc_rcpt412"),
+        ("match", "mat_412"),
+        ("recommendation", "rec_412"),
+        ("forecast", "fc_20261121a"),
     ],
 )
 def test_the_same_idempotency_key_under_a_new_id_is_not_stored_twice(db, entity, fixture_id):

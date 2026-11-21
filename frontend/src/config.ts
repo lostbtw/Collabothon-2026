@@ -11,7 +11,6 @@ function readMode(): ApiMode {
     if (stored === "0") return "live";
     if (stored === "1") return "mock";
   } catch {
-    // sessionStorage can be unavailable (private mode); fall back to the build-time value.
   }
   return fromEnv;
 }

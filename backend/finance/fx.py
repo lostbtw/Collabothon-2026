@@ -13,16 +13,14 @@ from .settings import (FX_CONTEXT_MONTHS, FX_FORWARD_COST, FX_HISTORY_DAYS, FX_L
 CENT = Decimal("0.01")
 RATE_PLACES = Decimal("0.0001")
 P95 = Decimal("0.95")
-NOT_THE_COMPANYS_FLOWS = {"owner_private"}  # categories that are not money of the business
+NOT_THE_COMPANYS_FLOWS = {"owner_private"}
 
 
 def money(value: Decimal | str, currency: str) -> dict[str, str]:
-    """Money as in the contracts: decimal string with 2 places plus currency."""
     return {"amount": f"{Decimal(value).quantize(CENT, ROUND_HALF_UP):.2f}", "currency": currency}
 
 
 def history_window(rates: Mapping[str, str], as_of: date, days: int = FX_HISTORY_DAYS) -> list[tuple[date, Decimal]]:
-    """(day, PLN per unit) of the last `days` before the as-of date, oldest first; later tables are ignored."""
     last = as_of - timedelta(days=1)
     first = last - timedelta(days=days)
     out = []
@@ -34,7 +32,6 @@ def history_window(rates: Mapping[str, str], as_of: date, days: int = FX_HISTORY
 
 
 def rate_changes(history: list[tuple[date, Decimal]], horizon_days: int) -> list[Decimal]:
-    """Every historical change over `horizon_days` days: r = S(t+h)/S(t) - 1, S(t+h) being the last rate on or before t+h."""
     days = [d for d, _ in history]
     out = []
     for d, rate in history:
@@ -47,7 +44,6 @@ def rate_changes(history: list[tuple[date, Decimal]], horizon_days: int) -> list
 
 
 def percentile(sorted_values: list[Decimal], p: Decimal) -> Decimal:
-    """Linear interpolation between the two nearest ranks."""
     k = (len(sorted_values) - 1) * p
     f = int(k)
     c = min(f + 1, len(sorted_values) - 1)
@@ -55,7 +51,6 @@ def percentile(sorted_values: list[Decimal], p: Decimal) -> Decimal:
 
 
 def downside(changes: list[Decimal], value: Decimal, direction: str) -> dict[str, Any]:
-    """Losses and gains of `value` (base currency) over the scenarios. All amounts positive except average_result."""
     sign = -1 if direction == "receivable" else 1
     losses = sorted(max(Decimal(0), sign * r) * value for r in changes)
     gains = sorted(max(Decimal(0), -sign * r) * value for r in changes)
@@ -68,14 +63,12 @@ def downside(changes: list[Decimal], value: Decimal, direction: str) -> dict[str
 
 
 def expected_date(item: dict, as_of: date, country: str) -> date:
-    """When the money moves: due date + the client's average delay, never before tomorrow (as in the forecast)."""
     delay = int(item.get("delay_days") or 0) if item["kind"] == "receivable" else 0
     due = date.fromisoformat(item["due_date"])
     return on_or_after(max(due + timedelta(days=delay), as_of + timedelta(days=1)), country)
 
 
 def balances(accounts: Iterable[dict], transactions: Iterable[dict], as_of: date) -> dict[str, Decimal]:
-    """Balance held per currency on the as-of date (accounts counted in liquidity only)."""
     held: dict[str, Decimal] = {}
     lines = list(transactions)
     for acc in accounts:
@@ -88,7 +81,6 @@ def balances(accounts: Iterable[dict], transactions: Iterable[dict], as_of: date
 
 
 def company_facts(inputs: dict, forecast: dict) -> dict[str, Any]:
-    """The company's own size and cash: money in and out per full month, and reference amounts the loss is compared with."""
     company = inputs["company"]
     as_of = date.fromisoformat(company["as_of_date"])
     base = company["base_currency"]
@@ -126,7 +118,6 @@ def company_facts(inputs: dict, forecast: dict) -> dict[str, Any]:
 
 
 def hedge_terms(item: dict, net: Decimal, spot: Decimal, base: str, expected: date) -> dict[str, Any]:
-    """The forward this invoice would need: share, date, rate and illustrative prices."""
     late = item["kind"] == "receivable" and int(item.get("delay_days") or 0) > FX_LATE_DAYS
     ratio = FX_LATE_HEDGE_RATIO if late else Decimal(1)
     currency = item["amount"]["currency"]
@@ -134,7 +125,7 @@ def hedge_terms(item: dict, net: Decimal, spot: Decimal, base: str, expected: da
     hedged_value = notional * spot
     selling = item["kind"] == "receivable"
     forward_rate = spot * (1 - FX_FORWARD_COST) if selling else spot * (1 + FX_FORWARD_COST)
-    return {"ratio": f"{ratio:.1f}", "value_date": expected.isoformat(),  # on-time: expected = the due date
+    return {"ratio": f"{ratio:.1f}", "value_date": expected.isoformat(),
             "notional": money(notional, currency),
             "sell_currency": currency if selling else base, "buy_currency": base if selling else currency,
             "forward_rate": f"{forward_rate.quantize(RATE_PLACES, ROUND_HALF_UP)}",
@@ -144,7 +135,6 @@ def hedge_terms(item: dict, net: Decimal, spot: Decimal, base: str, expected: da
 
 
 def cash_after(points: list[dict], expected: date, loss: Decimal, base: str) -> dict[str, Any]:
-    """The forecast's lowest balance from the payment date on, and with the bad case's loss taken off it."""
     after = [p for p in points if p["date"] >= expected.isoformat()] or points[-1:]
     low = min(after, key=lambda p: Decimal(p["balance"]))
     balance = Decimal(low["balance"])
@@ -169,7 +159,6 @@ def loss_against_references(loss: Decimal, company: dict[str, Any]) -> list[dict
 def assess(item: dict, *, as_of: date, country: str, base: str, spot: Decimal, history: list[tuple[date, Decimal]],
            open_items: list[dict], held: Mapping[str, Decimal], company: dict[str, Any],
            points: list[dict]) -> dict[str, Any] | None:
-    """One open foreign-currency invoice -> its facts for /fx/exposure, the card and the model; None with too little history."""
     if len(history) < FX_MIN_HISTORY:
         return None
     currency = item["amount"]["currency"]
@@ -187,7 +176,7 @@ def assess(item: dict, *, as_of: date, country: str, base: str, spot: Decimal, h
         "expected_cash_date": expected.isoformat(), "horizon_days": (expected - as_of).days,
         "history_first": history[0][0].isoformat(), "history_last": history[-1][0].isoformat(),
         "history_days": len(history), "company": company}
-    if item.get("locked"):  # an executed FX forward fixed its rate (engine.fx_locks): nothing left to judge
+    if item.get("locked"):
         return {**out, "status": "hedged", "locked": item["locked"], "scenarios": 0, "loss_vs_references": []}
     if net <= amount * FX_NATURAL_SHARE:
         return {**out, "status": "naturally_hedged", "scenarios": 0, "loss_vs_references": []}
@@ -202,7 +191,6 @@ def assess(item: dict, *, as_of: date, country: str, base: str, spot: Decimal, h
 
 
 def assess_company(inputs: dict, histories: Mapping[str, Mapping[str, str]], forecast: dict) -> list[dict[str, Any]]:
-    """Every open foreign-currency invoice of a company, soonest first; `histories` = {currency: {day: units per unit}}."""
     company = inputs["company"]
     as_of = date.fromisoformat(company["as_of_date"])
     base, country = company["base_currency"], company.get("country", "PL")

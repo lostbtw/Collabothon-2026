@@ -37,7 +37,6 @@ def imap_configured() -> bool:
 
 
 def parse_cursor(cursor: str | None) -> tuple[str | None, int]:
-    """`UIDVALIDITY=7;UID=412` -> ("7", 412)."""
     values = dict(part.split("=", 1) for part in (cursor or "").split(";") if "=" in part)
     try:
         return values.get("UIDVALIDITY"), int(values.get("UID", 0))
@@ -57,7 +56,6 @@ def _is_file(part) -> bool:
 
 
 def _attachments(msg) -> list[tuple[str | None, str, bytes]]:
-    """(filename, content type, bytes) of the files worth reading."""
     out = []
     for part in msg.walk():
         if part.is_multipart() or not _is_file(part):
@@ -67,7 +65,7 @@ def _attachments(msg) -> list[tuple[str | None, str, bytes]]:
             continue
         disposition = (part.get_content_disposition() or "").lower()
         if disposition != "attachment" and part.get_content_type().startswith("image/") and len(data) < MIN_INLINE_IMAGE:
-            continue  # a logo or a signature image in the mail body
+            continue
         out.append((part.get_filename(), part.get_content_type(), data))
     return out
 
@@ -81,7 +79,6 @@ def _body_text(msg) -> str:
 
 
 def message_items(raw: bytes, uid: int) -> list[FetchedItem]:
-    """The RawItems of one message: the e-mail and its attachments, or nothing when it is not worth reading."""
     msg = email.message_from_bytes(raw, policy=email.policy.default)
     files = _attachments(msg)
     subject = str(msg.get("Subject") or "")
@@ -148,11 +145,11 @@ class ImapConnector(Connector):
             validity = validity.decode() if isinstance(validity, bytes) else str(validity or "")
             stored_validity, last = parse_cursor(cursor)
             if stored_validity != validity:
-                last = 0  # other UIDs than the ones the cursor counted: read everything again (duplicates skipped)
+                last = 0
             status, data = imap.uid("search", None, f"UID {last + 1}:*")
             if status != "OK":
                 raise ConnectorError("the mailbox refused the search", code="imap_search")
-            uids = sorted(int(u) for u in (data[0] or b"").split() if int(u) > last)  # "n:*" can return the last one
+            uids = sorted(int(u) for u in (data[0] or b"").split() if int(u) > last)
             page, more = uids[:PAGE_MESSAGES], len(uids) > PAGE_MESSAGES
             items: list[FetchedItem] = []
             for uid in page:

@@ -12,7 +12,7 @@ from backend.pipeline.normalise.money import money
 
 OUT = Path(__file__).resolve().parents[3] / "sim" / "scenario" / "out"
 COMPANY = {"id": "co_borsuk", "tax_id": "9990000014", "as_of_date": "2026-11-21"}
-ACCOUNTS = [  # from sim/scenario/README.md
+ACCOUNTS = [
     {"id": "acc_pln", "company_id": "co_borsuk", "kind": "company_bank", "currency": "PLN", "card_last4": ["4417"],
      "source_id": "src_bank_pln"},
     {"id": "acc_eur", "company_id": "co_borsuk", "kind": "company_bank", "currency": "EUR", "card_last4": ["2290"],
@@ -20,7 +20,7 @@ ACCOUNTS = [  # from sim/scenario/README.md
     {"id": "acc_owner", "company_id": "co_borsuk", "kind": "owner_private", "currency": "PLN", "card_last4": ["9021"],
      "source_id": "src_bank_owner"},
 ]
-rates = StandInRates()  # the same stand-in NBP table the pipeline process uses on the cluster
+rates = StandInRates()
 
 
 def available() -> bool:
@@ -50,7 +50,6 @@ def fa3_documents() -> list[dict]:
 
 
 def november_documents() -> tuple[list[dict], dict[str, str]]:
-    """(Documents, sender by document id)."""
     docs, senders = [], {}
     for n in json.loads((OUT / "november_documents.json").read_text(encoding="utf-8")):
         doc_id = n["id"] if n["id"].startswith("doc_") else f"doc_{n['id']}"
@@ -88,14 +87,13 @@ def november_documents() -> tuple[list[dict], dict[str, str]]:
             "category_suggestion": None, "status": "extracted",
             "flags": [f for f in n.get("flags", []) if f in ("foreign_currency", "reverse_charge")],
             "created_at": f"{date.fromisoformat(n['issue_date']) + timedelta(days=n.get('arrives_days_after_issue', 0))}"
-                          f"T12:{len(docs) % 60:02d}:00Z",  # arrival day; minute keeps the file order
+                          f"T12:{len(docs) % 60:02d}:00Z",
         })
         senders[doc_id] = n.get("sender")
     return docs, senders
 
 
 def run() -> dict:
-    """Everything the pipeline does, in order. Returns the intermediate and final results."""
     txns = transactions()
     cps: list[dict] = []
     for i, t in enumerate(txns):

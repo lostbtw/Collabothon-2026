@@ -33,7 +33,7 @@ def low(f):
 
 def test_the_cash_gap_alert_names_its_dates_and_size(base):
     (gap,) = [a for a in base["alerts"] if a["type"] == "cash_gap"]
-    assert gap["date_from"] == "2026-11-30" and gap["date_to"] == "2026-12-06"  # Nordwind pays on 7 Dec
+    assert gap["date_from"] == "2026-11-30" and gap["date_to"] == "2026-12-06"
     assert Decimal(gap["max_shortfall"]["amount"]) == -low(base)
     assert gap["severity"] == "critical" and gap["days_ahead"] == 9
 
@@ -42,7 +42,7 @@ def test_the_stress_case_is_the_late_client_paying_14_days_later(base):
     s = stress_of(base)
     assert STRESS_EXTRA_DAYS == 14
     assert s["label"] == "Nordwind pays 21 Dec" and s["date"] == "2026-12-21"
-    assert Decimal(s["balance"]["amount"]) < low(base)  # taxes on 21 Dec go before the money arrives
+    assert Decimal(s["balance"]["amount"]) < low(base)
     nordwind = next(c for c in base["components"] if c["id"] == s["receivable_component_id"])
     arrival_day_before_the_money = balance(base, "2026-12-21") - Decimal(nordwind["amount_base"]["amount"])
     assert Decimal(s["balance"]["amount"]) == arrival_day_before_the_money
@@ -62,7 +62,7 @@ def test_a_25000_credit_line_keeps_the_forecast_above_zero(base):
                                                   "from": base["as_of_date"]}})
     assert low(what_if) > 0 and what_if["first_negative_date"] is None
     assert not any(a["type"] == "cash_gap" for a in what_if["alerts"])
-    assert low(base) < 0  # the base forecast is unchanged
+    assert low(base) < 0
     Forecast.model_validate({**what_if, "scenario_of": base["id"]})
 
 
@@ -85,7 +85,7 @@ def test_shifting_a_payable_raises_the_balance_until_its_new_date(base):
 
     moved = with_changes(base, {"shift_payable": {"component_id": vat["id"], "days": 7}})
 
-    assert balance(moved, "2026-11-25") == balance(base, "2026-11-25") - first  # paid later: more cash on 25 Nov
+    assert balance(moved, "2026-11-25") == balance(base, "2026-11-25") - first
     assert balance(moved, "2026-12-02") == balance(base, "2026-12-02")
     assert "2026-12-02" in next(c for c in moved["components"] if c["id"] == vat["id"])["dates"]
 
@@ -102,7 +102,7 @@ def test_the_engine_gives_the_stress_case_and_the_credit_line_from_the_database(
     line = engine.credit_line(labs_db, "co_borsuk")
     assert s == stress_of(forecast) and s["label"] == "Nordwind pays 21 Dec"
     assert line["limit"] == credit_line_size(forecast)["limit"]
-    assert forecast["safety_buffer"] is not None  # derived from the company's own outflows
+    assert forecast["safety_buffer"] is not None
 
 
 def test_the_scenario_endpoint_shifts_a_receivable_and_validates(labs_db, db_url):  # noqa: F811

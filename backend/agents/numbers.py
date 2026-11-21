@@ -12,9 +12,9 @@ _NUMBER = re.compile(
 
 
 def _value(token: str, group_sep: str | None) -> Decimal | None:
-    if group_sep:  # "30,000" / "1 299,00": drop the thousands separator
+    if group_sep:
         token = token.replace(group_sep, "")
-    token = token.replace(",", ".")  # what remains of a comma is a decimal comma
+    token = token.replace(",", ".")
     try:
         return abs(Decimal(token)).normalize()
     except InvalidOperation:
@@ -35,7 +35,6 @@ def numbers_of(results: Any) -> set[Decimal]:
 
 
 def unexpected_numbers(texts: list[str], tool_results: Any) -> list[Decimal]:
-    """Numbers in `texts` that no tool result contains (empty = the text passes)."""
     allowed = numbers_of(tool_results)
     seen: set[Decimal] = set()
     for text in texts:

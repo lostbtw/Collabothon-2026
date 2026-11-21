@@ -10,7 +10,7 @@ import psycopg
 
 from backend.connectors.base import Connector, ConnectorError, FetchedItem, FetchResult
 
-WINDOW_DAYS = 93  # NBP's limit per request
+WINDOW_DAYS = 93
 DEFAULT_HISTORY_DAYS = 1095
 
 
@@ -23,7 +23,6 @@ def make_nbp_client(timeout: float = 20.0) -> httpx.Client:
 
 
 def _cursor_parts(cursor: str | None) -> tuple[date | None, str | None]:
-    """`2026-11-20|226/A/NBP/2026` -> (date, no); a bare table number -> (None, no)."""
     if not cursor:
         return None, None
     left, _, right = cursor.partition("|")
@@ -63,7 +62,7 @@ class NbpConnector(Connector):
         while start <= today:
             end = min(start + timedelta(days=WINDOW_DAYS - 1), today)
             if all((start + timedelta(days=i)).weekday() >= 5 for i in range((end - start).days + 1)):
-                start = end + timedelta(days=1)  # only a Saturday and/or Sunday: NBP publishes nothing, do not ask
+                start = end + timedelta(days=1)
                 continue
             # For a day without a table NBP sometimes answers 500, not 404: just after the last stored table that means nothing new.
             tables = self._tables(start, end, quiet=bool(last) and (end - start).days <= 3)
@@ -80,7 +79,7 @@ class NbpConnector(Connector):
                 ]
                 last_t = items[-1].payload
                 return FetchResult(items=items, cursor=f"{last_t['effectiveDate']}|{last_t['no']}", more=end < today)
-            start = end + timedelta(days=1)  # a window with no tables at all (holidays): look further
+            start = end + timedelta(days=1)
         return FetchResult(items=[], cursor=cursor)
 
     def _tables(self, start: date, end: date, *, quiet: bool = False) -> list[dict[str, Any]]:
@@ -90,7 +89,7 @@ class NbpConnector(Connector):
         except httpx.HTTPError as exc:
             raise ConnectorError(f"NBP unreachable: {exc.__class__.__name__}: {exc}", code="nbp_unreachable") from exc
         if resp.status_code == 404:
-            return []  # NBP's answer for "no table in this range"
+            return []
         if quiet and resp.status_code >= 500:
             return []
         if resp.status_code >= 400:
@@ -106,7 +105,6 @@ class NbpConnector(Connector):
 
 def rate_on(conn: psycopg.Connection, currency: str, on: date,
             rule: str = "pl_tax_prev_business_day") -> dict[str, str] | None:
-    """FxConversion for 1 unit of `currency` in PLN: the last table before `on` (PL-FX-01), or the table of `on` for booking_day."""
     currency = currency.upper()
     if currency == "PLN":
         return {"rate": "1", "rate_date": on.isoformat(), "source": "PLN", "rule": rule}
@@ -126,7 +124,6 @@ def rate_on(conn: psycopg.Connection, currency: str, on: date,
 
 
 def history(conn: psycopg.Connection, currency: str, since: date | None = None) -> list[tuple[str, str]]:
-    """(effectiveDate, mid) of every stored table for `currency`, oldest first. FX Shield's scenario input."""
     currency = currency.upper()
     rows = conn.execute(
         """select doc->'payload'->>'effectiveDate', doc->'payload'->'rates'->>%s

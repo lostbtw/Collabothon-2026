@@ -37,7 +37,6 @@ class Line:
             "remittanceInformationUnstructured": self.remittance,
             "proprietaryBankTransactionCode": self.code,
         }
-        # Berlin Group naming: money out -> the counterparty is the creditor, money in -> the debtor
         party, account = ("creditorName", "creditorAccount") if self.amount < 0 else ("debtorName", "debtorAccount")
         if self.counterparty_name:
             out[party] = self.counterparty_name
@@ -56,9 +55,8 @@ class Account:
     name: str
     owner_name: str
     cash_account_type: str = "CACC"
-    opening_balance: Decimal | None = Decimal("0.00")  # None = no balance reported (private card)
+    opening_balance: Decimal | None = Decimal("0.00")
     lines: list[Line] = field(default_factory=list)
-    # Known balance after all loaded lines: the opening balance is derived from it, so the two never disagree.
     closing_target: Decimal | None = None
 
     def __post_init__(self) -> None:
@@ -82,14 +80,12 @@ class Account:
 
 
 def in_currency(line: Line, currency: str) -> Decimal:
-    """A line's amount in the account currency (the pizzeria's CHF lines at the booking rate)."""
     if line.currency == currency:
         return line.amount
     return line.amount * BOOKING_RATES.get((line.currency, currency), Decimal(1))
 
 
 def seed_accounts() -> dict[str, Account]:
-    """Invented accounts; Borsuk Labs' IBANs and closing balances come from sim/scenario/world.py (check digits 00 on purpose)."""
     accounts = [
         Account("acc_pln", "PL00999900000000000000010001", "PLN", "Company account PLN (SAMPLE)",
                 "BORSUK LABS SP Z O O (SAMPLE)", closing_target=Decimal("24730.15")),
@@ -98,7 +94,7 @@ def seed_accounts() -> dict[str, Account]:
         Account("acc_owner", "PL00999900000000000000090021", "PLN", "Owner's private card (SAMPLE)",
                 "Tomasz Borsuk (SAMPLE)", cash_account_type="CARD", opening_balance=None),
         Account("acc_pizzeria", "DE00 0000 0000 0000 0000 00", "EUR", "Pizzeria Amalfi business account (SAMPLE)",
-                "Lucia Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),  # same as backend/db/seed_data/people.json
+                "Lucia Amalfi (SAMPLE)", opening_balance=Decimal("2500.00")),
     ]
     return {a.resource_id: a for a in accounts}
 

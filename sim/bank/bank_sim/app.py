@@ -42,7 +42,7 @@ class PaymentDraftIn(BaseModel):
 
 class AdminTransactionIn(BaseModel):
     accountId: str
-    amount: Decimal  # signed: negative = money out
+    amount: Decimal
     bookingDate: date | None = None
     valueDate: date | None = None
     currency: str | None = None
@@ -54,7 +54,6 @@ class AdminTransactionIn(BaseModel):
 
 
 def autoload_plan(csv_path: str | None, csv_account: str, csv_dir: str | None) -> list[tuple[str, str]]:
-    """(account id, file) pairs to load at start: every bank_acc_<x>.csv in csv_dir to acc_<x>, plus csv_path to csv_account."""
     plan: list[tuple[str, str]] = []
     if csv_dir:
         folder = Path(csv_dir)
@@ -70,7 +69,6 @@ def autoload_plan(csv_path: str | None, csv_account: str, csv_dir: str | None) -
 
 def create_app(store: Store | None = None, token: str | None = None, autoload_csv: str | None = None,
                autoload_account: str | None = None, autoload_dir: str | None = None) -> FastAPI:
-    """Files loaded at start and after /admin/reset (BANK_AUTOLOAD_DIR, BANK_AUTOLOAD_CSV), so a restarted bank is never empty."""
     store = store or Store()
     expected = token or os.environ.get("BANK_TOKEN", "demo-token")
     plan = autoload_plan(autoload_csv or os.environ.get("BANK_AUTOLOAD_CSV"),
@@ -218,7 +216,6 @@ def create_app(store: Store | None = None, token: str | None = None, autoload_cs
 
     @app.post("/admin/load-csv", dependencies=admin)
     async def load_csv(request: Request, profile: str = "commerzbank_csv", accountId: str = "acc_pizzeria") -> dict:
-        """Body = the raw CSV file (Content-Type: text/csv). Replaces all lines of the account."""
         if profile not in PROFILES:
             raise HTTPException(400, f"unknown profile '{profile}', supported: {sorted(PROFILES)}")
         acc = account_or_404(accountId)

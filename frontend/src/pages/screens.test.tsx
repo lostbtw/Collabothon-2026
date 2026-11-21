@@ -1,4 +1,3 @@
-// The new screens render the sample data the way the Figma design shows it.
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -106,11 +105,11 @@ describe("To-do", () => {
     expect(html).toContain("Options, cheapest first");
     expect(html).toContain(">Send reminder</button>");
     expect(html).toContain(">Apply</button>");
-    expect(html.replace(/<[^>]+>/g, " ")).not.toMatch(/simulated|SAMPLE/i); // visible text only
+    expect(html.replace(/<[^>]+>/g, " ")).not.toMatch(/simulated|SAMPLE/i);
     expect(html).toContain("Close October");
     expect(html).toContain("94% done");
     expect(html).toContain("SIM-PD-2026-0398");
-    expect(html).toContain("No need to hedge"); // advice is shown, with the Suggestion badge
+    expect(html).toContain("No need to hedge");
   });
 });
 

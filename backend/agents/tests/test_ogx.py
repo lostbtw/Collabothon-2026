@@ -15,8 +15,6 @@ def mcp_call(name: str, arguments: dict, output: dict | None = None, error: str 
 
 
 class Ogx:
-    """What the openai SDK shows of an OGX server: its models and one Responses call."""
-
     def __init__(self, output: list, text: str, fail: bool = False, then: str | None = None):
         self.requests: list[dict] = []
         self.models = NS(list=lambda: [NS(id="sentence-transformers/embed"), NS(id="vllm-inference/gpt-oss-20b")])
@@ -52,11 +50,11 @@ def test_ogx_runs_the_loop_and_the_tools_come_back_as_results(cluster):
     assert results == [cash]
     assert trace == [{"tool": "get_cash_position", "arguments": {}, "duration_ms": 0, "via": "ogx+mcp"}]
     request = server.requests[0]
-    assert request["model"] == "vllm-inference/gpt-oss-20b"  # found among OGX's models
+    assert request["model"] == "vllm-inference/gpt-oss-20b"
     assert request["tools"] == [{"type": "mcp", "server_label": "ordo", "server_url": "http://ordo-mcp:8000/mcp",
                                  "require_approval": "never", "allowed_tools": ["get_cash_position", "get_forecast"]}]
     assert '"co_borsuk"' in request["instructions"] and request["input"] == [MESSAGES[1]]
-    assert request["text"]["format"]["schema"] == SCHEMA  # OGX is asked for the agent's JSON shape
+    assert request["text"]["format"]["schema"] == SCHEMA
 
 
 def test_an_answer_with_words_around_the_json_is_still_read(cluster):
@@ -98,7 +96,7 @@ def test_an_empty_answer_gets_one_corrective_turn_and_no_tool_runs_twice(cluster
 def test_the_agents_loop_goes_through_ogx_on_the_cluster(cluster, monkeypatch):
     server = Ogx([mcp_call("get_cash_position", {"company_id": "co_borsuk"}, {"total": "5"})], '{"answer": "5"}')
     monkeypatch.setattr(ogx, "default_client", lambda: server)
-    never = NS(chat=None)  # the in-process loop would fail on this client
+    never = NS(chat=None)
 
     answer, results = llm.run_tool_loop(never, None, "co_borsuk", list(MESSAGES), {"get_cash_position": ({}, None)}, SCHEMA)
 

@@ -1,4 +1,3 @@
-# Ordo's MCP server: the agents' tools over Streamable HTTP, for OGX (deploy/app/ogx.yaml) and any MCP client.
 # Reached only inside the cluster (no Route).
 apiVersion: apps/v1
 kind: Deployment

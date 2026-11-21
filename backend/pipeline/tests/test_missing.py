@@ -20,9 +20,9 @@ def line(amount="-250.00", booked="2026-11-14", type_="card_payment", text="SKLE
 
 class BankLineRules(unittest.TestCase):
     def test_purchase_line_without_document(self):
-        self.assertEqual(line_status(line(booked="2026-11-16"), AS_OF), "missing_document")  # 5 days: ask
-        self.assertIsNone(line_status(line(booked="2026-11-18"), AS_OF))  # 3 days: the receipt may still come
-        self.assertIsNone(line_status(line(booked="2026-09-01"), AS_OF))  # old history: not chased
+        self.assertEqual(line_status(line(booked="2026-11-16"), AS_OF), "missing_document")
+        self.assertIsNone(line_status(line(booked="2026-11-18"), AS_OF))
+        self.assertIsNone(line_status(line(booked="2026-09-01"), AS_OF))
 
     def test_lines_that_never_have_a_document(self):
         self.assertEqual(line_status(line(text="WYNAGRODZENIE 10/2026", type_="transfer_out"), AS_OF),
@@ -32,7 +32,7 @@ class BankLineRules(unittest.TestCase):
         self.assertEqual(line_status(line(amount="1149.36", type_="card_settlement"), AS_OF), "no_document_needed")
 
     def test_left_alone(self):
-        self.assertIsNone(line_status(line(amount="36900.00", type_="transfer_in"), AS_OF))  # waits for a sales invoice
+        self.assertIsNone(line_status(line(amount="36900.00", type_="transfer_in"), AS_OF))
         self.assertIsNone(line_status(line(status="suggested"), AS_OF))
 
 
@@ -57,9 +57,9 @@ class DocumentsWithoutPayment(unittest.TestCase):
         [match] = p.store.list("match", document_id="doc_ksef0417")
         self.assertEqual((match["match_type"], match["paid_by"], match["status"]),
                          ("document_no_transaction", "unknown", "suggested"))
-        self.assertLess(match["score"], 0.55)  # shown as "Which payment is this?"
+        self.assertLess(match["score"], 0.55)
         self.assertIn("match.suggested", p.types())
-        self.assertEqual(handlers.sweep(p.ctx, COMPANY)["asked"], 0)  # asked once
+        self.assertEqual(handlers.sweep(p.ctx, COMPANY)["asked"], 0)
 
     def test_the_transfer_pays_a_payable_that_was_not_due(self):
         p = not_due_invoice_pipeline()

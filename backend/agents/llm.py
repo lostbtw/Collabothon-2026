@@ -38,8 +38,7 @@ def _json(content: str | None) -> Any:
 def run_tool_loop(client: Any, conn: psycopg.Connection, company: str, messages: list[dict[str, Any]],
                   tools: dict[str, Tool], final_schema: dict[str, Any], *, max_calls: int = MAX_TOOL_CALLS,
                   trace: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any] | None, list[Any]]:
-    """Returns (final JSON or None, every tool result). `trace` collects {tool, arguments, duration_ms}."""
-    if ogx.enabled():  # on the cluster OGX runs the loop and calls the same tools over MCP
+    if ogx.enabled():
         outcome = ogx.run(company, messages, sorted(tools), final_schema, max_calls=max_calls, trace=trace)
         if outcome is not None:
             return outcome
@@ -65,7 +64,7 @@ def run_tool_loop(client: Any, conn: psycopg.Connection, company: str, messages:
                 if retried:
                     log.warning("model answer does not match the schema: %s", "; ".join(problems)[:300])
                     return None, results
-                retried = True  # one corrective turn: tell the model what is wrong
+                retried = True
                 messages.append({"role": "assistant", "content": message.content or ""})
                 messages.append({"role": "user", "content": "Your answer does not match the required JSON: "
                                  + "; ".join(problems)[:500] + ". Answer again with JSON only."})
@@ -86,7 +85,7 @@ def run_tool_loop(client: Any, conn: psycopg.Connection, company: str, messages:
                     try:
                         arguments = json.loads(call.function.arguments or "{}")
                         result = tools[name][1](conn, company, **arguments)
-                    except Exception as exc:  # wrong arguments: tell the model, let it recover
+                    except Exception as exc:
                         arguments = {}
                         result = {"error": f"{type(exc).__name__}: {exc}"}
                 results.append(result)

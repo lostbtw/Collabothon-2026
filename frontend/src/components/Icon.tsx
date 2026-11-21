@@ -30,7 +30,6 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
-/** Line icons drawn on a 24px grid; decorative, so hidden from screen readers. */
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

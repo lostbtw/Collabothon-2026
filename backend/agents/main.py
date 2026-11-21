@@ -27,7 +27,6 @@ def _handle(conn: psycopg.Connection, event: dict[str, Any]) -> None:
 
 
 def process_pending(conn: psycopg.Connection, retry_after_seconds: int = 30) -> int:
-    """Handle each claimable delivery once; `match.suggested` first so receipts never wait."""
     return queue.process_pending(conn, CONSUMER, lambda event: _handle(conn, event),
                                  retry_after_seconds=retry_after_seconds, max_attempts=MAX_ATTEMPTS,
                                  first_types=["match.suggested"])
@@ -41,4 +40,4 @@ def run(argv: list[str]) -> int:
         log.info("agents: listening")
         while True:
             process_pending(conn)
-            queue.wait(listener, timeout=5.0)  # wake on NOTIFY, or poll every 5 s
+            queue.wait(listener, timeout=5.0)

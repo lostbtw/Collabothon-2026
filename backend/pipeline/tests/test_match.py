@@ -86,7 +86,7 @@ class Rules(unittest.TestCase):
 
     def test_card_line_outside_date_window_is_no_match(self):
         doc, txn = self.receipt_on_company_card()
-        txn["booking_date"] = "2026-11-26"  # 6 days after
+        txn["booking_date"] = "2026-11-26"
         self.assertEqual(score_pair(doc, txn, BY_ACCOUNT), (0.0, []))
 
     def test_incoming_money_never_pays_a_purchase(self):
@@ -95,7 +95,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(score_pair(doc, txn, BY_ACCOUNT), (0.0, []))
 
     def test_fx_outside_spread_band_is_no_match(self):
-        txn = line(amount_base={"amount": "-190.00", "currency": "PLN"})  # +5.1% over 180.77
+        txn = line(amount_base={"amount": "-190.00", "currency": "PLN"})
         self.assertEqual(score_pair(DOCS["doc_pixel11"], txn, BY_ACCOUNT), (0.0, []))
 
     def test_transfer_with_invoice_number_and_iban(self):
@@ -118,7 +118,7 @@ class Rules(unittest.TestCase):
         results = run([doc, twin], [txn])
         matched = [r for r in results if r["match"]["transaction_id"]]
         self.assertEqual(len(matched), 1)
-        self.assertEqual(matched[0]["match"]["document_id"], doc["id"])  # closer date wins
+        self.assertEqual(matched[0]["match"]["document_id"], doc["id"])
         other = next(r for r in results if not r["match"]["transaction_id"])
         self.assertEqual(other["match"]["match_type"], "document_no_transaction")
 
@@ -128,8 +128,6 @@ class Rules(unittest.TestCase):
 
 
 class KsefPaidToTheCent(unittest.TestCase):
-    """A KSeF invoice the bank paid exactly auto-confirms even without a recurring series (no inbox card)."""
-
     def pair(self):
         doc = copy.deepcopy(DOCS["doc_rcpt412"])
         doc.update(doc_type="invoice", channel="ksef", number="FV/BS/00038/11/2026",
@@ -163,15 +161,13 @@ class KsefPaidToTheCent(unittest.TestCase):
 
     def test_a_tax_consequence_still_asks(self):
         doc, txn = self.pair()
-        doc["buyer"].update(tax_id=None, is_company=False)  # invoice not to the company: VAT lost
+        doc["buyer"].update(tax_id=None, is_company=False)
         [result] = run([doc], [txn])
         self.assertTrue(result["match"]["consequences"]["vat_lost"])
         self.assertEqual(result["match"]["status"], "suggested")
 
 
 class GeneratedWorld(unittest.TestCase):
-    """The generator's 5 seeds, golden documents only."""
-
     def test_precision_who_paid_and_vat_lost(self):
         who_total = who_ok_total = 0
         for seed in range(1, 6):
@@ -184,7 +180,6 @@ class GeneratedWorld(unittest.TestCase):
             wrong = [t for t in matched if by_doc[t["doc_id"]]["transaction_id"] != t["txn_id"]]
             possible = [t for t in events if t["txn_id"]]
             who_ok = sum(by_doc[t["doc_id"]]["paid_by"] == t["paid_by"] for t in events)
-            # "unknown" is allowed (it becomes a question to the owner); a wrong definite answer is not.
             who_wrong = [t for t in events if by_doc[t["doc_id"]]["paid_by"] not in (t["paid_by"], "unknown")]
             who_total, who_ok_total = who_total + len(events), who_ok_total + who_ok
             lost = sum(Decimal(by_doc[t["doc_id"]]["consequences"]["vat_lost"]["amount"])
@@ -195,8 +190,6 @@ class GeneratedWorld(unittest.TestCase):
                 self.assertGreaterEqual(len(matched) / max(1, len(possible)), 0.9, "recall")
                 self.assertEqual(who_wrong, [], "who paid: no wrong definite answer")
                 self.assertEqual(lost, true_lost, "VAT lost total")
-        # Misses left are KSeF invoices an employee bought on the company NIP, never forwarded, no bank line:
-        # nothing says who paid, so the owner is asked (paid_by = unknown).
         self.assertGreaterEqual(who_ok_total / who_total, 0.97, f"who paid {who_ok_total}/{who_total}")
 
 
@@ -205,8 +198,6 @@ if __name__ == "__main__":
 
 
 class MonthlyInvoicesOfTheSameAmount(unittest.TestCase):
-    """A contractor billed and paid 9,800 PLN every month: each invoice takes its own month's transfer, not the next."""
-
     @staticmethod
     def invoice(month):
         doc = copy.deepcopy(DOCS["doc_rcpt412"])
@@ -229,12 +220,12 @@ class MonthlyInvoicesOfTheSameAmount(unittest.TestCase):
     def test_both_lines_reach_the_score_cap(self):
         own = score_pair(self.invoice(4), self.transfer(4), BY_ACCOUNT)
         next_month = score_pair(self.invoice(4), self.transfer(5), BY_ACCOUNT)
-        self.assertEqual((own[0], next_month[0]), (1.0, 1.0))  # the tie the ranking must break
+        self.assertEqual((own[0], next_month[0]), (1.0, 1.0))
 
     def test_an_invoice_alone_takes_its_own_months_transfer(self):
-        [result] = run([self.invoice(4)], [self.transfer(5), self.transfer(4)])  # newest first, as the database lists them
+        [result] = run([self.invoice(4)], [self.transfer(5), self.transfer(4)])
         self.assertEqual(result["match"]["transaction_id"], "txn_aw_04")
-        self.assertEqual(result["match"]["score"], 1.0)  # the shown score stays capped
+        self.assertEqual(result["match"]["score"], 1.0)
 
     def test_one_at_a_time_like_the_server_every_invoice_gets_its_own(self):
         lines = [self.transfer(m) for m in (6, 5, 4)]

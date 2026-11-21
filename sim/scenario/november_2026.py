@@ -11,13 +11,11 @@ from world import AS_OF, OUT, PERSON
 
 FIRST, LAST = date(2026, 11, 1), date(2026, 11, 20)
 CENT = Decimal("0.01")
-VENDOR_SENDER = "faktury@dostawcy.sample"  # supplier invoices by e-mail
+VENDOR_SENDER = "faktury@dostawcy.sample"
 
-# Private cards of the team (receipts paid privately).
 CARDS = {"per_tomek": "9021", "per_jan": "7730", "per_marta": "3318", "per_anna": "5521", "per_piotr": "6604",
          "per_karolina": "2287", "per_michal": "8842"}
 
-# Foreign vendors (not in KSeF): invoices are English PDFs by e-mail, VAT reverse charge.
 FOREIGN = {
     "CODEHARBOR INC (SAMPLE)": ("CodeHarbor Inc. (SAMPLE)", "US", "EIN 99-0000101",
                                 ("999 Market Street", "San Francisco, CA 94199"), "Team plan, 12 seats, monthly"),
@@ -40,13 +38,10 @@ FOREIGN = {
     "LINGUA BRIDGE GMBH (SAMPLE)": ("Lingua Bridge GmbH (SAMPLE)", "DE", "DE999999101",
                                     ("Spreeweg 999", "10999 Berlin"), None),
 }
-# Polish sellers whose card purchases come as a photographed receipt; the others e-mail a PDF invoice.
 RECEIPT_SELLERS = {"PALIWEX SP Z O O (SAMPLE)", "NORDPETRO S.A. (SAMPLE)", "BISTRO PIOTRKOWSKA 90 (SAMPLE)",
                    "SUSHI KAMIEN (SAMPLE)", "KAWIARNIA ZIARNO (SAMPLE)", "KOSZYK 24 SP Z O O (SAMPLE)",
                    "TAXIGO SP Z O O (SAMPLE)"}
-# M12: photo defects for the renderer, given to the photos in order.
 DEFECTS = ["rotated_8deg", "blur", "shadow", "crumpled", "low_light", "cropped_edge", "perspective", "glare"]
-# M5: duplicates. (bank reference of the original, format of the copy, sender of the copy, days later)
 DUPLICATES = {
     "PALIWEX 112 LODZ KARTA *4417": ("pdf", VENDOR_SENDER, 1),
     "HOTEL CENTRUM WARSZAWA KARTA *9021": ("photo", "owner@borsuk-labs.sample", 1),
@@ -81,7 +76,6 @@ def lines(description, rate, net, vat, gross):
 
 
 def from_bank(d, book):
-    """One November document from the invoice data attached to a bank line."""
     bank = d["bank"]
     payer = d["party"]
     owner_card = bank["account"] == "acc_owner"
@@ -130,13 +124,12 @@ def from_bank(d, book):
         number=d.get("number") or f"{'PARAGON' if photo else 'FV'}/{p['prefix']}/{bank['row_index']:05d}/11/2026",
         currency="PLN", lines=lines(d.get("line") or p["line"], p["rate"], net, vat, gross),
         totals={"net": f"{net}", "vat": f"{vat}", "gross": f"{gross}"}, flags=[])
-    if photo and gross <= 450:  # receipt with the company NIP up to 450 PLN counts as an invoice
+    if photo and gross <= 450:
         entry["messiness"].append("M11")
     return entry
 
 
 def receipt(doc_id, pid, bought, seller_name, what, amount, case, company_nip, live):
-    """A receipt paid with a team member's private card (reimbursement owed on 30 Nov)."""
     p = next(v for v in PARTIES.values() if v["name"] == seller_name)
     net, vat, gross = amounts(amount, p["rate"])
     invoice_in_own_name = case == "M1" and gross > 450 and doc_id != "doc_rcpt412"
@@ -149,7 +142,7 @@ def receipt(doc_id, pid, bought, seller_name, what, amount, case, company_nip, l
     flags = [] if company_nip else ["buyer_not_company", "vat_not_deductible", "missing_tax_id"]
     doc_type = "invoice" if invoice_in_own_name else ("simplified_invoice" if company_nip and gross <= 450 else
                                                       "receipt")
-    if doc_id == "doc_rcpt412":  # same values as contracts/fixtures/document.json
+    if doc_id == "doc_rcpt412":
         number = "PARAGON 004512/11/2026"
     else:
         number = f"{'FV' if invoice_in_own_name else 'PARAGON'}/{p['prefix'] or 'X'}/{doc_id[-3:]}/11/2026"
@@ -201,15 +194,15 @@ def november_documents():
         if d.get("daily"):
             daily_seen += 1
             if daily_seen % 2 == 0:
-                continue  # M7: receipt lost, the bank line has no document
+                continue
         entry = from_bank(d, book)
         key = (d["bank"]["account"], d["bank"]["row_index"])
-        if key in fa3_ids:  # M5: the same invoice also came from KSeF as FA(3) XML
+        if key in fa3_ids:
             entry["duplicate_of"] = fa3_ids[key]
-            entry["number"] = fa3_numbers[key]  # a copy of an invoice carries the invoice's own number
+            entry["number"] = fa3_numbers[key]
             entry["messiness"].append("M5")
             entry["flags"].append("duplicate_suspected")
-        entry["_ref"] = None if d.get("daily") else d["bank"]["reference"]  # duplicates: hand-written lines only
+        entry["_ref"] = None if d.get("daily") else d["bank"]["reference"]
         docs.append(entry)
 
     copies = []

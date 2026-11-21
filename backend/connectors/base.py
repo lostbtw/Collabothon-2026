@@ -15,35 +15,33 @@ from psycopg.types.json import Jsonb
 
 from backend.db.events import new_event, publish
 
-RETRY_DELAYS = (5, 20, 60)  # seconds before retry 1, 2, 3
+RETRY_DELAYS = (5, 20, 60)
 MAX_MESSAGE = 500
 
 
 @dataclass
 class FetchedItem:
-    kind: str  # raw_item.kind: bank_transaction, email, email_attachment, fx_rate_table, ...
-    external_id: str  # id in the source system: entryReference, Message-ID, NBP table number
-    payload: dict[str, Any] | None = None  # small structured items (bank line, rate table)
+    kind: str
+    external_id: str
+    payload: dict[str, Any] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     received_at: str | None = None
     content_type: str | None = None
-    sha256: str | None = None  # files: content hash, also part of the idempotency key
+    sha256: str | None = None
     size_bytes: int | None = None
     storage_uri: str | None = None
-    parent_external_id: str | None = None  # attachment -> its e-mail, in the same fetch
-    content: bytes | None = None  # the file itself: stored in raw_item_content with the RawItem (pipeline reads it)
+    parent_external_id: str | None = None
+    content: bytes | None = None
 
 
 @dataclass
 class FetchResult:
     items: list[FetchedItem]
-    cursor: str | None  # cursor after these items; stored only once they are committed
-    more: bool = False  # another page is waiting: fetch again from `cursor` in the same run
+    cursor: str | None
+    more: bool = False
 
 
 class ConnectorError(Exception):
-    """A failed fetch. `retryable` decides between a retry (then `degraded`) and `error` at once."""
-
     code = "fetch_failed"
     retryable = True
 
@@ -56,15 +54,13 @@ class ConnectorError(Exception):
 
 
 class AuthError(ConnectorError):
-    """Wrong token, password or consent: retrying cannot help."""
-
     code = "auth_failed"
     retryable = False
 
 
 class Connector(ABC):
-    connector: str  # Connector enum value of the contract
-    key_prefix: str  # first part of the idempotency key: bank, imap, nbp, ...
+    connector: str
+    key_prefix: str
     # True: a file (sha256) this source already delivered is a duplicate under any id (one receipt forwarded twice).
     dedupe_content: bool = False
 
@@ -72,11 +68,9 @@ class Connector(ABC):
         self.source = source
 
     def key_scope(self) -> str:
-        """What external ids are unique within (account, mailbox). Defaults to the source."""
         return self.source["id"]
 
     def cursor_external_id(self, cursor: str | None) -> str | None:
-        """The external id the cursor points at, or None when unknown; a cursor whose item we never stored restarts the run."""
         return None
 
     @abstractmethod
@@ -85,13 +79,11 @@ class Connector(ABC):
 
 
 def idempotency_key(prefix: str, scope: str, external_id: str, content_sha256: str | None = None) -> str:
-    """sha256 of `<prefix>:<scope>:<external_id>` (plus `:<content sha256>` for files)."""
     text = f"{prefix}:{scope}:{external_id}" + (f":{content_sha256}" if content_sha256 else "")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def raw_item_id(key: str) -> str:
-    """Deterministic: the same item always gets the same id."""
     return f"raw_{key[:20]}"
 
 
@@ -107,7 +99,6 @@ def _error_info(exc: BaseException) -> dict[str, Any]:
 
 
 def _put(conn: psycopg.Connection, table: str, doc: dict[str, Any], company_id: str | None) -> None:
-    """Insert or replace by id, without committing (the caller owns the transaction)."""
     conn.execute(
         f"""insert into {table} (id, company_id, doc) values (%s, %s, %s)
             on conflict (id) do update set doc = excluded.doc""",
@@ -131,9 +122,7 @@ def run_once(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> dict[str, Any] | None:
-    """One sync of one source: the finished SyncRun, or None when another run of it is in progress."""
     source_id = connector.source["id"]
-    # one run per source at a time, across processes
     locked = conn.execute("select pg_try_advisory_lock(hashtext(%s))", (f"connector:{source_id}",)).fetchone()[0]
     conn.commit()
     if not locked:
@@ -154,7 +143,7 @@ def _run(conn, connector, *, trigger, run_id, sleep, clock) -> dict[str, Any]:
     if pointed is not None:
         key = idempotency_key(connector.key_prefix, connector.key_scope(), pointed)
         if conn.execute("select 1 from raw_items where idempotency_key = %s", (key,)).fetchone() is None:
-            source["cursor"] = None  # not a cursor we wrote: read from the beginning, duplicates are skipped
+            source["cursor"] = None
     conn.commit()  # end the reads so each `with conn.transaction()` below is a real, separately committed transaction
     company = source["company_id"]
     started = clock()
@@ -237,7 +226,6 @@ def _run(conn, connector, *, trigger, run_id, sleep, clock) -> dict[str, Any]:
 
 def _commit_page(conn: psycopg.Connection, connector: Connector, source: dict[str, Any], run: dict[str, Any],
                  result: FetchResult) -> None:
-    """Items of one page, their events and the new cursor: all or nothing."""
     scope = connector.key_scope()
     company = source["company_id"]
     now = iso(datetime.now(UTC))
@@ -288,7 +276,6 @@ def _commit_page(conn: psycopg.Connection, connector: Connector, source: dict[st
                 dup += 1
         if result.cursor is not None:
             source["cursor"] = result.cursor
-        # counted, not added up: stays right whatever happened to the cursor (fixtures, a reset, a re-read)
         source["items_total"] = conn.execute("select count(*) from raw_items where source_id = %s",
                                              (source["id"],)).fetchone()[0]
         run["items_fetched"] += len(result.items)

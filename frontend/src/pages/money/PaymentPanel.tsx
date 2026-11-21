@@ -19,7 +19,6 @@ import { typeOf, type Payment } from "./payments";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const none = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
-/** How often and how long the panel waits for Ordo to read an added file. */
 const POLL_MS = 1500;
 const POLL_TRIES = 40;
 
@@ -47,7 +46,6 @@ export function PaymentPanel({ payment: p, onClose, onChanged }: { payment: Paym
     try {
       const raw = await api.upload(file, { companyId, submittedBy: "owner", transactionId: p.transaction?.id });
       setUpload({ state: "reading" });
-      // Ordo reads the file in the background; wait for the document that comes from it.
       for (let i = 0; i < POLL_TRIES && alive.current; i++) {
         await sleep(POLL_MS);
         const docs = await api.documents(companyId);
@@ -117,7 +115,6 @@ function UploadState({ upload, onRetry }: { upload: Upload; onRetry: () => void 
   );
 }
 
-/** A private payment with a prepared action: the owner approves it here, simulated. */
 function Decide({ p, card }: { p: Payment; card: Recommendation }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Approval | null>(null);
@@ -197,7 +194,6 @@ export function DropZone({ onFile, compact }: { onFile: (f: File) => void; compa
   );
 }
 
-/** What Ordo read from a file, before the owner confirms it. */
 function ReadResult({ p, d, onChanged }: { p: Payment; d: OrdoDocument; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,7 +251,6 @@ function ReadResult({ p, d, onChanged }: { p: Payment; d: OrdoDocument; onChange
 function OnFile({ p, onFile }: { p: Payment; onFile: (f: File) => void }) {
   const d = p.document;
   if (!d) return <div className="box plain"><span className="small">{p.doc === "receipt" ? "Receipt" : "Invoice"} on file.</span></div>;
-  // Once the owner confirmed the document, "Ordo was unsure" is no longer news.
   const notes = flagNotes(d, p.match ?? undefined).filter((n) => !(d.status === "approved" && n === "Low confidence"));
   return (
     <div className="stack" style={{ gap: 12 }}>
@@ -277,7 +272,6 @@ function OnFile({ p, onFile }: { p: Payment; onFile: (f: File) => void }) {
   );
 }
 
-/** A small picture of the document: the original file when the API stores one (opens large on click), else drawn from what was read. */
 function Slip({ d }: { d: OrdoDocument }) {
   const original = useOriginal(d);
   const [open, setOpen] = useState(false);
@@ -308,7 +302,6 @@ function Slip({ d }: { d: OrdoDocument }) {
 
 const CHANGEABLE = Object.keys(CATEGORY_LABEL).filter((c) => c !== "revenue_services") as Category[];
 
-/** Why the payment sits under its type, and a way to change it when there is a document to correct. */
 function Why({ p, onChanged }: { p: Payment; onChanged: () => void }) {
   const t = typeOf(p);
   const d = p.document;
@@ -320,7 +313,6 @@ function Why({ p, onChanged }: { p: Payment; onChanged: () => void }) {
   async function change(category: Category) {
     setError(null);
     try {
-      // With a document the correction goes on it, else the bank line's type changes; either way it becomes a rule.
       if (d) await api.patchDocument(d.id, { category_suggestion: { category, confidence: 1, method: "history" } });
       else if (t0 && (await api.setTransactionCategory(t0.id, category, companyId)) === null) {
         return setError("Not saved: the backend cannot change a payment's type yet.");

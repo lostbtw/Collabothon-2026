@@ -4,8 +4,7 @@ import unittest
 from backend.pipeline.tests import scenario as sc
 from backend.pipeline.tests.schema_check import schema_errors
 
-# Differences that come from the scenario data; the test fails on anything else.
-KNOWN_SCENARIO_ISSUES: dict[str, str] = {}  # dup_01 / dup_02 numbers now match their FA(3) originals
+KNOWN_SCENARIO_ISSUES: dict[str, str] = {}
 NEVER_MISSING = {"bank_fee", "tax_or_social_security", "salary", "reimbursement_payout", "internal_transfer"}
 
 
@@ -60,7 +59,6 @@ class Scenario(unittest.TestCase):
         self.assertEqual(m["consequences"]["vat_lost"], {"amount": "242.90", "currency": "PLN"})
 
     def test_auto_confirmed_matches_are_all_right(self):
-        """Nothing the owner is not asked about may be wrong; most of a year of exact KSeF invoices needs no card."""
         want = {sc.doc_id(t["document_id"]): sc.txn_id(t["bank_line"]) for t in self.truth["documents"]
                 if t["match_type"] != "duplicate_document"}
         auto = [m for m in self.match.values() if m["status"] == "auto_confirmed"]
@@ -83,7 +81,7 @@ class Scenario(unittest.TestCase):
             if b["reason"] in NEVER_MISSING:
                 self.assertNotEqual(got, "missing_document", b)
             if b["reason"] == "document_missing" and b["booking_date"] <= "2026-11-16":
-                self.assertEqual(got, "missing_document", b)  # older than the 5-day grace on 21 Nov
+                self.assertEqual(got, "missing_document", b)
 
 
 if __name__ == "__main__":

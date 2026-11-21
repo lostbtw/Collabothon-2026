@@ -13,19 +13,16 @@ from .ledger import DECIDED, entries_for_match
 log = logging.getLogger("ordo.finance")
 PRODUCER = "finance"
 DEBOUNCE_SECONDS = 2.0
-# company id -> (time of its last input event, that event); emptied by recompute_due()
 DIRTY: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
 def on_inputs_changed(conn: psycopg.Connection, event: dict[str, Any]) -> None:
-    """A new bank line, an approved Ledger entry or an executed action: the forecast must be recomputed."""
     if event.get("company_id"):
         DIRTY[event["company_id"]] = (time.monotonic(), event)
 
 
 def recompute_due(conn: psycopg.Connection, *, debounce: float = DEBOUNCE_SECONDS, now: float | None = None) -> list[str]:
-    """Recompute the forecast of every company whose last input event is at least `debounce` seconds old."""
-    from .engine import recompute  # late import: the engine reads many tables, the handlers only a few
+    from .engine import recompute
 
     now = time.monotonic() if now is None else now
     done = []
@@ -43,7 +40,6 @@ def recompute_due(conn: psycopg.Connection, *, debounce: float = DEBOUNCE_SECOND
 
 
 def on_match_decided(conn: psycopg.Connection, event: dict[str, Any]) -> list[str]:
-    """Book what a decided Match calls for. Returns the ids of the entries stored by this call."""
     s = Store(conn)
     payload = event["payload"]
     match = s.get("match", payload["match_id"])
@@ -51,7 +47,7 @@ def on_match_decided(conn: psycopg.Connection, event: dict[str, Any]) -> list[st
         log.warning("finance: %s refers to unknown match %s", event["id"], payload["match_id"])
         return []
     if payload.get("status") not in DECIDED or match.get("status") != payload.get("status"):
-        return []  # rejected (or decided differently since): nothing is booked
+        return []
     company = event.get("company_id") or s.company_of("match", match["id"])
     document = s.get("document", match["document_id"])
     transaction = s.get("transaction", match["transaction_id"]) if match.get("transaction_id") else None
@@ -62,8 +58,8 @@ def on_match_decided(conn: psycopg.Connection, event: dict[str, Any]) -> list[st
     for entry in entries:
         existing = s.list("ledger_entry", match_id=match["id"], type=entry["type"])
         if existing and existing[0]["status"] != "proposed":
-            continue  # already booked (or voided): the same decision twice books once
-        if existing:  # a proposed entry (e.g. the contract fixture) becomes the approved one, keeping its id
+            continue
+        if existing:
             entry = {**entry, "id": existing[0]["id"]}
             s.put("ledger_entry", entry, company_id=company)
         elif not s.add("ledger_entry", entry, company_id=company):

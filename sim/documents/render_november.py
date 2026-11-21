@@ -38,7 +38,6 @@ LABELS = {
 
 
 def fmt(amount, lang: str) -> str:
-    """'1299.00' -> '1 299,00' (pl) / '1,299.00' (en)."""
     s = f"{Decimal(amount):,.2f}"
     return s.replace(",", " ").replace(".", ",") if lang == "pl" else s
 
@@ -202,7 +201,7 @@ def screenshot(exe: str, profile: Path, html_file: Path, width: int, height: int
     png = html_file.with_suffix(".png")
     run_browser(exe, profile, html_file, f"--window-size={width},{height}", f"--screenshot={png}")
     img = Image.open(png).convert("RGB")
-    box = ImageChops.difference(img, Image.new("RGB", img.size, "white")).getbbox()  # crop to the paper
+    box = ImageChops.difference(img, Image.new("RGB", img.size, "white")).getbbox()
     if box:
         pad = 18
         img = img.crop((max(box[0] - pad, 0), max(box[1] - pad, 0), min(box[2] + pad, img.width),
@@ -211,10 +210,10 @@ def screenshot(exe: str, profile: Path, html_file: Path, width: int, height: int
 
 
 def desk(size: tuple[int, int], rnd: random.Random) -> Image.Image:
-    base = (rnd.randint(120, 160), rnd.randint(95, 120), rnd.randint(70, 90))  # wooden desk
+    base = (rnd.randint(120, 160), rnd.randint(95, 120), rnd.randint(70, 90))
     img = Image.new("RGB", size, base)
     draw = ImageDraw.Draw(img)
-    for y in range(0, size[1], 3):  # wood grain
+    for y in range(0, size[1], 3):
         shade = rnd.randint(-14, 14)
         draw.line([(0, y), (size[0], y + rnd.randint(-6, 6))], fill=tuple(max(0, c + shade) for c in base), width=2)
     return img.filter(ImageFilter.GaussianBlur(1.2))
@@ -226,7 +225,6 @@ def noise(img: Image.Image, rnd: random.Random, amount: int) -> Image.Image:
 
 
 def crumple(paper: Image.Image, rnd: random.Random) -> Image.Image:
-    """Smooth wrinkles: one displacement per grid vertex, shared by the neighbouring tiles (no tearing)."""
     w, h = paper.size
     step = 60
     xs, ys = list(range(0, w, step)) + [w], list(range(0, h, step)) + [h]
@@ -245,7 +243,7 @@ def crumple(paper: Image.Image, rnd: random.Random) -> Image.Image:
             mesh.append(((x0, y0, x1, y1), quad))
     out = paper.transform(paper.size, Image.MESH, mesh, Image.BICUBIC, fillcolor="white")
     draw = ImageDraw.Draw(out, "RGBA")
-    for _ in range(6):  # creases
+    for _ in range(6):
         x0, y0 = rnd.randint(0, w), rnd.randint(0, h)
         draw.line([(x0, y0), (x0 + rnd.randint(-w // 2, w // 2), y0 + rnd.randint(-h // 3, h // 3))],
                   fill=(0, 0, 0, 28), width=2)
@@ -253,13 +251,12 @@ def crumple(paper: Image.Image, rnd: random.Random) -> Image.Image:
 
 
 def perspective_coeffs(src, dst):
-    """Coefficients for Image.PERSPECTIVE mapping dst quad -> src quad."""
     matrix = []
     for (x, y), (u, v) in zip(dst, src):
         matrix.append([x, y, 1, 0, 0, 0, -u * x, -u * y])
         matrix.append([0, 0, 0, x, y, 1, -v * x, -v * y])
     rhs = [c for point in src for c in point]
-    n = 8  # solve the 8x8 system (Gauss-Jordan)
+    n = 8
     a = [row[:] + [rhs[i]] for i, row in enumerate(matrix)]
     for col in range(n):
         pivot = max(range(col, n), key=lambda r: abs(a[r][col]))
@@ -274,12 +271,12 @@ def perspective_coeffs(src, dst):
 def photo(paper: Image.Image, defects: list[str], rnd: random.Random) -> Image.Image:
     if "crumpled" in defects:
         paper = crumple(paper, rnd)
-    if "cropped_edge" in defects:  # the photo cut off the left edge of the paper (amounts stay readable)
+    if "cropped_edge" in defects:
         paper = paper.crop((int(paper.width * 0.07), 0, paper.width, paper.height))
     w, h = paper.size
-    margin = (1.45, 1.25) if w < 600 else (1.12, 1.10)  # narrow receipt vs a whole A4 page filling the frame
+    margin = (1.45, 1.25) if w < 600 else (1.12, 1.10)
     canvas = desk((int(w * margin[0]), int(h * margin[1])), rnd)
-    shadow = Image.new("L", canvas.size, 0)  # soft drop shadow under the paper
+    shadow = Image.new("L", canvas.size, 0)
     ox, oy = (canvas.width - w) // 2, (canvas.height - h) // 2
     ImageDraw.Draw(shadow).rectangle([ox + 10, oy + 14, ox + w + 10, oy + h + 14], fill=110)
     canvas.paste((40, 30, 20), mask=shadow.filter(ImageFilter.GaussianBlur(14)))
@@ -291,12 +288,12 @@ def photo(paper: Image.Image, defects: list[str], rnd: random.Random) -> Image.I
         dst = [(0, 0), (cw, 0), (cw, ch), (0, ch)]
         src = [(cw * 0.10, ch * 0.04), (cw * 0.90, 0), (cw, ch), (0, ch * 0.97)]
         canvas = canvas.transform(canvas.size, Image.PERSPECTIVE, perspective_coeffs(src, dst), Image.BICUBIC)
-    if "shadow" in defects:  # a hand/phone shadow over a third of the receipt
+    if "shadow" in defects:
         layer = Image.new("L", canvas.size, 0)
         ImageDraw.Draw(layer).polygon([(0, canvas.height * 0.35), (canvas.width * 0.7, canvas.height * 0.55),
                                        (canvas.width * 0.5, canvas.height), (0, canvas.height)], fill=120)
         canvas.paste((20, 15, 10), mask=layer.filter(ImageFilter.GaussianBlur(40)))
-    if "glare" in defects:  # ceiling light reflected on glossy paper
+    if "glare" in defects:
         layer = Image.new("L", canvas.size, 0)
         cx, cy, r = canvas.width * 0.58, canvas.height * 0.42, canvas.width * 0.18
         ImageDraw.Draw(layer).ellipse([cx - r, cy - r * 0.6, cx + r, cy + r * 0.6], fill=235)
@@ -306,8 +303,8 @@ def photo(paper: Image.Image, defects: list[str], rnd: random.Random) -> Image.I
         canvas = noise(canvas, rnd, 60)
     else:
         canvas = noise(canvas, rnd, 25)
-    canvas = ImageEnhance.Color(canvas).enhance(0.92)  # slightly warm, phone-like
-    if "blur" in defects:  # out of focus, but a careful reader still gets the numbers
+    canvas = ImageEnhance.Color(canvas).enhance(0.92)
+    if "blur" in defects:
         canvas = canvas.filter(ImageFilter.GaussianBlur(1.2))
     else:
         canvas = canvas.filter(ImageFilter.GaussianBlur(0.5))
@@ -340,7 +337,7 @@ def main(ids: list[str]) -> None:
     if ids:
         docs = [d for d in docs if d["id"] in ids]
     exe = browser()
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:  # Edge may still hold its profile lock
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         for d in docs:
             path = render(d, exe, Path(tmp))
             print(f"{d['id']:16} {d['kind']:8} {','.join(d.get('photo_defects') or []) or '-':14} -> "

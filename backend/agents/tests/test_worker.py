@@ -29,7 +29,7 @@ def test_a_suggested_match_in_the_queue_becomes_a_card_and_the_delivery_is_done(
 
 def test_a_failing_event_is_retried_then_marked_dead(db):
     seed(db)
-    event = new_event("forecast.updated", "co_borsuk", {}, producer="finance")  # no forecast_id: the handler fails
+    event = new_event("forecast.updated", "co_borsuk", {}, producer="finance")
     publish(db, event)
 
     for _ in range(3):

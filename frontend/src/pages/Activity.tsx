@@ -78,7 +78,6 @@ export function ActivityView({ lines, today }: { lines: Done[]; today: string })
   );
 }
 
-/** "Today", "Yesterday", or the date. */
 function dayName(day: string, today: string): string {
   const diff = daysBetween(day, today);
   return diff === 0 ? `Today · ${longDate(day)}` : diff === 1 ? `Yesterday · ${longDate(day)}` : longDate(day);

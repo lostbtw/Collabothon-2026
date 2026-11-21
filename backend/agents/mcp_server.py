@@ -23,12 +23,10 @@ log = logging.getLogger("ordo.agents.mcp")
 
 
 def all_tools() -> dict[str, Tool]:
-    """Every agent's tools under one name each (the chat's and the liquidity agent's get_forecast are one function)."""
     return {**CHAT_TOOLS, **LIQUIDITY_TOOLS, **fx.TOOLS}
 
 
 def _as_mcp_tool(fn: Callable[..., Any], database_url: str) -> Callable[..., Any]:
-    """fn(conn, company, **kw) -> tool(company_id, **kw) that opens its own connection."""
     signature = inspect.signature(fn)
     hints = typing.get_type_hints(fn) if getattr(fn, "__annotations__", None) else {}
     params = [p.replace(annotation=hints.get(p.name, p.annotation)) for p in list(signature.parameters.values())[2:]]
@@ -37,7 +35,7 @@ def _as_mcp_tool(fn: Callable[..., Any], database_url: str) -> Callable[..., Any
         try:
             with psycopg.connect(database_url) as conn:
                 return fn(conn, company_id, **arguments)
-        except Exception as exc:  # the model reads the reason and can fix its arguments, as in the in-process loop
+        except Exception as exc:
             log.warning("tool %s failed: %s", getattr(fn, "__name__", "?"), exc)
             return {"error": f"{type(exc).__name__}: {exc}"}
 
@@ -61,14 +59,12 @@ def build_server(database_url: str | None = None) -> MCPServer:
     async def healthz(request: Request) -> JSONResponse:
         return JSONResponse({"status": "ok", "tools": sorted(all_tools())})
 
-    # OGX reaches the model through this process (see model_passthrough: tool results as plain text).
     server.custom_route(model_passthrough.PREFIX + "/{path:path}", methods=["GET", "POST"])(model_passthrough.forward)
 
     return server
 
 
 def transport_security() -> TransportSecuritySettings:
-    """Localhost plus the Service names in ORDO_MCP_ALLOWED_HOSTS (the SDK refuses any other Host header)."""
     hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*", *settings.mcp_allowed_hosts()]
     return TransportSecuritySettings(enable_dns_rebinding_protection=True, allowed_hosts=hosts)
 

@@ -9,7 +9,7 @@ from .who_paid import apply_who_paid, has_tax_consequence, match_for_unmatched_d
 
 THRESHOLD = 0.55
 AUTO = 0.90
-FX_BAND = (Decimal("-0.005"), Decimal("0.045"))  # bank amount vs gross x NBP rate (card spread)
+FX_BAND = (Decimal("-0.005"), Decimal("0.045"))
 CARD_LAG = (-1, 5)
 TRANSFER_GRACE_DAYS = 30
 SYSTEM = {"role": "system", "person_id": None, "name": "rule: auto-confirm >= 0.90 for known recurring series",
@@ -26,7 +26,6 @@ def _norm(text) -> str:
 
 
 def name_similarity(seller: str, bank_text: str) -> float:
-    """Name similarity (token overlap or sequence ratio), or the seller's core name inside the bank text (card descriptors)."""
     a, b = _norm(seller), _norm(bank_text)
     if not a or not b:
         return 0.0
@@ -54,7 +53,6 @@ def _fmt(x: Decimal) -> str:
 
 
 def score_pair(doc: dict, txn: dict, accounts: dict) -> tuple[float, list[dict]]:
-    """(score, reasons). Score 0 and no reasons when a hard filter fails."""
     amount = to_decimal(txn["amount_base"]["amount"])
     if (doc["direction"] == "purchase") != (amount < 0):
         return 0.0, []
@@ -138,22 +136,20 @@ def score_pair(doc: dict, txn: dict, accounts: dict) -> tuple[float, list[dict]]
 
 
 def _evidence(reasons: list[dict]) -> float:
-    """The uncapped sum of a pair's reason weights: what ranks candidate pairs."""
     return round(sum(r["weight"] for r in reasons), 4)
 
 
 def run_matching(documents: list[dict], transactions: list[dict], *, company: dict, people: list[dict],
                  accounts: list[dict], now: str, as_of: str | None = None,
                  senders: dict | None = None) -> list[dict]:
-    """One result per golden Document: {"match", "control_level", "alternatives"}; matched bank lines are not offered again."""
     senders = senders or {}
     company_accounts = [a for a in accounts if a.get("company_id") == company["id"]]
     by_account = {a["id"]: a for a in company_accounts}
     docs = [d for d in documents if d.get("status") != "duplicate" and d["company_id"] == company["id"]]
     lines = [t for t in transactions if t["account_id"] in by_account
-             and t.get("match_status", "unmatched") in ("unmatched", "missing_document")]  # a late receipt still fits
+             and t.get("match_status", "unmatched") in ("unmatched", "missing_document")]
 
-    candidates = []  # (score, doc index, txn index, reasons)
+    candidates = []
     for di, doc in enumerate(docs):
         for ti, txn in enumerate(lines):
             s, reasons = score_pair(doc, txn, by_account)
@@ -199,14 +195,12 @@ def run_matching(documents: list[dict], transactions: list[dict], *, company: di
 
 
 def is_exact_ksef(doc: dict, reasons: list[dict]) -> bool:
-    """A KSeF FA(3) invoice (parsed, not read by a model) that the bank line pays to the cent."""
     extraction = doc.get("extraction") or {}
     return (doc.get("channel") == "ksef" and extraction.get("method") == "xml_parse"
             and extraction.get("confidence") == 1.0 and any(r["rule"] == "amount_exact" for r in reasons))
 
 
 def auto_rule(score: float, doc: dict, txn: dict, reasons: list[dict], consequences: dict) -> dict | None:
-    """The system decider when the pair auto-confirms (a known recurring series, or a KSeF invoice paid to the cent)."""
     if score < AUTO or has_tax_consequence(consequences):
         return None
     if txn.get("recurring_series_id"):
@@ -217,6 +211,5 @@ def auto_rule(score: float, doc: dict, txn: dict, reasons: list[dict], consequen
 
 
 def match_suggested_payload(match: dict) -> dict:
-    """Small payload for the `match.suggested` event (contracts/events.md)."""
     return {"match_id": match["id"], "document_id": match["document_id"], "transaction_id": match["transaction_id"],
             "paid_by": match["paid_by"], "score": match["score"]}

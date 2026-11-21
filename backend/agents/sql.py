@@ -18,7 +18,6 @@ class UnsafeQuery(ValueError):
 
 
 def guard(sql: str) -> str:
-    """The query to run, or UnsafeQuery."""
     text = _COMMENTS.sub(" ", sql or "").strip()
     if text.endswith(";"):
         text = text[:-1].rstrip()
@@ -47,7 +46,6 @@ def _plain(value: Any) -> Any:
 
 
 def run_readonly_sql(conn: psycopg.Connection, company: str, sql: str) -> dict[str, Any]:
-    """{"columns", "rows", "sql"} or {"error", "sql"}."""
     try:
         query = guard(sql)
     except UnsafeQuery as exc:

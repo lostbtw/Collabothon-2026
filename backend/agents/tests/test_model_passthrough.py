@@ -20,12 +20,11 @@ def test_a_tool_result_of_text_parts_becomes_plain_text():
 
     assert text_parts_to_text(body) == 1
     assert body["messages"][1]["content"] == '{"total": "5"}\nok'
-    assert isinstance(body["messages"][2]["content"], list)  # mixed parts are left alone
+    assert isinstance(body["messages"][2]["content"], list)
 
 
 @pytest.fixture
 def model(monkeypatch):
-    """A stand-in for the vLLM endpoint that records what reached it."""
     seen: list[httpx.Request] = []
 
     def answer(request: httpx.Request) -> httpx.Response:

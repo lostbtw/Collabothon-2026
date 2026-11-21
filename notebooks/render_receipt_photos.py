@@ -11,13 +11,11 @@ REPO = Path(__file__).resolve().parents[1]
 RECEIPTS = REPO / "sim" / "documents" / "receipts"
 OUT = REPO / "notebooks" / "receipt_renders"
 QUALITY = 86
-# Four shots per receipt: one clean, three with the defects a hurried phone photo has.
 SHOTS = {
     "rcpt_hero": [[], ["blur"], ["shadow", "perspective"], ["low_light"]],
     "rcpt_cafe": [[], ["crumpled"], ["glare"], ["rotated_8deg", "blur"]],
     "rcpt_office": [[], ["perspective"], ["shadow", "low_light"], ["crumpled", "glare"]],
 }
-# The print sheet's screen style has a grey page; the screenshot crop needs the paper on white.
 WHITE_PAGE = "@media screen { body { background: #fff; padding: 4mm; } }"
 
 

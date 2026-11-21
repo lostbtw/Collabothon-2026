@@ -30,7 +30,6 @@ def fixture(entity: str, id_: str) -> dict:
 
 
 def add_source(db, source_id: str, account_id: str, **override) -> dict:
-    """The fixture Source with a fresh cursor (the fixture's own cursor is mock data), and its Account."""
     source = {**fixture("source", source_id), "cursor": None, "items_total": 0, "last_error": None,
               "next_run_at": None, **override}
     db.execute("insert into sources (id, company_id, doc) values (%s, %s, %s)",
@@ -44,7 +43,6 @@ def add_source(db, source_id: str, account_id: str, **override) -> dict:
 
 @pytest.fixture
 def bank():
-    """The Sandbox Bank app; a TestClient is an httpx.Client, so the connector talks to it exactly as over HTTP."""
     with TestClient(create_bank(BankStore(), token=TOKEN)) as client:
         yield client
 
@@ -81,7 +79,7 @@ def test_injected_line_becomes_one_raw_item_in_one_poll(db, bank, pln):
     [item] = raw_items(db)
     assert item["kind"] == "bank_transaction"
     assert item["external_id"] == line["entryReference"] == "E000000001"
-    assert item["payload"] == line  # exactly what the bank sent
+    assert item["payload"] == line
     assert item["metadata"] == {"account_id": "acc_pln", "booking_date": "2026-11-20"}
     assert Store(db).get("source", "src_bank_pln")["cursor"] == "2026-11-20|E000000001"
 
@@ -113,7 +111,6 @@ def test_pages_are_followed_in_one_poll(db, bank, pln):
 
 
 def test_raw_item_feeds_role_3s_normaliser(db, bank, pln):
-    """The payload is what backend/pipeline reads: the line normalises into a valid Transaction."""
     from backend.db.contracts import MODELS
     from backend.pipeline.normalise import normalise_bank_line
 
@@ -181,12 +178,11 @@ def test_tick_polls_due_sources_and_respects_next_run_at(db, bank, pln):
     now = datetime.now(UTC)
     [first] = _tick(db, bank, now, first=True)
     assert first["trigger"] == "startup" and first["items_new"] == 1
-    assert _tick(db, bank, now) == []  # not due again until next_run_at
+    assert _tick(db, bank, now) == []
     assert len(_tick(db, bank, now + timedelta(seconds=61))) == 1
 
 
 def _tick(db, bank, now, first=False):
-    """tick() with the test token (the process reads ORDO_BANK_TOKEN)."""
     os.environ["ORDO_BANK_TOKEN"] = TOKEN
     try:
         return connectors.tick(db, bank, now=now, first=first, sleep=lambda s: None)
@@ -206,11 +202,11 @@ def test_sync_now_button_is_picked_up(db, db_url, bank, pln):
     from backend.api.app import create_app as create_api
     from backend.db.seed import seed
 
-    seed(db)  # the API checks that the company exists
+    seed(db)
     inject(bank)
     with TestClient(create_api(database_url=db_url)) as api:
         run = api.post("/api/v1/sources/src_bank_pln/sync").json()
-        [result] = _tick(db, bank, datetime.now(UTC))  # adopted once, not run a second time by the schedule
+        [result] = _tick(db, bank, datetime.now(UTC))
         assert result["id"] == run["id"] and result["trigger"] == "manual" and result["status"] == "success"
         src = next(s for s in api.get("/api/v1/sources?company_id=co_borsuk").json()["items"] if s["id"] == "src_bank_pln")
         assert src["status"] == "connected" and src["last_synced_at"] and src["items_total"] == 1
@@ -231,7 +227,6 @@ def test_recover_closes_runs_left_running_by_a_dead_process(db, pln):
 
 
 def test_fixture_cursor_is_detected_and_the_source_starts_over(db, bank):
-    # exactly what `python -m backend.db fixtures` leaves: "already read up to E000000731, 731 items"
     add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-21|E000000731", items_total=731)
     inject(bank)
     inject(bank, amount="-5.00")
@@ -239,7 +234,7 @@ def test_fixture_cursor_is_detected_and_the_source_starts_over(db, bank):
     assert result["items_new"] == 2
     src = Store(db).get("source", "src_bank_pln")
     assert src["cursor"] == "2026-11-20|E000000002"
-    assert src["items_total"] == 2  # counted in the database, not 731 + 2
+    assert src["items_total"] == 2
 
 
 def add_source_noop(db):
@@ -247,7 +242,6 @@ def add_source_noop(db):
 
 
 def test_fixture_cursor_that_matches_a_real_line_is_still_not_trusted(db, bank):
-    """Found live: a fixture cursor naming the bank's real last line is still not ours, so everything is read."""
     for i in range(3):
         inject(bank, amount=f"-{i + 1}.00")
     add_source(db, "src_bank_pln", "acc_pln", cursor="2026-11-20|E000000003", items_total=3)
@@ -260,7 +254,7 @@ def test_fixture_schedule_a_day_ahead_does_not_block_the_first_poll(db, bank):
     tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
     add_source(db, "src_bank_pln", "acc_pln", next_run_at=tomorrow)
     inject(bank)
-    assert len(_tick(db, bank, datetime.now(UTC))) == 1  # not first pass, still due: the time was not ours
+    assert len(_tick(db, bank, datetime.now(UTC))) == 1
 
 
 def test_fixture_cursor_with_an_empty_bank_is_cleared(db, bank):
@@ -269,7 +263,7 @@ def test_fixture_cursor_with_an_empty_bank_is_cleared(db, bank):
     assert result["status"] == "success" and result["items_new"] == 0
     src = Store(db).get("source", "src_bank_pln")
     assert src["cursor"] is None and src["items_total"] == 0
-    inject(bank)  # the first real line then arrives normally
+    inject(bank)
     assert poll(db, add_source_noop(db), bank)["items_new"] == 1
 
 
@@ -277,7 +271,7 @@ def test_a_valid_cursor_is_kept_when_nothing_is_new(db, bank, pln):
     inject(bank)
     poll(db, pln, bank)
     again = poll(db, add_source_noop(db), bank)
-    assert again["items_fetched"] == 0  # nothing re-read
+    assert again["items_fetched"] == 0
     assert Store(db).get("source", "src_bank_pln")["cursor"] == "2026-11-20|E000000001"
 
 
@@ -285,10 +279,10 @@ def test_counter_matches_the_database_even_after_a_manual_reset(db, bank, pln):
     inject(bank)
     inject(bank, amount="-5.00")
     poll(db, pln, bank)
-    assert connectors.reset_bank_cursors(db) == 1  # the manual tool still exists; it is no longer needed
+    assert connectors.reset_bank_cursors(db) == 1
     again = poll(db, add_source_noop(db), bank)
     assert (again["items_new"], again["items_duplicate"]) == (0, 2)
-    assert Store(db).get("source", "src_bank_pln")["items_total"] == 2  # not 0
+    assert Store(db).get("source", "src_bank_pln")["items_total"] == 2
 
 
 def test_demo_interval(db, bank, pln):

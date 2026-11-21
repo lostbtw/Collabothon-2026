@@ -22,7 +22,7 @@ def pay(net, p=D(1)):
     ("8200.00", "11544.82", "865", "4843.76"),
     ("7400.00", "10371.27", "744", "4351.38"),
     ("7000.00", "9784.49", "683", "4105.19"),
-    ("2000.00", "2547.00", "0", "1068.62"),  # low pay: no tax, the gross comes from the other formula
+    ("2000.00", "2547.00", "0", "1068.62"),
 ])
 def test_pay_in_pln(net, gross, pit, zus):
     assert pay(net) == (D(gross), D(pit), D(zus))
@@ -51,9 +51,9 @@ def test_pln_unit():
 
 @pytest.mark.parametrize("dom, y, m, expected", [
     (25, 2026, 10, date(2026, 11, 25)),
-    (25, 2026, 11, date(2026, 12, 28)),  # 25 and 26 Dec are holidays, 27 is a Sunday
-    (15, 2026, 10, date(2026, 11, 16)),  # 15 Nov is a Sunday
-    (20, 2026, 11, date(2026, 12, 21)),  # 20 Dec is a Sunday
+    (25, 2026, 11, date(2026, 12, 28)),
+    (15, 2026, 10, date(2026, 11, 16)),
+    (20, 2026, 11, date(2026, 12, 21)),
     (20, 2026, 12, date(2027, 1, 20)),
 ])
 def test_due_dates(dom, y, m, expected):
@@ -161,7 +161,7 @@ def test_foreign_documents_count_for_cit_but_not_for_vat():
     comps = by_id(components(docs, as_of=date(2026, 11, 1), end=date(2026, 12, 31)))
 
     assert not any(i.startswith("c_tax_vat") for i in comps)
-    assert comps["c_tax_cit_202610"]["amount_base"]["amount"] == "-397.00"  # 9% of 1000 EUR x 4.41
+    assert comps["c_tax_cit_202610"]["amount_base"]["amount"] == "-397.00"
 
 
 JAN = {"day": date(2026, 11, 30), "key": "jan", "name": "Jan", "net": D("8200.00"),
@@ -188,8 +188,8 @@ def test_pit4_threshold_counts_year_to_date_base_of_each_person_and_resets_in_ja
     comps = by_id(components([], high, as_of=date(2026, 1, 1), end=date(2027, 2, 28)))
     amount = lambda month: -D(comps[f"c_tax_pit4_{month}"]["amount_base"]["amount"])
 
-    assert amount("202612") > amount("202601")  # December is taxed at 32%, January at 12%
-    assert amount("202701") == amount("202601")  # the year-to-date base starts again on 1 January
+    assert amount("202612") > amount("202601")
+    assert amount("202701") == amount("202601")
 
 
 def test_components_follow_role_5_parsing_rules():

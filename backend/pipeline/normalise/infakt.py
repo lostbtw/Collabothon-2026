@@ -18,7 +18,6 @@ def _amount(value) -> Decimal | None:
 
 
 def parse_infakt(invoice: dict, raw_item: dict, company: dict, rates=None) -> dict:
-    """`company` needs `id`, `name`, `tax_id`; it is the seller on its own sales invoices."""
     currency = invoice.get("currency") or "PLN"
     gross = money(_amount(invoice["gross_price"]), currency)
     issue_date = invoice.get("invoice_date")

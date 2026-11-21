@@ -12,7 +12,6 @@ TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 PSD2 = {**AUTH, "Consent-ID": "demo"}
 
-# Newest line first, like the organisers' file; amounts with a decimal comma; one CHF line inside a EUR account.
 MINI_CSV = (
     '"Account Number";"Booking Date";"Value Date";"Transaction Type";"Payment Reference";"Beneficiary/Payer";'
     '"Counterparty Account";"Bank Code";"Amount";"Currency";"Info"\n'
@@ -38,14 +37,14 @@ def post_line(client, **kw):
 def test_bearer_and_consent_are_required(client):
     assert client.get("/v1/accounts").status_code == 401
     assert client.get("/v1/accounts", headers={"Authorization": "Bearer wrong", "Consent-ID": "demo"}).status_code == 401
-    assert client.get("/v1/accounts", headers=AUTH).status_code == 403  # no Consent-ID
+    assert client.get("/v1/accounts", headers=AUTH).status_code == 403
     assert client.get("/v1/accounts", headers={**AUTH, "Consent-ID": "other"}).status_code == 403
     assert client.get("/v1/accounts", headers=PSD2).status_code == 200
 
 
 def test_admin_needs_bearer(client):
     assert client.post("/admin/reset").status_code == 401
-    assert client.get("/health").status_code == 200  # no auth
+    assert client.get("/health").status_code == 200
 
 
 def test_accounts_list_has_the_four_seed_accounts(client):
@@ -59,8 +58,7 @@ def test_balance_is_opening_plus_visible_lines(client):
     post_line(client, amount="-180.62")
     b = client.get("/v1/accounts/acc_pln/balances", headers=PSD2).json()["balances"][0]
     assert b["balanceType"] == "closingBooked"
-    # no file loaded: the account starts at the scenario's closing balance 24,730.15
-    assert b["balanceAmount"] == {"amount": "24549.53", "currency": "PLN"}  # 24730.15 - 180.62
+    assert b["balanceAmount"] == {"amount": "24549.53", "currency": "PLN"}
     assert b["referenceDate"] == "2026-11-20"
 
 
@@ -129,7 +127,7 @@ def test_admin_transaction_defaults_and_validation(client):
     r = client.post("/admin/transactions", json={"accountId": "acc_eur", "amount": "-12.5"}, headers=AUTH)
     assert r.status_code == 201
     body = r.json()
-    assert body["transactionAmount"] == {"amount": "-12.50", "currency": "EUR"}  # account currency by default
+    assert body["transactionAmount"] == {"amount": "-12.50", "currency": "EUR"}
     assert body["proprietaryBankTransactionCode"] == "TRANSFER"
     assert client.post("/admin/transactions", json={"accountId": "acc_eur", "amount": "0"}, headers=AUTH).status_code == 400
     assert client.post("/admin/transactions", json={"accountId": "nope", "amount": "1"}, headers=AUTH).status_code == 404
@@ -196,10 +194,9 @@ def test_load_csv_makes_chronological_lines_and_keeps_the_chf_quirk(client):
     lines = client.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]
     assert [ln["entryReference"] for ln in lines] == ["E000000001", "E000000002", "E000000003", "E000000004"]
     assert [ln["bookingDate"] for ln in lines] == ["2025-06-01", "2025-06-02", "2025-06-02", "2025-06-15"]
-    # within one day the file's reverse order is the chronological one: A before B
     assert [ln["remittanceInformationUnstructured"] for ln in lines[1:3]] == ["Fresh produce A", "Fresh produce B"]
-    assert lines[0]["transactionAmount"] == {"amount": "1234.56", "currency": "EUR"}  # "1.234,56"
-    assert lines[3]["transactionAmount"] == {"amount": "-4166.67", "currency": "CHF"}  # quirk kept as-is
+    assert lines[0]["transactionAmount"] == {"amount": "1234.56", "currency": "EUR"}
+    assert lines[3]["transactionAmount"] == {"amount": "-4166.67", "currency": "CHF"}
     assert lines[0]["debtorAccount"] == {"iban": "DE92500500000959561143"}
     assert lines[3]["proprietaryBankTransactionCode"] == "INTERNATIONAL_WIRE_TRANSFER"
     iban = client.get("/v1/accounts", headers=PSD2).json()["accounts"][3]["iban"]
@@ -208,7 +205,7 @@ def test_load_csv_makes_chronological_lines_and_keeps_the_chf_quirk(client):
 
 def test_load_csv_is_idempotent(client):
     load(client)
-    assert load(client).json()["lines"] == 4  # replaces, does not append
+    assert load(client).json()["lines"] == 4
     shown = client.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]
     assert len(shown) == 4
     assert len(client.get("/v1/accounts/acc_pizzeria/transactions",
@@ -227,8 +224,7 @@ def test_autoload_fills_the_account_at_start_and_after_reset(tmp_path):
     path.write_text(MINI_CSV, encoding="utf-8")
     c = TestClient(create_app(Store(), token=TOKEN, autoload_csv=str(path)))
     lines = c.get("/v1/accounts/acc_pizzeria/transactions", headers=PSD2).json()["transactions"]["booked"]
-    assert len(lines) == 4  # a fresh bank is not empty
-    # other accounts are untouched
+    assert len(lines) == 4
     assert c.get("/v1/accounts/acc_pln/transactions", headers=PSD2).json()["transactions"]["booked"] == []
     c.post("/admin/transactions", json={"accountId": "acc_pln", "amount": "-1"}, headers=AUTH)
     r = c.post("/admin/reset", headers=AUTH)
@@ -250,7 +246,6 @@ def test_autoload_fails_fast_when_the_file_is_missing_or_the_account_unknown(tmp
         create_app(Store(), token=TOKEN, autoload_csv=str(bad))
 
 
-# The organisers' real file is not in Git; set BANK_TEST_CSV to run these.
 REAL = os.environ.get("BANK_TEST_CSV")
 
 
@@ -268,4 +263,4 @@ def test_real_pizzeria_file(client):
     assert refs == sorted(refs) and len(set(refs)) == 1125
     assert sum(1 for t in seen if t["transactionAmount"]["currency"] == "CHF") == 12
     bal = client.get("/v1/accounts/acc_pizzeria/balances", headers=PSD2).json()["balances"][0]["balanceAmount"]["amount"]
-    assert abs(float(bal) - 33266.35) < 0.05  # the organisers' year-end balance
+    assert abs(float(bal) - 33266.35) < 0.05

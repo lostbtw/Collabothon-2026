@@ -62,7 +62,6 @@ def _check(v, sch, cur, path, errs):
 
 
 def schema_errors(value: dict, schema_name: str) -> list[str]:
-    """`schema_name` like "transaction" -> errors against contracts/schemas/transaction.schema.json."""
     name = f"{schema_name}.schema.json"
     errs: list[str] = []
     _check(value, _load(name), name, schema_name, errs)

@@ -18,7 +18,6 @@ def address_map_from_env() -> dict[str, str]:
 
 
 def seed(conn: psycopg.Connection, address_map: dict[str, str] | None = None) -> None:
-    """Insert or update Companies and People; safe to run on every deploy."""
     if address_map is None:
         address_map = address_map_from_env()
     for c in json.loads(COMPANIES_FILE.read_text(encoding="utf-8")):
@@ -55,7 +54,6 @@ def companies(conn: psycopg.Connection) -> list[dict[str, Any]]:
 
 
 def person_for_address(conn: psycopg.Connection, address: str) -> dict[str, Any] | None:
-    """The Person who sends from this address: their own e-mail or a Secret-mapped extra address."""
     return conn.cursor(row_factory=dict_row).execute(
         """select p.id, p.company_id, p.name, p.email, p.role from people p
            where lower(p.email) = lower(%(a)s)

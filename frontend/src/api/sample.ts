@@ -8,7 +8,6 @@ const pln = (amount: string): Money => ({ amount, currency: "PLN" });
 const addDays = (date: string, n: number): string =>
   new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)) + n)).toISOString().slice(0, 10);
 
-// What GET /ledger/summary?group_by=category&from&to returns, by month.
 type Row = { key: string; amount_base: Money; change_pct: null; entries: number };
 const rows = (list: [string, string, number][]): Row[] => list.map(([key, amount, entries]) => ({ key, amount_base: pln(amount), change_pct: null, entries }));
 
@@ -31,7 +30,6 @@ export const SUMMARY_BY_MONTH: Record<string, Row[]> = {
 };
 export const SUMMARY_KPIS = { reimbursements_owed: pln("5169.00"), vat_lost_ytd: pln("242.90"), documents_missing: 24, tax_due_next_30d: pln("25200.00") };
 
-// Cash in the bank over the last three months (GET /balance/history).
 const HISTORY_START = "2026-08-21";
 const HISTORY: [number, string][] = [
   [0, "93300.00"], [10, "33300.00"], [13, "29600.00"], [18, "106400.00"], [25, "98900.00"], [30, "77900.00"], [35, "64300.00"], [37, "105200.00"],
@@ -40,7 +38,6 @@ const HISTORY: [number, string][] = [
 ];
 export const BALANCE_HISTORY: BalanceHistory = { currency: "PLN", points: HISTORY.map(([d, balance]) => ({ date: addDays(HISTORY_START, d), balance })) };
 
-// Counterparties the extra payments need.
 const cp = (id: string, name: string, kind: Counterparty["kind"], default_category: string, extra: Partial<Counterparty> = {}): Counterparty =>
   ({ id, company_id: "co_borsuk", name, kind, default_category, ...extra });
 export const SAMPLE_COUNTERPARTIES: Counterparty[] = [
@@ -76,7 +73,6 @@ export const SAMPLE_COUNTERPARTIES: Counterparty[] = [
   cp("cp_parkuj", "Parkuj.pl (SAMPLE)", "supplier", "other"),
 ];
 
-// Extra bank and card lines, in the shape the bank connector delivers.
 type TxnExtra = Partial<Transaction>;
 const SOURCE: Record<string, string> = { acc_pln: "src_bank_pln", acc_eur: "src_bank_eur", acc_owner: "src_bank_owner" };
 const txn = (id: string, account_id: string, booking_date: string, amount: string, raw: string, counterparty_id: string | null, category: Transaction["category"], match_status: Transaction["match_status"], extra: TxnExtra = {}): Transaction => ({
@@ -87,7 +83,6 @@ const txn = (id: string, account_id: string, booking_date: string, amount: strin
 const card = (last4: string): TxnExtra => ({ transaction_type: "card_payment", card_last4: last4 });
 
 export const SAMPLE_TRANSACTIONS: Transaction[] = [
-  // November, up to the demo day
   txn("txn_s_tax1120", "acc_pln", "2026-11-20", "-7050.00", "URZAD SKARBOWY LODZ-POLESIE PIT-4R CIT-8", "cp_taxoffice", "taxes", "no_document_needed", { transaction_type: "tax" }),
   txn("txn_s_sklepik", "acc_pln", "2026-11-18", "-1840.00", "SKLEPIK.PL WARSZAWA", "cp_sklepik", "other", "missing_document", card("4417")),
   txn("txn_s_bistro", "acc_pln", "2026-11-18", "-238.68", "BISTRO PIOTRKOWSKA 90 LODZ", "cp_bistro", "meals_representation", "missing_document", card("4417")),
@@ -96,7 +91,6 @@ export const SAMPLE_TRANSACTIONS: Transaction[] = [
   txn("txn_s_kadr1110", "acc_pln", "2026-11-10", "4920.00", "KADROWNIA SP Z O O FV 2026/10/041", "cp_kadrownia", "revenue_services", "matched"),
   txn("txn_s_lis1110", "acc_pln", "2026-11-10", "-10500.00", "PIOTR LIS IT FV 10/2026", "cp_lis", "contractors", "matched"),
   txn("txn_s_figment1107", "acc_owner", "2026-11-07", "-61.65", "FIGMENT DESIGN", "cp_figment", "software_subscriptions", "matched", { ...card("9021"), original_amount: { amount: "-15.00", currency: "USD" } }),
-  // October
   txn("txn_s_salary_jan", "acc_pln", "2026-10-30", "-5800.00", "JAN KOWALSKI WYNAGRODZENIE 10/2026", "cp_kowalski", "salaries", "no_document_needed", { transaction_type: "salary" }),
   txn("txn_s_salary_marta", "acc_pln", "2026-10-30", "-5800.00", "MARTA ZIELINSKA WYNAGRODZENIE 10/2026", "cp_zielinska", "salaries", "no_document_needed", { transaction_type: "salary" }),
   txn("txn_s_fee_tomasz", "acc_pln", "2026-10-30", "-4000.00", "TOMASZ BORSUK WYNAGRODZENIE ZARZADU", "cp_borsuk", "salaries", "no_document_needed", { transaction_type: "salary" }),
@@ -130,7 +124,6 @@ export const SAMPLE_TRANSACTIONS: Transaction[] = [
   txn("txn_s_rechenwerk", "acc_eur", "2026-10-01", "-58.90", "RECHENWERK GMBH", "cp_rechenwerk", "software_subscriptions", "matched", { amount: { amount: "-58.90", currency: "EUR" }, amount_base: pln("-260.00") }),
 ];
 
-// What GET /people/costs, /clients and /subscriptions return for the sample company.
 export const PEOPLE_COSTS: PeopleCosts & { items: (PeopleCosts["items"][number] & { parts?: { label: string; amount: Money }[] })[] } = {
   items: [
     { person_id: "per_tomasz", name: "Tomasz Borsuk (SAMPLE)", role: "owner", pay_type: "board_fee", paid: pln("6400.00"), payments: 2, owed: pln("0.00"), receipts_owed: 0, parts: [{ label: "fee", amount: pln("4000.00") }, { label: "social security", amount: pln("2400.00") }] },
@@ -151,7 +144,6 @@ const OPEN_INVOICES: ClientsResponse["items"] = [
   { counterparty_id: "cp_kadrownia", name: "Kadrownia sp. z o.o. (SAMPLE)", currency: "PLN", paid_in_month: pln("0.00"), open_invoices: [{ document_id: "doc_fv1148", number: "2026/11/048", gross: pln("4920.00"), gross_base: pln("4920.00"), due_date: "2026-11-18", days_late: 3 }], open_total_base: pln("4920.00"), typical_payment_delay_days: 2, share_of_income: 0 },
   { counterparty_id: "cp_lakeshore", name: "Lakeshore Robotics Inc. (SAMPLE)", currency: "USD", paid_in_month: pln("0.00"), open_invoices: [{ document_id: "doc_fvlake01", number: "2026/11/051", gross: { amount: "40000.00", currency: "USD" }, gross_base: pln("162450.00"), due_date: "2027-01-05", days_late: 0 }], open_total_base: pln("162450.00"), typical_payment_delay_days: null, share_of_income: 0 },
 ];
-/** Paid per client and month: [paid, share of that month's income]. */
 const CLIENT_PAID: Record<string, Record<string, [string, number]>> = {
   "2026-10": { cp_nordwind: ["81100.00", 0.62], cp_meblostyl: ["36900.00", 0.28], cp_piekarnia: ["8880.00", 0.07], cp_kadrownia: ["4920.00", 0.04] },
   "2026-11": { cp_kadrownia: ["4920.00", 1] },
@@ -177,7 +169,6 @@ export const SUBSCRIPTIONS: SubscriptionsResponse = {
   monthly_total: pln("2700.00"),
 };
 
-/** What else repeats every month, for Money › Monthly payments (scope=all). In November not all of it is paid yet. */
 export const MONTHLY_EXTRA: SubscriptionsResponse["items"] = [
   { counterparty_id: "cp_cowork", name: "Coworking space (SAMPLE)", category: "rent_office", monthly: pln("2460.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: true },
   { counterparty_id: "cp_kowalski", name: "Jan Kowalski (SAMPLE)", category: "salaries", monthly: pln("5800.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
@@ -187,7 +178,6 @@ export const MONTHLY_EXTRA: SubscriptionsResponse["items"] = [
   { counterparty_id: "cp_abakus", name: "Abakus accounting office (SAMPLE)", category: "professional_services", monthly: pln("1240.00"), original: null, paid_by: [{ kind: "account", label: "Company account PLN" }], flags: [], series_ids: [], paid_in_month: false },
 ];
 
-// Settings, people and learned rules (GET /settings, /people, /rules).
 export const SETTINGS: Settings = {
   company: { id: "co_borsuk", name: "Borsuk Labs sp. z o.o. (SAMPLE)", tax_id: "999-000-00-14", base_currency: "PLN", vat_period: "monthly", accountant_email: "office@abakus.example" },
   alerts: { safety_buffer: pln("10000.00"), late_client_days: 7, weekly_summary: true },
@@ -210,7 +200,6 @@ export const RULES: Rule[] = [
   { id: "rule_chmura", raw: "CHMURA POLSKA", counterparty_id: "cp_chmura", counterparty_name: "Chmura Polska (SAMPLE)", category: "cloud_hosting", learned_at: "2026-09-02T11:30:00Z" },
 ];
 
-// Chat history (GET /chat/sessions, /chat/sessions/{id}).
 type Msg = ChatSessionDetail["messages"][number];
 const turn = (at: string, question: string, answer: string): Msg[] => [{ role: "user", content: question, at }, { role: "assistant", content: answer, at }];
 export const CHAT_HISTORY: (ChatSession & { detail: Msg[] })[] = [
@@ -225,7 +214,6 @@ export const CHAT_HISTORY: (ChatSession & { detail: Msg[] })[] = [
   { session_id: "chat_bonus", title: "Can I afford a December bonus?", last_at: "2026-11-09T18:45:00Z", messages: 2, detail: turn("2026-11-09T18:45:00Z", "Can I afford a 10,000 PLN bonus in December?", "Not before 7 December: cash is below zero from 30 November until Nordwind pays. After that you would still keep about 63,000 PLN.") },
 ];
 
-// Extra agent cards, so To-do shows every kind of item the agents create.
 const why = (lines: string[], extra: Partial<Recommendation["explanation"]> = {}): Recommendation["explanation"] =>
   ({ why: lines, confidence: 0.8, generated_by: { numbers: "finance-engine", wording: "template", trace_id: null }, ...extra });
 const card0 = (r: Partial<Recommendation> & Pick<Recommendation, "id" | "agent" | "type" | "title" | "summary" | "control_level" | "evidence">): Recommendation => ({
@@ -282,13 +270,12 @@ export const SAMPLE_APPROVALS: Approval[] = [{
   execution: { mode: "simulated", status: "done", executed_at: "2026-11-18T09:02:01Z", reference: "SIM-PD-2026-0398", result: "Sandbox bank added a transfer draft of 640.00 PLN to Marta.", effects: [] },
 }];
 
-// What Ordo reads from a file the owner adds, standing in for the extractor.
 const cents = (amount: string) => BigInt(amount.replace("-", "").replace(".", ""));
 const fromCents = (c: bigint) => `${c / 100n}.${String(c % 100n).padStart(2, "0")}`;
 export function readUpload(docId: string, rawId: string, t: Transaction | undefined, sellerName: string): OrdoDocument {
   const sklepik = t?.id === "txn_s_sklepik";
   const gross = t ? cents(t.amount_base.amount) : 184000n;
-  const vat = (gross * 23n + 61n) / 123n; // 23% VAT inside the gross amount, rounded to the cent
+  const vat = (gross * 23n + 61n) / 123n;
   return {
     id: docId, company_id: "co_borsuk", raw_item_ids: [rawId], doc_type: "invoice", direction: "purchase", channel: "upload",
     number: sklepik ? "FV 2026/11/0187" : "FV 2026/11/0112", issue_date: t?.booking_date ?? "2026-11-18", due_date: t?.booking_date ?? "2026-11-18",

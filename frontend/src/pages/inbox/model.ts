@@ -21,7 +21,6 @@ export const isDecided = (r: Recommendation): boolean => DECIDED_STATUS.has(r.st
 
 const isMoney = (v: unknown): v is Money => typeof v === "object" && v !== null && typeof (v as Money).amount === "string" && typeof (v as Money).currency === "string";
 
-/** The one amount the owner may change before approving, per kind of action. */
 const EDITABLE: Partial<Record<NonNullable<Recommendation["proposed_action"]>["kind"], { param: string; label: string }>> = {
   apply_credit_line: { param: "limit", label: "Limit" },
 };
@@ -32,7 +31,6 @@ export function editableAmount(r: Recommendation): { param: string; label: strin
   return spec && isMoney(value) ? { ...spec, value } : null;
 }
 
-/** What the owner typed as a decimal string ("25 000" -> "25000.00", "1299,90" -> "1299.90"); null unless positive. */
 export function parseAmount(input: string): string | null {
   let s = input.trim().replace(/[\s ]/g, "");
   if (/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, "");
@@ -43,12 +41,10 @@ export function parseAmount(input: string): string | null {
   return `${int.replace(/^0+(?=\d)/, "")}.${frac.padEnd(2, "0")}`;
 }
 
-/** An action can be approved here only if it needs approval and would run in simulation. */
 export function canApprove(r: Recommendation): boolean {
   return r.control_level === "approval_required" && r.execution_mode === "simulated" && Boolean(r.proposed_action) && r.proposed_action?.kind !== "none";
 }
 
-/** The request body for the decision endpoint. `editedAmount` is the output of parseAmount. */
 export function buildDecision(r: Recommendation, kind: "approve" | "reject", editedAmount?: string | null): DecisionRequest {
   if (kind === "reject") return { decision: "rejected", channel: "dashboard" };
   const edit = editableAmount(r);
@@ -66,7 +62,6 @@ export function buildLists(inbox: InboxResponse, all: Recommendation[], approval
   const decided = new Map<string, Recommendation>();
   for (const d of Object.values(justDecided)) decided.set(d.rec.id, d.rec);
   for (const r of all.filter(isRenderableRecommendation).filter(isDecided)) if (!decided.has(r.id)) decided.set(r.id, r);
-  // A stored approval counts only for a card that is decided; an open card is never shown as approved.
   const approvalFor = (id: string) => justDecided[id]?.approval ?? (decided.has(id) ? approvals.find((a) => a.subject_type === "recommendation" && a.subject_id === id) : undefined);
   return {
     open,
@@ -90,7 +85,6 @@ export function listFor(lists: InboxLists, filter: Filter): Recommendation[] {
 
 export type Fact = { label: string; value: string; tone?: "danger" | "positive" };
 
-/** The strip of key figures under the summary. Every number comes from the finance engine via `impact`. */
 export function impactFacts(r: Recommendation): Fact[] {
   const facts: Fact[] = [];
   const i = r.impact;
@@ -102,7 +96,6 @@ export function impactFacts(r: Recommendation): Fact[] {
   return facts;
 }
 
-/** The headline of a finished decision, e.g. "Done — SIM-CL-2026-0007". */
 export function resultHeadline(a: Approval): string {
   if (a.decision === "rejected") return "Rejected. Nothing was sent.";
   const mode = a.execution.mode === "none" ? "Recorded" : a.execution.mode === "simulated" ? "Done" : "Not run";
@@ -111,7 +104,6 @@ export function resultHeadline(a: Approval): string {
   return a.execution.reference ? `${mode} — ${a.execution.reference}` : mode;
 }
 
-/** The owner's edits, readable: [["Limit", "25,000.00 PLN"]]. */
 export function describeChanges(a: Approval): [string, string][] {
   return Object.entries(a.changes ?? {}).map(([path, value]) => {
     const name = path.split(".").at(-1) ?? path;

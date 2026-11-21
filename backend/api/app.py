@@ -31,7 +31,6 @@ class _GzipExceptStream:
 
 
 def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | None = None) -> FastAPI:
-    """`chat_model` makes the model client for /chat (default: the cluster's vLLM, or None when disabled)."""
     url = database_url or settings.database_url()
 
     @asynccontextmanager

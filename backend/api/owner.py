@@ -17,7 +17,6 @@ from backend.finance.settings import DEFAULT_PAYMENT_DAYS
 
 SUBSCRIPTION_CATEGORIES = {"software_subscriptions", "cloud_hosting"}
 NOT_COSTS = {"reimbursements", "owner_private"}
-# Spending that varies by nature: repeats only count as a monthly payment when a recurring series says so.
 VARIABLE = {"travel", "meals_representation", "equipment", "other", "marketing_ads"}
 DEFAULT_PAY_TYPE = {"owner": "board_fee", "employee": "salary", "contractor": "invoice"}
 PART_LABEL = {"salaries": "salary", "contractors": "invoice", "social_security": "social security", "other": "not explained"}
@@ -28,7 +27,6 @@ CATEGORIES = {"revenue_services", "salaries", "contractors", "social_security", 
 
 
 def _plain(name: str | None) -> str:
-    """name_key without the "(SAMPLE)" marker of invented names."""
     return name_key(re.sub(r"\(SAMPLE\)", "", name or "", flags=re.I))
 
 
@@ -46,7 +44,6 @@ def month_range(month: str) -> tuple[str, str]:
 
 
 def _out(t: dict) -> Decimal:
-    """Money that left, as a positive number (0 for money in)."""
     v = amount_of(t["amount_base"])
     return -v if v < 0 else Decimal(0)
 
@@ -56,13 +53,12 @@ def _in(t: dict) -> Decimal:
     return v if v > 0 else Decimal(0)
 
 
-
 def settings(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     c = _company(conn, company_id)
     row = conn.execute("select vat_period, accountant_email, safety_buffer, late_client_days, weekly_summary "
                        "from company_settings where company_id = %s", (company_id,)).fetchone()
     vat_period, accountant, buffer, late_days, weekly = row or ("monthly", None, None, 7, False)
-    if buffer is None:  # no buffer set by the owner: the one the forecast uses
+    if buffer is None:
         forecast = Store(conn).list("forecast", company_id=company_id, limit=1)
         buffer = amount_of(forecast[0].get("safety_buffer")) if forecast and forecast[0].get("safety_buffer") else None
     return {
@@ -112,7 +108,6 @@ def patch_settings(conn: psycopg.Connection, company_id: str, body: dict[str, An
     return settings(conn, company_id)
 
 
-
 PERSON_COLUMNS = "id, name, email, role, pay_type, card_last4, statement_names, tax_id, iban"
 
 
@@ -149,7 +144,6 @@ def add_person(conn: psycopg.Connection, company_id: str, body: dict[str, Any]) 
 
 
 def update_person(conn: psycopg.Connection, company_id: str, person_id: str, body: dict[str, Any]) -> dict[str, Any]:
-    """Edit a person. LookupError: unknown id; ValueError: bad value or e-mail taken."""
     row = conn.execute(f"select {PERSON_COLUMNS} from people where id = %s and company_id = %s", (person_id, company_id)).fetchone()
     if row is None:
         raise LookupError(person_id)
@@ -172,7 +166,6 @@ def update_person(conn: psycopg.Connection, company_id: str, person_id: str, bod
 
 
 def person_of(t: dict, team: list[dict], counterparties: dict[str, dict]) -> dict | None:
-    """The person a bank line pays: the counterparty is linked to them, or the line names them."""
     cp = counterparties.get(t.get("counterparty_id") or "") or {}
     if cp.get("person_id"):
         hit = next((p for p in team if p["id"] == cp["person_id"]), None)
@@ -186,7 +179,6 @@ def person_of(t: dict, team: list[dict], counterparties: dict[str, dict]) -> dic
     return None
 
 
-
 def rules(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
         """select r.id, r.raw, r.counterparty_id, coalesce(c.doc->>'name', r.raw), r.category, r.learned_at
@@ -197,7 +189,6 @@ def rules(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
 
 
 def learn_rule(conn: psycopg.Connection, company_id: str, raw: str | None, counterparty_id: str | None, category: str) -> None:
-    """Remember the owner's type for this spelling; the pipeline's categorise() uses it first."""
     raw = (raw or "").strip()
     if not raw or category not in CATEGORIES:
         return
@@ -222,7 +213,7 @@ def delete_rule(conn: psycopg.Connection, company_id: str, rule_id: str) -> bool
     counterparty_id, category = row
     s = Store(conn)
     cp = s.get("counterparty", counterparty_id) if counterparty_id else None
-    if cp and cp.get("default_category") == category:  # forget it: the next line is sorted from scratch
+    if cp and cp.get("default_category") == category:
         s.put("counterparty", {**cp, "default_category": None}, company_id=company_id)
     conn.commit()
     return True
@@ -239,7 +230,6 @@ def set_transaction_category(conn: psycopg.Connection, company_id: str, transact
     s.put("transaction", t, company_id=company_id)
     learn_rule(conn, company_id, t.get("counterparty_name_raw"), t.get("counterparty_id"), category)
     return t
-
 
 
 def people_costs(conn: psycopg.Connection, company_id: str, month: str) -> dict[str, Any]:
@@ -260,7 +250,6 @@ def people_costs(conn: psycopg.Connection, company_id: str, month: str) -> dict[
             paid[p["id"]][t.get("category") or "other"] += _out(t)
             count[p["id"]] += 1
 
-    # What the company owes people for things they paid themselves: receipts not paid back yet.
     paid_back = {r.get("subject", {}).get("id") for r in s.list("recommendation", company_id=company_id, type="reimburse_employee")
                  if r["status"] in ("approved", "executed_simulated")}
     owed: dict[str, Decimal] = defaultdict(Decimal)
@@ -291,14 +280,12 @@ def people_costs(conn: psycopg.Connection, company_id: str, month: str) -> dict[
                                        "share_of_costs": round(float(staff / costs), 2) if costs else 0.0}}
 
 
-
 def clients(conn: psycopg.Connection, company_id: str, month: str, *, persist_delays: bool = True) -> dict[str, Any]:
     s = Store(conn)
     company = _company(conn, company_id)
     base, as_of = company["base_currency"], company["as_of_date"]
     start, end = month_range(month)
     counterparties = {c["id"]: c for c in s.list("counterparty", company_id=company_id)}
-    # One client may be several counterparties (invoice vs bank spelling): grouped by folded name.
     own = _plain(company["name"])
     ids_by_key: dict[str, list[str]] = defaultdict(list)
     for c in sorted(counterparties.values(), key=lambda c: (c.get("kind") != "customer", c["id"])):
@@ -347,7 +334,7 @@ def clients(conn: psycopg.Connection, company_id: str, month: str, *, persist_de
             continue
         k = _plain(cp.get("name") or t.get("counterparty_name_raw"))
         if not k or k == own:
-            continue  # money moved between the company's own accounts
+            continue
         names.setdefault(k, cp.get("name") or t.get("counterparty_name_raw") or k)
         paid[k] += _in(t)
 
@@ -370,7 +357,6 @@ def clients(conn: psycopg.Connection, company_id: str, month: str, *, persist_de
     return {"items": items, "totals": {"paid_in_month": money(income, base), "open_base": money(open_total, base), "late_base": money(late, base)}}
 
 
-
 def _payer(t: dict, accounts: dict[str, dict]) -> dict[str, str]:
     acc = accounts.get(t.get("account_id") or "") or {}
     if acc.get("kind") == "owner_private":
@@ -381,7 +367,6 @@ def _payer(t: dict, accounts: dict[str, dict]) -> dict[str, str]:
 
 
 def _months_back(month: str, n: int) -> list[str]:
-    """The `n` months up to and including `month`, oldest first."""
     year, mon = (int(x) for x in month.split("-"))
     out = []
     for _ in range(n):
@@ -391,7 +376,6 @@ def _months_back(month: str, n: int) -> list[str]:
 
 
 def subscriptions(conn: psycopg.Connection, company_id: str, month: str | None = None, scope: str = "subscriptions") -> dict[str, Any]:
-    """Monthly payments as of `month`: repeats in 2 of the last 3 months, or a recurring series."""
     s = Store(conn)
     company = _company(conn, company_id)
     base = company["base_currency"]
@@ -447,7 +431,7 @@ def subscriptions(conn: psycopg.Connection, company_id: str, month: str | None =
         if len(months) < 2 and not scheduled:
             continue
         if category[k] in VARIABLE and not scheduled:
-            continue  # a restaurant or a shop seen twice is not a monthly payment
+            continue
         paid_now = month in months
         latest_month = month if paid_now else months[-1]
         latest = [p for p in ps if p["month"] == latest_month]
@@ -477,7 +461,6 @@ def subscriptions(conn: psycopg.Connection, company_id: str, month: str | None =
     return {"items": items, "monthly_total": money(total, base)}
 
 
-
 def chat_sessions(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
         """select session_id, max(at), count(*),
@@ -499,9 +482,7 @@ def chat_session(conn: psycopg.Connection, company_id: str, session_id: str) -> 
     return {"session_id": session_id, "messages": [{"role": r, "content": c, "at": a.strftime("%Y-%m-%dT%H:%M:%SZ")} for r, c, a in rows]}
 
 
-
 def balance_history(conn: psycopg.Connection, company_id: str, days: int = 91) -> dict[str, Any] | None:
-    """End-of-day cash before the as-of date, worked back from each reported balance."""
     s = Store(conn)
     company = _company(conn, company_id)
     base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
@@ -516,11 +497,10 @@ def balance_history(conn: psycopg.Connection, company_id: str, days: int = 91) -
         if acc["currency"] not in rates:
             continue
         reported_on = (acc.get("balance_at") or company["as_of_date"])[:10]
-        booked: dict[str, Decimal] = defaultdict(Decimal)  # what each day added to this account, up to the report
+        booked: dict[str, Decimal] = defaultdict(Decimal)
         for t in lines:
             if t["account_id"] == acc["id"] and t["booking_date"] <= reported_on:
                 booked[t["booking_date"]] += amount_of(t["amount"])
-        # Walk back from the report: the balance at the end of a day is the reported balance minus what came later.
         later = sum((v for d, v in booked.items() if d > (start + timedelta(days=days - 1)).isoformat()), Decimal(0))
         for n in range(days - 1, -1, -1):
             day = start + timedelta(days=n)
@@ -536,7 +516,6 @@ def balance_history(conn: psycopg.Connection, company_id: str, days: int = 91) -
 
 
 def bank_summary(conn: psycopg.Connection, company_id: str, from_: str | None, to: str | None) -> list[dict[str, Any]]:
-    """Bank lines summed per category, for months whose payments are not in the books yet."""
     base = _company(conn, company_id)["base_currency"]
     s = Store(conn)
     team = people(conn, company_id)
@@ -548,7 +527,6 @@ def bank_summary(conn: psycopg.Connection, company_id: str, from_: str | None, t
             continue
         key = t.get("category") or "other"
         if key == "other" and _out(t) > 0:
-            # A payment to someone on the people list is staff, as on the costs-per-person screen.
             person = person_of(t, team, counterparties)
             if person:
                 key = "contractors" if person["role"] == "contractor" else "salaries"

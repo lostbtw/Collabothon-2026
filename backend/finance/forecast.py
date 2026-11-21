@@ -60,7 +60,6 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                    own_keys: Iterable[str] = (),
                    horizon_days: int = HORIZON_DAYS, safety_buffer: Decimal | None = None,
                    forecast_id: str | None = None, generated_at: str = "") -> dict[str, Any]:
-    """The Forecast (contracts/schemas/forecast.schema.json) of one company; bank lines after the as-of date are ignored."""
     base = company["base_currency"]
     country = company.get("country") or ""
     as_of = date.fromisoformat(str(company["as_of_date"]))
@@ -72,7 +71,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     included, transactions, opening, flows, last_line = _prepare(company, accounts, transactions, rate, own_ibans,
                                                                  own_keys)
 
-    quiet: dict[date, set[str]] = defaultdict(set)   # days without everyday flows: {"in", "out"} (owner events)
+    quiet: dict[date, set[str]] = defaultdict(set)
     for ev in events:
         if ev["effect"] in ("no_variable_flows", "no_revenue"):
             d, stop = date.fromisoformat(ev["date_from"]), date.fromisoformat(ev["date_to"])
@@ -85,7 +84,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
                 and f.transaction.get("transaction_type") not in ("tax", "social_security")]
     history_start = flows[0].day if flows else None
     averages = weekday_averages(variable, as_of, quiet, history_start)
-    spread = weekly_spread(variable, as_of, quiet, history_start)  # (sd of weekly sums, weeks) or None
+    spread = weekly_spread(variable, as_of, quiet, history_start)
     certain: dict[date, Decimal] = defaultdict(Decimal)
     components: list[dict[str, Any]] = []
 
@@ -98,7 +97,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     for s in series:
         if s.kind in ("tax", "social_security"):  # taxes come from the rules, not the bank history
             continue
-        dates = [d for d in s.dates(as_of, end, country) if not any(  # an open invoice replaces that occurrence
+        dates = [d for d in s.dates(as_of, end, country) if not any(
             s.key in (i.get("keys") or [i.get("key")]) and abs((expected_at[i["id"]] - d).days) <= 10 for i in open_items)]
         if not dates:
             continue
@@ -124,7 +123,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     for item in open_items:
         unit = rate[item["amount"]["currency"]]
         lock = item.get("locked")
-        if lock:  # an executed FX forward fixed this share of the invoice at its rate
+        if lock:
             share = Decimal(lock["ratio"])
             unit = share * Decimal(lock["rate"]) + (1 - share) * unit
         amount = Decimal(item["amount"]["amount"]) * unit
@@ -186,8 +185,8 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
     totals = {"in": Decimal(0), "out": Decimal(0)}
     removed = {ev["id"]: Decimal(0) for ev in events}
     balance = high = low = opening
-    rule_low = rule_high = opening   # fallback band without enough history: spending x(1+BAND), income x(1-BAND)
-    open_days = 0                    # days with everyday flows so far: the band grows with the open weeks
+    rule_low = rule_high = opening
+    open_days = 0
     points = [{"date": as_of.isoformat(), "balance": fmt(opening), "inflow": "0.00", "outflow": "0.00",
                "low": fmt(opening), "high": fmt(opening)}]
     d = as_of
@@ -210,7 +209,7 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
         balance += fixed + vin + vout
         if quiet[d] != {"in", "out"}:
             open_days += 1
-        if spread is not None:  # 90% interval from this company's own week-to-week variation
+        if spread is not None:
             half = Decimal(BAND_Z) * spread[0] * Decimal(open_days / 7)
             low, high = balance - half, balance + half
         else:
@@ -291,7 +290,6 @@ def build_forecast(*, company: dict, accounts: list[dict], transactions: Iterabl
 
 
 def summarise(points: list[dict], as_of: date, base: str, safety_buffer: Decimal | None = None):
-    """(min_balance, first_negative_date, alerts) of daily points; the forecast line is `balance`."""
     low_point = min(points, key=lambda p: (Decimal(p["balance"]), p["date"]))
     negative = [p for p in points if Decimal(p["balance"]) < 0]
     alerts = []
@@ -319,7 +317,6 @@ def summarise(points: list[dict], as_of: date, base: str, safety_buffer: Decimal
 
 def _prepare(company: dict, accounts: list[dict], transactions: Iterable[dict], rate: dict[str, Decimal],
              own_ibans: Iterable[str], own_keys: Iterable[str] = ()):
-    """Liquidity accounts, their bank lines up to the as-of date, its balance, and the flows that are not own transfers."""
     as_of = str(company["as_of_date"])
     own_ibans, own_keys = set(own_ibans), set(own_keys)
     included = {a["id"]: a for a in accounts if a.get("include_in_liquidity")}
@@ -346,7 +343,6 @@ def _prepare(company: dict, accounts: list[dict], transactions: Iterable[dict], 
 def recurring_series_ids(*, company: dict, accounts: list[dict], transactions: Iterable[dict],
                          rates: dict[str, Decimal], own_ibans: Iterable[str] = (),
                          own_keys: Iterable[str] = ()) -> dict[str, str]:
-    """transaction id -> recurring_series_id for every bank line in a detected series (only those are auto-confirmed)."""
     rate = {k: Decimal(str(v)) for k, v in rates.items()}
     _, _, _, flows, _ = _prepare(company, accounts, transactions, rate, own_ibans, own_keys)
     series, _ = detect(flows, date.fromisoformat(str(company["as_of_date"])), company.get("country") or "")

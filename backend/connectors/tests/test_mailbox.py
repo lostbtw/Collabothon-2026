@@ -16,15 +16,13 @@ from backend.db.store import Store
 FIXTURES = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
 SETTINGS = {"host": "imap.example.test", "port": 993, "user": "invoices@borsuk-labs.sample", "password": "x",
             "folder": "INBOX"}
-PHOTO = b"\xff\xd8\xff\xe0" + b"JPEG-SAMPLE" * 3000  # ~33 kB, a "photo"
-LOGO = b"\x89PNG" + b"x" * 500  # a small signature image
+PHOTO = b"\xff\xd8\xff\xe0" + b"JPEG-SAMPLE" * 3000
+LOGO = b"\x89PNG" + b"x" * 500
 FA3 = (b'<?xml version="1.0" encoding="UTF-8"?>\n<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">'
        b"<Naglowek/></Faktura>")
 
 
 class FakeImap:
-    """The parts of imaplib.IMAP4_SSL the connector uses, with imaplib's return shapes."""
-
     def __init__(self, messages=None, *, validity="1001", password="x"):
         self.messages: dict[int, bytes] = dict(messages or {})
         self.validity = validity
@@ -33,7 +31,7 @@ class FakeImap:
         self.logged_out = 0
         self.seen_flags_changed = False
 
-    def __call__(self, host, port):  # the factory
+    def __call__(self, host, port):
         return self
 
     def login(self, user, password):
@@ -83,7 +81,6 @@ def mail(uid, *, sender="jan@borsuk-labs.sample", subject="Fwd: monitor do biura
 
 @pytest.fixture
 def source(db):
-    """src_mail as contracts/fixtures/source.json has it: an invented cursor UIDVALIDITY=7;UID=412."""
     src = next(s for s in json.loads((FIXTURES / "source.json").read_text(encoding="utf-8")) if s["id"] == "src_mail")
     src = {**src, "next_run_at": None, "items_total": 0}
     db.execute("insert into sources (id, company_id, doc) values (%s, %s, %s)", (src["id"], src["company_id"], Jsonb(src)))
@@ -115,12 +112,12 @@ def test_a_forwarded_photo_becomes_one_email_and_one_attachment(db, source):
     assert email_item["kind"] == "email" and email_item["metadata"]["from"] == "jan@borsuk-labs.sample"
     assert email_item["metadata"]["subject"] == "Fwd: monitor do biura" and email_item["metadata"]["attachments"] == 1
     assert photo["kind"] == "email_attachment" and photo["parent_raw_item_id"] == email_item["id"]
-    assert photo["metadata"]["forwarded_by"] == "jan@borsuk-labs.sample"  # who paid: the pipeline reads this
+    assert photo["metadata"]["forwarded_by"] == "jan@borsuk-labs.sample"
     assert photo["metadata"]["filename"] == "IMG_2041.jpg" and photo["content_type"] == "image/jpeg"
-    assert content(db, photo["id"]) == ("image/jpeg", PHOTO)  # the pipeline reads the bytes from here
+    assert content(db, photo["id"]) == ("image/jpeg", PHOTO)
     for it in got.values():
         MODELS["raw_item"].model_validate(it)
-    assert imap.selected_readonly is True and imap.seen_flags_changed is False  # the mailbox is never changed
+    assert imap.selected_readonly is True and imap.seen_flags_changed is False
 
 
 def test_five_forwards_in_a_row_each_arrive_once(db, source):
@@ -148,7 +145,7 @@ def test_the_same_file_forwarded_twice_is_stored_once(db, source):
     imap = FakeImap({1: mail(1, files=[("IMG_2041.jpg", "image/jpeg", PHOTO, False)]),
                      2: mail(2, sender="owner@borsuk-labs.sample", files=[("copy.jpg", "image/jpeg", PHOTO, False)])})
     result = poll(db, imap)
-    assert result["items_new"] == 3 and result["items_duplicate"] == 1  # 2 e-mails + 1 file
+    assert result["items_new"] == 3 and result["items_duplicate"] == 1
     assert "<msg-2@mail.example.test>#1" not in items(db)
 
 
@@ -171,13 +168,12 @@ def test_mails_without_files_or_invoice_words_are_skipped_but_passed(db, source)
                      2: mail(2, subject="Re: invoice 2026/11/045", body="Please see the invoice number"),
                      3: mail(3, subject="Hi", body="Logo only", files=[("logo.png", "image/png", LOGO, True)])})
     result = poll(db, imap)
-    assert set(items(db)) == {"<msg-2@mail.example.test>"}  # invoice-like text, no file: the e-mail only
-    assert parse_cursor(Store(db).get("source", "src_mail")["cursor"])[1] == 3  # skipped mails are not re-read
+    assert set(items(db)) == {"<msg-2@mail.example.test>"}
+    assert parse_cursor(Store(db).get("source", "src_mail")["cursor"])[1] == 3
     assert result["items_fetched"] == 1
 
 
 def test_a_notification_naming_the_invoices_mailbox_is_not_an_invoice(db, source):
-    """Found on the real mailbox: Google's security mails repeat the address borsuk.invoices.demo@gmail.com."""
     body = ("2-Step Verification turned on\n\nborsuk.invoices.demo@example.test\n"
             "Your Google Account borsuk.invoices.demo@example.test is now protected.\n"
             "https://myaccount.example.test/AccountChooser?Email=borsuk.invoices.demo@example.test")
@@ -196,7 +192,7 @@ def test_a_small_inline_image_is_ignored_but_a_photo_inline_is_read(db, source):
 def test_many_messages_are_read_in_pages(db, source):
     imap = FakeImap({uid: mail(uid, files=[(f"{uid}.jpg", "image/jpeg", PHOTO + bytes([uid]), False)]) for uid in range(1, 24)})
     result = poll(db, imap)
-    assert result["items_new"] == 46 and imap.logged_out == 3  # 10 + 10 + 3, one login each
+    assert result["items_new"] == 46 and imap.logged_out == 3
 
 
 def test_a_wrong_password_sets_the_source_to_error(db, source):

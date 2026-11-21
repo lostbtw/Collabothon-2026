@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 export type Loadable<T> = { data: T | null; error: string | null; loading: boolean };
 
-/** Runs an API call when `deps` change and tracks loading and error state. */
 export function useApi<T>(call: () => Promise<T>, deps: unknown[]): Loadable<T> {
   const [state, setState] = useState<Loadable<T>>({ data: null, error: null, loading: true });
   useEffect(() => {

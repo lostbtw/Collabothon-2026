@@ -15,7 +15,6 @@ def q(x: Decimal) -> Decimal:
 
 
 def pl(x: Decimal) -> str:
-    """1299.00 -> '1299,00' (Polish receipts use a decimal comma)."""
     return format(q(x), "f").replace(".", ",")
 
 
@@ -24,7 +23,6 @@ def nip_dashed(nip: str) -> str:
 
 
 def compute(receipt: dict, rates: dict) -> dict:
-    """Line totals, VAT per letter (from gross), grand total."""
     lines, by_letter = [], {}
     for item in receipt["items"]:
         qty, unit = Decimal(item["quantity"]), Decimal(item["unit_price"])
@@ -42,7 +40,6 @@ def compute(receipt: dict, rates: dict) -> dict:
 
 
 def truth(receipt: dict, c: dict) -> dict:
-    """Ground truth in the Document field names the extractor fills (contracts/schemas/document.schema.json)."""
     return {
         "id": receipt["id"],
         "purpose": receipt["purpose"],

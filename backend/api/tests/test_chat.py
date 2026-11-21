@@ -58,16 +58,15 @@ def test_asking_chat_to_move_money_creates_an_inbox_card_instead(demo, db):
     assert card["agent"] == "chat"
     assert card["status"] == "new"
     assert answer["guardrail"] == {"blocked": True, "reason": "Chat cannot move money; it prepared an inbox card instead"}
-    assert [a["id"] for a in Store(db).list("approval", company_id="co_borsuk")] == ["apr_0007"]  # the fixture's only
+    assert [a["id"] for a in Store(db).list("approval", company_id="co_borsuk")] == ["apr_0007"]
 
 
 def test_no_execution_or_decision_tool_is_reachable_from_chat():
     names = set(chat.CHAT_TOOLS)
     assert names == {"get_cash_position", "get_forecast", "search_ledger", "explain_recommendation",
                      "add_forecast_event", "get_fx_exposure", "request_action", "run_readonly_sql",
-                     "get_clients", "get_month_costs"}  # both read only
+                     "get_clients", "get_month_costs"}
     assert not {n for n in names if "execute" in n or "decide" in n or "approve" in n}
-
 
 
 def turn(content=None, tool_calls=None):
@@ -132,7 +131,6 @@ def test_a_model_that_tries_to_execute_gets_an_unknown_tool_and_nothing_moves(wi
     assert Store(db).get("recommendation", "rec_cl01")["status"] == "new"
 
 
-
 def test_a_follow_up_question_gets_the_previous_turn_as_context(with_model):
     app, model = with_model(turn(content=json.dumps({"answer": "Your lowest balance is in December."})),
                             turn(content=json.dumps({"answer": "Because salaries leave before Nordwind pays."})))
@@ -160,7 +158,7 @@ def test_the_model_recovers_from_a_wrong_tool_call(with_model):
 
 def test_a_request_the_model_already_put_in_the_inbox_is_not_put_there_twice(with_model, db):
     app, _ = with_model(turn(tool_calls=[call("request_action", {"description": "Transfer 5000 PLN to Kowalski"})]),
-                        turn(content="Done, I sent it."), turn(content="Really done."))  # never the required JSON
+                        turn(content="Done, I sent it."), turn(content="Really done."))
     with app:
         answer = ask(app, "Transfer 5000 PLN to Kowalski")
 

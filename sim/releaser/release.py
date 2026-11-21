@@ -27,7 +27,6 @@ MESSAGE_ID = re.compile(rb"Message-ID:\s*(<[^>]+>)", re.I)
 
 
 def load_env_file(path: Path = ROOT / ".env") -> None:
-    """Same rule as backend/settings.py: .env fills what the environment does not set."""
     if not path.is_file():
         return
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -57,7 +56,6 @@ def select(items: list[dict], mode: str, until: str | None = None, limit: int | 
 
 
 def _documents() -> dict[str, dict]:
-    """document id -> {number, counterparty}, for readable subjects."""
     docs: dict[str, dict] = {}
     for e in json.loads((OUT / "fa3_index.json").read_text(encoding="utf-8")):
         docs[e["id"]] = {"number": e.get("number"), "counterparty": e.get("counterparty")}
@@ -71,7 +69,6 @@ OWNER = "owner@borsuk-labs.sample"
 
 
 def sender_of(item: dict) -> str:
-    """The plan's sender; the Lakeshore sales invoice has none, so it comes from the owner like other sales invoices."""
     return item.get("sender") or OWNER
 
 
@@ -80,7 +77,6 @@ def message_id(item: dict) -> str:
 
 
 def build_message(item: dict, mailbox: str, docs: dict[str, dict], when: datetime) -> EmailMessage:
-    """One e-mail for one plan item: from its sender, with its artefact attached, a fixed Message-ID."""
     path = artefact_path(item["artefact"])
     doc = docs.get(item["document_id"], {})
     number, who = doc.get("number") or item["document_id"], doc.get("counterparty") or ""
@@ -124,7 +120,6 @@ class Mailbox:
         self.imap.login(settings["user"], settings["password"])
 
     def message_ids(self) -> set[str]:
-        """Message-IDs already in the folder (read-only look, nothing is marked as seen)."""
         status, _ = self.imap.select(self.settings["folder"], readonly=True)
         if status != "OK":
             raise SystemExit(f"no folder {self.settings['folder']!r} in the mailbox")
@@ -155,7 +150,6 @@ class Mailbox:
 
 def release(mailbox: Mailbox, items: list[dict], *, now=None, sleep=time.sleep, paced: bool = False,
             speed: float = 1.0, dry_run: bool = False, fresh: bool = False, log=print) -> Counter:
-    """Put each item's message into the mailbox unless its Message-ID is there; `paced` waits, `fresh` dates it now."""
     docs = _documents()
     present = mailbox.message_ids() if mailbox else set()
     counts: Counter = Counter()
@@ -189,7 +183,6 @@ def _get_json(url: str, headers: dict) -> dict:
 
 
 def check_bank(items: list[dict], url: str, token: str, get=_get_json) -> dict[str, int]:
-    """For every bank line of the plan: does the Sandbox Bank hold that entry reference on that date?"""
     wanted: dict[str, dict[str, str]] = {}
     for i in items:
         if i["channel"] == "bank":

@@ -19,7 +19,6 @@ class InvalidRecommendation(ValueError):
 
 
 def save_recommendation(c: psycopg.Connection, rec: dict[str, Any]) -> bool:
-    """Store and emit `recommendation.created`; False if one is open for the same (type, subject)."""
     if rec.get("execution_mode") == "permitted":
         raise InvalidRecommendation("execution_mode 'permitted' is not enabled in this build")
     problems = contract.entity_errors("recommendation", rec)
@@ -49,7 +48,6 @@ def _apply_changes(rec: dict[str, Any], changes: dict[str, Any] | None) -> dict[
 
 
 def _subject_match(s: Store, rec: dict[str, Any]) -> str | None:
-    """The Match this card decides; hints decide nothing."""
     if rec["control_level"] != "approval_required":
         return None
     subject = rec.get("subject") or {}
@@ -89,7 +87,7 @@ def decide_recommendation(c: psycopg.Connection, rec_id: str, body: dict[str, An
             done = ports.execute(c, approval, action, company)
             approval["execution"] = {"mode": "simulated", "status": "done", "executed_at": approval["decided_at"],
                                      "reference": done["reference"], "result": done["result"], "effects": []}
-        except Exception as exc:  # the decision stands; the failure is shown on the card
+        except Exception as exc:
             approval["execution"] = {"mode": "simulated", "status": "failed", "executed_at": None,
                                      "result": f"SIMULATED execution failed: {exc}", "effects": []}
     store_approval(c, approval, company)

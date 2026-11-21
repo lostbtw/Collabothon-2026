@@ -27,7 +27,6 @@ def registry() -> Registry:
 
 
 def _resolve_component(schema: dict[str, Any]) -> dict[str, Any]:
-    """Inline '#/components/schemas/X' references, which are relative to openapi.yaml, not to the schema files."""
     if isinstance(schema, dict):
         ref = schema.get("$ref")
         if isinstance(ref, str) and ref.startswith("#/components/"):
@@ -66,5 +65,4 @@ def errors(instance: Any, schema: dict[str, Any]) -> list[str]:
 
 
 def entity_errors(entity: str, doc: dict[str, Any]) -> list[str]:
-    """Validation errors of `doc` against contracts/schemas/<entity>.schema.json (empty = valid)."""
     return errors(doc, {"$ref": f"./schemas/{entity}.schema.json"})

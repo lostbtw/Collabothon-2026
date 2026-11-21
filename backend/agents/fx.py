@@ -41,7 +41,6 @@ def signed(value: dict[str, str]) -> str:
 
 
 def signature(a: dict[str, Any]) -> str:
-    """Changes when the engine's numbers for the invoice change: then it is judged again."""
     keys = ("status", "expected_shortfall", "net_amount", "expected_cash_date", "spot")
     return hashlib.sha1(json.dumps({k: a.get(k) for k in keys}, sort_keys=True).encode()).hexdigest()[:10]
 
@@ -61,13 +60,11 @@ def _rates(a: dict[str, Any]) -> dict[str, str]:
 
 
 def compared(a: dict[str, Any]) -> str:
-    """", 11.0% of money in during your weakest of the last 10 months (60,147 PLN)" for the reference the model chose."""
     ref = a.get("chosen")
     return f", {ref['loss_share_percent']}% of {ref['label']} ({m(ref['amount'])})" if ref else ""
 
 
 def cash_sentence(a: dict[str, Any]) -> str:
-    """Whether the bad case would push (or deepen) a negative cash forecast; empty when it would not."""
     if not a.get("bad_case_takes_balance_below_zero"):
         return ""
     low = a["lowest_balance_after_payment_with_bad_case"]
@@ -203,7 +200,6 @@ def natural_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
 
 
 def ignored_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
-    """An "ignore" judgement, closed at once: kept for audit, never in the inbox."""
     return _base(
         company, a, at, type="info", title=f"Not worth your attention: {a['label']}", status="expired",
         summary=f"FX Shield looked at {m(a['amount'])} expected on {short_date(a['expected_cash_date'])}. "
@@ -239,7 +235,6 @@ CASE_FIELDS = ("document_id", "label", "direction", "status", "amount", "covered
 
 
 def case_facts(a: dict[str, Any]) -> dict[str, Any]:
-    """What the model may read and quote: the engine's facts for one invoice."""
     return {k: a[k] for k in CASE_FIELDS if k in a}
 
 
@@ -260,7 +255,6 @@ TOOLS = {"get_fx_case": (_schema("get_fx_case", "FX Shield's facts for one open 
 
 def judge(model: Any, conn: psycopg.Connection, company: str, a: dict[str, Any],
           others: list[dict[str, Any]]) -> dict[str, str] | None:
-    """The model's judgement of one invoice, or None if invalid."""
     facts = case_facts(a)
     context = [{k: o.get(k) for k in ("document_id", "label", "status", "value_today_base", "expected_shortfall")}
                for o in others if o["document_id"] != a["document_id"]]
@@ -282,7 +276,6 @@ def judge(model: Any, conn: psycopg.Connection, company: str, a: dict[str, Any],
 
 
 def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: Any = _DEFAULT) -> list[str]:
-    """Handler for `forecast.updated`. Returns the ids of the cards and records created."""
     engine = finance_engine()
     if engine is None or not hasattr(engine, "fx_assessments"):
         return []
@@ -299,14 +292,14 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
             continue  # the owner approved a hedge for this invoice: that decision stands
         cid = card_id(a)
         if any(r["id"] == cid for r in mine):
-            continue  # judged already
+            continue
         if model is _DEFAULT:
             model = default_client()
         if model is None:
-            return created  # no model: FX Shield does not judge
+            return created
         answer = judge(model, conn, company, a, assessments)
         if answer is None:
-            continue  # retried on the next update
+            continue
         chosen = next((r for r in a["loss_vs_references"] if r["id"] == answer["reference"]), None)
         card_input = {**a, "card_id": cid, "decided_because": answer["reason"], "chosen": chosen}
         for old in (r for r in mine if r["status"] in OPEN):

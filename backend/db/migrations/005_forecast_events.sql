@@ -1,5 +1,3 @@
--- Forecast events the owner states ("closed 1-30 June"), from the form or the chat. The finance engine reads them;
--- doc has the shape of forecast.schema.json#/properties/events/items.
 create table forecast_events (
   id         text primary key,
   company_id text not null references companies(id),

@@ -18,7 +18,7 @@ from .handlers import HANDLERS, PRODUCER, Context, default_rates, rematch, sweep
 log = logging.getLogger("ordo.pipeline")
 MAX_ATTEMPTS = 3
 SWEEP_SECONDS = int(os.environ.get("ORDO_PIPELINE_SWEEP_SECONDS", "60"))
-_CHOOSE = model_chooser()  # the cluster's model for category/kind when rules do not decide; None if disabled
+_CHOOSE = model_chooser()
 
 
 def make_context(conn: psycopg.Connection) -> Context:
@@ -29,7 +29,7 @@ def make_context(conn: psycopg.Connection) -> Context:
     def _company(company_id: str) -> dict:
         row = conn.execute("select to_jsonb(c) from companies c where id = %s", (company_id,)).fetchone()
         info = dict(row[0]) if row else {"id": company_id}
-        info["as_of_date"] = str(info.get("as_of_date") or "") or None  # companies.tax_id: migration 007
+        info["as_of_date"] = str(info.get("as_of_date") or "") or None
         return info
 
     def _people(company_id: str) -> list[dict]:
@@ -38,7 +38,7 @@ def make_context(conn: psycopg.Connection) -> Context:
                union all
                select p.id, p.name, a.address, p.role from person_addresses a join people p on p.id = a.person_id
                where p.company_id = %s""", (company_id, company_id)).fetchall()
-        return [{"person_id": id_, "name": name, "email": email, "role": role}  # who-paid treats contractors as staff
+        return [{"person_id": id_, "name": name, "email": email, "role": role}
                 for id_, name, email, role in rows]
 
     def _raw_bytes(raw: dict) -> bytes | None:
@@ -63,7 +63,6 @@ def _handle(conn: psycopg.Connection, handlers: dict[str, Any], event: dict) -> 
 
 
 def process_pending(conn: psycopg.Connection, consumer: str, retry_after_seconds: int = 30) -> int:
-    """Handle every claimable delivery of one consumer group once. Returns how many succeeded."""
     handlers: dict[str, Any] = HANDLERS[consumer]
     return queue.process_pending(conn, consumer, lambda event: _handle(conn, handlers, event),
                                  retry_after_seconds=retry_after_seconds, max_attempts=MAX_ATTEMPTS,
@@ -71,7 +70,6 @@ def process_pending(conn: psycopg.Connection, consumer: str, retry_after_seconds
 
 
 def sweep_all(conn: psycopg.Connection) -> None:
-    """Missing documents and due-but-unpaid documents, for every company."""
     try:
         ctx = make_context(conn)
         for (company,) in conn.execute("select id from companies").fetchall():
@@ -85,7 +83,6 @@ def sweep_all(conn: psycopg.Connection) -> None:
 
 
 def rematch_all(conn: psycopg.Connection) -> None:
-    """Once at start: re-pair every company's documents and bank lines with the current matcher (handlers.rematch)."""
     try:
         ctx = make_context(conn)
         for (company,) in conn.execute("select id from companies").fetchall():
@@ -106,9 +103,9 @@ def run(argv: list[str]) -> int:
         rematch_all(conn)
         last_sweep = 0.0
         while True:
-            for consumer in ("normaliser", "matcher"):  # normaliser first: its output feeds the matcher
+            for consumer in ("normaliser", "matcher"):
                 process_pending(conn, consumer)
             if time.monotonic() - last_sweep >= SWEEP_SECONDS:
                 sweep_all(conn)
                 last_sweep = time.monotonic()
-            queue.wait(listener, timeout=5.0)  # wake on NOTIFY, or poll every 5 s
+            queue.wait(listener, timeout=5.0)

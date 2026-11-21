@@ -1,5 +1,3 @@
-# Switches the agents (ordo-api for the chat, ordo-agents for the cards) from their own tool loop to OGX + MCP.
-# Optional: without this ConfigMap, or when OGX does not answer, each agent runs its own loop against the model.
 apiVersion: v1
 kind: ConfigMap
 metadata:

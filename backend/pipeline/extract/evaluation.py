@@ -40,7 +40,6 @@ class Case:
 
 
 def load_november(truth_path: Path, documents_dir: Path) -> list[Case]:
-    """The November documents of the demo scenario; `artefact` paths are relative to `sim/documents/`."""
     cases = []
     for record in _read(truth_path):
         subset = NOVEMBER_SUBSETS.get(record.get("format"))
@@ -51,7 +50,6 @@ def load_november(truth_path: Path, documents_dir: Path) -> list[Case]:
 
 
 def load_receipt_photos(truth_path: Path, photos_dir: Path, subset: str = "real_photo") -> list[Case]:
-    """Photos of the printed receipts named `<truth id>-<n>.jpg`, real or rendered; a photo without truth is an error."""
     if not photos_dir.is_dir():
         return []
     truths = {record["id"]: truth_of(record) for record in _read(truth_path)}
@@ -65,7 +63,6 @@ def load_receipt_photos(truth_path: Path, photos_dir: Path, subset: str = "real_
 
 
 def truth_of(record: dict[str, Any]) -> Truth:
-    """Money as a string with a top-level currency (scenario) or as {amount, currency} (receipts)."""
     totals = record.get("totals") or {}
     gross, currency = _money(totals.get("gross"))
     vat, _ = _money(totals.get("vat"))
@@ -75,7 +72,6 @@ def truth_of(record: dict[str, Any]) -> Truth:
 
 def read_case(path: Path, *, today: date | None = None, docling_client: Any = None,
               llm_client: Any = None) -> dict[str, Any]:
-    """Reads one file the way the extractor does; a failed read is a row with an error, not an exception."""
     started = time.monotonic()
     content_type = CONTENT_TYPES.get(path.suffix.lower())
     try:
@@ -142,7 +138,6 @@ def normalise_tax_id(value: Any) -> str | None:
 
 
 def score(case: Case, outputs: dict[str, Any]) -> dict[str, Any]:
-    """One row of the per-document table: what was read, what is true, and the verdicts."""
     verdicts = compare(outputs, case.truth)
     return {
         "case_id": case.case_id,
@@ -163,7 +158,6 @@ def score(case: Case, outputs: dict[str, Any]) -> dict[str, Any]:
 
 
 def summarise(rows: list[dict[str, Any]]) -> dict[str, float]:
-    """Flat metrics for the whole set (`all/...`) and for each subset that has rows."""
     metrics: dict[str, float] = {}
     for scope in ("all", *SUBSETS):
         chosen = rows if scope == "all" else [row for row in rows if row["subset"] == scope]
@@ -188,7 +182,6 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def headline(rows: list[dict[str, Any]]) -> str:
-    """The pitch number: gross first, then photos and Silently wrong fields; then the other fields."""
     count = len(rows)
     parts = [f"Gross amount read right on {_right(rows, 'gross')} of {count} documents"]
     for label, subsets in (("photos", PHOTO_SUBSETS), ("real phone photos", ("real_photo",))):

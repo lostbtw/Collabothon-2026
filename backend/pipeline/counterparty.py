@@ -16,7 +16,6 @@ CATEGORIES = ["revenue_services", "salaries", "contractors", "social_security", 
 KINDS = ["supplier", "customer", "employee", "owner", "tax_authority", "social_security", "bank",
          "payment_processor", "other"]
 
-# first match wins; checked against "name + description", lower case
 CATEGORY_RULES = [
     ("reimbursements", ("zwrot koszt", "zwrot wydatk", "reimbursement", "erstattung")),
     ("salaries", ("salary", "wynagrodzenie", "gehalt", "lohn ")),
@@ -46,7 +45,6 @@ DEFAULT_CATEGORY_BY_KIND = {"tax_authority": "taxes", "social_security": "social
 
 
 def normalise_alias(raw: str | None) -> str:
-    """'PIXELBOARD.COM* SAN FRANCISCO 1452' -> 'PIXELBOARD COM SAN FRANCISCO' (reference numbers dropped)."""
     tokens = re.sub(r"[^0-9A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]+", " ", raw or "").upper().split()
     return " ".join(t for t in tokens if not any(ch.isdigit() for ch in t))
 
@@ -66,7 +64,6 @@ def _slug(name: str) -> str:
 
 def resolve(counterparties: list[dict], *, name: str | None, tax_id: str | None = None,
             iban: str | None = None) -> tuple[str, dict | None, float]:
-    """(how, counterparty, similarity): how is 'tax_id' | 'iban' | 'alias' | 'suggested' | 'none'."""
     nip, account, alias = _nip(tax_id), _iban(iban), normalise_alias(name)
     if nip:
         hit = next((c for c in counterparties if _nip(c.get("tax_id")) == nip), None)
@@ -127,7 +124,6 @@ def with_alias(cp: dict, raw: str | None) -> dict:
 
 def categorise(text: str, *, counterparty: dict | None, incoming: bool,
                choose: Callable | None = None) -> tuple[str, str, float]:
-    """(category, method 'history'|'rule'|'llm', confidence). Always a value of the Category enum."""
     if counterparty and counterparty.get("default_category") in CATEGORIES:
         return counterparty["default_category"], "history", 0.95
     lowered = f" {text.lower()} "
@@ -145,7 +141,6 @@ def categorise(text: str, *, counterparty: dict | None, incoming: bool,
 # The optional model may only choose from the Category enum.
 
 def model_chooser() -> Callable | None:
-    """choose(question, choices) -> one of choices, via the cluster's vLLM (guided choice). None when disabled."""
     if os.environ.get("ORDO_LLM_ENABLED", "1") == "0":
         return None
     try:
@@ -173,7 +168,6 @@ def model_chooser() -> Callable | None:
 
 
 def apply_to_transaction(txn: dict, counterparties: list[dict], company_id: str, choose=None) -> tuple[dict, dict | None]:
-    """(updated Transaction, Counterparty to store or None). Sets counterparty_id, category, data_quality."""
     incoming = not txn["amount_base"]["amount"].startswith("-")
     raw = txn.get("counterparty_name_raw") or txn.get("description") or ""
     how, cp, _ = resolve(counterparties, name=raw, iban=txn.get("counterparty_account"))
@@ -182,7 +176,7 @@ def apply_to_transaction(txn: dict, counterparties: list[dict], company_id: str,
     if how in ("tax_id", "iban", "alias"):
         counterparty_id = cp["id"]
     elif how == "suggested":
-        counterparty_id = None  # confirmed through the Match (learn_from_match), not guessed
+        counterparty_id = None
         dq.append("counterparty_unresolved")
     else:
         kind = guess_kind(f"{raw} {txn.get('description') or ''}", incoming, choose)
@@ -196,7 +190,6 @@ def apply_to_transaction(txn: dict, counterparties: list[dict], company_id: str,
 
 
 def apply_to_document(doc: dict, counterparties: list[dict], company_id: str, choose=None) -> tuple[dict, dict | None]:
-    """(updated Document, Counterparty to store or None). Resolves the seller of a purchase / the buyer of a sale."""
     side = "seller" if doc["direction"] == "purchase" else "buyer"
     party = doc[side]
     how, cp, _ = resolve(counterparties, name=party.get("name"), tax_id=party.get("tax_id"),
@@ -208,7 +201,7 @@ def apply_to_document(doc: dict, counterparties: list[dict], company_id: str, ch
             cp = with_alias(cp, party.get("name"))
             to_store = cp if cp != next(c for c in counterparties if c["id"] == cp["id"]) else None
     elif how == "suggested" and not party.get("tax_id"):
-        counterparty_id = None  # OCR spelling without a tax id: learned when the owner confirms the Match
+        counterparty_id = None
     else:
         text = " ".join(line.get("description") or "" for line in doc.get("lines") or [])
         kind = guess_kind(f"{party.get('name')} {text}", side == "buyer", choose)
@@ -226,7 +219,6 @@ def apply_to_document(doc: dict, counterparties: list[dict], company_id: str, ch
 
 
 def learn_from_match(document: dict, txn: dict, counterparties: list[dict], company_id: str):
-    """The owner confirmed a document and a bank line as one purchase: both spellings become aliases of one counterparty."""
     side = "seller" if document["direction"] == "purchase" else "buyer"
     party = document[side]
     by_id = {c["id"]: c for c in counterparties}
@@ -240,7 +232,7 @@ def learn_from_match(document: dict, txn: dict, counterparties: list[dict], comp
     cp = with_alias(with_alias(cp, txn.get("counterparty_name_raw")), party.get("name"))
     learned = (document.get("category_suggestion") or {}).get("category")
     if not cp.get("default_category") and learned in CATEGORIES and learned != "other":
-        cp = {**cp, "default_category": learned}  # the next line from this counterparty is categorised by history
+        cp = {**cp, "default_category": learned}
     if txn.get("counterparty_account") and _iban(txn["counterparty_account"]) not in {_iban(i) for i in cp["ibans"]}:
         cp = {**cp, "ibans": [*cp["ibans"], txn["counterparty_account"]]}
     to_store = [cp]

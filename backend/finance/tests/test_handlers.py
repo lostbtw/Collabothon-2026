@@ -14,7 +14,6 @@ from backend.finance.main import process_pending
 
 @pytest.fixture
 def demo(db, db_url):
-    """The API on the fixture data, as in backend/api/tests."""
     load_fixtures(db)
     with TestClient(create_app(database_url=db_url)) as c:
         yield c
@@ -79,7 +78,6 @@ def test_without_fixture_entries_the_booking_creates_its_own(db):
 
 
 def test_approving_the_hero_receipt_raises_vat_lost_this_year_by_242_90(demo, db):
-    """The counter counts approved entries only, so the owner's approval makes it tick up."""
     before = engine.ledger_kpis(db, "co_borsuk")
     demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
     process_pending(db)
@@ -100,7 +98,6 @@ def test_a_rejected_hero_receipt_leaves_vat_lost_this_year_unchanged(demo, db):
 
 
 def test_the_summary_the_app_shows_rises_by_242_90_when_the_hero_receipt_is_approved(demo, db):
-    """The Overview page asks for one month; 'VAT lost this year' must still be the whole year."""
     month = {"company_id": "co_borsuk", "group_by": "category", "from": "2026-11-01", "to": "2026-11-30"}
     before = demo.get("/api/v1/ledger/summary", params=month).json()["kpis"]
     demo.post("/api/v1/matches/mat_412/decision", json={"decision": "approved"})
@@ -111,7 +108,6 @@ def test_the_summary_the_app_shows_rises_by_242_90_when_the_hero_receipt_is_appr
     assert after["vat_lost_ytd"] == {"amount": "242.90", "currency": "PLN"}
     assert after == engine.ledger_kpis(db, "co_borsuk")
 def test_an_auto_confirmed_match_is_booked_from_the_matchers_event(db):
-    """contracts/events.md: the matcher emits match.decided (auto_confirmed, approval_id null) for PixelBoard."""
     load_fixtures(db)
     db.execute("delete from ledger_entries")
     db.commit()

@@ -32,8 +32,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: ordo-config
-            # ORDO_OGX_URL and ORDO_MCP_URL (deploy/app/ogx-config.yaml). Optional: without it the agents
-            # run their own tool loop.
             - configMapRef:
                 name: ordo-ogx
                 optional: true

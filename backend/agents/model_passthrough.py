@@ -16,7 +16,6 @@ _client: httpx.AsyncClient | None = None
 
 
 def text_parts_to_text(body: dict[str, Any]) -> int:
-    """Turns every message content made only of text parts into plain text. Returns how many were changed."""
     changed = 0
     for message in body.get("messages") or []:
         content = message.get("content")

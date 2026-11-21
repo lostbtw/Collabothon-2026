@@ -22,7 +22,6 @@ SIM_PREFIX = {
 
 
 def optional_module(name: str):
-    """An optional module, or None while it does not exist yet."""
     try:
         if importlib.util.find_spec(name) is None:
             return None
@@ -32,18 +31,15 @@ def optional_module(name: str):
 
 
 def finance_engine():
-    """The finance engine (backend/finance/engine.py), or None while it is absent."""
     return optional_module("backend.finance.engine")
 
 
 def latest_base_forecast(conn: psycopg.Connection, company: str) -> dict[str, Any] | None:
-    """The newest stored forecast that is not a what-if scenario."""
     bases = [f for f in Store(conn).list("forecast", company_id=company) if not f.get("scenario_of")]
     return bases[0] if bases else None
 
 
 def reissue_forecast(conn: psycopg.Connection, company: str, base: dict[str, Any], **changes: Any) -> dict[str, Any]:
-    """Stand-in for a recompute: the base forecast stored again under a new id with `changes` (numbers unchanged)."""
     forecast = {**base, "id": new_id("fc"), "generated_at": now_iso(), "inputs_hash": None, **changes}
     Store(conn).add("forecast", forecast, company_id=company)
     return forecast
@@ -84,7 +80,6 @@ def _stand_in_execute(c: psycopg.Connection, approval: dict[str, Any], action: d
 
 
 def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:
-    """Run an approved action in simulation -> {"reference", "result"}."""
     executor = optional_module("backend.executor.simulated")
     if executor is not None and hasattr(executor, "execute_action"):
         return executor.execute_action(c, approval, action, company)
@@ -92,7 +87,6 @@ def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, A
 
 
 def recompute_forecast(c: psycopg.Connection, company: str, note: str) -> dict[str, Any] | None:
-    """New base forecast after an executed action."""
     engine = finance_engine()
     if engine is not None and hasattr(engine, "recompute"):
         return engine.recompute(c, company)

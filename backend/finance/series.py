@@ -18,9 +18,9 @@ KINDS = {"salary": "salary", "tax": "tax", "social_security": "social_security"}
 @dataclass
 class Flow:
     day: date
-    amount: Decimal               # base currency, negative = money out
-    key: str                      # counterparty
-    name: str                     # counterparty as shown
+    amount: Decimal
+    key: str
+    name: str
     template: str
     transaction: dict = field(repr=False)
 
@@ -31,7 +31,7 @@ class Series:
     key: str
     label: str
     kind: str
-    every: int                    # months: 1 or 3
+    every: int
     rule: str
     dom: int
     amount: Decimal
@@ -56,7 +56,6 @@ class Series:
         return next_business_day(nominal, country)
 
     def dates(self, start: date, end: date, country: str) -> list[date]:
-        """Projected dates in (start, end]."""
         last = self.flows[-1].day
         out, k = [], 1
         while True:
@@ -70,12 +69,10 @@ class Series:
 
 
 def template(text: str) -> str:
-    """Payment reference without digits and extra spaces: 'PIT-4 10/2026 NIP 999...' -> 'PIT- / NIP'."""
     return re.sub(r"\s+", " ", re.sub(r"\d+", "", text or "")).strip()
 
 
 def name_key(name: str | None) -> str:
-    """'Piekarnia Złoty Kłos sp. z o.o.' and 'PIEKARNIA ZLOTY KLOS SP Z O O' give the same key."""
     folded = unicodedata.normalize("NFKD", (name or "").replace("ł", "l").replace("Ł", "L"))
     folded = "".join(ch for ch in folded if not unicodedata.combining(ch))
     return re.sub(r"[^a-z0-9]+", " ", folded.lower()).strip()
@@ -120,7 +117,7 @@ def _as_series(key: str, tmpl: str, flows: list[Flow], country: str, loose: bool
     if avg == 0 or (amounts[0] > 0) != (avg > 0):
         return None
     cv = pstdev(amounts) / abs(avg)
-    if loose and cv > LOOSE_CV:  # a client paid by invoice: regular date, amount = mean of the last 3
+    if loose and cv > LOOSE_CV:
         avg, cv = mean(amounts[-3:]), CLIENT_CV
     if cv > LOOSE_CV and not (loose and cv <= CLIENT_CV):
         return None
@@ -134,7 +131,6 @@ def _as_series(key: str, tmpl: str, flows: list[Flow], country: str, loose: bool
 
 def detect(flows: list[Flow], as_of: date, country: str,
            loose_keys: set[str] = frozenset()) -> tuple[list[Series], list[Flow]]:
-    """Split flows booked up to `as_of` into recurring series and the rest; a long-overdue series has ended."""
     groups: dict[tuple[str, str], list[Flow]] = defaultdict(list)
     for f in sorted(flows, key=lambda f: (f.day, f.transaction.get("id", ""))):
         if f.day <= as_of:
@@ -153,7 +149,6 @@ def detect(flows: list[Flow], as_of: date, country: str,
 
 
 def _window(as_of: date, start: date | None, quiet: dict[date, set[str]], side: str) -> list[date]:
-    """Days of the trailing window on which the company was open for `side` ("in" or "out") and had history."""
     first = as_of - timedelta(weeks=VARIABLE_WEEKS) + timedelta(days=1)
     if start is not None and start > first:
         first = start
@@ -167,7 +162,6 @@ def _window(as_of: date, start: date | None, quiet: dict[date, set[str]], side: 
 
 def weekday_averages(flows: list[Flow], as_of: date, quiet: dict[date, set[str]] | None = None,
                      start: date | None = None) -> dict[str, dict[int, Decimal]]:
-    """Per counterparty: mean amount per weekday over the trailing weeks, counting only open days since the first line."""
     quiet = quiet or {}
     open_days = {side: _window(as_of, start, quiet, side) for side in ("in", "out")}
     per_weekday = {side: defaultdict(int) for side in open_days}
@@ -191,7 +185,6 @@ def weekday_averages(flows: list[Flow], as_of: date, quiet: dict[date, set[str]]
 
 def weekly_spread(flows: list[Flow], as_of: date, quiet: dict[date, set[str]] | None = None,
                   start: date | None = None) -> tuple[Decimal, int] | None:
-    """Standard deviation of the weekly net sum of everyday flows over fully open trailing weeks (None below 2), and their number."""
     quiet = quiet or {}
     weeks = []
     for k in range(VARIABLE_WEEKS):

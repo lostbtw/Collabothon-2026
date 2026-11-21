@@ -29,7 +29,6 @@ def default_client() -> Any:
 
 @functools.lru_cache(maxsize=4)
 def _discovered_model(client: Any, served: str) -> str:
-    """OGX names a model '<provider>/<model>'; find the one that serves our model."""
     ids = [m.id for m in client.models.list()]
     return next((i for i in ids if i == served), None) or next((i for i in ids if i.endswith("/" + served)), served)
 
@@ -39,7 +38,6 @@ def model_id(client: Any) -> str:
 
 
 def _parse(text: str | None) -> Any:
-    """JSON from the model's text: also inside a code fence, with raw line breaks in strings, or after a few words."""
     if not text:
         return None
     text = text.strip()
@@ -66,7 +64,6 @@ AGAIN = ('Your answer was empty or not the required JSON. Answer now from the to
 
 def request(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
             max_calls: int, client: Any, after: Any = None) -> Any:
-    """One Responses call limited to `tool_names`; `after` continues a previous response."""
     system = " ".join(m["content"] for m in messages if m["role"] == "system")
     turns = [{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in ("user", "assistant")]
     return client.responses.create(
@@ -81,7 +78,6 @@ def request(company: str, messages: list[dict[str, Any]], tool_names: list[str],
 
 
 def _tool_calls(response: Any, company: str, tool_names: list[str]) -> tuple[list[Any], list[dict[str, Any]]] | None:
-    """(results, trace entries) of the tools OGX called; None when one was called outside the company or the agent."""
     results: list[Any] = []
     calls: list[dict[str, Any]] = []
     for item in response.output:
@@ -106,7 +102,6 @@ def _problems(answer: Any, final_schema: dict[str, Any]) -> list[str]:
 def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
         max_calls: int, trace: list[dict[str, Any]] | None = None,
         client: Any = None) -> tuple[dict[str, Any] | None, list[Any]] | None:
-    """Like `llm.run_tool_loop`; None if OGX is unreachable."""
     client = client or default_client()
     try:
         response = request(company, messages, tool_names, final_schema, max_calls=max_calls, client=client)
@@ -132,7 +127,7 @@ def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], fin
         answer = None
         if attempt == 2:
             break
-        try:  # one corrective turn, as in the in-process loop: the model sometimes ends without its final text
+        try:
             response = request(company, messages, tool_names, final_schema, max_calls=2, client=client, after=response)
         except Exception as exc:
             log.warning("OGX did not answer the corrective turn: %s", exc)
@@ -145,7 +140,6 @@ def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], fin
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Cluster check: `python -m backend.agents.ogx "question" [company]`; exit 1 unless a tool was called."""
     import sys
 
     from backend.agents.chat import CHAT_TOOLS, FINAL_SCHEMA, SYSTEM

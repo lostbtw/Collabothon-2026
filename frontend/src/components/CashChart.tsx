@@ -11,7 +11,6 @@ import { Modal, ModalSection } from "./Modal";
 
 const compact = new Intl.NumberFormat("en", { notation: "compact" });
 
-/** Cash over time: solid history, dashed forecast, red below zero; hover shows a day, a click opens what is expected on it. */
 export function CashChart({ history, forecast, flash }: { history: BalanceHistory | null; forecast: Forecast | null; flash?: boolean }) {
   const m = useMemo(() => cashModel(history, forecast), [history, forecast]);
   const [hover, setHover] = useState<CashDay | null>(null);
@@ -82,7 +81,6 @@ export function CashChart({ history, forecast, flash }: { history: BalanceHistor
   );
 }
 
-/** One forecast day: where the balance ends, how far it could be off, and every payment expected that day. */
 function DayModal({ day, onClose }: { day: CashDay; onClose: () => void }) {
   const navigate = useNavigate();
   const ins = day.events.filter((e) => !e.amount.amount.startsWith("-"));

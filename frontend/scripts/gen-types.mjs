@@ -10,7 +10,7 @@ const outFile = join(here, "..", "src", "api", "types.gen.ts");
 
 const pascal = (s) => s.replace(/(^|[_-])(\w)/g, (_, __, c) => c.toUpperCase());
 
-const RENAME = { event: "OrdoEvent", document: "OrdoDocument" }; // avoid shadowing the DOM Event and Document types
+const RENAME = { event: "OrdoEvent", document: "OrdoDocument" };
 const typeName = (file) => RENAME[file] ?? pascal(file);
 const key = (k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k));
 const doc = (text, pad) => (text ? `${pad}/** ${String(text).replace(/\*\//g, "* /")} */\n` : "");

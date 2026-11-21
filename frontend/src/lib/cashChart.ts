@@ -17,7 +17,6 @@ export type CashDay = { date: string; balance: Money; expected: boolean; x: numb
 export type CashModel = {
   w: number; h: number; plot: { left: number; right: number; top: number; bottom: number };
   past: string | null; future: string | null; todayX: number | null;
-  /** The forecast's range (low to high) as one closed shape, when the engine sends it. */
   band: string | null;
   zones: { from: string; to: string; x1: number; x2: number }[];
   low: { date: string; amount: Money; x: number; y: number } | null;
@@ -38,7 +37,6 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   const plot = { left: 52, right: w - 12, top: 30, bottom: h - 34 };
   const x = (date: string) => plot.left + (Math.min(span, Math.max(0, daysBetween(start, date))) / span) * (plot.right - plot.left);
 
-  // Every day with the balance that holds on it: history fills forward until the next known day.
   const days: Omit<CashDay, "x" | "y">[] = [];
   let held = pastPoints[0]?.balance;
   let next = 0;
@@ -57,17 +55,14 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   const y = (v: number) => plot.top + (1 - (v - lo) / (hi - lo)) * (plot.bottom - plot.top);
   const r = (n: number) => Math.round(n * 10) / 10;
 
-  // Step lines: the balance stays flat until the next day something is booked.
   const step = (pts: { date: string; v: number }[], endX: number) =>
     pts.map((p, i) => (i === 0 ? `M${r(x(p.date))} ${r(y(p.v))}` : `H${r(x(p.date))}V${r(y(p.v))}`)).join("") + `H${r(endX)}`;
   const past = pastPoints.length ? step(pastPoints.map((p) => ({ date: p.date, v: Number(p.balance) })), x(today)) : null;
   const futurePoints = forecast ? forecast.points.filter((p) => p.date >= today && p.date <= end).map((p) => ({ date: p.date, v: Number(p.balance) })) : [];
-  // The dashed line starts where the solid one ends, so the two meet at "Today".
   const lastPast = pastPoints.at(-1);
   const joined = lastPast && futurePoints.length && futurePoints[0].date > today ? [{ date: today, v: Number(lastPast.balance) }, ...futurePoints] : futurePoints;
   const future = joined.length ? step(joined, plot.right) : null;
 
-  // Range: the upper edge left to right as steps, then the lower edge back.
   let band: string | null = null;
   if (ranged.length > 1) {
     const top = ranged.map((p, i) => (i === 0 ? `M${r(x(p.date))} ${r(y(Number(p.high)))}` : `H${r(x(p.date))}V${r(y(Number(p.high)))}`)).join("") + `H${r(plot.right)}`;
@@ -91,7 +86,6 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   return {
     w, h, plot, past, future, band, todayX: forecast ? x(today) : null, zones, low, zeroY: lo < 0 && hi > 0 ? y(0) : null, yTicks, months,
     days: days.map((d) => {
-      // The range holds from one forecast day to the next, like the balance.
       const known = [...lowHigh.keys()].filter((k) => k <= d.date).pop();
       const p = d.expected && known ? lowHigh.get(known) : undefined;
       return { ...d, x: x(d.date), y: y(Number(d.balance.amount)), ...(p ? { low: { amount: p.low!, currency }, high: { amount: p.high!, currency } } : {}) };
@@ -99,7 +93,6 @@ export function cashModel(history: BalanceHistory | null, forecast: Forecast | n
   };
 }
 
-/** The day under horizontal position `px`. */
 export function cashDayAt(m: CashModel, px: number): CashDay | null {
   if (m.days.length === 0) return null;
   let best = m.days[0];

@@ -43,7 +43,6 @@ def llm_model() -> str:
 
 
 def llm_token() -> str:
-    """Bearer token of the model endpoint (OpenShift Secret cfo-app-token); 'EMPTY' for an endpoint without auth."""
     return _first("ORDO_LLM_API_KEY", "LLM_TOKEN", default="EMPTY")
 
 
@@ -59,7 +58,6 @@ def llm_verify() -> ssl.SSLContext | bool:
 
 
 def ogx_url() -> str:
-    """OpenAI-compatible endpoint of the cluster's OGX server, with /v1. Empty: the agents run their own tool loop."""
     return os.environ.get("ORDO_OGX_URL", "")
 
 
@@ -68,12 +66,10 @@ def ogx_token() -> str:
 
 
 def ogx_model() -> str:
-    """The model's id in OGX ('<provider>/<model>'). Empty: found by asking OGX for its models."""
     return os.environ.get("ORDO_OGX_MODEL", "")
 
 
 def mcp_url() -> str:
-    """Where OGX reaches Ordo's MCP server (Streamable HTTP, ends in /mcp)."""
     return os.environ.get("ORDO_MCP_URL", "")
 
 
@@ -90,10 +86,8 @@ def guardrails_token() -> str:
 
 
 def mcp_allowed_hosts() -> list[str]:
-    """Host headers the MCP server answers to, besides localhost (the Service's names on the cluster)."""
     return [h.strip() for h in os.environ.get("ORDO_MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
 
 def sse_replay_fixtures() -> bool:
-    """Replay contracts/fixtures/event.json to every new SSE client (skeleton mode). Off on the cluster once real events flow."""
     return os.environ.get("ORDO_SSE_REPLAY_FIXTURES", "1") != "0"

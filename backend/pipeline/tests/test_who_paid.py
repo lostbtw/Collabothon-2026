@@ -7,7 +7,7 @@ from backend.pipeline.who_paid import (apply_who_paid, document_flags, has_tax_c
                                        match_for_unmatched_document)
 
 COMPANY = {"id": "co_borsuk", "tax_id": "PL9990000014"}
-PEOPLE = [  # SAMPLE people, as the seed has them
+PEOPLE = [
     {"person_id": "per_jan", "name": "Jan Kowalski (SAMPLE)", "email": "jan@borsuk-labs.sample", "role": "employee"},
     {"person_id": "per_owner", "name": "Ewa Borsuk (SAMPLE)", "email": "ewa@borsuk-labs.sample", "role": "owner"},
 ]
@@ -71,7 +71,7 @@ class DecisionTable(unittest.TestCase):
         self.assertEqual(match["paid_by"], "company_account")
         self.assertIsNone(match["payer"])
         self.assertEqual(match["consequences"], MATCHES["mat_pixel11"]["consequences"])
-        self.assertFalse(has_tax_consequence(match["consequences"]))  # reverse charge alone may auto-confirm
+        self.assertFalse(has_tax_consequence(match["consequences"]))
         self.assertEqual(schema_errors(match, "match"), [])
 
     def test_employee_invoice_to_the_company_keeps_vat(self):
@@ -120,7 +120,7 @@ class DecisionTable(unittest.TestCase):
         m = unmatched(receipt(sender="someone@else.sample"))
         self.assertEqual((m["paid_by"], m["payer"]), ("unknown", None))
         self.assertIsNone(m["consequences"]["reimbursement_owed"])
-        self.assertLess(m["score"], 0.55)  # becomes a question, not a card to confirm
+        self.assertLess(m["score"], 0.55)
 
     def test_owner_private_card_is_owed_to_owner_and_loses_vat(self):
         m = unmatched(receipt(card="9021", sender="ewa@borsuk-labs.sample"))

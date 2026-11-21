@@ -4,7 +4,6 @@ from decimal import Decimal
 
 
 def fmt_money(m: dict[str, str], cents: bool = True) -> str:
-    """{"amount": "-1299.00", "currency": "PLN"} -> "1,299.00 PLN" (sign dropped: the sentence says the direction)."""
     value = abs(Decimal(m["amount"]))
     text = f"{value:,.2f}" if cents or value != value.to_integral_value() else f"{value:,.0f}"
     return f"{text} {m['currency']}"

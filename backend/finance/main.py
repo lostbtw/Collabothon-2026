@@ -19,7 +19,6 @@ def _handle(conn: psycopg.Connection, event: dict) -> None:
 
 
 def process_pending(conn: psycopg.Connection, retry_after_seconds: int = 30) -> int:
-    """Handle every claimable `finance` delivery once. Returns how many succeeded."""
     return queue.process_pending(conn, CONSUMER, lambda event: _handle(conn, event),
                                  retry_after_seconds=retry_after_seconds, max_attempts=MAX_ATTEMPTS)
 
@@ -31,5 +30,5 @@ def run(argv: list[str]) -> int:
         log.info("finance: listening (%s)", CONSUMER)
         while True:
             process_pending(conn)
-            recompute_due(conn)  # debounce: 2 s after a company's last input event
-            queue.wait(listener, timeout=DEBOUNCE_SECONDS)  # wake on NOTIFY, or poll
+            recompute_due(conn)
+            queue.wait(listener, timeout=DEBOUNCE_SECONDS)

@@ -13,7 +13,7 @@ MONTH = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 def _month(month: str | None, c: psycopg.Connection, company: str) -> str:
-    if month is None:  # the last full month before the company's as-of date
+    if month is None:
         as_of = str(c.execute("select as_of_date from companies where id = %s", (company,)).fetchone()[0])
         year, mon = int(as_of[:4]), int(as_of[5:7])
         return f"{year - 1}-12" if mon == 1 else f"{year}-{mon - 1:02d}"
@@ -78,7 +78,6 @@ def delete_rule(id: str, company: str = Depends(company_id), c: psycopg.Connecti
 @router.patch("/transactions/{id}")
 def change_transaction_type(id: str, body: dict[str, Any] = Body(...), company: str = Depends(company_id),
                             c: psycopg.Connection = Depends(conn)):
-    """Only the category can be changed; Ordo remembers it as a rule for the counterparty."""
     if set(body) != {"category"}:
         raise ApiError(422, "invalid_request", "only category can be changed")
     try:
@@ -102,7 +101,6 @@ def clients(month: str | None = Query(None), company: str = Depends(company_id),
 @router.get("/subscriptions")
 def subscriptions(month: str | None = Query(None), scope: str = Query("subscriptions", pattern="^(subscriptions|all)$"),
                   company: str = Depends(company_id), c: psycopg.Connection = Depends(conn)):
-    """scope=all: every payment that repeats each month (rent, staff, taxes too), not only tools."""
     if month is not None and not MONTH.match(month):
         raise ApiError(422, "invalid_request", "month is YYYY-MM")
     return owner.subscriptions(c, company, month, scope)

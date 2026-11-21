@@ -4,7 +4,6 @@ from functools import lru_cache
 
 
 def easter(year: int) -> date:
-    """Gregorian Easter Sunday (anonymous algorithm)."""
     a, b, c = year % 19, year // 100, year % 100
     d, e = b // 4, b % 4
     f = (b + 8) // 25
@@ -62,5 +61,4 @@ def add_months(year: int, month: int, k: int) -> tuple[int, int]:
 
 
 def day_in_month(year: int, month: int, dom: int) -> date:
-    """The `dom`-th of the month, or its last day when the month is shorter."""
     return date(year, month, min(dom, last_day_of_month(year, month).day))

@@ -13,17 +13,14 @@ from world import ACCOUNTS, COMPANY, OUT, PERSON, bank_name
 SEED = 2026
 START, END = date(2026, 1, 1), date(2026, 11, 20)
 
-# Same columns, order, encoding and number format as the organisers' pizzeria CSV.
 COLUMNS = [
     "Account Number", "Booking Date", "Value Date", "Transaction Type",
     "Payment Reference", "Beneficiary/Payer", "Counterparty Account",
     "Bank Code", "Amount", "Currency", "Info",
 ]
 
-# Invented BICs ("SMPL" bank) per IBAN country; card lines have none.
 BIC = {"PL": "SMPLPLPWXXX", "DE": "SMPLDEFFXXX"}
 
-# Polish public holidays 2026 that fall on a weekday.
 HOLIDAYS = {date(2026, 1, 1), date(2026, 1, 6), date(2026, 4, 6), date(2026, 5, 1),
             date(2026, 6, 4), date(2026, 11, 11)}
 
@@ -37,7 +34,6 @@ MEBLOSTYL = ("MEBLOSTYL SP Z O O (SAMPLE)", "PL00999900000000000000030003")
 PIEKARNIA = ("PIEKARNIA ZLOTY KLOS SP Z O O (SAMPLE)", "PL00999900000000000000030001")
 KADROWNIA = ("KADROWNIA SP Z O O (SAMPLE)", "PL00999900000000000000030002")
 
-# Pay run on the last bank day (story_2026.py reuses it for 30 Nov): (person id, type, reference, amount).
 PAY_RUN_PLAN = [
     ("per_jan", "SALARY PAYMENT", "WYNAGRODZENIE {mm}", "8200.00"),
     ("per_marta", "SALARY PAYMENT", "WYNAGRODZENIE {mm}", "7400.00"),
@@ -50,7 +46,6 @@ PAY_RUN_PLAN = [
 PAY_RUN = [(bank_name(pid), PERSON[pid]["iban"], ttype, ref, amount)
            for pid, ttype, ref, amount in PAY_RUN_PLAN]
 
-# SaaS on company card *4417: (purchase day, descriptor, payer, amount, currency). 1,150 USD + 180 EUR.
 SAAS = [
     (2, "CODEHARBOR.IO* SAN FRANCISCO", "CODEHARBOR INC (SAMPLE)", "420.00", "USD"),
     (4, "CLOUDNEST HOSTING* AMSTERDAM", "CLOUDNEST BV (SAMPLE)", "380.00", "USD"),
@@ -62,7 +57,6 @@ SAAS = [
     (19, "PIXELBOARD.COM* SAN FRANCISCO", "PIXELBOARD INC (SAMPLE)", "45.00", "USD"),
 ]
 
-# Daily purchases (descriptor, payer, min, max). Descriptors ending in ZAM/NADANIE get an order number (M9).
 CARD_PLN = [
     ("PALIWEX 112 LODZ", "PALIWEX SP Z O O (SAMPLE)", 120, 340),
     ("NORDPETRO STACJA 21 LODZ", "NORDPETRO S.A. (SAMPLE)", 110, 320),
@@ -78,7 +72,7 @@ CARD_PLN = [
     ("RAILEXPRESS BILETY", "RAILEXPRESS S.A. (SAMPLE)", 39, 165),
     ("DOMENOWO.PL", "DOMENOWO SP Z O O (SAMPLE)", 19, 149),
 ]
-CARD_EUR = [  # EUR debit card *2290 on acc_eur (Nordwind visits, EU shops)
+CARD_EUR = [
     ("BAHNREISE*TICKET BERLIN", "BAHNREISE GMBH (SAMPLE)", 19, 149),
     ("HOTEL KANAL HAMBURG", "HOTEL KANAL GMBH (SAMPLE)", 89, 260),
     ("COWORK SPREE BERLIN DAYPASS", "COWORK SPREE GMBH (SAMPLE)", 25, 45),
@@ -86,7 +80,7 @@ CARD_EUR = [  # EUR debit card *2290 on acc_eur (Nordwind visits, EU shops)
     ("CAFE HAFEN HAMBURG", "CAFE HAFEN (SAMPLE)", 6, 48),
     ("TAXI ZENTRALE HAMBURG", "TAXI ZENTRALE HH (SAMPLE)", 14, 55),
 ]
-CARD_OWNER = [  # owner's private spending on *9021
+CARD_OWNER = [
     ("SPOZYWCZY U ZOSI LODZ", "SPOZYWCZY U ZOSI (SAMPLE)", 25, 260),
     ("MARKET KOSZYK 24 LODZ", "KOSZYK 24 SP Z O O (SAMPLE)", 20, 190),
     ("APTEKA POD ORLEM LODZ", "APTEKA POD ORLEM (SAMPLE)", 12, 140),
@@ -97,7 +91,6 @@ CARD_OWNER = [  # owner's private spending on *9021
     ("SKLEPIK.PL*ZAM", "SKLEPIK.PL SP Z O O (SAMPLE)", 30, 450),
     ("KAWIARNIA ZIARNO LODZ", "KAWIARNIA ZIARNO (SAMPLE)", 10, 45),
 ]
-# Irregular purchases 3-9k, one per month: (kind, descriptor or reference, payer, account, min, max)
 IRREGULAR = [
     ("card", "ELEKTROMARKT LODZ PORT", "ELEKTROMARKT POLSKA S.A. (SAMPLE)", "", 3200, 8900),
     ("card", "DEVCAMP.PL*BILETY", "DEVCAMP SP Z O O (SAMPLE)", "", 3000, 5600),
@@ -106,16 +99,13 @@ IRREGULAR = [
     ("transfer", "FV LEX/{m}/2026 OBSLUGA PRAWNA", "KANCELARIA PRAWNA LEX (SAMPLE)", "PL00999900000000000000020011",
      3500, 6500),
 ]
-# M4: private purchases from the company account (the 4th is the spa in November).
 PRIVATE_ON_COMPANY = {
     3: ("PERFUMERIA AROMA LODZ", "PERFUMERIA AROMA (SAMPLE)", "289.00"),
     6: ("SKLEP ZOOLOGICZNY PUPIL LODZ", "SKLEP ZOOLOGICZNY PUPIL (SAMPLE)", "164.50"),
     8: ("BIURO PODROZY SLONCE LODZ", "BIURO PODROZY SLONCE (SAMPLE)", "1850.00"),
 }
-# Nordwind: invoices due on the 14th of odd months, paid late; delays average exactly 23 days.
 NORDWIND_INVOICES = [(1, 21), (3, 25), (5, 22), (7, 24), (9, 23)]
 
-# November story rows, hand-written: (booking, value, type, payer, account, reference, amount).
 NOV_ROWS = {
     "acc_pln": [
         ("02.11", "02.11", "RENT PAYMENT", *COWORKING, "CZYNSZ 11/2026 BIURO 4B FV CW/11/2026/017", "-2460.00"),
@@ -138,7 +128,6 @@ NOV_ROWS = {
          "ELEKTROMARKT LODZ PORT KARTA *4417", "-4899.00"),
         ("12.11", "12.11", "GIRO CARD PAYMENT", "TASKLOOM INC (SAMPLE)", "",
          "TASKLOOM.COM 136.00 USD KARTA *4417", ("136.00", "4.0921")),
-        # M4: private purchase paid from the company account.
         ("13.11", "12.11", "GIRO CARD PAYMENT", "SPA PERLA (SAMPLE)", "", "SPA PERLA LODZ KARTA *4417", "-450.00"),
         ("13.11", "13.11", "GIRO CARD PAYMENT", "SIGNDESK BV (SAMPLE)", "",
          "SIGNDESK BV AMSTERDAM 60.00 EUR KARTA *4417", ("60.00", "4.4730")),
@@ -148,10 +137,8 @@ NOV_ROWS = {
         ("17.11", "17.11", "INCOMING TRANSFER", *KADROWNIA, "ZAPLATA ZA FV 2026/10/043", "4920.00"),
         ("18.11", "17.11", "GIRO CARD PAYMENT", "LOGBEAR INC (SAMPLE)", "",
          "LOGBEAR INC* 80.00 USD KARTA *4417", ("80.00", "4.0477")),
-        # Tax office series kept separate (payroll withholding vs CIT advance).
         ("20.11", "20.11", "TAX OFFICE TRANSFER", *US_LODZ, "PIT-4 10/2026 NIP 9990000014", "-3850.00"),
         ("20.11", "20.11", "TAX OFFICE TRANSFER", *US_LODZ, "CIT-5 ZALICZKA 10/2026 NIP 9990000014", "-7050.00"),
-        # Same line as fixture txn_731: 45 USD at the real NBP rate of 18 Nov (4.0170) plus a 2.7% card spread.
         ("20.11", "19.11", "GIRO CARD PAYMENT", "PIXELBOARD INC (SAMPLE)", "",
          "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417", "-185.57"),
     ],
@@ -162,7 +149,6 @@ NOV_ROWS = {
     "acc_owner": [
         ("03.11", "02.11", "GIRO CARD PAYMENT", "SPOZYWCZY U ZOSI (SAMPLE)", "",
          "SPOZYWCZY U ZOSI LODZ KARTA *9021", "-187.45"),
-        # M3: company costs paid with the owner's private card.
         ("06.11", "05.11", "GIRO CARD PAYMENT", "RAILEXPRESS S.A. (SAMPLE)", "",
          "RAILEXPRESS BILETY LODZ-WARSZAWA KARTA *9021", "-139.80"),
         ("13.11", "12.11", "GIRO CARD PAYMENT", "HOTEL CENTRUM WARSZAWA (SAMPLE)", "",
@@ -208,7 +194,6 @@ NBP_RATES = json.loads((Path(__file__).parent / "nbp_rates.json").read_text(enco
 
 
 def mid_rate(cur, d):
-    """Real NBP table A mid rate of the last table on or before `d`; after the last table, the last one."""
     table = NBP_RATES[cur]
     day = d
     for _ in range(400):
@@ -222,7 +207,6 @@ def mid_rate(cur, d):
 
 
 def card_rate(cur, d):
-    """The PL-FX-01 rate a foreign card purchase on `d` is priced from, so the matcher sees the card spread alone."""
     return mid_rate(cur, d - timedelta(days=1))
 
 
@@ -231,23 +215,18 @@ def fx_amount(amount, rate):
 
 
 def german(amount):
-    """Decimal -> pizzeria number format, e.g. -1299.5 -> '-1299,50' (no thousands separator)."""
     return f"{amount:.2f}".replace(".", ",")
 
 
 def purchase_doc(number, issue, due, line=None):
-    """Invoice data for a purchase paid by bank transfer (Borsuk Labs is the buyer)."""
     return {"direction": "purchase", "pay": "transfer", "number": number, "issue": issue, "due": due, "line": line}
 
 
 def sale_doc(number, issue, due):
-    """Invoice data for a sale (Borsuk Labs is the seller), paid by bank transfer."""
     return {"direction": "sale", "pay": "transfer", "number": number, "issue": issue, "due": due}
 
 
 class Book:
-    """Collects rows per account; a row's `doc` is the invoice behind it and never consumes random numbers."""
-
     def __init__(self):
         self.rows = {acc: [] for acc in ACCOUNTS}
         self.docs = []
@@ -262,7 +241,6 @@ class Book:
                                        "reference": ref, "amount": row[6], "currency": ACCOUNTS[acc]["currency"]}})
 
     def ordered(self, acc):
-        """Rows in booking order as (entry reference, insertion index, row), numbered as the Sandbox Bank does."""
         rows = sorted(enumerate(self.rows[acc]), key=lambda x: (x[1][0], x[0]))
         return [(f"E{n:09d}", i, row) for n, (i, row) in enumerate(rows, start=1)]
 
@@ -309,7 +287,6 @@ def generate_month(book, rng, m):
     inv = f"2026/{m - 1:02d}" if m > 1 else "2025/12"
     pln, eur, owner = "acc_pln", "acc_eur", "acc_owner"
 
-    # Recurring payments.
     first = on_or_after(date(2026, m, 1))
     book.add(pln, first, "RENT PAYMENT",
              f"CZYNSZ {mm} BIURO 4B FV CW/{mm}/{m + 6:03d}", *COWORKING, "-2460.00",
@@ -332,18 +309,16 @@ def generate_month(book, rng, m):
     book.add(eur, on_or_after(date(2026, m, 16)), "INTERNATIONAL WIRE TRANSFER",
              f"INV LB-2026-{m:02d}{rng.randint(10, 99)} TRANSLATION DE", *LINGUA, -rng.randrange(180, 321, 5))
 
-    # SaaS on the company card at card rates (M6: 0.5-4.5% spread over mid).
     for day, desc, payer, amount, cur in SAAS:
         purchase = date(2026, m, day)
         rate = Decimal(f"{card_rate(cur, purchase) * (1 + rng.uniform(0.005, 0.045)):.4f}")
         book.card(pln, purchase, f"{desc} {amount} {cur}", payer, -fx_amount(amount, rate), "4417")
 
-    # Pay run on the last bank day, plus reimbursements owed to the team (M1/M2).
     payday = last_bank_day(m)
     for name, iban, ttype, ref, amount in PAY_RUN:
         ref = ref.format(m=m, mm=mm)
         doc = None
-        if ttype == "SUPPLIER PAYMENT":  # B2B contractor invoice; salaries have no invoice
+        if ttype == "SUPPLIER PAYMENT":
             number, line = ref[3:].split(" ", 1)
             doc = purchase_doc(number, date(2026, m, 25), payday, line.capitalize())
         book.add(pln, payday, ttype, ref, name, iban, f"-{amount}", doc=doc)
@@ -353,14 +328,12 @@ def generate_month(book, rng, m):
         book.add(pln, payday, "OUTGOING TRANSFER", f"ZWROT KOSZTOW {mm} WG ZESTAWIENIA", name, iban,
                  -rng.randrange(12000, 180001, 1) / 100)
 
-    # Clients (PLN): invoice for the previous month, gross = net x 1.23.
-    # Sales fall through the year (x1.18 in Jan -> x0.77 in Oct): the cash gap builds up.
     trend = Decimal("1.225") - Decimal("0.045") * m
 
     def gross(lo, hi, step):
         return (rng.randrange(lo, hi + 1, step) * trend / 100).quantize(Decimal("1")) * 100 * Decimal("1.23")
 
-    issued = date(2026, m, 1) - timedelta(days=1)  # invoices for the previous month, issued on its last day
+    issued = date(2026, m, 1) - timedelta(days=1)
     book.add(pln, on_or_after(date(2026, m, 4) + timedelta(days=rng.randint(0, 5))), "INCOMING TRANSFER",
              f"FV {inv}/041", *PIEKARNIA, gross(10000, 16000, 100),
              doc=sale_doc(f"{inv}/041", issued, date(2026, m, 4)))
@@ -370,7 +343,6 @@ def generate_month(book, rng, m):
     book.add(pln, on_or_after(date(2026, m, 27)), "INCOMING TRANSFER", f"FV {inv}/042", *MEBLOSTYL,
              gross(30000, 40000, 500), doc=sale_doc(f"{inv}/042", issued, date(2026, m, 27)))
 
-    # Irregular purchase 3-9k.
     kind, text, payer, cp_acc, lo, hi = rng.choice(IRREGULAR)
     if kind == "card":
         book.card(pln, random_day(rng, m), text, payer, rng.randrange(lo, hi + 1, 1), "4417", doc={})
@@ -383,7 +355,6 @@ def generate_month(book, rng, m):
         desc, payer, amount = PRIVATE_ON_COMPANY[m]
         book.card(pln, date(2026, m, 14), desc, payer, amount, "4417")
 
-    # Owner's account: subscriptions and phone (private), Figment design tool (M3: company cost).
     book.card(owner, date(2026, m, 3), "SILOWNIA FORMA LODZ", "SILOWNIA FORMA (SAMPLE)", "149.00", "9021")
     book.card(owner, date(2026, m, 8), "STREAMFLIX*SUBSKRYPCJA", "STREAMFLIX LTD (SAMPLE)", "49.00", "9021")
     book.add(owner, on_or_after(date(2026, m, 22)), "DIRECT DEBIT", f"ABONAMENT {mm} NR KLIENTA 4471902",
@@ -392,7 +363,7 @@ def generate_month(book, rng, m):
     rate = Decimal(f"{card_rate('USD', figment) * 1.03:.4f}")
     book.card(owner, figment, "FIGMENT DESIGN* 15.00 USD", "FIGMENT DESIGN INC (SAMPLE)",
               -fx_amount("15.00", rate), "9021")
-    if m == 5:  # M3: client trip to Warsaw on the owner's card; invoices made out to the company
+    if m == 5:
         book.card(owner, date(2026, 5, 19), "RAILEXPRESS BILETY LODZ-WARSZAWA", "RAILEXPRESS S.A. (SAMPLE)",
                   "139.80", "9021", doc={"messiness": ["M3"]})
         book.card(owner, date(2026, 5, 19), "HOTEL CENTRUM WARSZAWA", "HOTEL CENTRUM WARSZAWA (SAMPLE)",
@@ -404,7 +375,6 @@ def generate_month(book, rng, m):
 
 
 def generate_nordwind(book, rng):
-    """Nordwind pays EUR late; the next bank day most of it is converted to PLN."""
     for due_month, delay in NORDWIND_INVOICES:
         issue = f"2026/{due_month - 1:02d}" if due_month > 1 else "2025/12"
         amount = Decimal(rng.randrange(18000, 22001, 50))
@@ -421,16 +391,13 @@ def generate_nordwind(book, rng):
 
 
 def card_doc(currency=None, gross=None, **extra):
-    """Invoice data for a hand-written November card line; foreign ones keep their original amount."""
     doc = {"direction": "purchase", "pay": "card", **extra}
     if currency:
         doc.update(currency=currency, gross=Decimal(gross), foreign=True)
     return doc
 
 
-# Documents behind the hand-written November rows; unlisted rows (fees, ZUS, taxes, the spa, private) have none.
 NOV_DOCS = {
-    # October invoices paid in November.
     "FV 2026/10/041": sale_doc("2026/10/041", date(2026, 10, 31), date(2026, 11, 4)),
     "ZAPLATA ZA FV 2026/10/043": sale_doc("2026/10/043", date(2026, 10, 31), date(2026, 11, 15)),
     "CZYNSZ 11/2026 BIURO 4B FV CW/11/2026/017": purchase_doc(
@@ -447,14 +414,12 @@ NOV_DOCS = {
     "PIXELBOARD.COM* SAN FRANCISCO 45.00 USD KARTA *4417": card_doc("USD", "45.00"),
     "PALIWEX 112 LODZ KARTA *4417": card_doc(),
     "BISTRO PIOTRKOWSKA 90 LODZ KARTA *4417": card_doc(),
-    # These two also arrive as FA(3) XML from KSeF (and as a PDF by e-mail: M5).
     "ELEKTROMARKT LODZ PORT KARTA *4417": card_doc(ksef=True, line="Laptop 14 cali"),
     "BIUROSFERA.PL ZAM 55120 KARTA *4417": card_doc(ksef=True),
     "INV LB-2026-0912 TRANSLATION DE": {
         "direction": "purchase", "pay": "transfer", "number": "LB-2026-0912", "issue": date(2026, 11, 2),
         "due": date(2026, 11, 16), "currency": "EUR", "gross": Decimal("240.00"), "foreign": True,
         "line": "Translation EN-DE, product documentation"},
-    # M3: company costs on the owner's private card, invoices made out to the company.
     "RAILEXPRESS BILETY LODZ-WARSZAWA KARTA *9021": card_doc(messiness=["M3"]),
     "HOTEL CENTRUM WARSZAWA KARTA *9021": card_doc(messiness=["M3"]),
     "TAXIGO*TRIP WARSZAWA KARTA *9021": card_doc(messiness=["M3"]),
@@ -463,14 +428,12 @@ NOV_DOCS = {
 
 
 def _invented_mid(cur, d):
-    """The curve the hand-written November card rates were tuned on, kept only to recover each row's card spread."""
     a, b = {"EUR": (4.33, 4.41), "USD": (3.98, 4.06)}[cur]
     t = (d - START).days / (END - START).days
     return a + (b - a) * t + 0.015 * math.sin(d.toordinal() / 9)
 
 
 def story_card_amount(foreign, tuned_rate, cur, day):
-    """PLN amount of a hand-written foreign card row: the real card_rate() of the purchase day plus the row's spread."""
     spread = float(tuned_rate) / _invented_mid(cur, day) - 1
     return fx_amount(foreign, Decimal(f"{card_rate(cur, day) * (1 + spread):.4f}"))
 
@@ -488,7 +451,6 @@ def add_november(book, rng):
                 if doc["pay"] == "card":
                     doc.update(issue=d(value), paid=d(value))
             book.add(acc, d(booking), ttype, ref, payer, cp_acc, amount, value=d(value), doc=doc)
-    # Daily purchases 1-18 Nov, booked by 19 Nov, so the PIXELBOARD line stays last.
     daily_cards(book, rng, 11, rng.randint(22, 26), last_day=18)
 
 
@@ -498,7 +460,6 @@ def check(acc, rows):
 
 
 def build():
-    """Generate every bank line (and the invoice data behind it). Same seed -> same result."""
     rng = random.Random(SEED)
     book = Book()
     for m in range(1, 11):
@@ -516,7 +477,7 @@ def main():
     for acc, rows in book.rows.items():
         meta = ACCOUNTS[acc]
         check(acc, rows)
-        rows = [row for _, _, row in book.ordered(acc)]  # booking order, same as the Sandbox Bank
+        rows = [row for _, _, row in book.ordered(acc)]
         net = sum(r[6] for r in rows)
         opening = meta["opening"] if "opening" in meta else meta["closing"] - net
         balance, low = opening, (opening, START)
@@ -531,7 +492,7 @@ def main():
         with open(path, "w", encoding="utf-8", newline="") as f:
             w = csv.writer(f, delimiter=";", quotechar='"', quoting=csv.QUOTE_ALL, lineterminator="\n")
             w.writerow(COLUMNS)
-            for booking, value, ttype, ref, payer, cp_acc, amount in reversed(rows):  # newest first
+            for booking, value, ttype, ref, payer, cp_acc, amount in reversed(rows):
                 w.writerow([meta["iban"], booking.strftime("%d.%m.%y"), value.strftime("%d.%m.%y"), ttype, ref,
                             payer, cp_acc, BIC.get(cp_acc[:2], ""), german(amount), meta["currency"],
                             "Transaction booked"])

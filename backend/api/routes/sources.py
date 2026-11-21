@@ -27,7 +27,6 @@ def list_sources(company: str = Depends(company_id), s: Store = Depends(store)):
 
 @router.post("/sources/{id}/sync", status_code=202)
 def sync_now(id: str, s: Store = Depends(store)):
-    """Records a manual run; the connector service picks it up."""
     source = get_or_404(s, "source", id)
     latest = s.list("sync_run", source_id=id, limit=1)
     if latest and latest[0]["status"] == "running":
@@ -71,7 +70,6 @@ async def upload(
     company: str = Depends(company_id),
     c: psycopg.Connection = Depends(conn),
 ):
-    """Fallback only: the file becomes a RawItem of kind `upload` and enters the normal pipeline."""
     data = await file.read()
     digest = hashlib.sha256(data).hexdigest()
     item = {

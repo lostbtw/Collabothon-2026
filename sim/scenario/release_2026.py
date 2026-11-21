@@ -11,7 +11,7 @@ NOVEMBER = date(2026, 11, 1)
 SCENARIO_ROOT = "sim/scenario/out/"
 FOREIGN_PAYERS = set(FOREIGN) | {payer for _, payer, *_ in CARD_EUR}
 PRIVATE_PAYERS = {payer for _, payer, _ in PRIVATE_ON_COMPANY.values()} | {"SPA PERLA (SAMPLE)"}
-DRIP_GAPS = [30, 25, 35, 20, 40]  # seconds between dripped items
+DRIP_GAPS = [30, 25, 35, 20, 40]
 
 
 def load(name):
@@ -23,7 +23,7 @@ def fa3_truth(e):
     if e["direction"] == "sale":
         paid_by, match = None, "sales_invoice_payment" if bank else "document_no_transaction"
     elif e["payment"] == "cash":
-        paid_by, match = "company_account", "document_no_transaction"  # M8: paid in cash
+        paid_by, match = "company_account", "document_no_transaction"
     else:
         paid_by = "owner_private" if bank["account"] == "acc_owner" else "company_account"
         match = "document_transaction"
@@ -45,7 +45,7 @@ def november_truth(e):
     elif bank:
         match = "document_transaction"
     else:
-        match = "document_no_transaction"  # employee receipts (reimbursement owed 30 Nov), Lakeshore (open)
+        match = "document_no_transaction"
     no_company_buyer = "vat_not_deductible" in e["flags"]
     receipt_over_limit = e["doc_type"] == "receipt" and not no_company_buyer
     deductible = e["direction"] == "purchase" and not no_company_buyer and not receipt_over_limit
@@ -72,7 +72,7 @@ def no_document_reason(acc, ttype, payer, booking):
     if ttype == "SALARY PAYMENT" or (acc == "acc_owner" and ttype == "INCOMING TRANSFER"):
         return "salary", []
     if ttype == "OUTGOING TRANSFER":
-        return "reimbursement_payout", []  # the receipts behind Jan-Oct payouts are not in the scenario
+        return "reimbursement_payout", []
     if ttype == "INTERNAL TRANSFER":
         return "internal_transfer", []
     if payer in PRIVATE_PAYERS:
@@ -142,7 +142,7 @@ def release_plan(book, fa3, nov):
             item.update(mode="live", note="Jan photographs the printed receipt with a real phone during the demo; "
                                           "the releaser sends the rendered photo only as a backup")
         elif e["duplicate_of"] or "M6" in e["messiness"]:
-            item["mode"] = "drip"  # arrives during the demo: duplicates and foreign SaaS invoices
+            item["mode"] = "drip"
             drip.append(item)
         items.append(item)
     order = {"backfill": 0, "drip": 1, "live": 2}

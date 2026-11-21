@@ -27,7 +27,6 @@ def labs_forecast():
 
 @pytest.fixture(scope="module")
 def pizzeria_days():
-    """Pizzeria Amalfi's balance at the end of each booking day: 2,500.00 EUR opening plus every line in the base currency."""
     data = pizzeria()
     by_day: dict[str, Decimal] = defaultdict(Decimal)
     for t in data["transactions"]:
@@ -50,7 +49,7 @@ def test_pizzeria_ends_2025_at_33_266_35_eur(pizzeria_days):
 def test_pizzeria_is_lowest_on_3_july_2025_at_minus_22_097_60_eur(pizzeria_days):
     low = min(pizzeria_days, key=pizzeria_days.get)
     assert (low, pizzeria_days[low]) == ("2025-07-03", Decimal("-22097.60"))
-    end_of_june = max(day for day in pizzeria_days if day <= "2025-06-30")  # closed in June: no line on the 30th
+    end_of_june = max(day for day in pizzeria_days if day <= "2025-06-30")
     assert pizzeria_days[end_of_june] == Decimal("-20098.69")
 
 
@@ -60,7 +59,7 @@ def test_borsuk_labs_is_lowest_on_4_december_at_minus_13_178_34_pln(labs_forecas
 
 
 def test_borsuk_labs_stress_case_is_minus_45_497_99_pln_and_the_credit_line_50_000_pln(labs_forecast):
-    assert (STRESS_EXTRA_DAYS, SIZING_STEP) == (14, Decimal("5000"))  # the settings the numbers below assume
+    assert (STRESS_EXTRA_DAYS, SIZING_STEP) == (14, Decimal("5000"))
     stress = stress_of(labs_forecast)
     assert (stress["label"], stress["date"], stress["balance"]) == \
         ("Nordwind pays 21 Dec", "2026-12-21", pln("-45497.99"))

@@ -3,7 +3,6 @@ import type { Account, Counterparty, Match, Money, OrdoDocument, Transaction } f
 import { NOT_COSTS, costTypes, negate, typeOfCategory } from "../../lib/costTypes";
 import { categoryLabel, firstName, plainName } from "../../lib/words";
 
-/** Where the paper behind a payment stands. */
 export type DocState = "on_file" | "receipt" | "missing" | "not_needed" | "to_check";
 export const DOC_CHIP: Record<DocState, { text: string; tone: string }> = {
   on_file: { text: "Invoice", tone: "neutral" },
@@ -18,9 +17,7 @@ export type Payment = {
   date: string;
   name: string;
   category: string | null;
-  /** In the company's currency; negative = money out. */
   amount: Money;
-  /** The amount in the currency it was paid in, when that differs. */
   original: Money | null;
   paidBy: string;
   doc: DocState;
@@ -32,7 +29,6 @@ export type Payment = {
 
 export type PaymentInput = { transactions: Transaction[]; accounts: Account[]; counterparties: Counterparty[]; matches: Match[]; documents: OrdoDocument[] };
 
-/** "Company account PLN" -> "PLN account". */
 export function accountShort(a: Account | null): string {
   if (!a) return "Account";
   if (a.kind === "owner_private") return "Owner's card";
@@ -40,7 +36,6 @@ export function accountShort(a: Account | null): string {
   return currency ? `${currency} account` : a.name;
 }
 
-/** Which account or card the money went from (or came into), in a few words. */
 function paidBy(t: Transaction, a: Account | null): string {
   if (!t.amount_base.amount.startsWith("-")) return `Into ${accountShort(a)}`;
   if (a?.kind === "owner_private") return `Owner's card${t.card_last4 ? ` ·${t.card_last4}` : ""}`;
@@ -94,14 +89,12 @@ export function buildPayments({ transactions, accounts, counterparties, matches,
 
 const isIncome = (p: Payment) => !p.amount.amount.startsWith("-") && p.category !== "reimbursements";
 
-/** The key a payment is grouped under: a cost type (staff, taxes, ...), "income", or a not-a-cost category. */
 export function typeKey(p: Payment): string {
   if (isIncome(p)) return "income";
   if (p.category && NOT_COSTS.has(p.category)) return p.category;
   return typeOfCategory(p.category ?? "other").key;
 }
 
-/** The coloured dot and words under the payment's name. */
 export function typeOf(p: Payment): { label: string; color: string } {
   const key = typeKey(p);
   if (key === "income") return { label: "Client payment", color: "var(--accent)" };

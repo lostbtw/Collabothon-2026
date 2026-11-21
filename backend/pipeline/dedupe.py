@@ -9,7 +9,6 @@ FUZZY_NAME = 0.75
 
 
 def drop_identical_files(raw_items: list[dict]) -> tuple[list[dict], list[dict]]:
-    """(kept, dropped): a RawItem whose sha256 was already seen is dropped (the first one fetched stays)."""
     seen, kept, dropped = set(), [], []
     for item in sorted(raw_items, key=lambda r: (r.get("fetched_at") or "", r["id"])):
         digest = item.get("sha256")
@@ -31,7 +30,6 @@ def _nip(doc) -> str:
 
 
 def duplicate_reason(a: dict, b: dict) -> str | None:
-    """Why `a` and `b` are the same purchase ("D1 ..." / "D2 ..."), or None."""
     if a["company_id"] != b["company_id"] or a.get("direction") != b.get("direction"):
         return None
     num_a, num_b = _number(a), _number(b)
@@ -51,7 +49,6 @@ def duplicate_reason(a: dict, b: dict) -> str | None:
 
 
 def priority(doc: dict) -> int:
-    """Lower is better: KSeF XML 0, accounting API 1, e-mailed PDF 2, photo or upload-form file 3."""
     channel = doc.get("channel")
     method = (doc.get("extraction") or {}).get("method")
     if channel == "ksef" or method == "xml_parse":
@@ -64,13 +61,11 @@ def priority(doc: dict) -> int:
 
 
 def _rank(doc: dict):
-    """Best copy first: channel priority, then the more confident extraction, then the earlier one."""
     confidence = (doc.get("extraction") or {}).get("confidence")
     return priority(doc), -(confidence if confidence is not None else 0.0), doc.get("created_at") or "", doc["id"]
 
 
 def deduplicate(documents: list[dict]) -> dict:
-    """Group documents into purchases and pick each golden record; documents a person rejected are left alone."""
     active = [d for d in documents if d.get("status") != "rejected"]
     clusters: list[list[dict]] = []
     reason_of: dict[str, str] = {}
@@ -102,7 +97,6 @@ def deduplicate(documents: list[dict]) -> dict:
 
 
 def add_document(new: dict, existing: list[dict]) -> dict:
-    """Live path: one new Document against the company's existing ones; `golden_changed` names an outranked golden."""
     pool = [d for d in existing if d["company_id"] == new["company_id"] and d.get("status") != "rejected"]
     hit = next((d for d in pool if duplicate_reason(new, d)), None)
     if hit is None:
@@ -120,5 +114,4 @@ def add_document(new: dict, existing: list[dict]) -> dict:
 
 
 def duplicate_detected_payload(merge: dict) -> dict:
-    """Small payload for the `document.duplicate_detected` event (contracts/events.md)."""
     return {"document_id": merge["document_id"], "duplicate_of": merge["duplicate_of"], "reason": merge["reason"]}

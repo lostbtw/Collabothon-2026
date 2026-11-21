@@ -57,7 +57,6 @@ export function Settings() {
   );
 }
 
-/** The section the owner is reading: the last one whose top has scrolled past the upper third of the window. */
 function useActiveSection(initial: string, ready: boolean): string {
   const [active, setActive] = useState(initial);
   useEffect(() => { setActive(initial); }, [initial]);
@@ -70,7 +69,6 @@ function useActiveSection(initial: string, ready: boolean): string {
         const el = document.getElementById(id);
         if (el && el.getBoundingClientRect().top <= line) current = id;
       }
-      // At the very bottom the last section is the one being read, even if it is short.
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) current = SECTIONS[SECTIONS.length - 1][0];
       setActive(current);
     };
@@ -103,7 +101,6 @@ function Setting({ title, note, children }: { title: string; note?: ReactNode; c
   );
 }
 
-/** Saves one change and says so; the backend may not have the settings endpoint yet. */
 function useSave(onSaved: () => void) {
   const { companyId } = useCompany();
   const [status, setStatus] = useState<string | null>(null);
@@ -193,7 +190,6 @@ function AccountsSection({ accounts, sources }: { accounts: Account[]; sources: 
   );
 }
 
-/** Green or amber dot, "Synced 2 min ago" (ticking), and the last error in words when there is one. */
 function SourceStatus({ source, ok, now }: { source: Source | null; ok: boolean; now: number | null }) {
   return (
     <span className="hstack small t3" style={{ gap: 6 }} title={source?.last_error?.message ?? undefined}>
@@ -203,7 +199,6 @@ function SourceStatus({ source, ok, now }: { source: Source | null; ok: boolean;
   );
 }
 
-/** Asks the connector to read the source now; the status above updates live when the run finishes. */
 function SyncNow({ source }: { source: Source }) {
   const [state, setState] = useState<"idle" | "busy" | "asked" | "failed">("idle");
   async function sync() {
@@ -368,7 +363,6 @@ function SortingSection({ rules, onChanged }: { rules: Rule[] | null; onChanged:
   );
 }
 
-/** The cost types every screen groups costs by; the owner can add their own and move categories into them. */
 function CostTypesSetting() {
   const [, setVersion] = useState(0);
   const [adding, setAdding] = useState(false);

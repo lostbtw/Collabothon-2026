@@ -8,7 +8,6 @@ from .money import money, to_decimal
 NS = "http://crd.gov.pl/wzor/2025/06/25/13775/"
 _N = {"k": NS}
 
-# P_13_x / P_14_x suffix -> rate label as written in P_12 on the lines
 VAT_RATE_BY_FIELD = {"1": "23", "2": "8", "3": "5", "4": "4", "5": "oss", "6_1": "0", "6_2": "0 WDT",
                      "6_3": "0 EX", "7": "zw", "8": "np", "9": "np", "10": "oo", "11": "marza"}
 DOC_TYPE = {"VAT": "invoice", "ZAL": "invoice", "ROZ": "invoice", "UPR": "simplified_invoice",
@@ -32,7 +31,7 @@ def _party(node):
     address = node.find("k:Adres", _N) if node is not None else None
     lines = [_text(address, "k:AdresL1"), _text(address, "k:AdresL2")]
     return {
-        "counterparty_id": None,  # resolved later by counterparty.py
+        "counterparty_id": None,
         "name": _text(ident, "k:Nazwa") or "(no name)",
         "tax_id": _text(ident, "k:NIP"),
         "country": _text(address, "k:KodKraju"),
@@ -41,7 +40,6 @@ def _party(node):
 
 
 def parse_fa3(xml: bytes | str, raw_item: dict, company: dict, rates=None) -> dict:
-    """`company` needs `id` and `tax_id` (bare NIP). `rates` see fx.py; needed only for foreign currency."""
     try:
         root = ET.fromstring(xml)
     except ET.ParseError as exc:
@@ -77,7 +75,7 @@ def parse_fa3(xml: bytes | str, raw_item: dict, company: dict, rates=None) -> di
         qty = _text(row, "k:P_8B")
         lines.append({
             "description": _text(row, "k:P_7") or "",
-            "quantity": float(qty) if qty else None,  # schema type number; a count, not money
+            "quantity": float(qty) if qty else None,
             "unit_price": _text(row, "k:P_9A") or _text(row, "k:P_9B"),
             "net": _text(row, "k:P_11"),
             "vat_rate": _text(row, "k:P_12"),
@@ -130,7 +128,7 @@ def parse_fa3(xml: bytes | str, raw_item: dict, company: dict, rates=None) -> di
         "submitted_by": None,
         "extraction": {"method": "xml_parse", "model": None, "confidence": 1.0, "field_confidence": {},
                        "warnings": warnings, "trace_id": None},
-        "category_suggestion": None,  # set later by counterparty.py
+        "category_suggestion": None,
         "status": "extracted",
         "flags": flags,
         "created_at": raw_item["fetched_at"],

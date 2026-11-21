@@ -46,10 +46,9 @@ def test_every_scenario_account_is_loaded_at_start(bank):
 
 
 def test_closing_balances_are_the_scenarios(bank):
-    # sim/scenario/world.py: closing balances on the as-of date 21 Nov 2026
     assert balance(bank, "acc_pln") == {"amount": "24730.15", "currency": "PLN"}
     assert balance(bank, "acc_eur") == {"amount": "3100.00", "currency": "EUR"}
-    assert balance(bank, "acc_owner") is None  # a private card reports no company cash
+    assert balance(bank, "acc_owner") is None
 
 
 def test_every_bank_line_of_the_release_plan_exists_with_its_date(bank):

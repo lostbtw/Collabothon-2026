@@ -24,10 +24,7 @@ def _load_standin() -> dict:
 
 
 class StandInRates:
-    """Stand-in for the NBP rates connector: standin_rates.json, real NBP rates up to 20 Nov 2026."""
-
     def __init__(self, table: dict | None = None):
-        # {(currency, "YYYY-MM-DD"): ("rate", "table no or None")}
         self.table = table if table is not None else _load_standin()
 
     def __call__(self, currency: str, day: date):
@@ -36,7 +33,6 @@ class StandInRates:
 
 
 def pl_tax_rate(currency: str, issue_date: str, rates) -> dict:
-    """FxConversion (common.schema.json) for PL-FX-01, or RateNotFound."""
     day = date.fromisoformat(issue_date)
     for back in range(1, MAX_LOOKBACK_DAYS + 1):
         candidate = day - timedelta(days=back)
@@ -53,7 +49,6 @@ def pl_tax_rate(currency: str, issue_date: str, rates) -> dict:
 
 
 def to_base(gross: dict, issue_date: str | None, rates, base_currency: str = BASE_CURRENCY):
-    """(gross_base Money, fx FxConversion | None). Same currency: no conversion. Missing date or rate: (None, None)."""
     if gross["currency"] == base_currency:
         return money(gross["amount"], base_currency), None
     if not issue_date or rates is None:

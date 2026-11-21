@@ -42,7 +42,6 @@ def test_a_rejected_match_books_nothing():
 
 
 def test_an_auto_confirmed_subscription_is_booked_without_an_approval():
-    """PixelBoard: auto-confirmed by rule (known recurring series), no owner approval to point to."""
     match, document = fixture("match", "mat_pixel11"), fixture("document", "doc_pixel11")
     (expense,) = entries_for_match(match, document, None,
                                    transaction={"id": "txn_731", "booking_date": "2026-11-20"})
@@ -93,4 +92,4 @@ def test_the_same_match_always_gives_the_same_entry_ids():
 
 def test_the_pay_run_is_the_last_business_day_of_the_month():
     assert next_pay_run(date(2026, 11, 20)) == date(2026, 11, 30)
-    assert next_pay_run(date(2026, 5, 10)) == date(2026, 5, 29)  # 31 May is a Sunday
+    assert next_pay_run(date(2026, 5, 10)) == date(2026, 5, 29)

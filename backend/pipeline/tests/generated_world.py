@@ -73,7 +73,7 @@ def _generate(seed: int):
             booked = d + timedelta(days=rnd.choice([0, 0, 1, 2, 3]))
             text = f"{seller} {number}" if transfer else f"{desc} {rnd.randrange(1000, 9999)}"
             original = None
-            if cur != acct_cur:  # like real card lines (fixture txn_731): the foreign amount is on the statement
+            if cur != acct_cur:
                 text += f" {gross:.2f} {cur}"
                 original = _m(-gross, cur)
             txn_id = f"txn_B{len(bank)}"
@@ -103,7 +103,7 @@ def _generate(seed: int):
                     if ch == "photo" and rnd.random() < 0.1:
                         g = round(gross + rnd.choice([-0.9, 0.09, 1.0]), 2)
                 copies.append((ch, sender, name, num, g))
-            doc_id = f"doc_E{i}"  # golden: ksef > e-mail > photo (generation order); other copies doc_E{i}_c{k}
+            doc_id = f"doc_E{i}"
             foreign = cur != "PLN"
             senders[doc_id] = next((c[1] for c in copies if c[1]), None)
             for k, (ch, sender, name, num, g) in enumerate(copies):
@@ -128,7 +128,7 @@ def _generate(seed: int):
         truth.append({"event": i, "doc_id": doc_id, "txn_id": txn_id, "paid_by": PAID_BY[payer],
                       "doc_missing": doc_id is None and txn_id is not None,
                       "vat_lost": round(vat * NBP[cur], 2) if (not buyer_is_company and vat > 0) else 0.0})
-    for k in range(8):  # unrelated bank noise: salaries and ZUS go out, client payments come in (sign follows text)
+    for k in range(8):
         v = rnd.choice([-8200.0, -3120.55, 14760.0, 9840.0])
         t = rnd.choice(["WYNAGRODZENIE 10/2026", "ZUS SKLADKI", "FV 12/10/2026 KLIENT SAMPLE"])
         v = abs(v) if t.startswith("FV") else -abs(v)
@@ -145,10 +145,8 @@ def _generate(seed: int):
 
 
 def build(seed: int):
-    """(golden documents, transactions, senders {doc id: email}, truth [{event, doc_id, txn_id, paid_by, vat_lost}])."""
     return _generate(seed)[:4]
 
 
 def build_copies(seed: int):
-    """Every copy of every document, as [(document, purchase event number)], shuffled, for deduplication."""
     return _generate(seed)[4]

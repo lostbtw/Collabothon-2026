@@ -17,7 +17,6 @@ log = logging.getLogger("ordo.queue")
 
 def claim(conn: psycopg.Connection, consumer: str, *, retry_after_seconds: int = RETRY_AFTER_SECONDS,
           first_types: Iterable[str] = ()) -> tuple[dict[str, Any], int] | None:
-    """The next pending delivery of `consumer` as (envelope, attempt), or None; uncommitted. `first_types` go first."""
     first = list(first_types)
     row = conn.execute(
         """select d.event_id, d.attempts, o.type, o.company_id, o.occurred_at, o.correlation_id, o.payload
@@ -40,13 +39,11 @@ def claim(conn: psycopg.Connection, consumer: str, *, retry_after_seconds: int =
 
 
 def finish(conn: psycopg.Connection, event_id: str, consumer: str, status: str) -> None:
-    """Mark a delivery `done` or `dead`; not committed."""
     conn.execute("update outbox_delivery set status = %s, locked_until = null where event_id = %s and consumer = %s",
                  (status, event_id, consumer))
 
 
 def mark_raw_item_failed(conn: psycopg.Connection, event: dict[str, Any], error: BaseException) -> None:
-    """A dead `raw_item.received` leaves its RawItem `failed`, with the error."""
     if event.get("type") != "raw_item.received":
         return
     raw_id = (event.get("payload") or {}).get("raw_item_id")
@@ -64,7 +61,6 @@ def process_pending(conn: psycopg.Connection, consumer: str, handle: Callable[[d
                     first_types: Iterable[str] = (),
                     on_dead: Callable[[psycopg.Connection, dict[str, Any], BaseException], None] | None = mark_raw_item_failed,
                     name: str | None = None) -> int:
-    """Handle every claimable delivery of `consumer` once. Returns how many were handled successfully."""
     label = name or consumer
     handled = 0
     while True:
@@ -94,13 +90,11 @@ def process_pending(conn: psycopg.Connection, consumer: str, handle: Callable[[d
 
 
 def listen(database_url: str) -> psycopg.Connection:
-    """A separate autocommit connection subscribed to the outbox channel (pass it to `wait`)."""
     listener = psycopg.connect(database_url, autocommit=True)
     listener.execute(f"listen {CHANNEL}")
     return listener
 
 
 def wait(listener: psycopg.Connection, timeout: float = 5.0) -> None:
-    """Return when a new event is announced, or after `timeout` seconds (a poll for retries and missed notices)."""
     for _ in listener.notifies(timeout=timeout, stop_after=1):
         pass

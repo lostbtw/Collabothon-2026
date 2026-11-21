@@ -18,7 +18,6 @@ def prom(ref, expr, legend=""):
 
 
 def steps(*pairs):
-    """steps("green", None, "orange", 60, "red", 300)"""
     it = iter(pairs)
     return {"mode": "absolute", "steps": [{"color": c, "value": v} for c, v in zip(it, it)]}
 
@@ -96,8 +95,6 @@ def dashboard(uid, title, desc, board, *, time_from, refresh="10s"):
         "panels": board.panels,
     }
 
-
-# Ordo pipeline from the outbox: causation_id links events; recommendation.created joins through subject_id = match id.
 
 PROCESS = """case
       when o.producer in ('connector', 'connector-mail') then 'connectors'
@@ -235,10 +232,8 @@ where d.status = 'dead'
 order by o.seq desc
 limit 50"""
 
-# Files that go through OCR (docling-serve + gpt-oss-20b): the live-demo receipt chain.
 OCR_KINDS = "'email_attachment', 'upload', 'chat_photo'"
 
-# Stat titles stay short: a 4-column panel shows about 14 characters. The description (i) says the rest.
 NOT_YET = ("mappings", [{"type": "special", "options": {"match": "null",
                                                         "result": {"text": "not yet", "color": "transparent"}}}])
 LEGEND_RIGHT = {"legend": {"displayMode": "table", "placement": "right", "showLegend": True},
@@ -354,7 +349,6 @@ pipeline = dashboard("ordo-pipeline", "Ordo pipeline",
                      "The data flow through the outbox: what each process sent, what waits, how long each step took.",
                      p, time_from="now-6h")
 
-# Model and GPU: vLLM metrics of gpt-oss-20b (user-workload monitoring), DCGM and container metrics (platform).
 
 def quantile(q, metric):
     return f"histogram_quantile({q}, sum by (le) (rate({metric}_bucket{{{NS}}}[$__rate_interval])))"

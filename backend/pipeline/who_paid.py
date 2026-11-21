@@ -5,15 +5,15 @@ from decimal import Decimal
 from .normalise.money import money, round_cents, to_decimal
 
 BASE_CURRENCY = "PLN"
-SIMPLIFIED_INVOICE_LIMIT = Decimal("450.00")  # PL-VAT-02, receipts with the buyer's NIP, 2026 only
-CARD_LAG_DAYS = (-1, 5)  # same window as card matching
+SIMPLIFIED_INVOICE_LIMIT = Decimal("450.00")
+CARD_LAG_DAYS = (-1, 5)
 ACCOUNTANT = "Confirm with your accountant."
 
-PL_VAT_01 = "PL-VAT-01"  # no company tax id on the document: input VAT not deductible
-PL_VAT_02 = "PL-VAT-02"  # receipt <= 450 PLN with company NIP = simplified invoice, VAT deductible
-PL_VAT_03 = "PL-VAT-03"  # foreign B2B services: reverse charge, neutral
-PL_REIMB_01 = "PL-REIMB-01"  # reimbursing a documented cost is not salary (hint)
-PL_PRIV_01 = "PL-PRIV-01"  # looks private, paid by the company (hint)
+PL_VAT_01 = "PL-VAT-01"
+PL_VAT_02 = "PL-VAT-02"
+PL_VAT_03 = "PL-VAT-03"
+PL_REIMB_01 = "PL-REIMB-01"
+PL_PRIV_01 = "PL-PRIV-01"
 
 PRIVATE_WORDS = ("perfum", "kosmetyk", "zabawk", "toy", "grocer", "spożywcz", "spozywcz", "alkohol", "wine",
                  "wino", "playstation", "netflix", "spotify", "biżuteri", "jewel", "fitness", "siłownia", "gym")
@@ -52,7 +52,6 @@ def buyer_is_company(document: dict, company: dict) -> bool:
 
 def classify_payer(document: dict, transaction: dict | None, accounts: list[dict], people: list[dict],
                    sender_email: str | None = None) -> tuple[str, dict | None]:
-    """(paid_by, payer PersonRef | None)."""
     if transaction is not None:
         account = next((a for a in accounts if a["id"] == transaction["account_id"]), None)
         if account and account.get("kind") == "owner_private":
@@ -61,16 +60,16 @@ def classify_payer(document: dict, transaction: dict | None, accounts: list[dict
 
     card = (document.get("payment") or {}).get("card_last4")
     if card and card in _cards(accounts, "company_bank"):
-        return "company_account", None  # card line not booked yet
+        return "company_account", None
     if card and card in _cards(accounts, "owner_private"):
         return "owner_private", _person_ref(owner_of(people))
 
     sender = find_person(people, sender_email or (document.get("submitted_by") or {}).get("email"))
-    if sender and sender.get("role") in ("employee", "contractor"):  # B2B contractors are reimbursed the same way
+    if sender and sender.get("role") in ("employee", "contractor"):
         return "employee_private", _person_ref(sender)
     payment = document.get("payment") or {}
     if payment.get("method") == "cash" and payment.get("paid"):
-        return "company_account", None  # paid from the company's cash box: no bank line will come (M8)
+        return "company_account", None
     return "unknown", None
 
 
@@ -110,9 +109,7 @@ def looks_private(document: dict) -> bool:
 
 
 def consequences(document: dict, paid_by: str, payer: dict | None, company: dict) -> dict:
-    """`Match.consequences` for one Document, from the who-paid decision table."""
     if document.get("direction") == "sale":
-        # Our own sales invoice: the client pays it; no input VAT or reimbursement, and no "invoice to the company" question.
         return {"reimbursement_owed": None, "reimbursement_to": None, "vat_deductible": None, "vat_amount": None,
                 "vat_lost": None, "rule_ids": [], "note": None}
     rule_ids: list[str] = []
@@ -134,7 +131,7 @@ def consequences(document: dict, paid_by: str, payer: dict | None, company: dict
             rule_ids.append(PL_VAT_02)
             notes.append("Receipt up to 450 PLN with the company tax id counts as a simplified invoice, "
                          "so its VAT is deductible.")
-    elif has_vat and buyer_is_company(document, company):  # a receipt over 450 PLN is never an invoice
+    elif has_vat and buyer_is_company(document, company):
         vat_deductible = False
         rule_ids.append(PL_VAT_01)
         notes.append(f"A receipt over 450 PLN is not an invoice, even with the company tax id, so the company "
@@ -147,7 +144,7 @@ def consequences(document: dict, paid_by: str, payer: dict | None, company: dict
         if paid_by == "company_account":
             notes.append("Ask for an invoice to the company next time.")
     else:
-        vat_deductible = None  # no VAT shown on the document: nothing to deduct or lose
+        vat_deductible = None
 
     reimbursement_owed = reimbursement_to = None
     if paid_by in ("employee_private", "owner_private") and payer is not None:
@@ -180,7 +177,6 @@ def has_tax_consequence(c: dict) -> bool:
 
 
 def document_flags(document: dict, c: dict) -> list[str]:
-    """Document flags implied by the consequences, merged with the existing ones (order kept, no repeats)."""
     flags = list(document.get("flags") or [])
     extra = []
     if c["vat_lost"]:
@@ -212,7 +208,6 @@ def outgoing_lines_for_amount(document: dict, transactions: list[dict], account_
 def match_for_unmatched_document(document: dict, *, company: dict, people: list[dict], accounts: list[dict],
                                  transactions: list[dict], now: str, as_of: str | None = None,
                                  sender_email: str | None = None) -> dict:
-    """A Document that matching found no bank line for -> `document_no_transaction` Match."""
     company_accounts = [a for a in accounts if a.get("company_id") == company["id"]]
     account_ids = {a["id"] for a in company_accounts}
     paid_by, payer = classify_payer(document, None, company_accounts, people, sender_email)
@@ -265,7 +260,6 @@ def match_for_unmatched_document(document: dict, *, company: dict, people: list[
 
 def apply_who_paid(match: dict, document: dict, transaction: dict | None, *, company: dict, people: list[dict],
                    accounts: list[dict], sender_email: str | None = None) -> dict:
-    """Fill `paid_by`, `payer` and `consequences` on a Match built by matching. Returns a new dict."""
     paid_by, payer = classify_payer(document, transaction, accounts, people, sender_email)
     return {**match, "paid_by": paid_by, "payer": payer,
             "consequences": consequences(document, paid_by, payer, company)}

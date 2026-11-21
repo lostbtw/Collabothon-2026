@@ -19,7 +19,6 @@ export function DocumentDetail() {
   const { id = "" } = useParams();
   const { companyId } = useCompany();
   const [reload, setReload] = useState(0);
-  // The document must load; the link to its to-do is an extra.
   const state = useApi(() => Promise.all([api.document(id), api.inbox(companyId).catch(() => null)]), [id, companyId, reload]);
   async function save(patch: DocumentPatch) {
     await api.patchDocument(id, patch);
@@ -91,7 +90,6 @@ export function DocumentView({ data, card, onSave }: { data: DocumentData; card?
   );
 }
 
-/** The original file when the API stores one (click to see it large); else a plain slip drawn from the read fields. */
 function Preview({ d }: { d: OrdoDocument }) {
   const original = useOriginal(d);
   const [open, setOpen] = useState(false);

@@ -1,5 +1,3 @@
-# Grafana for the team (applied by `setup.sh grafana`): the model and GPU from Prometheus, the data flow from Postgres.
-# Thanos Querier with ServiceAccount grafana (cluster-monitoring-view): the GPU metrics live in nvidia-gpu-operator.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -87,7 +85,6 @@ data:
         updateIntervalSeconds: 30
         options:
           path: /etc/grafana/dashboards
-  # Empty, so Grafana does not log an error for each missing provisioning directory at start.
   plugins.yaml: |
     apiVersion: 1
     apps: []

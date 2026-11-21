@@ -61,7 +61,7 @@ def test_a_086_company_paid_match_without_tax_consequence_asks_to_confirm_with_r
     pixel.update(status="suggested", score=0.86, paid_by="company_account",
                  consequences={"vat_deductible": True, "rule_ids": []})
     world.add("match", pixel, company_id="co_borsuk")
-    look_alike = fixture("transaction", "txn_731")  # another unmatched card payment of about the same amount
+    look_alike = fixture("transaction", "txn_731")
     look_alike.update(id="txn_pln_000732", external_id="E000000732", booking_date="2026-11-21",
                       amount={"amount": "-178.40", "currency": "PLN"}, amount_base={"amount": "-178.40", "currency": "PLN"},
                       match_status="unmatched", recurring_series_id=None)

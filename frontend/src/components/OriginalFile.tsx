@@ -6,11 +6,9 @@ import { Modal } from "./Modal";
 
 export type Original = { kind: "image" | "pdf"; url: string };
 
-/** The API answers a file it does not store with an SVG placeholder; that is not the original, so it is skipped. */
 const kindOf = (type: string): Original["kind"] | null =>
   type.startsWith("image/") && !type.startsWith("image/svg") ? "image" : type === "application/pdf" ? "pdf" : null;
 
-/** Tries the document's raw items in order and keeps the first photo or PDF. Null while loading or when none exists. */
 export function useOriginal(d: OrdoDocument): Original | null {
   const [original, setOriginal] = useState<Original | null>(null);
   const ids = d.raw_item_ids.join(",");
@@ -30,7 +28,6 @@ export function useOriginal(d: OrdoDocument): Original | null {
           if (alive) setOriginal({ kind, url: objectUrl });
           return;
         } catch {
-          /* try the next file */
         }
       }
     })();
@@ -42,7 +39,6 @@ export function useOriginal(d: OrdoDocument): Original | null {
   return original;
 }
 
-/** The original, large, over the page. */
 export function OriginalModal({ original, title, onClose }: { original: Original; title: string; onClose: () => void }) {
   return (
     <Modal title={title} onClose={onClose} wide>

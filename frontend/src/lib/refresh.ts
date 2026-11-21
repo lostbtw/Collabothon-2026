@@ -5,11 +5,10 @@ import { clearCache } from "../api/transport";
 const listeners = new Set<() => void>();
 
 export function requestRefresh(): void {
-  clearCache(); // re-ask the API, not the short-lived cache
+  clearCache();
   listeners.forEach((listener) => listener());
 }
 
-/** A number that changes on every requestRefresh(); put it in a useApi dependency list. */
 export function useRefreshKey(): number {
   const [key, setKey] = useState(0);
   useEffect(() => {

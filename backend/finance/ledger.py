@@ -13,7 +13,6 @@ CATEGORIES = {
 
 
 def money(amount: Decimal | str, currency: str) -> dict[str, str]:
-    """Money as in the contracts: decimal string with 2 places plus currency."""
     return {"amount": f"{Decimal(amount):.2f}", "currency": currency}
 
 
@@ -22,12 +21,10 @@ def negative(m: dict[str, str]) -> dict[str, str]:
 
 
 def shown(m: dict[str, str]) -> str:
-    """'1,299.00 PLN' for explanations."""
     return f"{abs(Decimal(m['amount'])):,.2f} {m['currency']}"
 
 
 def next_pay_run(day: date) -> date:
-    """Last business day (Mon-Fri) of the month of `day`: when salaries and reimbursements are paid."""
     first_next = (day.replace(day=28) + timedelta(days=4)).replace(day=1)
     last = first_next - timedelta(days=1)
     while last.weekday() >= 5:
@@ -35,7 +32,7 @@ def next_pay_run(day: date) -> date:
     return last
 
 
-DECIDED = ("confirmed", "auto_confirmed")  # by the owner, or by rule for a known recurring series (no approval)
+DECIDED = ("confirmed", "auto_confirmed")
 
 
 def should_book(match: dict[str, Any], document: dict[str, Any] | None) -> bool:
@@ -46,7 +43,6 @@ def should_book(match: dict[str, Any], document: dict[str, Any] | None) -> bool:
 def entries_for_match(match: dict[str, Any], document: dict[str, Any] | None, approval_id: str | None, *,
                       transaction: dict[str, Any] | None = None,
                       counterparties: list[dict[str, Any]] = ()) -> list[dict[str, Any]]:
-    """The approved Ledger entries a confirmed purchase Match calls for; [] when it calls for none."""
     if not should_book(match, document):
         return []
     company = document.get("company_id") or match.get("company_id")

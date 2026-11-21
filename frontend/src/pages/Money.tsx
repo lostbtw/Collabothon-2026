@@ -28,7 +28,6 @@ type View = (typeof VIEWS)[number]["key"];
 const none = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
 
 const SEARCH_HINT: Record<View, string> = { "": "Search types", people: "Search people", clients: "Search clients", monthly: "Search monthly payments", payments: "Search payments" };
-/** Case-insensitive "contains" over a few texts; an empty search matches everything. */
 const matches = (q: string, ...texts: (string | null | undefined)[]) => !q.trim() || texts.some((t) => t?.toLowerCase().includes(q.trim().toLowerCase()));
 const NoMatch = ({ q }: { q: string }) => <p className="t2" style={{ padding: 12 }}>Nothing matches “{q.trim()}”.</p>;
 
@@ -36,9 +35,7 @@ export function Money() {
   const { view = "", id } = useParams();
   const [params, setParams] = useSearchParams();
   const today = useToday();
-  // Old links to Subscriptions open Monthly payments.
   const v = (view === "subscriptions" ? "monthly" : VIEWS.some((x) => x.key === view) ? view : "") as View;
-  // Every view opens on the current month, All payments on all months ("") when asked for a kind or a name.
   const asked = params.get("month");
   const month = v === "payments" ? (asked ?? (params.get("doc") || params.get("q") ? "" : today.slice(0, 7))) : (asked || today.slice(0, 7));
   const q = params.get("q") ?? "";
@@ -254,11 +251,9 @@ function Monthly({ month, q }: { month: string; q: string }) {
   return <MonthlyView data={state.data} month={month} q={q} />;
 }
 
-/** Two names and how many more, so a tile stays one line or two. */
 const worthALook = (notes: string[]): string =>
   notes.length === 0 ? "No price rises, nothing paid twice" : notes.slice(0, 2).join(" · ") + (notes.length > 2 ? ` and ${notes.length - 2} more` : "");
 
-/** Everything paid every month, grouped by type; each type opens to its payments. */
 export function MonthlyView({ data, month, q = "" }: { data: SubscriptionsResponse; month: string; q?: string }) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const twice = data.items.filter((s) => s.flags.includes("paid_twice"));

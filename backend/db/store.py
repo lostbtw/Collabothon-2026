@@ -4,7 +4,6 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-# entity name -> (table, columns that list() may filter on besides company_id)
 ENTITIES: dict[str, tuple[str, tuple[str, ...]]] = {
     "source": ("sources", ("connector",)),
     "sync_run": ("sync_runs", ("source_id",)),
@@ -20,7 +19,6 @@ ENTITIES: dict[str, tuple[str, tuple[str, ...]]] = {
     "approval": ("approvals", ("subject_type", "subject_id")),
 }
 
-# newest first: last written for entities the app creates, booking date for bank lines
 _ORDER = {
     "sync_run": "seq desc",
     "forecast": "seq desc",
@@ -46,7 +44,6 @@ class Store:
         self.conn = conn
 
     def add(self, entity: str, doc: dict[str, Any], *, company_id: str | None = None) -> bool:
-        """Insert once. False when the id or one of the entity's idempotency keys already exists."""
         table, _ = _table(entity)
         cur = self.conn.execute(
             f"insert into {table} (id, company_id, doc) values (%s, %s, %s) on conflict do nothing",
@@ -56,7 +53,6 @@ class Store:
         return cur.rowcount == 1
 
     def put(self, entity: str, doc: dict[str, Any], *, company_id: str | None = None) -> None:
-        """Insert or replace by id."""
         table, _ = _table(entity)
         self.conn.execute(
             f"""insert into {table} (id, company_id, doc) values (%s, %s, %s)
