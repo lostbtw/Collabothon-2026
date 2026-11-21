@@ -308,30 +308,58 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                 schedule = (f"{when}output VAT {_shown(output_vat[key])} − deductible input VAT {_shown(input_vat[key])}"
                             + (f" − carried forward {_shown(used_carry)}" if used_carry else ""))
                 docs = [(vat, d) for _, vat, d in month_docs[key] if vat > 0]
-                steps = [_step(f"VAT on {_count(sales_with_vat[key], 'sales invoice')}", "start", output_vat[key], base),
-                         _step(f"VAT on {_count(purchases_with_vat[key], 'purchase invoice')} you can deduct", "minus",
-                               input_vat[key], base)]
+                name = calendar.month_name[m]
+                steps = [_step(f"1. VAT on your sales in {name}", "note"),
+                         _step(f"VAT you added to {_count(sales_with_vat[key], 'sales invoice')}", "start",
+                               output_vat[key], base),
+                         _step(f"2. VAT on your purchases in {name}", "note"),
+                         _step(f"VAT you paid on {_count(purchases_with_vat[key], 'purchase invoice')}, "
+                               "which you can take back", "minus", input_vat[key], base)]
             else:
                 schedule = f"{when}output VAT − deductible input VAT, {estimate_note}" + (
                     f" − carried forward {_shown(used_carry)}" if used_carry else "")
                 docs = [(vat, d) for k in recent_keys for _, vat, d in month_docs[k] if vat > 0]
-                steps = [_step("VAT to pay in an average month", "start", est_position, base)]
+                total = sum((position(k) for k in recent_keys), ZERO)
+                steps = [_step(f"1. VAT to pay in the last {_count(len(recent_keys), 'closed month')}", "note")]
+                steps += [_step(f"{calendar.month_name[rm]}: sales VAT − purchase VAT", "plus" if i else "start",
+                                position(_month_key(ry, rm)), base) for i, (ry, rm) in enumerate(recent)]
+                if len(recent_keys) > 1:
+                    steps += [_step(f"Total for {recent_names}", "equals", total, base),
+                              _step("2. An average month", "note"),
+                              _step(f"Average: total ÷ {len(recent_keys)}", "equals", est_position, base)]
             if used_carry:
                 steps.append(_step("Overpaid VAT carried from earlier months", "minus", used_carry, base))
             steps.append(_to_pay(amount, base))
             if not is_closed:
                 steps.append(not_closed(m, "the VAT"))
+            elif lost_vat[key]:
+                steps.append(_step(f"{_shown(lost_vat[key])} {base} of VAT on receipts and invoices without your company's "
+                                   "tax number cannot be taken back", "note"))
             out.append(_component("vat", y, m, due, amount, base, schedule, not is_closed, _evidence("vat", docs), steps))
 
     ytd = ZERO
     advances = ZERO
+    parts: dict[str, Decimal] = defaultdict(Decimal)
+    closed_months: list[int] = []
+    open_months: list[int] = []
     for y, m in months:
         if m == 1:
             ytd = advances = ZERO
+            parts, closed_months, open_months = defaultdict(Decimal), [], []
         key = _month_key(y, m)
         is_closed = (y, m) in closed
         month_profit = profit(key) if is_closed else est_profit
         ytd += month_profit
+        if is_closed:
+            gross = gross_sum.get(key, ZERO)
+            parts["sales"] += revenue[key]
+            parts["purchases"] += purchase_net[key] + lost_vat[key]
+            parts["gross"] += gross
+            parts["employer"] += gross * settings.ZUS_EMPLOYER
+            closed_months.append(m)
+        else:
+            parts["estimated"] += est_profit
+            open_months.append(m)
         due_amount = max(ZERO, _whole(settings.CIT_RATE * max(ytd, ZERO)) - advances)
         advances += due_amount
         due = due_date(settings.CIT_DUE_DAY, y, m)
@@ -342,11 +370,27 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
             if not is_closed:
                 schedule += f"; month profit is the {estimate_note}"
             docs = [(net, d) for k in ([key] if is_closed else recent_keys) for net, _, d in month_docs[k]]
-            steps = [_step("Profit since 1 January", "start", ytd, base),
-                     _step(f"{settings.CIT_RATE * 100:.0f} % tax on that profit", "equals", settings.CIT_RATE * ytd, base)]
-            if advances - due_amount:
-                steps.append(_step("Advances already due this year", "minus", advances - due_amount, base))
-            steps.append(_to_pay(due_amount, base))
+            span = (calendar.month_abbr[closed_months[0]] + (f"–{calendar.month_abbr[closed_months[-1]]}"
+                                                              if len(closed_months) > 1 else "")) if closed_months else ""
+            steps = [_step("1. Profit since 1 January", "note")]
+            if closed_months:
+                steps.append(_step(f"Sales without VAT, {span}", "start", parts["sales"], base))
+                steps += [_step(label, "minus", parts[k], base) for k, label in (
+                    ("purchases", f"Purchases without VAT, plus VAT you cannot take back, {span}"),
+                    ("gross", f"Gross pay, {span}"),
+                    ("employer", f"Employer social insurance, {_pct(settings.ZUS_EMPLOYER)} of gross pay, {span}"))
+                    if parts[k]]
+            if open_months:
+                steps.append(_step(f"{_month_names([(y, om) for om in open_months])}: estimated profit, the average "
+                                   f"of {recent_names}", "plus" if closed_months else "start", parts["estimated"], base))
+            prior = advances - due_amount
+            steps += [_step("Profit since 1 January", "equals", ytd, base),
+                      _step("2. CIT advance", "note"),
+                      _step(f"{_pct(settings.CIT_RATE)} of the profit, rounded to whole złoty", "start",
+                            _whole(settings.CIT_RATE * max(ytd, ZERO)), base)]
+            if prior:
+                steps.append(_step("Advances already due this year", "minus", prior, base))
+            steps.append(_step("CIT advance to pay", "equals", due_amount, base))
             if not is_closed:
                 steps.append(not_closed(m, "its profit"))
             out.append(_component("cit", y, m, due, due_amount, base, schedule, not is_closed, _evidence("cit", docs),

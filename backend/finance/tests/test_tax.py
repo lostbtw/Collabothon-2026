@@ -115,7 +115,7 @@ def test_vat_of_a_closed_month_is_output_minus_deductible_input():
     assert c["evidence"][1]["kind"] == "document"
     assert "output VAT 6,900.00 − deductible input VAT 1,832.52" in c["schedule"]
     assert c["explainer"] == "VAT you charged clients minus VAT you paid suppliers"
-    assert [(s["op"], s["amount"] and s["amount"]["amount"]) for s in c["breakdown"]] == [
+    assert [(s["op"], s["amount"] and s["amount"]["amount"]) for s in c["breakdown"] if s["op"] != "note"] == [
         ("start", "6900.00"), ("minus", "1832.52"), ("equals", "5067.00")]
 
 
