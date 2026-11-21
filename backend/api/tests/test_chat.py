@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.agents import chat
+from backend.agents.guardrails import REFUSAL
 from backend.api import contract
 from backend.api.app import create_app
 from backend.api.forecasting import forecast_events
@@ -165,3 +166,105 @@ def test_a_request_the_model_already_put_in_the_inbox_is_not_put_there_twice(wit
     cards = db.execute("select id from recommendations where agent = 'chat'").fetchall()
     assert len(cards) == 1 and answer["created_recommendation_id"] == cards[0][0]
     assert "I cannot move money" in answer["answer"] and answer["guardrail"]["blocked"]
+
+
+
+@pytest.fixture
+def guarded(monkeypatch):
+    """A stand-in for the guardrails server: `verdicts` maps a message to its /v1/checks answer (default: passed)."""
+    import httpx
+
+    from backend.agents import guardrails
+
+    verdicts: dict[str, dict] = {}
+    seen: list[str] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        message = json.loads(request.content)["messages"][-1]["content"]
+        seen.append(message)
+        if verdicts.get(message) == "down":
+            return httpx.Response(503, text="no healthy upstream")
+        return httpx.Response(200, json=verdicts.get(message, {"status": "passed", "content": message}))
+
+    monkeypatch.setenv("ORDO_GUARDRAILS_URL", "https://guardrails.test")
+    monkeypatch.setattr(guardrails, "client", lambda: httpx.Client(transport=httpx.MockTransport(handle)))
+    return verdicts, seen
+
+
+def stored_user_messages(db, session_id):
+    return [r[0] for r in db.execute("select content from chat_messages where session_id = %s and role = 'user' "
+                                     "order by seq", (session_id,)).fetchall()]
+
+
+def test_investment_advice_is_refused_without_a_model_call(with_model, guarded, db):
+    verdicts, _ = guarded
+    verdicts["Which stock should I buy?"] = {"status": "blocked", "content": "I'm sorry, I can't respond to that.",
+                                             "rail": "self check input"}
+    app, model = with_model()  # a model with no turns: any call to it would fail the test
+    with app:
+        answer = ask(app, "Which stock should I buy?")
+
+    assert model.requests == []
+    assert answer["guardrail"] == {"blocked": True, "reason": REFUSAL}
+    assert answer["answer"] == REFUSAL
+    assert answer["tool_calls"] == [] and answer["created_recommendation_id"] is None
+
+
+def test_an_iban_reaches_the_model_masked_and_is_stored_masked(with_model, guarded, db):
+    verdicts, _ = guarded
+    raw = "Did the payment from PL61 1090 1014 0000 0712 1981 2874 arrive?"
+    verdicts[raw] = {"status": "modified", "content": "Did the payment from <IBAN_CODE> arrive?"}
+    app, model = with_model(turn(content=json.dumps({"answer": "I cannot see that payment in the ledger."})))
+    with app:
+        answer = ask(app, raw)
+
+    sent = json.dumps(model.requests[0]["messages"])
+    assert "Did the payment from <IBAN_CODE> arrive?" in sent and "1090" not in sent
+    assert stored_user_messages(db, answer["session_id"]) == ["Did the payment from <IBAN_CODE> arrive?"]
+    assert answer["guardrail"] == {"blocked": False, "reason": "Hidden from the model: IBAN"}
+
+
+def test_a_masked_payment_request_becomes_an_inbox_card_without_the_iban(demo, guarded, db):
+    verdicts, _ = guarded
+    raw = "Transfer 1200 EUR to PL61 1090 1014 0000 0712 1981 2874"
+    verdicts[raw] = {"status": "modified", "content": "Transfer 1200 EUR to <IBAN_CODE>"}
+
+    answer = ask(demo, raw)
+
+    card = Store(db).get("recommendation", answer["created_recommendation_id"])
+    assert "<IBAN_CODE>" in card["evidence"][0]["excerpt"] and "1090" not in json.dumps(card)
+    assert answer["guardrail"]["blocked"]  # chat cannot move money: that guardrail is the one shown
+
+
+@pytest.mark.parametrize("question, tool, arguments, company", [
+    ("How much cash do I have?", "get_cash_position", {}, "co_borsuk"),
+    ("Why will I be short in December?", "get_forecast", {}, "co_borsuk"),
+    ("Show the ledger entries for November", "search_ledger", {"month": "2025-11"}, "co_borsuk"),
+    ("Why do you propose the credit line?", "explain_recommendation", {"recommendation_id": "rec_cl01"}, "co_borsuk"),
+    ("We are closed 1–30 June", "add_forecast_event", {"label": "Closed", "date_from": "2026-06-01",
+                                                       "date_to": "2026-06-30", "effect": "no_variable_flows"}, "co_amalfi"),
+])
+def test_the_five_tool_questions_still_reach_the_model_and_its_tools(with_model, guarded, question, tool, arguments,
+                                                                      company):
+    _, seen = guarded
+    app, model = with_model(turn(tool_calls=[call(tool, arguments)]),
+                            turn(content=json.dumps({"answer": "Here is what I found."})))
+    with app:
+        answer = ask(app, question, company=company)
+
+    assert seen == [question]
+    assert [t["tool"] for t in answer["tool_calls"]] == [tool]
+    assert answer["answer"] == "Here is what I found." and answer["guardrail"] is None
+
+
+def test_without_the_guardrails_the_chat_answers_without_the_model(with_model, guarded, db):
+    verdicts, _ = guarded
+    raw = "How much cash do I have? My card is 4111 1111 1111 1111"
+    verdicts[raw] = "down"
+    app, model = with_model()
+    with app:
+        answer = ask(app, raw)
+
+    assert model.requests == []
+    assert [t["tool"] for t in answer["tool_calls"]] == ["get_cash_position"]  # the deterministic answer
+    assert stored_user_messages(db, answer["session_id"]) == ["How much cash do I have? My card is <CREDIT_CARD>"]

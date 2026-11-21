@@ -19,8 +19,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 @pytest.fixture(autouse=True)
 def _no_model_calls(monkeypatch):
-    """Tests never reach a model endpoint; tests that need a model pass a fake client."""
+    """Tests never reach a model endpoint or the guardrails; tests that need them pass a fake."""
     monkeypatch.setenv("ORDO_LLM_ENABLED", "0")
+    monkeypatch.delenv("ORDO_GUARDRAILS_URL", raising=False)
 
 
 def _server_url() -> str:
