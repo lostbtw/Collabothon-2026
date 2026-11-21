@@ -62,12 +62,12 @@ def _describe(action: dict[str, Any]) -> str:
     kind = action["kind"]
     if kind == "apply_credit_line":
         tenor = f", {p['tenor_days']} days" if p.get("tenor_days") else ""
-        return f"Sandbox Bank accepted the credit-line application: limit {_amount(p.get('limit'))}{tenor}."
+        return f"Commerzbank accepted the credit-line application: limit {_amount(p.get('limit'))}{tenor}."
     if kind == "create_payment_draft":
         when = f" for {p['pay_on']}" if p.get("pay_on") else ""
         return f"Transfer draft of {_amount(p.get('amount'))} added to the payment run{when} in the Sandbox Bank."
     if kind == "book_fx_forward":
-        return (f"Forward booked in the Sandbox Bank: sell {_amount(p.get('notional'))} at {p.get('rate')} "
+        return (f"Forward booked at Commerzbank: sell {_amount(p.get('notional'))} at {p.get('rate')} "
                 f"on {p.get('value_date')}.")
     if kind == "move_to_tax_pocket":
         return f"{_amount(p.get('amount'))} moved to the tax pocket in the Sandbox Bank."

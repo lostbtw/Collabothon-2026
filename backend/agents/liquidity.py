@@ -192,11 +192,11 @@ def template_recommendation(company: str, facts: dict[str, Any], at: str) -> dic
         ],
         "proposed_action": {
             "kind": "apply_credit_line",
-            "params": {"limit": limit, "tenor_days": 60, "bank": facts["prices"].get("bank", "Sandbox Bank"),
+            "params": {"limit": limit, "tenor_days": 60, "bank": facts["prices"].get("bank", "Commerzbank"),
                        "product": facts["prices"].get("product"),
                        "alert": {"date_from": alert["date_from"], "max_shortfall": alert["max_shortfall"]}},
             "preview": f"SIMULATED: sends a credit-line application for {fmt_money(limit, cents=False)} / 60 days to the "
-                       f"Sandbox Bank. No real bank is contacted.",
+                       f"Commerzbank. No real bank is contacted.",
         },
         "impact": {
             "cash_effect": limit,
