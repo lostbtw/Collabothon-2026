@@ -6,21 +6,23 @@ finance engine, frontend) runs on its stand-in and names the ticket that replace
 acceptance run on the cluster once those land.
 
     hero      (M3)  receipt from Jan -> Document + Match -> reimbursement card -> approve -> forecast re-issued
-    liquidity (M4)  forecast alert -> credit-line card -> approve with 25,000 -> SIMULATED reference -> new forecast;
-                    pizzeria: "We are closed 1-30 June" in the chat -> forecast event
+    liquidity (M4)  over HTTP only, through the real agents, executor and finance engine: forecast alert ->
+                    credit-line card -> approve with 25,000 -> SIMULATED reference -> new forecast above zero;
+                    pizzeria: data-quality notes; "We are closed 1-30 June" in the chat -> low about -21.8k EUR
 """
 import argparse
 import copy
 import sys
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Any
 
 import httpx
 import psycopg
 
-from backend.agents import liquidity
 from backend.agents.main import process_pending
 from backend.db.events import new_event, publish
 from backend.db.fixtures import read
@@ -28,6 +30,8 @@ from backend.db.store import Store
 from backend.settings import database_url
 
 HERO_BUDGET_SECONDS = 30
+PIZZERIA_JUNE_LOW = Decimal("-21800")
+PIZZERIA_JUNE_TOLERANCE = Decimal("1500")  # "about -21.8k"
 
 
 @dataclass
@@ -123,43 +127,98 @@ def hero(api: httpx.Client, conn: psycopg.Connection, company: str = "co_borsuk"
     return run
 
 
-def liquidity_flow(api: httpx.Client, conn: psycopg.Connection) -> Run:
-    """M4: alert -> credit-line card -> approve with 25,000 -> SIMULATED -> new forecast; pizzeria June event."""
+def _latest(api: httpx.Client, company: str) -> dict:
+    """The latest base forecast, or {} while the company has none."""
+    response = api.get("/forecast/latest", params={"company_id": company})
+    return response.json() if response.status_code == 200 else {}
+
+
+def _low(forecast: dict) -> Decimal | None:
+    return Decimal(forecast["min_balance"]["amount"]["amount"]) if forecast else None
+
+
+def _low_text(forecast: dict) -> str:
+    if not forecast:
+        return "no forecast"
+    m = forecast["min_balance"]["amount"]
+    return f"{m['amount']} {m['currency']} on {forecast['min_balance']['date']}"
+
+
+def _no_drive() -> None:
+    """On the cluster the processes (agents, finance) run by themselves."""
+
+
+def _drive_wait(fetch: Callable[[], Any], until: Callable[[Any], bool], drive: Callable[[], Any], timeout: float,
+                every: float = 0.5) -> Any:
+    deadline = time.monotonic() + timeout
+    while True:
+        drive()
+        value = fetch()
+        if until(value) or time.monotonic() >= deadline:
+            return value
+        time.sleep(every)
+
+
+def liquidity_flow(api: httpx.Client, *, drive: Callable[[], Any] = _no_drive, timeout: float = 60.0) -> Run:
+    """M4 over the HTTP API only, through the real agents, executor and finance engine: alert -> credit-line card ->
+    edit to 25,000 and approve -> SIMULATED SIM-CL-... -> new forecast above zero; pizzeria data-quality notes and
+    the June event in the chat (low about -21.8k EUR). Nothing is written to the database by this script.
+
+    It changes the demo state (the card is decided): a second run on the same data finds no open credit-line card
+    until the demo data is reloaded."""
     run = Run("M4 liquidity flow")
     company = "co_borsuk"
-    forecast = api.get("/forecast/latest", params={"company_id": company}).json()
+    forecast = _latest(api, company)
     alert = next(iter(forecast.get("alerts", [])), None)
-    run.step("forecast with a cash-gap alert", bool(alert),
-             f"low {forecast['min_balance']['amount']['amount']} on {forecast['min_balance']['date']}"
-             + (f", gap {alert['date_from']}..{alert['date_to']}" if alert else ""), stand_in_until=[28, 44])
-
-    liquidity.on_forecast_updated(conn, {"company_id": company, "occurred_at": forecast["generated_at"],
-                                         "payload": {"forecast_id": forecast["id"]}})
-    card = next((r for r in api.get("/inbox", params={"company_id": company}).json()["items"]
-                 if r["type"] == "credit_line"), None)
-    if not run.step("credit-line card with the explanation", bool(card),
-                    f"{card['title']} ({card['explanation']['generated_by']['wording']} wording, "
-                    f"{len(card['explanation']['why'])} reasons, {len(card['explanation']['alternatives'])} alternatives)"
-                    if card else "no card"):
+    if not run.step("forecast with a cash-gap alert", bool(alert),
+                    f"{forecast.get('id')}: low {_low_text(forecast)}"
+                    + (f", {alert['type']} {alert['date_from']}..{alert.get('date_to')}" if alert else ", no alert")):
         return run
 
-    limit = {"amount": "25000.00", "currency": card["proposed_action"]["params"]["limit"]["currency"]}
+    def open_card() -> dict | None:
+        return next((r for r in api.get("/inbox", params={"company_id": company}).json()["items"]
+                     if r["type"] == "credit_line" and r["status"] == "new"), None)
+
+    card = _drive_wait(open_card, bool, drive, timeout)
+    if not run.step("credit-line card with the explanation", bool(card),
+                    f"{card['title']} ({len(card['explanation']['why'])} reasons, "
+                    f"{len(card['explanation'].get('alternatives', []))} alternatives)" if card else "no open card"):
+        return run
+
+    proposed = card["proposed_action"]["params"]["limit"]
+    limit = {"amount": "25000.00", "currency": proposed["currency"]}
     response = api.post(f"/recommendations/{card['id']}/decision", json={
         "decision": "approved_with_changes", "changes": {"proposed_action.params.limit": limit}, "comment": "25k is enough"})
     execution = response.json().get("execution") or {}
-    run.step("edit 30,000 -> 25,000 and approve: SIMULATED", response.status_code == 200
-             and (execution.get("reference") or "").startswith("SIM-CL-") and "25,000" in (execution.get("result") or ""),
-             f"{execution.get('reference')}: {execution.get('result')}", stand_in_until=[36])
+    run.step(f"edit {proposed['amount']} -> 25,000 and approve: SIMULATED",
+             response.status_code == 200 and (execution.get("reference") or "").startswith("SIM-CL-")
+             and "25,000" in (execution.get("result") or ""),
+             f"{execution.get('reference')}: {execution.get('result') or response.text[:200]}")
 
-    after = api.get("/forecast/latest", params={"company_id": company}).json()
-    run.step("chart redraws from a new forecast", after["id"] != forecast["id"],
-             f"{after['id']}, low {after['min_balance']['amount']['amount']} (above zero once #44 computes the scenario)",
-             stand_in_until=[44])
+    after = _drive_wait(lambda: _latest(api, company), lambda f: f.get("id") != forecast["id"], drive, timeout)
+    run.step("chart redraws above zero", after.get("id") != forecast["id"] and (_low(after) or 0) > 0,
+             f"{after.get('id')}, low {_low_text(after)}")
 
-    answer = api.post("/chat", json={"message": "We are closed 1–30 June", "company_id": "co_amalfi"}).json()
-    run.step("pizzeria: chat June event stored", any(t["tool"] == "add_forecast_event" for t in answer.get("tool_calls", [])),
-             answer.get("answer", ""), stand_in_until=[28])
+    pizzeria(api, run, drive=drive, timeout=timeout)
     return run
+
+
+def pizzeria(api: httpx.Client, run: Run, *, drive: Callable[[], Any] = _no_drive, timeout: float = 60.0) -> None:
+    company = "co_amalfi"
+    items = api.get("/transactions", params={"company_id": company}).json()["items"]
+    notes = sorted({n for t in items for n in t.get("data_quality") or []})
+    run.step("pizzeria: data-quality notes", bool(notes),
+             f"{sum(1 for t in items if t.get('data_quality'))} bank lines: {', '.join(notes) or 'none'}")
+
+    before = _latest(api, company)
+    answer = api.post("/chat", json={"message": "We are closed 1–30 June", "company_id": company}).json()
+    stored = any(t["tool"] == "add_forecast_event" for t in answer.get("tool_calls", []))
+    if not run.step("pizzeria: chat June event stored", stored, answer.get("answer", "")[:200]):
+        return
+    after = _drive_wait(lambda: _latest(api, company), lambda f: f.get("id") != before.get("id"), drive, timeout)
+    low = _low(after)
+    run.step("pizzeria: low about -21.8k", low is not None and abs(low - PIZZERIA_JUNE_LOW) <= PIZZERIA_JUNE_TOLERANCE,
+             f"{_low_text(before)} -> {_low_text(after)}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -173,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.flow in ("hero", "all"):
             runs.append(hero(api, conn))
         if args.flow in ("liquidity", "all"):
-            runs.append(liquidity_flow(api, conn))
+            runs.append(liquidity_flow(api))
     for r in runs:
         print(r.report())
     return 0 if all(r.ok for r in runs) else 1
