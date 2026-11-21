@@ -58,12 +58,12 @@ A contract change (section 4) is its own small PR under `contracts/`, merged bef
 | `recommendation` | Advice; nothing to execute | blue |
 | `approval_required` | Action prepared; runs only after the owner approves, possibly edited | amber |
 
-Execution mode: `none`, `simulated` (every action in this build, against the Sandbox Bank, the word SIMULATED on the button and in the result), `permitted` (refused by the server in this build).
+Execution mode: `none`, `simulated` (every action in this build, against the Sandbox Bank; the app says it once, in the sidebar, not on every button and result), `permitted` (refused by the server in this build).
 
 **Hard rules** (do not break, whatever the task):
 
 1. The app and the model run on the team's OpenShift AI cluster. The app's LLM is an open-weights model served there. Never add a call to a hosted LLM API in app code.
-2. Synthetic data only. Invented companies, people and tax ids, marked SAMPLE. No real names, no real documents, no real bank data, no real e-mail addresses in the repo or on the cluster.
+2. Synthetic data only. Invented companies, people and tax ids (data files may mark them SAMPLE; the screens do not show it). No real names, no real documents, no real bank data, no real e-mail addresses in the repo or on the cluster.
 3. No secrets in Git. Use OpenShift Secrets; commit only `deploy/secrets.example.yaml` with names.
 4. The LLM never produces a number that reaches the user directly. Numbers come from the finance engine or from extraction with a confidence value.
 5. Every Recommendation carries `control_level`, `execution_mode`, `explanation` and at least one `evidence` link. All execution is `simulated`.

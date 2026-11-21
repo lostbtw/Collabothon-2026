@@ -178,16 +178,16 @@ function AccountsSection({ accounts, sources }: { accounts: Account[]; sources: 
           </Setting>
         );
       })}
-      {added.map((name) => <Setting key={name} title={name} note="Sandbox Bank · added in this tab"><span className="simulated">SIMULATED · connected</span></Setting>)}
+      {added.map((name) => <Setting key={name} title={name} note="Sandbox Bank · added in this tab"><span className="small t3">Connected</span></Setting>)}
       <div className="setting">
         {adding ? (
           <form className="hstack" onSubmit={connect}>
             <label className="pill-select"><select aria-label="Bank" defaultValue="sandbox"><option value="sandbox">Sandbox Bank</option></select></label>
             <input type="text" name="name" placeholder="Account name" aria-label="Account name" autoFocus />
-            <button type="submit" className="primary">Connect (simulated)</button>
+            <button type="submit" className="primary">Connect</button>
             <button type="button" className="quiet" onClick={() => setAdding(false)}>Cancel</button>
           </form>
-        ) : <button type="button" onClick={() => setAdding(true)}>Connect a bank account (simulated)</button>}
+        ) : <button type="button" onClick={() => setAdding(true)}>Connect a bank account</button>}
         <span className="small t3">Only test banks in this demo.</span>
       </div>
     </Section>
@@ -350,7 +350,6 @@ function AutonomySection() {
       <Setting title="Confirm a payment and its invoice" note="Only when it is at least 90% sure and the payment repeats every month."><Toggle on label="Confirm a payment and its invoice" /></Setting>
       <Setting title="Prepare payments, reminders and applications" note="They wait in To-do until you approve them."><Toggle on label="Prepare payments, reminders and applications" /></Setting>
       <Setting title="Pay, transfer or apply without asking" note="Not possible. Ordo always asks first."><span className="chip neutral">Always asks</span></Setting>
-      <Setting title="Mode" note="This version only talks to the test bank."><span className="chip info">Simulated</span></Setting>
     </Section>
   );
 }
@@ -384,7 +383,7 @@ function AlertsSection({ settings, onSaved }: { settings: SettingsData | null; o
           <Setting title="Tell me when a client is late by more than">
             <span className="hstack small t2" style={{ gap: 8 }}><input type="text" value={late} onChange={(e) => setLate(e.target.value)} onBlur={saveLate} aria-label="Days late" style={{ width: 70 }} />days</span>
           </Setting>
-          <Setting title="Weekly summary by e-mail" note="Every Monday at 8:00: cash, costs and what needs you. Simulated: no e-mail leaves the app.">
+          <Setting title="Weekly summary by e-mail" note="Every Monday at 8:00: cash, costs and what needs you.">
             <Toggle on={a.weekly_summary} label="Weekly summary by e-mail" onChange={(on) => save({ alerts: { weekly_summary: on } })} />
           </Setting>
           {(bad || status) && <span className={`small ${bad ? "bad" : "t3"}`} role="status">{bad ?? status}</span>}

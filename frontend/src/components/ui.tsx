@@ -105,17 +105,22 @@ export function Avatar({ text }: { text: string }) {
   return <span className="avatar" aria-hidden="true">{text}</span>;
 }
 
-/** A button that runs an action in the sandbox bank. It says so with a small tag (product rule: the word
- * "simulated" on the button), and its tooltip says what will happen. */
+/** A button that runs an action (in this build always in the test bank, which the sidebar says once). Its tooltip
+ * says what will happen. */
 export function SimButton({ label, onClick, busy, disabled, primary = true, what }: {
   label: string; onClick: () => void; busy?: boolean; disabled?: boolean; primary?: boolean; what?: string | null;
 }) {
   return (
     <button type="button" className={primary ? "primary" : undefined} disabled={busy || disabled} onClick={onClick}
-      title={what ?? "Runs in the test bank only. No real money moves."}>
-      {busy ? "Working…" : label}<span className="sim-tag">simulated</span>
+      title={what?.replace(/^SIMULATED:\s*/, "") ?? undefined}>
+      {busy ? "Working…" : label}
     </button>
   );
+}
+
+/** The result of an action that ran: "Done" and the bank's reference; the bank's message on hover. */
+export function DoneChip({ reference, result }: { reference?: string | null; result?: string | null }) {
+  return <span className="simulated pulse" title={result ?? undefined}>Done{reference ? ` · ${reference}` : ""}</span>;
 }
 
 /** A row's chevron, pointing to where its details are. */

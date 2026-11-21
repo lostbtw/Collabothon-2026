@@ -143,7 +143,7 @@ function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
     apply_credit_line: () => ({ reference: "SIM-CL-2026-0007", result: `Sandbox bank accepted the application: limit ${money("limit")}, available from 2026-11-27.`, effects: template.execution.effects }),
     create_payment_draft: () => ({ reference: "SIM-PAY-2026-0412", result: `Sandbox bank added a transfer draft of ${money("amount")} to the payment run on ${String(params.pay_on)}.` }),
     book_fx_forward: () => ({ reference: "SIM-FX-2026-0003", result: `Sandbox bank booked the forward: sell ${money("notional")} at ${String(params.rate)}, value date ${String(params.value_date)}.` }),
-    send_email_draft: () => ({ reference: `SIM-MAIL-2026-${String(21 + decisions.size).padStart(4, "0")}`, result: `Recorded in the sandbox. The e-mail to ${String(params.to)} was not sent: every action in this build is simulated.` }),
+    send_email_draft: () => ({ reference: `SIM-MAIL-2026-${String(21 + decisions.size).padStart(4, "0")}`, result: `Draft e-mail to ${String(params.to)} prepared.` }),
   };
   const outcome = (outcomes[rec.proposed_action?.kind ?? "none"] ?? (() => ({ reference: `SIM-${rec.id.toUpperCase()}`, result: "Recorded in the sandbox." })))();
   const approval: Approval = {
@@ -178,7 +178,7 @@ function mockAnswer(message: string, forecast: Forecast): Pick<ChatAnswer, "answ
     return reply(CHAT_HISTORY[5].detail[1].content, ...accounts, { kind: "forecast", id: forecast.id, label: "Cash forecast", url: "/" }, ...lines);
   }
   return reply(
-    `Sample answer. The lowest point is ${formatMoney(forecast.min_balance.amount, { decimals: false })} on ${shortDate(forecast.min_balance.date)}${forecast.first_negative_date ? `; the balance first goes below zero on ${shortDate(forecast.first_negative_date)}` : ""}.`,
+    `The lowest point is ${formatMoney(forecast.min_balance.amount, { decimals: false })} on ${shortDate(forecast.min_balance.date)}${forecast.first_negative_date ? `; the balance first goes below zero on ${shortDate(forecast.first_negative_date)}` : ""}.`,
     { kind: "forecast", id: forecast.id, label: "45-day forecast", url: "/" },
   );
 }

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api, rawContentUrl } from "../../api/client";
 import type { Approval, Category, OrdoDocument, Recommendation } from "../../api/types.gen";
 import { Icon } from "../../components/Icon";
-import { CloseButton, SimButton, StatusLabel } from "../../components/ui";
+import { CloseButton, DoneChip, SimButton, StatusLabel } from "../../components/ui";
 import { useCompany } from "../../lib/company";
 import { longDate } from "../../lib/dates";
 import { formatMoney } from "../../lib/money";
@@ -138,7 +138,7 @@ function Decide({ p, card }: { p: Payment; card: Recommendation }) {
     return (
       <div className="box good">
         <StatusLabel level="approved" />
-        <span className="simulated pulse">SIMULATED · {done.execution.reference}</span>
+        <DoneChip reference={done.execution.reference} result={done.execution.result} />
         <span className="small">{done.execution.result}</span>
       </div>
     );

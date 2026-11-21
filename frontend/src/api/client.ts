@@ -93,7 +93,8 @@ export const api = {
   setTransactionCategory: (id: string, category: string, companyId?: string) =>
     optional(http<Transaction>("PATCH", `/transactions/${id}`, { query: co(companyId), body: { category } })),
   forecast: (companyId?: string, horizonDays = 45) => http<Forecast>("GET", "/forecast/latest", { query: { ...co(companyId), horizon_days: horizonDays } }),
-  recommendations: (companyId?: string) => http<{ items: Recommendation[] }>("GET", "/recommendations", { query: co(companyId) }),
+  /** `status` narrows the list (all recommendations together are over a megabyte on real data). */
+  recommendations: (companyId?: string, status?: Recommendation["status"]) => http<{ items: Recommendation[] }>("GET", "/recommendations", { query: { ...co(companyId), status } }),
   recommendation: (id: string) => http<Recommendation>("GET", `/recommendations/${id}`),
   decideMatch: (matchId: string, body: DecisionRequest) => http<Approval>("POST", `/matches/${matchId}/decision`, { body }),
   decide: (recommendationId: string, body: DecisionRequest) => http<Approval>("POST", `/recommendations/${recommendationId}/decision`, { body }),

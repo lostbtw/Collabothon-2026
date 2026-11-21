@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { api, type ActivityItem, type LedgerSummary, type PeopleCosts } from "../api/client";
 import type { Approval, Forecast, Recommendation } from "../api/types.gen";
 import { Sources } from "../components/Sources";
-import { PageHead, SimButton, Skeleton, StatusLabel } from "../components/ui";
+import { DoneChip, PageHead, SimButton, Skeleton, StatusLabel } from "../components/ui";
 import { lastFullMonth, monthFigures, monthOnly, monthRange, percent } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { dateTime, shortDate } from "../lib/dates";
@@ -25,7 +25,7 @@ export function Todo() {
   const refresh = useRefreshKey();
   const month = lastFullMonth(today);
   const state = useApi(() => Promise.all([
-    api.inbox(companyId), none(api.forecast(companyId)), none(api.recommendations(companyId)), none(api.approvals(companyId)), none(api.activity(companyId)),
+    api.inbox(companyId), none(api.forecast(companyId)), none(api.recommendations(companyId, "executed_simulated")), none(api.approvals(companyId)), none(api.activity(companyId)),
   ]), [companyId, refresh]);
   const close = useApi(() => Promise.all([
     none(api.ledgerSummary(companyId, { groupBy: "category", ...monthRange(month) })), none(api.peopleCosts(companyId, month)),
@@ -236,7 +236,7 @@ function Result({ approval, compact }: { approval: Approval; compact?: boolean }
   if (approval.decision === "rejected") return <span className="small t2">{resultHeadline(approval)}</span>;
   return (
     <div className={compact ? "hstack" : "box good"}>
-      <span className="simulated pulse">SIMULATED · {approval.execution.reference ?? "recorded"}</span>
+      <DoneChip reference={approval.execution.reference} result={approval.execution.result} />
       {!compact && <span className="small">{approval.execution.result}</span>}
     </div>
   );
@@ -293,8 +293,8 @@ function CloseMonth({ month, summary, people, toCheck, openReimbursements }: { m
         <div className="kv"><span className="t2">Payments without an invoice</span><span className={missing ? "bad" : "good"}>{missing}</span></div>
         <div className="kv"><span className="t2">Receipts to pay back</span><span className={receipts ? "warn" : "good"}>{receipts}</span></div>
       </div>
-      {sent ? <span className="simulated pulse">SIMULATED · nothing left the app</span>
-        : <span style={{ alignSelf: "flex-start" }}><SimButton label="Send to accountant" primary={false} disabled={!ready} what="Records the month as sent. No e-mail leaves the app in this build." onClick={() => setSent(true)} /></span>}
+      {sent ? <DoneChip />
+        : <span style={{ alignSelf: "flex-start" }}><SimButton label="Send to accountant" primary={false} disabled={!ready} what="Records the month as sent to your accountant." onClick={() => setSent(true)} /></span>}
       {!ready && <span className="caption t3">Available when {monthOnly(month)} is 100% done</span>}
     </div>
   );
@@ -311,7 +311,7 @@ function DoneRecently({ activity, approvals, recs }: { activity: ActivityItem[];
           <div className="stack" style={{ gap: 4 }}>
             <StatusLabel level={d.level} />
             <span className="small">{d.text}</span>
-            {d.reference && <span className="simulated">SIMULATED · {d.reference}</span>}
+            {d.reference && <DoneChip reference={d.reference} />}
           </div>
         </div>
       ))}

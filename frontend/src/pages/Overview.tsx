@@ -5,7 +5,7 @@ import { api, type AccountsResponse, type BalanceHistory, type LedgerSummary } f
 import type { Approval, Forecast, Recommendation, Transaction } from "../api/types.gen";
 import { useAsk } from "../components/AskOrdo";
 import { CashChart } from "../components/CashChart";
-import { Change, MonthSelect, PageHead, SimButton, Skeleton, StatusLabel, Tile } from "../components/ui";
+import { Change, DoneChip, MonthSelect, PageHead, SimButton, Skeleton, StatusLabel, Tile } from "../components/ui";
 import { compareAmounts, isZero, monthFigures, monthOnly, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
 import { daysBetween, shortDate } from "../lib/dates";
@@ -35,14 +35,13 @@ export function Overview() {
   const now = useApi(() => Promise.all([
     none(api.accounts(companyId)), none(api.forecast(companyId)), none(api.balanceHistory(companyId)), none(api.inbox(companyId)),
   ]), [companyId, refresh]);
-  const figures = useApi(() => Promise.all([
-    monthAndBefore(companyId, shown),
-    none(api.transactions(companyId)),
-    none(api.counterparties(companyId)),
-  ]), [companyId, shown, refresh]);
+  const figures = useApi(() => monthAndBefore(companyId, shown), [companyId, shown, refresh]);
+  // The bank lines are only for "Biggest ones": they load on their own and never hold the page up.
+  const lines = useApi(() => Promise.all([none(api.transactions(companyId)), none(api.counterparties(companyId))]), [companyId, refresh]);
 
   const [accounts, forecast, history, inbox] = now.data ?? [null, null, null, null];
-  const [[current, before], transactions, parties] = figures.data ?? [[null, null], null, null];
+  const [current, before] = figures.data ?? [null, null];
+  const [transactions, parties] = lines.data ?? [null, null];
   const names = Object.fromEntries((parties?.items ?? []).map((c) => [c.id, plainName(c.name)]));
   const currency = company?.base_currency ?? forecast?.base_currency ?? "PLN";
   return (
@@ -151,7 +150,7 @@ export function TodoRow({ item }: { item: TodoItem }) {
         <span className="small t2">{done ? done.execution.result : item.summary}</span>
         {error && <span className="small bad" role="alert">Not done: {error}</span>}
       </div>
-      {done ? <span className="simulated pulse">SIMULATED · {done.execution.reference}</span>
+      {done ? <DoneChip reference={done.execution.reference} result={done.execution.result} />
         : p.kind === "approve" && item.rec ? <SimButton label={p.label} busy={busy} what={item.rec.proposed_action?.preview} onClick={() => approve(item.rec!)} />
         : <button type="button" onClick={() => navigate(p.to ?? `/todo#${item.id}`)}>{p.kind === "details" ? "See details" : p.label}</button>}
     </div>

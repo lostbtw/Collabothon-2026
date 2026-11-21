@@ -108,10 +108,10 @@ export function impactFacts(r: Recommendation): Fact[] {
   return facts;
 }
 
-/** The headline of a finished decision, e.g. "SIMULATED — SIM-CL-2026-0007". */
+/** The headline of a finished decision, e.g. "Done — SIM-CL-2026-0007". */
 export function resultHeadline(a: Approval): string {
   if (a.decision === "rejected") return "Rejected. Nothing was sent.";
-  const mode = a.execution.mode === "simulated" ? "SIMULATED" : a.execution.mode === "none" ? "Recorded" : "Not run";
+  const mode = a.execution.mode === "none" ? "Recorded" : a.execution.mode === "simulated" ? "Done" : "Not run";
   if (a.execution.status === "failed") return `${mode} — failed`;
   if (a.execution.status === "pending") return `${mode} — in progress`;
   return a.execution.reference ? `${mode} — ${a.execution.reference}` : mode;
