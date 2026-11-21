@@ -11,6 +11,7 @@ ENTRYPOINTS = {
     "agents": ("backend.agents.main", "role 5"),
     "finance": ("backend.finance.main", "role 4"),
     "mcp": ("backend.agents.mcp_server", "role 5"),
+    "demo-reset": ("backend.agents.demo_reset", "role 5"),
 }
 
 

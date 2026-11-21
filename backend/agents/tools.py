@@ -28,6 +28,7 @@ def get_forecast(conn: psycopg.Connection, company: str, forecast_id: str | None
         "safety_buffer": forecast.get("safety_buffer"),
         "min_balance": forecast["min_balance"],
         "first_negative_date": forecast.get("first_negative_date"),
+        "goes_below_zero": bool(forecast.get("first_negative_date")),
         "alerts": forecast["alerts"],
         "components": [{k: c.get(k) for k in ("id", "label", "kind", "amount_base", "schedule", "dates", "confidence")}
                        for c in forecast["components"]],

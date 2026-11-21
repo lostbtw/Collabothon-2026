@@ -9,7 +9,7 @@ from typing import Any
 import psycopg
 
 from backend import tracing
-from backend.agents import guardrails, liquidity, tools
+from backend.agents import guardrails, liquidity, receivables, tools
 from backend.agents.llm import run_tool_loop
 from backend.agents.numbers import unexpected_numbers
 from backend.agents.sql import VIEWS, run_readonly_sql
@@ -31,6 +31,10 @@ SYSTEM = (
     "You are Ordo's assistant for a small company's owner. Answer in plain language using only the tools. "
     "Copy numbers exactly from tool results; never compute or invent a number. You cannot move money, approve or "
     "execute anything: for such requests call request_action, which puts a card in the owner's inbox. "
+    "To ask a client to pay sooner, call request_action with kind chase_receivable and the client's name in the "
+    "description: Ordo drafts the reminder e-mail. "
+    "A below_buffer alert means the balance falls under the safety buffer but stays above zero; say 'below zero' "
+    "only when goes_below_zero is true. "
     "When the owner states a future fact (closed days, a client paying on a date), call add_forecast_event. "
     "Refuse politely anything that is not about this company's finances. If a tool returns an error, fix the "
     "arguments or choose another tool. "
@@ -89,7 +93,12 @@ def get_fx_exposure(conn: psycopg.Connection, company: str) -> dict[str, Any]:
 
 
 def request_action(conn: psycopg.Connection, company: str, description: str, kind: str = "payment") -> dict[str, Any]:
-    """Anything that would move money: an inbox card instead. A credit line gets the liquidity agent's card."""
+    """Anything that would move money: an inbox card instead. A credit line gets the liquidity agent's card, and
+    "ask <client> to pay earlier" a reminder card with the drafted e-mail."""
+    if kind not in ("credit_line", "fx_hedge"):
+        reminder = receivables.reminder_for(conn, company, description, force=kind == "chase_receivable")
+        if reminder:
+            return {"recommendation_id": reminder["id"], "title": reminder["title"]}
     if kind == "credit_line":
         forecast = tools.latest_forecast(conn, company)
         if forecast:
@@ -176,8 +185,9 @@ CHAT_TOOLS: dict[str, tools.Tool] = {
                             {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_clients),
     "get_month_costs": (_schema("get_month_costs", "Costs of a month by category compared with the month before (why costs went up or down)",
                                 {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_month_costs),
-    "request_action": (_schema("request_action", "Put a request that would move money into the owner's inbox", {
-        "description": {"type": "string"}, "kind": {"type": "string", "enum": ["payment", "transfer", "credit_line", "fx_hedge"]}},
+    "request_action": (_schema("request_action", "Put a request that would move money, or a reminder asking a client to pay sooner, into the owner's inbox", {
+        "description": {"type": "string"},
+        "kind": {"type": "string", "enum": ["payment", "transfer", "credit_line", "fx_hedge", "chase_receivable"]}},
         ["description"]), request_action),
     "run_readonly_sql": (_schema("run_readonly_sql", "One read-only SELECT over the views " + ", ".join(VIEWS)
                                  + " (at most 200 rows, 3 s)", {"sql": {"type": "string"}}, ["sql"]), run_readonly_sql),

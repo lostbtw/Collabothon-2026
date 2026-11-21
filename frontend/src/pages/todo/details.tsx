@@ -88,7 +88,7 @@ export function RecModal({ rec, decision, onClose, approval, footer: given, extr
           )}
           {rec.evidence.length > 0 && <ModalSection title="Based on"><Sources links={rec.evidence} /></ModalSection>}
           {rec.proposed_action?.preview && !result && (
-            <ModalSection title="If you say yes"><span className="small">{rec.proposed_action.preview.replace(/^SIMULATED:\s*/, "")}</span></ModalSection>
+            <ModalSection title="If you say yes"><span className="small" style={{ whiteSpace: "pre-line" }}>{rec.proposed_action.preview.replace(/^SIMULATED:\s*/, "")}</span></ModalSection>
           )}
         </div>
       )}

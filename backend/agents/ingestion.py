@@ -8,6 +8,7 @@ import psycopg
 
 from backend.agents.text import fmt_money, ordinal_day, short_date
 from backend.api.recommendations import save_recommendation
+from backend.db.events import new_event, publish
 from backend.db.store import Store
 
 GENERATED_BY = {"numbers": "finance-engine", "wording": "template", "trace_id": None}
@@ -234,4 +235,20 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any]) -> list
                              "preview": f"SIMULATED: moves {fmt_money(amount)} to the tax pocket in the Sandbox Bank."})
         if save_recommendation(conn, rec):
             created.append(rec["id"])
+    supersede_stale_tax_cards(conn, event["company_id"], forecast)
     return created
+
+
+def supersede_stale_tax_cards(conn: psycopg.Connection, company: str, forecast: dict[str, Any]) -> list[str]:
+    """Open tax cards for a payment the forecast no longer has (an older engine run) leave the to-do."""
+    current = {_rec_id("tax_reserve", c["id"]) for c in forecast["components"] if c["kind"] == "tax"}
+    s = Store(conn)
+    gone = []
+    for old in s.list("recommendation", company_id=company, type="tax_reserve", status=["new", "seen"]):
+        if old["id"] in current:
+            continue
+        s.put("recommendation", {**old, "status": "superseded"})
+        publish(conn, new_event("recommendation.status_changed", company,
+                                {"recommendation_id": old["id"], "status": "superseded"}, producer="agents"))
+        gone.append(old["id"])
+    return gone
