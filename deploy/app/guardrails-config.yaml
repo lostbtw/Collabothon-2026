@@ -1,0 +1,13 @@
+# Puts NeMo Guardrails (deploy/guardrails/, #31) in front of the chat in ordo-api. Applied by `setup.sh guardrails`
+# once the server answers; `setup.sh guardrails-off` deletes it. Optional: without this ConfigMap the chat runs
+# without the check. With it, a turn whose check gets no answer is answered without the model.
+# The token is LLM_TOKEN (ServiceAccount cfo-app, allowed by the Role in deploy/guardrails/nemo-guardrails.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ordo-guardrails-client
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+data:
+  ORDO_GUARDRAILS_URL: https://ordo-guardrails.cfo-ai.svc.cluster.local

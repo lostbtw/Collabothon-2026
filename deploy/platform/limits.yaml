@@ -11,6 +11,9 @@ spec:
       defaultRequest:
         cpu: 100m
         memory: 256Mi
+      # 3Gi, not 1Gi: the NeMo Guardrails server (deploy/guardrails/) gets its resources only from here, because
+      # the NemoGuardrails CR has no resources field and the operator overwrites any change to its Deployment.
+      # Its PII rail loads spaCy en_core_web_lg and was OOMKilled at 1Gi. Our own manifests set their own limits.
       default:
         cpu: "1"
-        memory: 1Gi
+        memory: 3Gi
