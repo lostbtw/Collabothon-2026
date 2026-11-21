@@ -47,6 +47,8 @@ FINAL_SCHEMA = {"type": "object", "required": ["answer"], "properties": {"answer
 MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
                                       "september", "october", "november", "december"], start=1)}
 MONTHS |= {"czerwca": 6, "czerwiec": 6, "lipca": 7, "juni": 6, "juli": 7, "dezember": 12, "grudnia": 12}
+CLAIMS_CARD = re.compile(r"\b(added|created|put|placed|prepared|drafted|sent)\b[^.]{0,80}\b(card|inbox|to-?do|reminder)\b"
+                         r"|\b(card|reminder)\b[^.]{0,80}\b(added|created|waiting|prepared|drafted)\b", re.I)
 MONEY_WORDS = re.compile(r"\b(transfer|pay|send|wire|approve|execute|book|przelew|zapłać|überweis\w*|zahle)\b", re.I)
 
 
@@ -424,6 +426,15 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
             tracing.tag(outcome=outcome, created_recommendation_id=created)
             tracing.outputs(step, {"outcome": outcome, "answer": text, "tool_calls": trace,
                                    "created_recommendation_id": created})
+    if text is not None and created is None and CLAIMS_CARD.search(text):
+        # The model said it made a card without calling request_action: make the reminder it promised, or drop the claim.
+        reminder = receivables.reminder_for(conn, company, text)
+        if reminder:
+            created, guardrail = reminder["id"], GUARDRAIL_MONEY
+            trace.append({"tool": "request_action", "arguments": {"description": text[:200], "kind": "chase_receivable"},
+                          "duration_ms": 0, "via": "chat-guard"})
+        else:
+            text = None
     if text is None and created:
         card = Store(conn).get("recommendation", created) or {}
         text = (reminder_text(conn, company, card) if card.get("type") == "chase_receivable" else

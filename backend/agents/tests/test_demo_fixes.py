@@ -84,3 +84,36 @@ def test_without_usable_model_words_the_reminder_reply_explains_the_gap(db):
     assert card["type"] == "chase_receivable"
     assert card["title"] in reply["answer"] and "drafted a reminder" in reply["answer"]
     assert "cannot move money" not in reply["answer"]
+
+
+class _Says:
+    """A model that answers at once, without calling any tool."""
+
+    def __init__(self, text):
+        import json
+        from types import SimpleNamespace as NS
+        message = NS(tool_calls=None, content=json.dumps({"answer": text}))
+        self.chat = NS(completions=NS(create=lambda **_: NS(choices=[NS(message=message)])))
+
+
+def test_a_reminder_the_model_only_claims_is_made_for_real(db):
+    load_fixtures(db)
+    from backend.agents import chat
+
+    reply = chat.answer(db, "co_borsuk", "How do we deal with the December shortage?", None,
+                        model=_Says("You could ask Nordwind to pay earlier. I've added a reminder to your inbox."))
+
+    card = Store(db).get("recommendation", reply["created_recommendation_id"])
+    assert card["type"] == "chase_receivable" and "Nordwind" in card["title"]
+
+
+def test_a_card_claim_with_nothing_behind_it_is_not_shown(db):
+    load_fixtures(db)
+    from backend.agents import chat
+
+    reply = chat.answer(db, "co_borsuk", "How do we deal with the December shortage?", None,
+                        model=_Says("Cut costs. I've created a card in your to-do for that."))
+
+    assert "created a card" not in reply["answer"]
+    assert not any(r["agent"] == "chat" and "Cut costs" in r["title"]
+                   for r in Store(db).list("recommendation", company_id="co_borsuk"))
