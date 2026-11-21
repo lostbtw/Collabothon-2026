@@ -51,3 +51,19 @@ def test_the_nonce_keeps_a_valid_jpeg():
     jpeg = b"\xff\xd8\xff\xe0rest"
     marked = with_nonce(jpeg, "abc")
     assert marked.startswith(b"\xff\xd8\xff\xfe") and marked.endswith(b"\xff\xe0rest") and marked != jpeg
+
+
+def test_a_client_payment_is_booked_in_the_sandbox_bank(client, db, sandbox_bank, monkeypatch):
+    import contextlib
+
+    import backend.api.routes.demo as demo_route
+    demo(client, db)
+    monkeypatch.setattr(demo_route, "make_client", lambda: contextlib.nullcontext(sandbox_bank))
+
+    answer = client.get("/api/v1/demo/payment")
+
+    assert answer.status_code == 200, answer.text
+    line = answer.json()["bank_line"]
+    assert line["transactionAmount"] == {"amount": "18400.00", "currency": "EUR"} or "18400" in str(line)
+    booked = sandbox_bank.get("/v1/accounts/acc_eur/transactions", headers={"Authorization": "Bearer test-bank-token", "Consent-ID": "demo"}).json()
+    assert "INVOICE 2026/10/044" in str(booked)
