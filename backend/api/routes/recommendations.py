@@ -12,18 +12,22 @@ router = APIRouter()
 
 OPEN = ("new", "seen")
 SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
+# Advice that comes one per payment; its own screens list it, the to-do would drown in it.
+BULK_ADVICE = {"mark_private", "missing_document"}
 
 
 @router.get("/inbox")
 def inbox(company: str = Depends(company_id), s: Store = Depends(store)):
     open_recs = s.list("recommendation", company_id=company, status=list(OPEN))
     items = sorted(
-        (r for r in open_recs if r["control_level"] == "approval_required"),
-        key=lambda r: (SEVERITY_ORDER.get(r["severity"], 9), r.get("valid_until") or "9999"),
+        (r for r in open_recs if r["control_level"] == "approval_required"
+         or (r["control_level"] == "recommendation" and r["type"] not in BULK_ADVICE)),
+        key=lambda r: (r["control_level"] != "approval_required", SEVERITY_ORDER.get(r["severity"], 9),
+                       r.get("valid_until") or "9999"),
     )
     today = max((r["created_at"][:10] for r in s.list("recommendation", company_id=company)), default="")
     counts = {
-        "approval_required": len(items),
+        "approval_required": sum(1 for r in items if r["control_level"] == "approval_required"),
         "recommendation": sum(1 for r in open_recs if r["control_level"] == "recommendation"),
         "analysed_autonomously_today": sum(
             1 for r in s.list("recommendation", company_id=company, control_level="analysed_autonomously")
