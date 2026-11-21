@@ -129,8 +129,6 @@ export const api = {
   rules: (companyId?: string) => optional(http<{ items: Rule[] }>("GET", "/rules", { query: co(companyId) })),
   deleteRule: (id: string, companyId?: string) => optional(http<void>("DELETE", `/rules/${id}`, { query: co(companyId) })),
   chatSessions: (companyId?: string) => optional(http<{ items: ChatSession[] }>("GET", "/chat/sessions", { query: co(companyId) })),
-  /** Reverses an approved action in the test bank. */
-  undoApproval: (id: string) => optional(http<Approval>("POST", `/approvals/${id}/undo`)),
   chatSession: (id: string, companyId?: string) => optional(http<ChatSessionDetail>("GET", `/chat/sessions/${id}`, { query: co(companyId) })),
 };
 

@@ -13,7 +13,6 @@ import { useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
 import { PAY_LABEL, ROLE_LABEL, categoryLabel, initials, pct, plainName, whole } from "../lib/words";
 import { monthAndBefore } from "../lib/monthSummary";
-import { FROM_BANK_TEXT, FromBank } from "./Overview";
 import { PaymentPanel } from "./money/PaymentPanel";
 import { DOC_CHIP, accountShort, buildPayments, filterPayments, typeOf, type Payment } from "./money/payments";
 
@@ -82,10 +81,10 @@ function ByType({ month, q }: { month: string; q: string }) {
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
   const [current, before] = state.data ?? [null, null];
   if (!current) return <Waiting what="costs by type" />;
-  return <ByTypeView month={month} summary={current.summary} fromBank={current.fromBank} before={before} currency={currency} q={q} />;
+  return <ByTypeView month={month} summary={current.summary} before={before} currency={currency} q={q} />;
 }
 
-export function ByTypeView({ month, summary, fromBank, before, currency, q = "" }: { month: string; summary: LedgerSummary; fromBank?: boolean; before: LedgerSummary | null; currency: string; q?: string }) {
+export function ByTypeView({ month, summary, before, currency, q = "" }: { month: string; summary: LedgerSummary; before: LedgerSummary | null; currency: string; q?: string }) {
   const f = monthFigures(summary, currency);
   const prev = before?.rows.length ? monthFigures(before, currency) : null;
   const entries = (cats: string[]) => summary.rows.filter((r) => cats.includes(r.key)).reduce((n, r) => n + r.entries, 0);
@@ -95,7 +94,6 @@ export function ByTypeView({ month, summary, fromBank, before, currency, q = "" 
   if (!f.hasData) return <p className="t2">No payments in {monthOnly(month)}.</p>;
   return (
     <>
-      {fromBank && <div className="hstack"><FromBank /><span className="small t2">{FROM_BANK_TEXT}</span></div>}
       <div className="row">
         <Tile label={`Costs in ${monthOnly(month)}`} value={whole(f.costs)} note={prev && <Change now={f.costs} before={prev.costs} upIsGood={false} vs={monthOnly(previousMonth(month))} />} />
         <Tile label="Fixed every month" value={whole(f.fixed)} note={`${percent(f.fixed.amount, f.costs.amount)}% of all costs`} />
