@@ -27,6 +27,12 @@ SUGGESTED = {
 }
 GUARDRAIL_MONEY = {"blocked": True, "reason": "Chat cannot move money; it prepared an inbox card instead"}
 
+
+def _guardrail_for(conn: psycopg.Connection, card_id: str) -> dict[str, Any] | None:
+    """A drafted client reminder is advice in the to-do, not a blocked money request: no guardrail note."""
+    card = Store(conn).get("recommendation", card_id) or {}
+    return None if card.get("type") == "chase_receivable" else GUARDRAIL_MONEY
+
 SYSTEM = (
     "You are Ordo's assistant for a small company's owner. Answer in plain language using only the tools, in at most "
     "four short sentences and without numbered lists. "
@@ -292,7 +298,7 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
                   f"I cannot move money from the chat. I put this in your inbox: \"{result['title']}\". "
                   "It runs only after you approve it, in simulation.")
         return (answer, _evidence([result]), [{"tool": "request_action", "arguments": {"description": message, "kind": kind},
-                                               "duration_ms": 0}], result["recommendation_id"], GUARDRAIL_MONEY)
+                                               "duration_ms": 0}], result["recommendation_id"], _guardrail_for(conn, result["recommendation_id"]))
 
     if re.search(r"short|gap|minus|lowest|low point|negative|zabrak|fehlt", text):
         facts = None
@@ -412,7 +418,7 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
             result, results = run_tool_loop(model, conn, company, messages, CHAT_TOOLS, FINAL_SCHEMA, trace=trace)
             for r in results:
                 if isinstance(r, dict) and r.get("recommendation_id") and any(t["tool"] == "request_action" for t in trace):
-                    created, guardrail = r["recommendation_id"], GUARDRAIL_MONEY
+                    created, guardrail = r["recommendation_id"], _guardrail_for(conn, r["recommendation_id"])
             if result and not unexpected_numbers([result["answer"]], [results, message]):
                 text, evidence = result["answer"], _evidence(results)
                 sql = next((r for r in reversed(results) if isinstance(r, dict) and "columns" in r), None)
@@ -430,7 +436,7 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
         # The model said it made a card without calling request_action: make the reminder it promised, or drop the claim.
         reminder = receivables.reminder_for(conn, company, text)
         if reminder:
-            created, guardrail = reminder["id"], GUARDRAIL_MONEY
+            created, guardrail = reminder["id"], None
             trace.append({"tool": "request_action", "arguments": {"description": text[:200], "kind": "chase_receivable"},
                           "duration_ms": 0, "via": "chat-guard"})
         else:

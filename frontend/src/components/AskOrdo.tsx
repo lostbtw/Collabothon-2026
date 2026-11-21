@@ -180,7 +180,8 @@ export function Thread({ lines, pending, error, onLeave }: { lines: Line[]; pend
 function Answer({ text, answer: a }: { text: string; answer?: ChatAnswer }) {
   return (
     <div className="answer">
-      {a?.guardrail?.blocked ? <div className="note">{a.guardrail.reason}</div> : <p>{text}</p>}
+      <p>{text}</p>
+      {a?.guardrail?.blocked && a.guardrail.reason && <div className="note">{a.guardrail.reason}</div>}
       {a?.table && a.table.rows.length > 0 && (
         <table className="answer-table">
           <thead><tr>{a.table.columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>
