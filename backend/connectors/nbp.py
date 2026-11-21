@@ -74,7 +74,12 @@ class NbpConnector(Connector):
         start = last + timedelta(days=1) if last else today - timedelta(days=self._history_days())
         while start <= today:
             end = min(start + timedelta(days=WINDOW_DAYS - 1), today)
-            tables = self._tables(start, end)
+            if all((start + timedelta(days=i)).weekday() >= 5 for i in range((end - start).days + 1)):
+                start = end + timedelta(days=1)  # only a Saturday and/or Sunday: NBP publishes nothing, do not ask
+                continue
+            # Found live: for a day with no table NBP sometimes answers HTTP 500 instead of 404. A short window just
+            # after the last stored table is "nothing new yet" (a holiday), not an outage; the history is already ours.
+            tables = self._tables(start, end, quiet=bool(last) and (end - start).days <= 3)
             if tables:
                 items = [
                     FetchedItem(
@@ -91,7 +96,7 @@ class NbpConnector(Connector):
             start = end + timedelta(days=1)  # a window with no tables at all (holidays): look further
         return FetchResult(items=[], cursor=cursor)
 
-    def _tables(self, start: date, end: date) -> list[dict[str, Any]]:
+    def _tables(self, start: date, end: date, *, quiet: bool = False) -> list[dict[str, Any]]:
         path = f"/api/exchangerates/tables/A/{start.isoformat()}/{end.isoformat()}/"
         try:
             resp = self.client.get(path, params={"format": "json"})
@@ -99,6 +104,8 @@ class NbpConnector(Connector):
             raise ConnectorError(f"NBP unreachable: {exc.__class__.__name__}: {exc}", code="nbp_unreachable") from exc
         if resp.status_code == 404:
             return []  # NBP's answer for "no table in this range"
+        if quiet and resp.status_code >= 500:
+            return []
         if resp.status_code >= 400:
             raise ConnectorError(f"NBP answered HTTP {resp.status_code} for {start}..{end}",
                                  code=f"http_{resp.status_code}",
