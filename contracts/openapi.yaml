@@ -373,15 +373,15 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [file, language]
+              required: [file]
               properties:
                 file: {type: string, format: binary, description: "Recorded audio (audio/webm, audio/mp4, audio/ogg, audio/wav), at most 5 MB"}
-                language: {type: string, enum: [pl, en, ru]}
+                language: {type: string, enum: [pl, en, ru], description: "Optional; without it Whisper detects the language"}
       responses:
         '200': {description: Transcript, content: {application/json: {schema: {$ref: '#/components/schemas/Transcript'}}}}
         '413': {description: The file is over 5 MB (too_large), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
         '415': {description: The file is not audio (unsupported_media_type), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
-        '422': {description: A language other than pl, en, ru, or an empty file (invalid_request), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '422': {description: A language given other than pl, en, ru, or an empty file (invalid_request), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
         '503': {description: Whisper is not deployed or does not answer (speech_unavailable), content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
   /fx/rates:
     get:
@@ -553,7 +553,7 @@ components:
       required: [text, language, duration_seconds, model, seconds]
       properties:
         text: {type: string, description: "What Whisper heard; empty when nothing was said"}
-        language: {type: string, enum: [pl, en, ru]}
+        language: {type: string, description: "ISO 639-1 code of the language heard: the one given, else the one Whisper detected"}
         duration_seconds: {type: number, description: "Length of the recording"}
         model: {type: string}
         seconds: {type: number, description: "Time the transcription took"}

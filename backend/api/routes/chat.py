@@ -28,8 +28,8 @@ def chat(request: Request, body: dict[str, Any] = Body(...), c: psycopg.Connecti
 
 
 @router.post("/chat/transcribe")
-async def transcribe(request: Request, file: UploadFile = File(...), language: str = Form(...)):
-    if language not in LANGUAGES:
+async def transcribe(request: Request, file: UploadFile = File(...), language: str | None = Form(None)):
+    if language is not None and language not in LANGUAGES:
         raise ApiError(422, "invalid_request", "language must be one of pl, en, ru")
     content_type = file.content_type or ""
     if not content_type.startswith("audio/"):
