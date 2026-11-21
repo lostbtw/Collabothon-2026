@@ -214,15 +214,15 @@ def latest(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
 def ledger_kpis(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     """KPIs of GET /ledger/summary (openapi: reimbursements_owed, vat_lost_ytd, documents_missing, tax_due_next_30d).
 
-    vat_lost_ytd        non-deductible VAT on Ledger entries dated in the as-of date's year (VAT lost this year)
-    reimbursements_owed debts to the team (reimbursement_liability) minus what was paid out (reimbursement_payout)
+    vat_lost_ytd        non-deductible VAT on approved Ledger entries dated in the as-of date's year (VAT lost this year)
+    reimbursements_owed approved debts to the team (reimbursement_liability) minus what was paid out (reimbursement_payout)
     documents_missing   bank lines that wait for a document
     tax_due_next_30d    tax and social-security payments in the forecast within 30 days after the as-of date
     """
     s = Store(conn)
     company = _company(conn, company_id)
     base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])
-    entries = [e for e in s.list("ledger_entry", company_id=company_id) if e.get("status") != "void"]
+    entries = [e for e in s.list("ledger_entry", company_id=company_id) if e.get("status") == "approved"]
 
     def total(values) -> Decimal:
         return sum((Decimal(v) for v in values), Decimal(0))
