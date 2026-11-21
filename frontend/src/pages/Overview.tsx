@@ -204,7 +204,7 @@ function TaxDetails({ c }: { c: TaxComponent }) {
   const formula = c.schedule?.split(": ").slice(1).join(": ") ?? "";
   const due = c.schedule?.split(": ")[0];
   return (
-    <div className="stack" style={{ gap: 20, margin: "0 0 16px 72px", padding: "16px 20px", background: "var(--page)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
+    <div className="stack" style={{ gap: 20, margin: "4px 0 20px 72px" }}>
       {(steps.length > 0 || formula) && (
         <PanelPart title="How we got this number">
           {steps.length === 0 ? <span className="small">{formula}</span> : (
