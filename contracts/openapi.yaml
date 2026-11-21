@@ -21,6 +21,7 @@ tags:
   - {name: forecast, description: "Liquidity forecast (role 4)"}
   - {name: recommendations, description: "Agent output and approvals (role 5)"}
   - {name: chat, description: "Embedded chat (role 5)"}
+  - {name: owner, description: "Settings, people, rules and the owner's money views (role 6 screens)"}
   - {name: stream, description: "Live UI updates"}
 paths:
   /health:
@@ -154,6 +155,13 @@ paths:
       parameters: [{$ref: '#/components/parameters/id'}]
       responses:
         '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/transaction.schema.json'}}}}
+    patch:
+      tags: [bank]
+      summary: The owner changes a bank line's category; remembered as a rule for its counterparty (see /rules)
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/company'}]
+      requestBody: {content: {application/json: {schema: {type: object, required: [category], properties: {category: {$ref: './schemas/common.schema.json#/$defs/Category'}}}}}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: './schemas/transaction.schema.json'}}}}
   /counterparties:
     get:
       tags: [bank]
@@ -216,6 +224,7 @@ paths:
         - {name: group_by, in: query, schema: {type: string, enum: [category, month, cost_behaviour, paid_by, counterparty]}}
         - {name: from, in: query, schema: {type: string, format: date}}
         - {name: to, in: query, schema: {type: string, format: date}}
+        - {name: basis, in: query, description: 'ledger (default) or bank: sum the bank lines per category, for months not booked yet (group_by category only)', schema: {type: string, enum: [ledger, bank]}}
       responses:
         '200':
           description: OK
@@ -392,6 +401,114 @@ paths:
                         profit_source: {type: string, enum: [owner, average_margin, loss_limit]}
                         verdict: {type: string, enum: [hedge_proposed, not_worth_it, naturally_hedged, hedged]}
                         recommendation_id: {type: [string, 'null']}
+  /settings:
+    get:
+      tags: [owner]
+      summary: Company details and alert settings the owner keeps in Settings
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/Settings'}}}}
+    patch:
+      tags: [owner]
+      summary: Change company details or alerts (only the fields sent)
+      parameters: [{$ref: '#/components/parameters/company'}]
+      requestBody: {content: {application/json: {schema: {type: object, properties: {company: {type: object}, alerts: {type: object}}}}}}
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/Settings'}}}}
+  /people:
+    get:
+      tags: [owner]
+      summary: The people of the company, with the cards and bank-statement names that tie payments to them
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: '#/components/schemas/Person'}}}}}}}
+    post:
+      tags: [owner]
+      summary: Add a person
+      parameters: [{$ref: '#/components/parameters/company'}]
+      requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Person'}}}}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/Person'}}}}
+  /people/costs:
+    get:
+      tags: [owner]
+      summary: What each person cost in a month (bank lines that pay them) and what the company owes them for receipts
+      parameters: [{$ref: '#/components/parameters/company'}, {name: month, in: query, description: YYYY-MM (default the last full month), schema: {type: string}}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {type: object, required: [person_id, name, role, paid, owed], properties: {person_id: {type: string}, name: {type: string}, role: {type: string}, pay_type: {type: [string, 'null']}, paid: {$ref: './schemas/common.schema.json#/$defs/Money'}, payments: {type: integer}, owed: {$ref: './schemas/common.schema.json#/$defs/Money'}, receipts_owed: {type: integer}, parts: {type: array, items: {type: object, properties: {label: {type: string}, amount: {$ref: './schemas/common.schema.json#/$defs/Money'}}}}}}}
+                  totals: {type: object, properties: {staff: {$ref: './schemas/common.schema.json#/$defs/Money'}, social_security: {$ref: './schemas/common.schema.json#/$defs/Money'}, share_of_costs: {type: number}}}
+  /clients:
+    get:
+      tags: [owner]
+      summary: Clients - what each paid in the month and which invoices are still open, how late, and how late they usually pay
+      parameters: [{$ref: '#/components/parameters/company'}, {name: month, in: query, schema: {type: string}}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {type: object, required: [counterparty_id, name, paid_in_month, open_invoices, open_total_base], properties: {counterparty_id: {type: string}, name: {type: string}, currency: {type: string}, paid_in_month: {$ref: './schemas/common.schema.json#/$defs/Money'}, open_invoices: {type: array, items: {type: object, properties: {document_id: {type: string}, number: {type: [string, 'null']}, gross: {$ref: './schemas/common.schema.json#/$defs/Money'}, gross_base: {$ref: './schemas/common.schema.json#/$defs/Money'}, due_date: {type: [string, 'null']}, days_late: {type: integer}}}}, open_total_base: {$ref: './schemas/common.schema.json#/$defs/Money'}, typical_payment_delay_days: {type: [integer, 'null']}, share_of_income: {type: number}}}}
+                  totals: {type: object, properties: {paid_in_month: {$ref: './schemas/common.schema.json#/$defs/Money'}, open_base: {$ref: './schemas/common.schema.json#/$defs/Money'}, late_base: {$ref: './schemas/common.schema.json#/$defs/Money'}}}
+  /subscriptions:
+    get:
+      tags: [owner]
+      summary: Tools and services paid every month, with price rises, double payments and private cards
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {type: object, required: [counterparty_id, name, category, monthly, paid_by, flags], properties: {counterparty_id: {type: string}, name: {type: string}, category: {type: string}, monthly: {$ref: './schemas/common.schema.json#/$defs/Money'}, previous_monthly: {$ref: './schemas/common.schema.json#/$defs/Money'}, original: {oneOf: [{$ref: './schemas/common.schema.json#/$defs/Money'}, {type: 'null'}]}, duplicate_cost: {$ref: './schemas/common.schema.json#/$defs/Money'}, paid_by: {type: array, items: {type: object, properties: {kind: {type: string, enum: [account, card, person]}, label: {type: string}}}}, flags: {type: array, items: {type: string, enum: [price_up, paid_twice, paid_privately]}}, series_ids: {type: array, items: {type: string}}}}}
+                  monthly_total: {$ref: './schemas/common.schema.json#/$defs/Money'}
+  /rules:
+    get:
+      tags: [owner]
+      summary: Rules Ordo learned when the owner changed a type
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {id: {type: string}, raw: {type: string}, counterparty_id: {type: [string, 'null']}, counterparty_name: {type: string}, category: {type: string}, learned_at: {type: string, format: date-time}}}}}}}}}
+  /rules/{id}:
+    delete:
+      tags: [owner]
+      summary: Forget a learned rule
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/company'}]
+      responses:
+        '204': {description: Deleted}
+  /chat/sessions:
+    get:
+      tags: [chat]
+      summary: Past chats of the company, newest first
+      parameters: [{$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {type: object, properties: {session_id: {type: string}, title: {type: string}, last_at: {type: string, format: date-time}, messages: {type: integer}}}}}}}}}
+  /chat/sessions/{id}:
+    get:
+      tags: [chat]
+      summary: The messages of one past chat
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/company'}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {session_id: {type: string}, messages: {type: array, items: {type: object, properties: {role: {type: string, enum: [user, assistant]}, content: {type: string}, at: {type: string, format: date-time}}}}}}}}}
+  /balance/history:
+    get:
+      tags: [bank]
+      summary: Cash in the company's accounts at the end of each day before the as-of date (only days that change)
+      parameters: [{$ref: '#/components/parameters/company'}, {name: days, in: query, schema: {type: integer, default: 91}}]
+      responses:
+        '200': {description: OK, content: {application/json: {schema: {type: object, properties: {currency: {type: string}, points: {type: array, items: {type: object, properties: {date: {type: string, format: date}, balance: {type: string}}}}}}}}}
   /events/stream:
     get:
       tags: [stream]
@@ -405,6 +522,24 @@ components:
     company: {name: company_id, in: query, schema: {type: string}}
     cursor: {name: cursor, in: query, schema: {type: string}}
   schemas:
+    Settings:
+      type: object
+      properties:
+        company: {type: object, properties: {id: {type: string}, name: {type: string}, tax_id: {type: [string, 'null']}, base_currency: {type: string}, vat_period: {type: string, enum: [monthly, quarterly]}, accountant_email: {type: [string, 'null']}}}
+        alerts: {type: object, properties: {safety_buffer: {oneOf: [{$ref: './schemas/common.schema.json#/$defs/Money'}, {type: 'null'}]}, late_client_days: {type: integer}, weekly_summary: {type: boolean}}}
+    Person:
+      type: object
+      required: [name, email, role]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        email: {type: string}
+        role: {type: string, enum: [owner, employee, contractor]}
+        pay_type: {type: [string, 'null']}
+        card_last4: {type: array, items: {type: string}}
+        statement_names: {type: array, items: {type: string}}
+        tax_id: {type: [string, 'null']}
+        iban: {type: [string, 'null']}
     SourceList:
       type: object
       properties:
