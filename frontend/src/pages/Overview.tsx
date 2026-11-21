@@ -149,7 +149,7 @@ export function TodoRow({ item }: { item: TodoItem }) {
 const ESTIMATE = " (estimate)";
 const OP_SIGN: Record<string, string> = { start: "", plus: "+", minus: "−", equals: "=", note: "" };
 
-const monthInWords = (label: string) => label.replace(/\b(\d{2})\/(\d{4})\b/,
+const monthInWords = (label: string) => label.replace(" (JPK_V7M)", "").replace(/\b(\d{2})\/(\d{4})\b/,
   (_, m: string, y: string) => `${new Date(Number(y), Number(m) - 1, 1).toLocaleString("en-GB", { month: "long" })} ${y}`);
 
 type TaxComponent = Forecast["components"][number] & { date: string };
