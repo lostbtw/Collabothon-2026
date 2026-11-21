@@ -68,3 +68,22 @@ describe("recommendation guard (contracts rule 4)", () => {
     expect(isRenderableRecommendation(null)).toBe(false);
   });
 });
+
+describe("voice input in mock mode", () => {
+  const audio = () => new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: "audio/webm;codecs=opus" });
+
+  it("reads a question in Polish, English and Russian", async () => {
+    expect((await api.transcribe(audio(), "pl")).text).toBe("Ile mam gotówki?");
+    expect((await api.transcribe(audio(), "en")).text).toBe("How much cash do I have?");
+    const ru = await api.transcribe(audio(), "ru");
+    expect(ru).toMatchObject({ text: "Сколько у меня денег?", language: "ru" });
+  });
+
+  it("refuses another language with 422", async () => {
+    await expect(api.transcribe(audio(), "de" as never)).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("tells the chat that speech to text is there", async () => {
+    expect((await api.health()).speech).toEqual({ model: "mock", reachable: true });
+  });
+});
