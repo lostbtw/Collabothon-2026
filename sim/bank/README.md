@@ -36,13 +36,13 @@ BANK_AUTOLOAD_CSV=/path/to/pizzeria-amalfi-bank-statement-2025-v6.csv uvicorn ba
 
 `acc_pln`, `acc_eur`, `acc_owner` (private card, no balance) for Borsuk Labs, and `acc_pizzeria`. Ids and opening balances follow `contracts/fixtures/account.json`.
 
-## As-of date (the "demo clock")
+## No clock
 
-`POST /admin/clock {"now": "2025-05-15", "accountId": "acc_pizzeria"}` hides every line booked after that date, for that company only. Without `accountId` it sets one global date for all accounts. `{"advanceDays": 10}` moves it forward. A later date reveals the hidden lines, which always have higher entry references, so a delta cursor never misses them.
+The bank shows every line it holds. It had a demo clock that hid lines booked after a date; it was removed because it changed nothing on the cluster: the connector reads everything at start. To show new bank data on the demo, put a new line in with `POST /admin/transactions`; the connector fetches it on its next poll. "Today" for a company (what the forecast is computed for) is `companies.as_of_date` in the app database, not a bank setting.
 
 ## Notes for the connector (#22)
 
 - Delta: `entryReferenceFrom` is exclusive. Pages hold 500 lines (`limit` up to 1000); follow `_links.next.href` until it is absent.
-- Lines injected through `/admin/transactions` get the next reference. Inject with a booking date on or before the as-of date, or the line stays hidden.
+- Lines injected through `/admin/transactions` get the next reference.
 - Closing balance uses a fixed CHF to EUR booking rate (`store.BOOKING_RATES`) so the pizzeria's year-end matches the organisers' sheet. The lines themselves are untouched.
-- Extras beyond the contract (additive): `GET /admin/clock`, `GET /admin/executions`, `POST /admin/reset`, `GET /health`, optional `accountId` and `advanceDays` on the clock, optional `cardLast4` on lines.
+- Extras beyond the contract (additive): `GET /admin/executions`, `POST /admin/reset`, `GET /health`, optional `cardLast4` on lines.

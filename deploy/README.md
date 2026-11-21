@@ -26,7 +26,7 @@ A push to `main` already does most of this on its own: a GitHub webhook starts t
 | `postgresql` | `rhel9/postgresql-16` | The database |
 | `gpt-oss-20b-predictor`, `docling-serve` | see `deploy/models/` | The model and OCR |
 
-The Sandbox Bank keeps its state in memory. Each start loads Borsuk Labs' accounts from `sim/scenario/out` (inside the image) and the pizzeria account from ConfigMap `bank-pizzeria-csv`. A new `ordo-sim` image, which every push to `main` builds, restarts the bank, so executions and any clock set through `/admin/clock` are lost.
+The Sandbox Bank keeps its state in memory. Each start loads Borsuk Labs' accounts from `sim/scenario/out` (inside the image) and the pizzeria account from ConfigMap `bank-pizzeria-csv`. A new `ordo-sim` image, which every push to `main` builds, restarts the bank, so executions are lost.
 
 ## First set-up of an empty project
 
