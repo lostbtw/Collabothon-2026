@@ -53,3 +53,22 @@ FX_OPTION_COST = _get("FX_OPTION_COST", Decimal("0.012"), Decimal)         # ill
 FX_LATE_DAYS = _get("FX_LATE_DAYS", 3)                               # a client this many days late on average is late
 FX_LATE_HEDGE_RATIO = _get("FX_LATE_HEDGE_RATIO", Decimal("0.8"), Decimal) # share hedged for a late client (spec)
 FX_CONTEXT_MONTHS = _get("FX_CONTEXT_MONTHS", 12)                    # full months of money in and out shown to the model
+
+# Taxes (PL), #48. Researched 2026-11-21 (commercial accounting portals + podatki.gov.pl, zus.pl); confirm with an
+# accountant before real use. Applied to every company in this build (human decision, 2026-11-21).
+VAT_DUE_DAY = _get("VAT_DUE_DAY", 25)               # JPK_V7M: 25th of the next month (art. 99 VAT act)
+CIT_DUE_DAY = _get("CIT_DUE_DAY", 20)               # CIT advance: 20th of the next month (art. 25 CIT act)
+PIT4_DUE_DAY = _get("PIT4_DUE_DAY", 20)             # payroll PIT withheld: 20th of the next month (art. 38 PIT act)
+ZUS_DUE_DAY = _get("ZUS_DUE_DAY", 15)               # ZUS for a company with legal personality: 15th
+CIT_RATE = _get("CIT_RATE", Decimal("0.09"), Decimal)          # small taxpayer (< 2 mln EUR revenue); else 0.19
+PIT_RATE = _get("PIT_RATE", Decimal("0.12"), Decimal)          # tax scale up to 120,000 PLN a year
+PIT_RATE_HIGH = _get("PIT_RATE_HIGH", Decimal("0.32"), Decimal)
+PIT_THRESHOLD_PLN = _get("PIT_THRESHOLD_PLN", Decimal("120000"), Decimal)
+PIT_COSTS_PLN = _get("PIT_COSTS_PLN", Decimal("250"), Decimal)          # monthly employee costs (koszty uzyskania)
+PIT_REDUCTION_PLN = _get("PIT_REDUCTION_PLN", Decimal("300"), Decimal)  # monthly reduction (PIT-2 filed)
+ZUS_EMPLOYEE = _get("ZUS_EMPLOYEE", Decimal("0.1371"), Decimal)  # 9.76 pension + 1.5 disability + 2.45 sickness
+ZUS_EMPLOYER = _get("ZUS_EMPLOYER", Decimal("0.2048"), Decimal)  # 9.76 + 6.5 + 1.67 accident + 2.45 FP/FS + 0.10 FGSP
+HEALTH_RATE = _get("HEALTH_RATE", Decimal("0.09"), Decimal)      # of gross minus employee ZUS, paid to ZUS
+TAX_ESTIMATE_MONTHS = _get("TAX_ESTIMATE_MONTHS", 3)              # open month = mean of this many closed months
+TAX_CONFIDENCE = _get("TAX_CONFIDENCE", 0.9)
+TAX_ESTIMATE_CONFIDENCE = _get("TAX_ESTIMATE_CONFIDENCE", 0.6)
