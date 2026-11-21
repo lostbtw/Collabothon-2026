@@ -73,3 +73,28 @@ def test_without_fixture_entries_the_booking_creates_its_own(db):
     process_pending(db)
 
     assert {e["id"] for e in booked(db).values()} == {"led_mat_412_exp", "led_mat_412_reimb"}
+
+
+def test_an_auto_confirmed_match_is_booked_from_the_matchers_event(db):
+    """contracts/events.md: the matcher emits match.decided (auto_confirmed, approval_id null) for PixelBoard."""
+    load_fixtures(db)
+    db.execute("delete from ledger_entries")
+    db.commit()
+    publish(db, new_event("match.decided", "co_borsuk",
+                          {"match_id": "mat_pixel11", "status": "auto_confirmed", "approval_id": None},
+                          producer="pipeline"))
+    process_pending(db)
+
+    (expense,) = booked(db, "mat_pixel11").values()
+    assert (expense["type"], expense["approval_id"]) == ("expense", None)
+
+
+def test_an_event_that_no_longer_matches_the_match_books_nothing(db):
+    load_fixtures(db)
+    db.execute("delete from ledger_entries")
+    db.commit()
+    publish(db, new_event("match.decided", "co_borsuk",
+                          {"match_id": "mat_412", "status": "auto_confirmed", "approval_id": None}, producer="pipeline"))
+    process_pending(db)
+
+    assert booked(db) == {}

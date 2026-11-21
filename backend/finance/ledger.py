@@ -46,8 +46,11 @@ def next_pay_run(day: date) -> date:
     return last
 
 
+DECIDED = ("confirmed", "auto_confirmed")  # by the owner, or by rule for a known recurring series (no approval)
+
+
 def should_book(match: dict[str, Any], document: dict[str, Any] | None) -> bool:
-    return (match.get("status") == "confirmed" and match.get("match_type") in BOOKABLE_MATCH_TYPES
+    return (match.get("status") in DECIDED and match.get("match_type") in BOOKABLE_MATCH_TYPES
             and document is not None and document.get("direction") == "purchase")
 
 
