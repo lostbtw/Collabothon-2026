@@ -369,11 +369,8 @@ def tax_components(*, as_of: date, end: date, base: str, rates: dict[str, Decima
                          _step(f"Employee social insurance held back, {_pct(settings.ZUS_EMPLOYEE)}", "plus",
                                employee, base),
                          _step(f"Health insurance held back, {_pct(settings.HEALTH_RATE)}", "plus", health, base),
-                         _step("Income tax held back (PIT-4)", "plus", pit_sum[month], base)]
-                if rounding:
-                    steps.append(_step("Rounding of the tax to whole złoty", "plus" if rounding > 0 else "minus",
-                                       abs(rounding), base))
-                steps.append(_step("Gross pay", "equals", gross, base))
+                         _step("Income tax held back", "plus", pit_sum[month] + rounding, base),
+                         _step("Gross pay", "equals", gross, base)]
                 if tax == "pit4":
                     reduction = pit_raw_sum[month] - amount
                     steps += [_step("2. Income tax: what the employer passes on to the tax office", "note"),
