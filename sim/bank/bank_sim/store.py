@@ -115,41 +115,21 @@ def seed_accounts() -> dict[str, Account]:
 class Store:
     def __init__(self) -> None:
         self.accounts: dict[str, Account] = seed_accounts()
-        self.global_now: date | None = None  # None = nothing hidden
-        self.account_now: dict[str, date] = {}  # per-company as-of dates override the global one
         self.executions: list[dict] = []
         self._counters: dict[str, int] = {}
 
     def reset(self) -> None:
         self.__init__()
 
-    # ---- as-of dates ----
-    def as_of(self, account_id: str) -> date | None:
-        return self.account_now.get(account_id, self.global_now)
-
-    def visible(self, account: Account) -> list[Line]:
-        now = self.as_of(account.resource_id)
-        return [ln for ln in account.lines if now is None or ln.booking_date <= now]
-
-    def set_clock(self, now: date, account_id: str | None = None) -> None:
-        if account_id:
-            self.account_now[account_id] = now
-        else:
-            self.global_now = now
-            self.account_now.clear()
-
     # ---- balances ----
     def closing_balance(self, account: Account) -> Decimal | None:
         if account.opening_balance is None:
             return None
         total = account.opening_balance + sum(
-            (in_currency(ln, account.currency) for ln in self.visible(account)), Decimal(0))
+            (in_currency(ln, account.currency) for ln in account.lines), Decimal(0))
         return total.quantize(CENT, rounding=ROUND_HALF_UP)
 
     def reference_date(self, account: Account) -> date | None:
-        now = self.as_of(account.resource_id)
-        if now:
-            return now
         return max((ln.booking_date for ln in account.lines), default=None)
 
     # ---- lines ----
@@ -163,5 +143,5 @@ class Store:
         self._counters[kind] = self._counters.get(kind, 0) + 1
         return f"SIM-{kind}-{self._counters[kind]:04d}"
 
-    def today(self, account_id: str | None = None) -> date:
-        return (self.as_of(account_id) if account_id else self.global_now) or date.today()
+    def today(self) -> date:
+        return date.today()
