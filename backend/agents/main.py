@@ -13,7 +13,7 @@ from typing import Any
 import psycopg
 
 from backend.agents import fx, ingestion, liquidity, receivables
-from backend import queue
+from backend import queue, tracing
 from backend.settings import database_url
 
 log = logging.getLogger("ordo.agents")
