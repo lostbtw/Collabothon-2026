@@ -21,7 +21,7 @@ const CHECK_LABEL: Partial<Record<Recommendation["type"], string>> = { request_c
 const GAP_OPTIONS: ReadonlySet<Recommendation["type"]> = new Set(["credit_line", "payment_deferral", "chase_receivable"]);
 
 const BULK: Partial<Record<Recommendation["type"], { title: (n: number) => string; summary: string; to: string; label: string }>> = {
-  confirm_match: { title: (n) => `${n} invoices matched to payments`, summary: "Ordo paired each invoice with its bank line. Check them, so they go into the books.", to: "/money/payments?doc=to_check", label: "Check them" },
+  confirm_match: { title: (n) => `${n} invoices matched to payments`, summary: "Ordo paired each invoice with its bank line. Check them, so they go into the books.", to: "/money/payments?doc=to_check", label: "Review" },
   missing_document: { title: (n) => `${n} payments have no invoice`, summary: "Without an invoice a cost can't go into the books, and its VAT can't be reclaimed.", to: "/money/payments?doc=missing", label: "See which" },
 };
 

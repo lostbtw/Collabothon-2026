@@ -139,8 +139,8 @@ def recommendation_for_match(s: Store, company: str, match: dict[str, Any], docu
             proposed_action={"kind": "create_payment_draft",
                              "params": {"to": person.get("person_id"), "amount": owed,
                                         "title": f"Reimbursement: {_what(document)}", "pay_on": pay_on},
-                             "preview": f"SIMULATED: books the cost, records {fmt_money(owed)} owed to {first} and adds a "
-                                        f"transfer draft to the {short_date(pay_on)} payment run in the Sandbox Bank."},
+                             "preview": f"SIMULATED: Books the cost, records {fmt_money(owed)} owed to {first} and adds a "
+                                        f"transfer draft to the {short_date(pay_on)} payment run at Commerzbank."},
             impact={"cash_effect": {"amount": f"-{Decimal(owed['amount']):.2f}", "currency": owed["currency"]},
                     "cost": c.get("vat_lost")},
             **common)
@@ -224,14 +224,14 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any]) -> list
         rec = _base(
             event["company_id"], "tax_reserve", subject,
             title=f"Set aside {fmt_money(amount, cents=False)} for {tax} on the {ordinal_day(due)}",
-            summary=f"{comp['label']}: {fmt_money(amount)} is due on {due.isoformat()}. Moving it to the tax pocket now "
+            summary=f"{comp['label']}: {fmt_money(amount)} is due on {due.isoformat()}. Moving it to your tax account now "
                     f"keeps it from being spent.",
             control_level="approval_required", execution_mode="simulated", severity="warning",
             created_at=event["occurred_at"], why=[f"{comp['label']} ({comp.get('schedule') or 'due ' + due.isoformat()})"],
             calculation=[{"label": tax, "value": fmt_money(amount), "formula": comp.get("schedule")}],
             confidence=comp["confidence"], evidence=evidence,
             proposed_action={"kind": "move_to_tax_pocket", "params": {"amount": amount, "tax": tax, "due_date": due.isoformat()},
-                             "preview": f"SIMULATED: moves {fmt_money(amount)} to the tax pocket in the Sandbox Bank."})
+                             "preview": f"SIMULATED: Moves {fmt_money(amount)} to your tax account at Commerzbank."})
         if save_recommendation(conn, rec):
             created.append(rec["id"])
     return created

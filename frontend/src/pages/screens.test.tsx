@@ -16,7 +16,7 @@ const render = (el: ReactNode, url = "/") => renderToStaticMarkup(<MemoryRouter 
 const october = () => api.ledgerSummary("co_borsuk", { groupBy: "category", ...monthRange("2026-10") });
 
 describe("Overview", () => {
-  it("shows cash in the bank, the accounts and what is coming", async () => {
+  it("shows the bank balance, the accounts and what is coming", async () => {
     const html = render(<CashCard accounts={await api.accounts("co_borsuk")} forecast={await api.forecast("co_borsuk")} />);
     expect(html).toContain("38,400 PLN");
     expect(html).toContain("24,730.15 PLN");

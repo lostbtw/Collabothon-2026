@@ -140,18 +140,19 @@ function ByPerson({ month, q }: { month: string; q: string }) {
   const refresh = useRefreshKey();
   const state = useApi(() => api.peopleCosts(companyId, month).catch(() => null), [companyId, month, refresh]);
   if (state.loading && !state.data) return <Skeleton tiles={3} rows={6} />;
+  const today = useToday();
   if (!state.data) return <Waiting what="costs per person" />;
-  return <ByPersonView month={month} data={state.data} q={q} />;
+  return <ByPersonView month={month} data={state.data} q={q} inProgress={today.startsWith(month)} />;
 }
 
-export function ByPersonView({ month, data, q = "" }: { month: string; data: PeopleCosts; q?: string }) {
+export function ByPersonView({ month, data, q = "", inProgress = false }: { month: string; data: PeopleCosts; q?: string; inProgress?: boolean }) {
   const people = data.items.filter((p) => matches(q, plainName(p.name), ROLE_LABEL[p.role] ?? p.role, PAY_LABEL[p.pay_type ?? ""]));
   const owed = data.items.reduce((s, p) => add(s, p.owed.amount), "0.00");
   const receipts = data.items.reduce((n, p) => n + p.receipts_owed, 0);
   const currency = data.totals.staff.currency;
   const roles = ["owner", "employee", "contractor"].map((r) => [r, data.items.filter((p) => p.role === r).length] as const).filter(([, n]) => n > 0)
     .map(([r, n]) => (r === "owner" ? "Owner" : `${n} ${r}${n === 1 ? "" : "s"}`)).join(", ");
-  if (data.items.length === 0) return <p className="t2">No staff costs booked in {monthOnly(month)} yet.</p>;
+  if (data.items.length === 0) return <p className="t2">No staff costs booked in {monthOnly(month)} yet.{inProgress && <> {monthOnly(month)} isn't over yet: salaries and invoices are paid at the end of the month.</>}</p>;
   return (
     <>
       <div className="row">
@@ -179,6 +180,7 @@ export function ByPersonView({ month, data, q = "" }: { month: string; data: Peo
           </Link>
         ))}
       </div>
+      {inProgress && <p className="small t3">{monthOnly(month)} isn't over yet: salaries and invoices are paid at the end of the month.</p>}
     </>
   );
 }
