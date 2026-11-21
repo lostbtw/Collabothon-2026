@@ -3,12 +3,19 @@
     https://<app>/api/v1/demo/receipt              (taxi, 800.00 PLN)
     https://<app>/api/v1/demo/receipt?receipt=bajt (computer shop, 169.98 PLN)
 
-and Ordo receives an e-mail from the employee Jan Testowy with the receipt photo attached, exactly as the mailbox
+    https://<app>/api/v1/demo/payment              (Nordwind pays its 18,400 EUR invoice today)
+    https://<app>/api/v1/demo/payment?client=meblostyl (Meblostyl pays 36,900 PLN)
+    https://<app>/api/v1/demo/all                  (both)
+
+/demo/receipt: Ordo receives an e-mail from the employee Jan Testowy with the receipt photo attached, exactly as the mailbox
 connector would store it (role 2's `message_items`, src_mail, raw_item.received). The real pipeline then reads the
 photo, matches it, makes the "Pay Jan back" to-do and updates the forecast; the open app shows the toasts and
 reloads its numbers by itself.
 
-Every call is a new e-mail: the previous demo receipt is retired first (document `rejected`, its open cards
+/demo/payment: the client's transfer is booked in the Sandbox Bank (its admin endpoint); the bank connector picks it up
+on its next poll, Ordo matches it to the open invoice, and income, the bank balance and the forecast change.
+
+Every receipt call is a new e-mail: the previous demo receipt is retired first (document `rejected`, its open cards
 superseded), so the duplicate check does not swallow the next one. Set ORDO_DEMO_TRIGGER=0 to switch it off.
 The sender's address is read from the people table, never written in the code.
 """
@@ -25,6 +32,7 @@ from fastapi import APIRouter, Depends, Query
 from psycopg.types.json import Jsonb
 
 from backend.api.deps import ApiError, conn
+from backend.connectors.bank import bank_token, make_client
 from backend.connectors.base import idempotency_key, raw_item_id
 from backend.connectors.mailbox import message_items
 from backend.db.events import new_event, publish
@@ -142,3 +150,52 @@ def demo_receipt(company_id: str = Query("co_borsuk"), receipt: str = Query("tax
     if receipt not in RECEIPTS:
         raise ApiError(422, "invalid_request", f"receipt must be one of {', '.join(RECEIPTS)}")
     return send_receipt(c, company_id, receipt)
+
+
+PAYMENTS = {
+    "nordwind": {"account": "acc_eur", "amount": "18400.00", "currency": "EUR", "debtor": "NORDWIND LOGISTIK GMBH",
+                 "remittance": "INVOICE 2026/10/044"},
+    "meblostyl": {"account": "acc_pln", "amount": "36900.00", "currency": "PLN", "debtor": "MEBLOSTYL SP Z O O",
+                  "remittance": "ZAPLATA ZA FV 2026/10/042"},
+}
+
+
+def book_payment(c: psycopg.Connection, company: str, client: str, bank: Any = None) -> dict[str, Any]:
+    spec = PAYMENTS[client]
+    today = str(c.execute("select as_of_date from companies where id = %s", (company,)).fetchone()[0])
+    body = {"accountId": spec["account"], "amount": spec["amount"], "currency": spec["currency"],
+            "bookingDate": today, "debtorName": spec["debtor"], "remittance": spec["remittance"]}
+    headers = {"Authorization": f"Bearer {bank_token()}"}
+    try:
+        if bank is not None:
+            answer = bank.post("/admin/transactions", json=body, headers=headers)
+        else:
+            with make_client() as own:
+                answer = own.post("/admin/transactions", json=body, headers=headers)
+    except Exception as exc:
+        raise ApiError(503, "bank_unavailable", f"The Sandbox Bank did not answer: {exc}") from exc
+    if answer.status_code >= 400:
+        raise ApiError(502, "bank_error", f"The Sandbox Bank answered {answer.status_code}: {answer.text[:200]}")
+    return {"status": "booked", "client": client, "amount": f"{spec['amount']} {spec['currency']}",
+            "account": spec["account"], "bank_line": answer.json(),
+            "next": "The bank connector picks it up within about 15 seconds; then income, balance and forecast update."}
+
+
+@router.api_route("/demo/payment", methods=["GET", "POST"], include_in_schema=False)
+def demo_payment(company_id: str = Query("co_borsuk"), client: str = Query("nordwind"),
+                 c: psycopg.Connection = Depends(conn)):
+    if not enabled():
+        raise ApiError(404, "not_found", "The demo trigger is off")
+    if client not in PAYMENTS:
+        raise ApiError(422, "invalid_request", f"client must be one of {', '.join(PAYMENTS)}")
+    return book_payment(c, company_id, client)
+
+
+@router.api_route("/demo/all", methods=["GET", "POST"], include_in_schema=False)
+def demo_all(company_id: str = Query("co_borsuk"), receipt: str = Query("taxi"), client: str = Query("nordwind"),
+             c: psycopg.Connection = Depends(conn)):
+    if not enabled():
+        raise ApiError(404, "not_found", "The demo trigger is off")
+    if receipt not in RECEIPTS or client not in PAYMENTS:
+        raise ApiError(422, "invalid_request", "unknown receipt or client")
+    return {"receipt": send_receipt(c, company_id, receipt), "payment": book_payment(c, company_id, client)}
