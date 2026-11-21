@@ -188,8 +188,8 @@ paths:
   /inbox:
     get:
       tags: [recommendations]
-      summary: The owner's approval queue - everything that waits for a decision, most urgent first
-      description: Convenience view = recommendations with status new/seen and control_level approval_required, plus counts for the dashboard badge.
+      summary: The owner's to-do - what waits for a decision, then single pieces of advice, most urgent first
+      description: Convenience view = recommendations with status new/seen and control_level approval_required (first) or recommendation, except the bulk advice kinds mark_private and missing_document; plus counts for the dashboard badge.
       parameters: [{$ref: '#/components/parameters/company'}]
       responses:
         '200':
