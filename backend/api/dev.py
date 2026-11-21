@@ -1,8 +1,4 @@
-"""One command for a local API with demo data: `uv sync --group localdb && uv run python -m backend.api.dev`.
-
-Uses ORDO_DATABASE_URL if set, otherwise starts a private Postgres in .venv/pgdata-dev (pgserver, no Docker),
-then migrates, seeds, loads contracts/fixtures and serves on http://localhost:8080/api/v1.
-"""
+"""Local API with demo data, no Docker: `uv sync --group localdb && uv run python -m backend.api.dev`."""
 import os
 import sys
 from pathlib import Path

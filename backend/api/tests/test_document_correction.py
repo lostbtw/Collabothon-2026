@@ -1,4 +1,4 @@
-"""Seam: HTTP API. A corrected Document goes back to the matcher (R3·3.6 #42)."""
+"""Seam: HTTP API. A corrected Document goes back to the matcher."""
 from backend.db.events import events_after
 from backend.db.fixtures import load_fixtures
 

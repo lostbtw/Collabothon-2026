@@ -1,8 +1,4 @@
-"""Stand-ins for computations owned by other roles, until their real code lands (CLAUDE.md "Integrates with").
-
-Each function says whose code replaces it. Numbers here come from the contract fixtures or GLOSSARY.md, never
-from a model.
-"""
+"""Stand-ins for other roles' computations; numbers from fixtures or GLOSSARY.md, never a model."""
 from datetime import date, timedelta
 from decimal import Decimal
 

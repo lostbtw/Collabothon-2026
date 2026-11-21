@@ -1,9 +1,4 @@
-"""Receivables: a reminder for every client invoice that is later than the owner's alert setting.
-
-The card is `approval_required` with a `send_email_draft` action: nothing leaves Ordo, and only after the owner
-approves is the draft recorded (simulated, backend/executor). One open reminder per invoice. Numbers and dates come
-from backend/api/owner.clients (sums of bank lines and documents); the wording is a template, no model.
-"""
+"""One reminder card per late client invoice; the e-mail is only a simulated draft after approval."""
 from datetime import UTC, datetime
 from typing import Any
 

@@ -1,9 +1,4 @@
-"""The Store: how every role writes and reads contract entities.
-
-An entity is a dict shaped exactly like contracts/schemas/<entity>.schema.json. It is stored whole and read back
-unchanged. Writes that repeat an idempotency key from contracts/events.md (same raw item, same bank line, same
-first raw item of a document, same open match, same open recommendation, same forecast inputs) are no-ops,
-so event handlers can run twice safely.
+"""Read and write contract entities whole; a repeated idempotency key is a no-op.
 
     store = Store(conn)
     store.add("raw_item", item)        # True if stored, False if it (or its idempotency key) already exists

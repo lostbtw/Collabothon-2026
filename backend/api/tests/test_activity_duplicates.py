@@ -1,4 +1,4 @@
-"""Seam: HTTP API. Duplicates the pipeline merged on its own appear in "What I did on my own" (R3·3.2 #40)."""
+"""Seam: HTTP API. Duplicates the pipeline merged on its own appear in "What I did on my own"."""
 from backend.db.events import new_event, publish
 from backend.db.fixtures import load_fixtures, read
 from backend.db.store import Store

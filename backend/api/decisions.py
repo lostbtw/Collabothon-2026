@@ -51,11 +51,7 @@ def record_approval(c: psycopg.Connection, *, company: str, subject_type: str, s
 
 def decide_match(c: psycopg.Connection, match_id: str, decision: str, *, channel: str = "dashboard",
                  comment: str | None = None, changes: dict | None = None, approval: dict | None = None) -> dict[str, Any]:
-    """Confirm or reject a Match; emits `match.decided` so role 4 books (or does not book) its ledger entries.
-
-    `approval` is given when the Match is decided by a Decision on its Recommendation (one tap, D-20): that one
-    Approval covers both, so no second Approval exists for the purchase.
-    """
+    """Confirm or reject a Match and emit `match.decided`. `approval`: the card's one Approval covers both."""
     s = Store(c)
     match = s.get("match", match_id)
     if match is None:
@@ -76,8 +72,7 @@ def decide_match(c: psycopg.Connection, match_id: str, decision: str, *, channel
 
 
 def _close_open_recommendations_of(c: psycopg.Connection, match: dict[str, Any], approval: dict[str, Any], status: str) -> None:
-    """A Match decided directly also closes the open ingestion Recommendations about it, so the purchase cannot
-    be approved a second time from the inbox."""
+    """Close the open ingestion cards of a directly decided Match, so it cannot be approved twice."""
     s = Store(c)
     company = s.company_of("match", match["id"])
     for rec in s.list("recommendation", company_id=company, agent="ingestion", status=["new", "seen"]):

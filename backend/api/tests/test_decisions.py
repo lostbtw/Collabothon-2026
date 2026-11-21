@@ -1,4 +1,4 @@
-"""Seam: HTTP API. The Recommendation/Approval state machine with simulated execution (5.4)."""
+"""Seam: HTTP API. The Recommendation/Approval state machine with simulated execution."""
 import pytest
 
 from backend.api.recommendations import InvalidRecommendation, save_recommendation
@@ -46,7 +46,7 @@ def test_approving_the_credit_line_with_a_lower_limit_executes_in_simulation_wit
 
 
 def test_the_approved_action_reaches_the_sandbox_bank(demo, sandbox_bank):
-    """#36: the decision endpoint runs role 2's executor; the bank holds the application with the owner's limit."""
+    """The decision endpoint runs role 2's executor; the bank holds the application with the owner's limit."""
     approval = demo.post("/api/v1/recommendations/rec_cl01/decision", json={
         "decision": "approved_with_changes",
         "changes": {"proposed_action.params.limit": {"amount": "25000.00", "currency": "PLN"}},
@@ -155,7 +155,6 @@ def test_an_auto_confirmed_match_can_be_undone_from_its_activity_item(demo, db):
     assert item["subject"] not in [i["subject"] for i in remaining]
 
 
-# --- review fixes -------------------------------------------------------------------------------------------------
 
 def test_approving_a_card_about_a_document_decides_no_match_unless_it_is_an_ingestion_card(demo, db):
     """rec_fx01 (FX hedge) is about invoice doc_fvlake01; a pending Match on that invoice is not its decision."""

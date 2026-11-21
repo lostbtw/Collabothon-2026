@@ -1,6 +1,4 @@
-"""Pydantic models of the contract entities, generated from contracts/schemas into backend/db/models/.
-
-Regenerate after a schema change (same commit as the schema):
+"""Pydantic models generated from contracts/schemas. Regenerate with the schema change:
 
     uv run datamodel-codegen --input contracts/schemas --input-file-type jsonschema --output backend/db/models \
         --output-model-type pydantic_v2.BaseModel --target-python-version 3.12 --use-annotated \

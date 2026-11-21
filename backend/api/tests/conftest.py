@@ -17,8 +17,7 @@ BANK_TOKEN = "test-bank-token"
 
 @pytest.fixture(autouse=True)
 def sandbox_bank(monkeypatch):
-    """Approved actions run against a Sandbox Bank (role 2's executor, #36): an in-process one, never a server
-    that happens to listen on the default port. Yields the bank's TestClient (e.g. GET /admin/executions)."""
+    """In-process Sandbox Bank for approved actions; yields its TestClient."""
     import backend.executor.simulated as executor
 
     with TestClient(create_bank(BankStore(), token=BANK_TOKEN)) as bank:

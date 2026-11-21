@@ -1,4 +1,4 @@
-"""Seam: the liquidity agent on forecast.updated, with a fake model client at the LLM boundary (5.6)."""
+"""Seam: the liquidity agent on forecast.updated, with a fake model client at the LLM boundary."""
 import copy
 import json
 from types import SimpleNamespace
@@ -35,7 +35,6 @@ def cards(s):
     return [r for r in s.list("recommendation", company_id="co_borsuk") if r["agent"] == "liquidity"]
 
 
-# --- a fake OpenAI-compatible client: scripted turns ------------------------------------------------------------
 
 def tool_call(name, arguments, id="call_1"):
     return SimpleNamespace(id=id, type="function", function=SimpleNamespace(name=name, arguments=json.dumps(arguments)))
@@ -62,7 +61,6 @@ def final(title, summary, why):
     return turn(content=json.dumps({"title": title, "summary": summary, "why": why}))
 
 
-# --- tests --------------------------------------------------------------------------------------------------------
 
 def test_borsuk_alert_without_a_model_gives_the_template_credit_line_card(db, world):
     on_forecast_updated(db, updated("fc_20261121a"), model=None)
@@ -91,8 +89,7 @@ def test_borsuk_alert_without_a_model_gives_the_template_credit_line_card(db, wo
 
 
 def test_a_gap_still_open_when_the_forecast_ends_gives_a_card_up_to_the_forecasts_last_day(db, world):
-    # forecast.schema.json allows date_to null: the balance has not recovered by the end of the forecast. The
-    # pizzeria's forecast is like that (below_buffer from 1 Jun, no end), and the agent crashed on it.
+    # Regression: an open-ended gap (date_to null) crashed the agent.
     open_ended = forecast_fixture()
     open_ended["id"] = "fc_open_gap"
     open_ended["inputs_hash"] += "-open-gap"  # forecasts are unique by inputs_hash

@@ -1,15 +1,7 @@
-"""Ingestion and tax Recommendations (5.10). Role 3 writes Matches; this turns each one that needs the owner into an
-inbox card, with template text built from the Match's and Document's numbers (no model, no wait).
-
-Which card (role 3's who-paid table, spec #3):
-  match not `suggested` (auto-confirmed, decided)       -> none; auto-confirmed ones are listed in /activity
-  employee paid privately, reimbursement owed            -> reimburse_employee      approval_required, simulated payment draft
-  rule PL-PRIV-01 or document flagged possible_private   -> mark_private            recommendation (hint)
-  score < 0.55                                           -> missing_document        recommendation (question)
-  company paid, VAT not deductible, score >= 0.90        -> request_company_invoice recommendation (hint)
-  anything else                                          -> confirm_match           approval_required, booked on decision
-Plus, on forecast.updated, each upcoming tax payment     -> tax_reserve             approval_required, simulated tax pocket
-"""
+"""Inbox cards from Matches and taxes, template text only. Card per Match:
+  not suggested -> none | reimbursement owed -> reimburse_employee | PL-PRIV-01 / possible_private -> mark_private
+  score < 0.55 -> missing_document | VAT lost, score >= 0.90 -> request_company_invoice | else -> confirm_match
+  Each upcoming tax payment -> tax_reserve."""
 import calendar
 from datetime import date, timedelta
 from decimal import Decimal

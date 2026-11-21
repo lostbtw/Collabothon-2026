@@ -1,6 +1,4 @@
-"""Seam: FX Shield on forecast.updated (#47): role 4's engine on Borsuk Labs in the test database, and a scripted
-OpenAI-compatible model (as in test_liquidity_agent.py) that judges each invoice. The model's answers here are
-examples; what is pinned is what the agent does with an answer, not which answer is right."""
+"""FX Shield with a scripted model: pins what the agent does with an answer, not which answer is right."""
 import json
 from types import SimpleNamespace
 

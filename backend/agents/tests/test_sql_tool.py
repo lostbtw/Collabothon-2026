@@ -1,4 +1,4 @@
-"""Seams: the SQL guard (pure) and run_readonly_sql on a real Postgres (5.7b)."""
+"""Seams: the SQL guard (pure) and run_readonly_sql on a real Postgres."""
 import pytest
 
 from backend.agents.sql import UnsafeQuery, guard, run_readonly_sql

@@ -1,9 +1,4 @@
-"""Owner forecast events: stored for role 4's engine, then the forecast is recomputed.
-
-Used by POST /forecast/events and by the chat's add_forecast_event tool. Until role 4's engine exists the
-"recomputed" forecast is the latest one re-issued with the event listed (numbers unchanged); a company without
-any forecast yet gets the event stored and no forecast.
-"""
+"""Owner forecast events (POST /forecast/events, chat tool): store, then recompute the forecast."""
 from typing import Any
 
 import psycopg

@@ -1,12 +1,4 @@
-"""The chat (5.7): questions answered from read-only tools, always with evidence.
-
-With the model: it chooses among CHAT_TOOLS (at most 6 calls) and writes the answer; the answer is rejected if it
-contains a number absent from the tool results, and the deterministic answer below is used instead.
-Without the model (stand-in until #8), a small intent router calls the same tools.
-
-Chat never moves money: CHAT_TOOLS has no execution or decision tool, and a request to move money becomes an
-inbox card (request_action) that the owner decides like any other.
-"""
+"""The chat: read-only tools, number-checked answers. It never moves money: such requests become inbox cards."""
 import calendar
 import re
 import uuid
@@ -52,7 +44,6 @@ MONTHS |= {"czerwca": 6, "czerwiec": 6, "lipca": 7, "juni": 6, "juli": 7, "dezem
 MONEY_WORDS = re.compile(r"\b(transfer|pay|send|wire|approve|execute|book|przelew|zapłać|überweis\w*|zahle)\b", re.I)
 
 
-# --- tools ----------------------------------------------------------------------------------------------------------
 
 def get_cash_position(conn: psycopg.Connection, company: str) -> dict[str, Any]:
     base = conn.execute("select base_currency from companies where id = %s", (company,)).fetchone()[0]
@@ -214,7 +205,6 @@ def remember(conn: psycopg.Connection, session_id: str, company: str, question: 
     conn.commit()
 
 
-# --- answers ----------------------------------------------------------------------------------------------------------
 
 def _now() -> str:
     from backend.api.deps import now_iso
@@ -227,8 +217,7 @@ def _as_of(conn: psycopg.Connection, company: str) -> date:
 
 
 def _closed_period(message: str, as_of: date) -> tuple[str, str] | None:
-    """"1-30 June" -> that range; "all of June", "the whole of June", "in June" -> the whole month. The next such
-    month on or after the as-of date."""
+    """"1-30 June" -> that range; "in June" -> the whole month, the next one from the as-of date."""
     m = re.search(r"(\d{1,2})\s*[-–—]\s*(\d{1,2})\.?\s+([A-Za-zÀ-ž]+)", message)
     if m and m.group(3).lower() in MONTHS:
         month, first, last = MONTHS[m.group(3).lower()], int(m.group(1)), int(m.group(2))
@@ -402,7 +391,7 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
             tracing.outputs(step, {"outcome": outcome, "answer": text, "tool_calls": trace,
                                    "created_recommendation_id": created})
     if text is None and created:
-        # The model already put the request in the inbox but its answer was unusable: say so, do not make a second card.
+        # The model already made the card; do not make a second one.
         card = Store(conn).get("recommendation", created) or {}
         text = (f"I cannot move money from the chat. I put this in your inbox: \"{card.get('title', 'your request')}\". "
                 "It runs only after you approve it, in simulation.")

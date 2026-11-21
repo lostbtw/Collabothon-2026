@@ -1,9 +1,4 @@
-"""The way OGX reaches the model: a pass-through to the cluster's vLLM endpoint that changes one thing.
-
-OGX hands a tool's result back to the model as a list of text parts; the gpt-oss chat handler of our vLLM accepts
-only plain text there and answers 400. So a message whose content is only text parts becomes one string. Everything
-else (path, body, token, streaming) goes through untouched. Served by the ordo-mcp process at /model/v1/...
-"""
+"""OGX -> vLLM pass-through: joins text-part content into one string (gpt-oss answers 400 otherwise)."""
 import json
 import logging
 from typing import Any

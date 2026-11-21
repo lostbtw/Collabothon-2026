@@ -1,8 +1,4 @@
-"""Write and read events in the outbox (contracts/events.md). The envelope is contracts/schemas/event.schema.json.
-
-`publish` is how role 5's code emits events. Role 2's queue (backend/queue/) owns claiming deliveries for workers;
-`events_after` is the read used by the browser stream (SSE).
-"""
+"""Outbox writes (`publish`) and reads for SSE (`events_after`); workers claim via backend/queue."""
 import uuid
 from datetime import UTC, datetime
 from typing import Any

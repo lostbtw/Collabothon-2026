@@ -1,12 +1,4 @@
-"""OGX orchestrates the agents: it runs the model's tool loop and calls Ordo's tools over MCP.
-
-When ORDO_OGX_URL and ORDO_MCP_URL are set (the cluster), every agent's loop (chat, liquidity, FX Shield) goes
-    agent -> OGX Responses API -> model on vLLM -> OGX calls the tool on the Ordo MCP server -> ... -> answer
-instead of the in-process loop of `llm.run_tool_loop`. Same model, same tools, same rules for the answer: the caller
-still validates the JSON and rejects a number that no tool returned.
-
-OGX is the cluster's own server (OpenShift AI), never a hosted API (hard rule 1).
-"""
+"""With ORDO_OGX_URL/ORDO_MCP_URL set, OGX (on the cluster) runs the agents' tool loop over MCP instead of llm.py."""
 import functools
 import json
 import logging
@@ -74,8 +66,7 @@ AGAIN = ('Your answer was empty or not the required JSON. Answer now from the to
 
 def request(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
             max_calls: int, client: Any, after: Any = None) -> Any:
-    """One Responses call: OGX runs the whole loop and calls only `tool_names` on the Ordo MCP server.
-    `after` is the response to continue from (OGX keeps it), with one corrective message instead of the turns."""
+    """One Responses call limited to `tool_names`; `after` continues a previous response."""
     system = " ".join(m["content"] for m in messages if m["role"] == "system")
     turns = [{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in ("user", "assistant")]
     return client.responses.create(
@@ -115,8 +106,7 @@ def _problems(answer: Any, final_schema: dict[str, Any]) -> list[str]:
 def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], final_schema: dict[str, Any], *,
         max_calls: int, trace: list[dict[str, Any]] | None = None,
         client: Any = None) -> tuple[dict[str, Any] | None, list[Any]] | None:
-    """(final JSON or None, every tool result), like `llm.run_tool_loop`.
-    None when OGX could not be asked at all: the caller then runs its own loop."""
+    """Like `llm.run_tool_loop`; None if OGX is unreachable."""
     client = client or default_client()
     try:
         response = request(company, messages, tool_names, final_schema, max_calls=max_calls, client=client)
@@ -155,8 +145,7 @@ def run(company: str, messages: list[dict[str, Any]], tool_names: list[str], fin
 
 
 def main(argv: list[str] | None = None) -> int:
-    """`python -m backend.agents.ogx "question" [company]`: one real chat question through OGX, to check the cluster.
-    Prints the model OGX used, each tool it called over MCP and the answer. Exit 1 unless a tool was called."""
+    """Cluster check: `python -m backend.agents.ogx "question" [company]`; exit 1 unless a tool was called."""
     import sys
 
     from backend.agents.chat import CHAT_TOOLS, FINAL_SCHEMA, SYSTEM

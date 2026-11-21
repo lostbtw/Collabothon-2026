@@ -47,13 +47,7 @@ GROUP_KEYS = {
 @router.get("/ledger/summary")
 def ledger_summary(company: str = Depends(company_id), group_by: str = "category", from_: str | None = Query(None, alias="from"),
                    to: str | None = None, basis: str = "ledger", s: Store = Depends(store), c: psycopg.Connection = Depends(conn)):
-    """Rows: plain sums over non-void entries in from/to (no LLM).
-
-    `basis=bank` sums the bank lines per category instead (group_by category only): what left and came in, before
-    the matches are checked and booked. The owner's screens use it for months the books do not cover yet.
-
-    Kpis: role 4's engine.ledger_kpis() (approved entries, the as-of year, not limited by from/to), or the stand-in
-    below while the engine is not importable."""
+    """Sums of non-void entries in from/to; `basis=bank` sums bank lines per category instead."""
     base = base_currency(c, company)
     entries = [e for e in _entries(s, company, from_, to) if e["status"] != "void"]
     if basis == "bank":

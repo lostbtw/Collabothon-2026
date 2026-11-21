@@ -68,7 +68,7 @@ def _merge_events(c: psycopg.Connection, company: str) -> dict[str, tuple[str, d
 
 
 def duplicate_items(s: Store, c: psycopg.Connection, company: str) -> list[dict[str, Any]]:
-    """Duplicates the pipeline merged on its own (#40): one golden record kept, the other copy marked duplicate."""
+    """Duplicates the pipeline merged on its own: one golden record kept, the other copy marked duplicate."""
     events = _merge_events(c, company)
     items = []
     for doc in s.list("document", company_id=company, status="duplicate"):
@@ -94,9 +94,7 @@ def duplicate_items(s: Store, c: psycopg.Connection, company: str) -> list[dict[
 @router.get("/activity")
 def activity(company: str = Depends(company_id), since: str | None = None, s: Store = Depends(store),
              c: psycopg.Connection = Depends(conn)):
-    """What the agents did alone (control level analysed_autonomously). Undo of an auto-confirmed match is a
-    reject through /matches/{id}/decision, so each item names its subject. Merged duplicates come from role 3's
-    pipeline (`document.duplicate_detected`)."""
+    """What the agents did alone; undo = reject via /matches/{id}/decision."""
     items = duplicate_items(s, c, company)
     for m in s.list("match", company_id=company, status="auto_confirmed"):
         reason = "; ".join(r["detail"] for r in m.get("reasons", [])[:2])

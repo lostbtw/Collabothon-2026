@@ -1,8 +1,4 @@
-"""Forecast endpoints. The numbers are role 4's (finance engine); this module only serves and routes them.
-
-Until role 4's engine is importable as `backend.finance.engine`, recompute/events/scenario are stand-ins: they
-copy the latest stored forecast and record the owner's event or the scenario request without recomputing.
-"""
+"""Forecast endpoints; the numbers come from role 4's finance engine."""
 from typing import Any
 
 import psycopg

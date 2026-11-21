@@ -1,18 +1,5 @@
-"""FX Shield, the second agent (#47). On `forecast.updated` it looks at every open foreign-currency invoice with the
-facts of role 4's engine (backend/finance/fx.py) and lets the model served on the cluster judge, for this company:
-
-    ignore   the exposure is too small to matter: no card for the owner (a closed record keeps the judgement)
-    inform   worth knowing, not worth a hedge: info card "No need to hedge ..." (or "already covered")
-    hedge    critical: fx_hedge card, approval required, a SIMULATED forward with the Sandbox Bank
-
-and which reference amount of the company the loss is compared with (the weakest month's money in, a typical month,
-the safety buffer, the cash held...). There is no profit per deal and no fixed threshold: the model makes that
-judgement from the company's own figures. Every number on a card comes from the engine; the model's reason is
-rejected if it contains a number that is not in the facts. Without a model, or without a valid answer, FX Shield
-decides nothing for that invoice and asks again on the next forecast update. A card is replaced only when the
-engine's numbers for its invoice change; a hedge the owner approved stands; the same numbers are never asked twice.
-Prices are illustrative, not an offer.
-"""
+"""FX Shield: per foreign-currency invoice the model judges ignore / inform / hedge against the company's own
+figures (no fixed threshold). Numbers come from the engine; the same numbers are never judged twice."""
 import hashlib
 import json
 import re
@@ -217,8 +204,7 @@ def natural_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
 
 
 def ignored_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
-    """The record of an "ignore" judgement: closed at once (status expired), never in the inbox, so the same numbers
-    are not judged again and the decision can be audited."""
+    """An "ignore" judgement, closed at once: kept for audit, never in the inbox."""
     return _base(
         company, a, at, type="info", title=f"Not worth your attention: {a['label']}", status="expired",
         summary=f"FX Shield looked at {m(a['amount'])} expected on {short_date(a['expected_cash_date'])}. "
@@ -228,7 +214,6 @@ def ignored_card(company: str, a: dict[str, Any], at: str) -> dict[str, Any]:
         evidence=[_document(a), METHOD], proposed_action=None, impact=None)
 
 
-# --- the model's judgement ---------------------------------------------------------------------------------------
 
 FINAL_SCHEMA = {"type": "object", "required": ["action", "reference", "reason"], "additionalProperties": False,
                 "properties": {"action": {"type": "string", "enum": ["hedge", "inform", "ignore"]},
@@ -277,8 +262,7 @@ TOOLS = {"get_fx_case": (_schema("get_fx_case", "FX Shield's facts for one open 
 
 def judge(model: Any, conn: psycopg.Connection, company: str, a: dict[str, Any],
           others: list[dict[str, Any]]) -> dict[str, str] | None:
-    """The model's judgement of one invoice; None when it fails, breaks the rules above, or quotes a number it was
-    not given."""
+    """The model's judgement of one invoice, or None if invalid."""
     facts = case_facts(a)
     context = [{k: o.get(k) for k in ("document_id", "label", "status", "value_today_base", "expected_shortfall")}
                for o in others if o["document_id"] != a["document_id"]]
@@ -317,14 +301,14 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
             continue  # the owner approved a hedge for this invoice: that decision stands
         cid = card_id(a)
         if any(r["id"] == cid for r in mine):
-            continue  # same numbers: judged already (card, rejected card or ignore record); not asked again
+            continue  # judged already
         if model is _DEFAULT:
             model = default_client()
         if model is None:
             return created  # no model: FX Shield does not judge
         answer = judge(model, conn, company, a, assessments)
         if answer is None:
-            continue  # no valid judgement this time: asked again on the next forecast update
+            continue  # retried on the next update
         chosen = next((r for r in a["loss_vs_references"] if r["id"] == answer["reference"]), None)
         card_input = {**a, "card_id": cid, "decided_because": answer["reason"], "chosen": chosen}
         for old in (r for r in mine if r["status"] in OPEN):

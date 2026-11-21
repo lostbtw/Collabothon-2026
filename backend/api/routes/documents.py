@@ -60,7 +60,7 @@ def correct_document(id: str, patch: dict[str, Any] = Body(...), c: psycopg.Conn
     if category:  # the owner changed the type: remember it for this seller (owner.learn_rule)
         party = updated["buyer"] if updated.get("direction") == "sale" else updated["seller"]
         owner.learn_rule(c, document["company_id"], party.get("name"), party.get("counterparty_id"), category)
-    # The corrected document goes through the matcher again (dedup, match, who paid), as after extraction.
+    # Re-run the matcher on the corrected document.
     publish(c, new_event("document.extracted", document["company_id"],
                          {"document_id": id, "status": updated["status"], "gross": updated["totals"]["gross"],
                           "seller": updated["seller"]["name"], "flags": updated.get("flags", [])},

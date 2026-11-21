@@ -71,6 +71,8 @@ Execution mode: `none`, `simulated` (every action in this build, against the San
 7. Before reopening a design decision, read `DECISIONS.md`.
 8. Commits and pull requests carry the human author only. No AI attribution of any kind: no `Co-Authored-By` trailer for an assistant, no "Generated with" line, no assistant or tool name in commit messages, branch names or PR text. `.claude/settings.json` switches the automatic attribution off; do not add it by hand either.
 
+**Comments.** Comment only what matters at the level of the whole application: a module's role in the system, a business rule, a non-obvious why. One short line each; a docstring is one line. Let names and code carry the rest: functions, steps and section dividers go uncommented. Decision ids (`D-xx`), tickets (`#n`) and spec items belong in commit messages and pull requests.
+
 ## 4. Contracts
 
 `contracts/` is the agreement between roles; `contracts/fixtures/` are the stand-ins everyone builds against. A contract change is one commit that changes the schema **and** its fixture, with `python3 contracts/validate_fixtures.py` printing `0 invalid`. Announce it with a comment on the consuming role's spec issue. After the feature freeze: only new optional fields. Role 5 arbitrates conflicts.

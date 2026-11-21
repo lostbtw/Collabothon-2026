@@ -1,6 +1,4 @@
-"""`uv run python -m backend.db migrate|seed|setup|fixtures` against ORDO_DATABASE_URL.
-
-setup = migrate + seed; fixtures = setup + load contracts/fixtures as demo data (the skeleton's mock)."""
+"""`python -m backend.db migrate|seed|setup|fixtures`; setup = migrate + seed, fixtures = setup + demo data."""
 import sys
 
 import psycopg

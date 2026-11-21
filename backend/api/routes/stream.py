@@ -1,8 +1,4 @@
-"""GET /events/stream: Server-Sent Events, each message's data an Event envelope.
-
-On connect it replays contracts/fixtures/event.json (so live toasts work before the pipeline exists; switch off
-with ORDO_SSE_REPLAY_FIXTURES=0), then relays every new outbox event of the company as it is written.
-"""
+"""SSE of outbox events; replays fixtures/event.json first unless ORDO_SSE_REPLAY_FIXTURES=0."""
 import json
 import time
 from collections.abc import Iterator

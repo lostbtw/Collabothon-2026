@@ -1,8 +1,4 @@
-"""The number check (hard rule 4): generated text may contain only numbers that appear in the tool results.
-
-Numbers are compared as absolute decimal values, so formatting variants match: 30,000 = 30000.00 = 30 000,
--7,870 = 7870. Dates count by their parts (2026-11-30 allows 30, 11 and 2026).
-"""
+"""Hard rule 4: generated text may only contain numbers from the tool results (format- and sign-insensitive)."""
 import json
 import re
 from decimal import Decimal, InvalidOperation

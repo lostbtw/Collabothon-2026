@@ -1,12 +1,5 @@
-"""run_readonly_sql: the chat's free SQL tool (5.7b, first to cut).
-
-Layers, each enough on its own to stop a write:
-1. guard(): one statement, SELECT or WITH only, no write keyword, LIMIT at most 200 (added when missing);
-2. the transaction is READ ONLY with statement_timeout = 3s;
-3. it runs as role ordo_readonly, which can SELECT the 6 v_* views and nothing else;
-4. the views show only the asking company's rows (ordo.company_id, which guard() stops a query from changing
-   through set_config).
-"""
+"""The chat's free SQL tool. Four independent guards: guard() (one SELECT, LIMIT <= 200), READ ONLY tx with
+3 s timeout, role ordo_readonly (v_* views only), views filtered to the asking company."""
 import re
 from decimal import Decimal
 from typing import Any
@@ -55,8 +48,7 @@ def _plain(value: Any) -> Any:
 
 
 def run_readonly_sql(conn: psycopg.Connection, company: str, sql: str) -> dict[str, Any]:
-    """{"columns", "rows", "sql"} or {"error", "sql"}. Views: v_ledger, v_transactions, v_documents, v_accounts,
-    v_recommendations, v_forecast_components."""
+    """{"columns", "rows", "sql"} or {"error", "sql"}."""
     try:
         query = guard(sql)
     except UnsafeQuery as exc:

@@ -1,12 +1,4 @@
-"""The agents' tools as an MCP server: what OGX calls when it orchestrates the chat, the liquidity agent and FX Shield
-(backend/agents/ogx.py), and what any other MCP client can use.
-
-Run: `uv run python -m backend mcp [--http PORT]` (stdio by default) against ORDO_DATABASE_URL.
-On the cluster it is the Service `ordo-mcp` (Streamable HTTP at /mcp, health at /healthz, and OGX's way to the
-model at /model/v1, see model_passthrough.py).
-Every tool takes `company_id` first; the other arguments are those of the agent's tool. Same functions, same rules:
-read-only, plus add_forecast_event (the owner's own statement) and request_action (an inbox card, never a payment).
-"""
+"""The agents' tools over MCP for OGX: `python -m backend mcp [--http PORT]`. Read-only, plus two owner-safe writes."""
 import argparse
 import inspect
 import logging

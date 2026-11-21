@@ -1,10 +1,4 @@
-"""What the owner's screens need beyond the contract entities: settings, people, learned rules, costs per person,
-clients, subscriptions, chat history and the balance over time.
-
-Plain arithmetic on the company's own data (bank lines, documents, matches, counterparties): no model, money as
-Decimal and decimal strings (hard rules 4 and 6). Read by backend/api/routes/owner.py; the receivables agent
-(backend/agents/receivables.py) reuses `clients`.
-"""
+"""Figures for the owner's screens: plain Decimal arithmetic on the company's own data, no model."""
 from __future__ import annotations
 
 import re
@@ -62,7 +56,6 @@ def _in(t: dict) -> Decimal:
     return v if v > 0 else Decimal(0)
 
 
-# ---- Settings -------------------------------------------------------------------------------------------------
 
 def settings(conn: psycopg.Connection, company_id: str) -> dict[str, Any]:
     c = _company(conn, company_id)
@@ -119,7 +112,6 @@ def patch_settings(conn: psycopg.Connection, company_id: str, body: dict[str, An
     return settings(conn, company_id)
 
 
-# ---- People ---------------------------------------------------------------------------------------------------
 
 PERSON_COLUMNS = "id, name, email, role, pay_type, card_last4, statement_names, tax_id, iban"
 
@@ -157,8 +149,7 @@ def add_person(conn: psycopg.Connection, company_id: str, body: dict[str, Any]) 
 
 
 def update_person(conn: psycopg.Connection, company_id: str, person_id: str, body: dict[str, Any]) -> dict[str, Any]:
-    """Change a listed person: name, e-mail, role, cards, names on statements. Raises LookupError for an unknown id and
-    ValueError for a bad value or an e-mail someone else already has. The e-mail is what tells who forwarded a receipt."""
+    """Edit a person. LookupError: unknown id; ValueError: bad value or e-mail taken."""
     row = conn.execute(f"select {PERSON_COLUMNS} from people where id = %s and company_id = %s", (person_id, company_id)).fetchone()
     if row is None:
         raise LookupError(person_id)
@@ -195,7 +186,6 @@ def person_of(t: dict, team: list[dict], counterparties: dict[str, dict]) -> dic
     return None
 
 
-# ---- Learned rules --------------------------------------------------------------------------------------------
 
 def rules(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
@@ -207,8 +197,7 @@ def rules(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
 
 
 def learn_rule(conn: psycopg.Connection, company_id: str, raw: str | None, counterparty_id: str | None, category: str) -> None:
-    """The owner changed a type: remember it for this spelling and make it the counterparty's default category,
-    which the pipeline uses first for the next line (categorise(): "history")."""
+    """Remember the owner's type for this spelling; the pipeline's categorise() uses it first."""
     raw = (raw or "").strip()
     if not raw or category not in CATEGORIES:
         return
@@ -252,7 +241,6 @@ def set_transaction_category(conn: psycopg.Connection, company_id: str, transact
     return t
 
 
-# ---- Costs per person -----------------------------------------------------------------------------------------
 
 def people_costs(conn: psycopg.Connection, company_id: str, month: str) -> dict[str, Any]:
     s = Store(conn)
@@ -303,7 +291,6 @@ def people_costs(conn: psycopg.Connection, company_id: str, month: str) -> dict[
                                        "share_of_costs": round(float(staff / costs), 2) if costs else 0.0}}
 
 
-# ---- Clients --------------------------------------------------------------------------------------------------
 
 def clients(conn: psycopg.Connection, company_id: str, month: str, *, persist_delays: bool = True) -> dict[str, Any]:
     s = Store(conn)
@@ -311,15 +298,13 @@ def clients(conn: psycopg.Connection, company_id: str, month: str, *, persist_de
     base, as_of = company["base_currency"], company["as_of_date"]
     start, end = month_range(month)
     counterparties = {c["id"]: c for c in s.list("counterparty", company_id=company_id)}
-    # One client can be several counterparties ("Piekarnia Złoty Kłos sp. z o.o." on the invoice, "PIEKARNIA ZLOTY
-    # KLOS SP Z O O" on the bank line): clients are grouped by the folded name. The company itself is no client.
+    # One client may be several counterparties (invoice vs bank spelling): grouped by folded name.
     own = _plain(company["name"])
     ids_by_key: dict[str, list[str]] = defaultdict(list)
     for c in sorted(counterparties.values(), key=lambda c: (c.get("kind") != "customer", c["id"])):
         ids_by_key[_plain(c["name"])].append(c["id"])
     documents = [d for d in s.list("document", company_id=company_id, direction="sale") if d.get("status") not in ("duplicate", "rejected")]
-    # An invoice with a bank line matched to it is paid: the money is on the account, even while the owner has not
-    # checked the match yet (status "suggested"). Only a rejected match leaves it open.
+    # Matched (even only suggested) = paid; only a rejected match leaves it open.
     settled = {m["document_id"]: m for m in s.list("match", company_id=company_id)
                if m.get("status") in SETTLED | {"suggested"} and m.get("transaction_id")}
     lines = s.list("transaction", company_id=company_id)
@@ -385,7 +370,6 @@ def clients(conn: psycopg.Connection, company_id: str, month: str, *, persist_de
     return {"items": items, "totals": {"paid_in_month": money(income, base), "open_base": money(open_total, base), "late_base": money(late, base)}}
 
 
-# ---- Subscriptions --------------------------------------------------------------------------------------------
 
 def _payer(t: dict, accounts: dict[str, dict]) -> dict[str, str]:
     acc = accounts.get(t.get("account_id") or "") or {}
@@ -407,13 +391,7 @@ def _months_back(month: str, n: int) -> list[str]:
 
 
 def subscriptions(conn: psycopg.Connection, company_id: str, month: str | None = None, scope: str = "subscriptions") -> dict[str, Any]:
-    """What the company pays every month, seen from `month` (default: the as-of month).
-
-    scope "subscriptions": tools and services (subscription categories); scope "all": every payment that repeats,
-    rent, salaries, contractors and taxes included. A payment repeats when it went to the same name in at least two
-    of the three months up to `month` (or belongs to a recurring series). Receipts people paid with their own cards
-    count too. `monthly` is what was paid in `month`, or the last month's amount when it is not paid yet
-    (`paid_in_month` false)."""
+    """Monthly payments as of `month`: repeats in 2 of the last 3 months, or a recurring series."""
     s = Store(conn)
     company = _company(conn, company_id)
     base = company["base_currency"]
@@ -499,7 +477,6 @@ def subscriptions(conn: psycopg.Connection, company_id: str, month: str | None =
     return {"items": items, "monthly_total": money(total, base)}
 
 
-# ---- Chat history ---------------------------------------------------------------------------------------------
 
 def chat_sessions(conn: psycopg.Connection, company_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
@@ -522,11 +499,9 @@ def chat_session(conn: psycopg.Connection, company_id: str, session_id: str) -> 
     return {"session_id": session_id, "messages": [{"role": r, "content": c, "at": a.strftime("%Y-%m-%dT%H:%M:%SZ")} for r, c, a in rows]}
 
 
-# ---- Balance over time and a summary from the bank ----------------------------------------------------------
 
 def balance_history(conn: psycopg.Connection, company_id: str, days: int = 91) -> dict[str, Any] | None:
-    """Cash in the company's accounts at the end of each day before the as-of date, worked back from each account's
-    reported balance over its bank lines. Foreign accounts at the as-of day's rate. Only days that change are listed."""
+    """End-of-day cash before the as-of date, worked back from each reported balance."""
     s = Store(conn)
     company = _company(conn, company_id)
     base, as_of = company["base_currency"], date.fromisoformat(company["as_of_date"])

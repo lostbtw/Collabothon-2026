@@ -1,4 +1,4 @@
-"""The owner tells Ordo about closed days in plain words (#61: "We are closed for all of June" on the pizzeria)."""
+"""The owner tells Ordo about closed days in plain words ("We are closed for all of June")."""
 from datetime import date
 
 import pytest

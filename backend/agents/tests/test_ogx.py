@@ -1,5 +1,4 @@
-"""OGX orchestration: the agents' loop goes through OGX's Responses API, which calls the tools over MCP.
-OGX itself runs on the cluster; here a stand-in answers the one call the agents make."""
+"""OGX orchestration against a stand-in OGX."""
 import json
 from types import SimpleNamespace as NS
 

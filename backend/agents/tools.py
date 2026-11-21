@@ -1,8 +1,4 @@
-"""Read-only tools of the agents (liquidity agent, chat). Each returns plain JSON built from engine numbers.
-
-A tool is (OpenAI function schema, python function(conn, company_id, **arguments) -> dict). The same functions are
-exposed over MCP (5.7b). None of them moves money.
-"""
+"""The agents' read-only tools: (OpenAI schema, fn(conn, company_id, **args) -> dict), also served over MCP."""
 from datetime import date
 from decimal import Decimal
 from typing import Any, Callable
@@ -61,8 +57,7 @@ def list_overdue_receivables(conn: psycopg.Connection, company: str) -> dict[str
 def run_scenario(conn: psycopg.Connection, company: str, credit_line_limit: str | None = None,
                  from_date: str | None = None, shift_receivable: dict | None = None,
                  shift_payable: dict | None = None) -> dict[str, Any]:
-    """What-if (the body of POST /forecast/scenario): a credit line of `credit_line_limit` from `from_date`, a
-    receivable moved ({document_id, new_date}) or a payable delayed ({component_id, days})."""
+    """What-if, as POST /forecast/scenario."""
     engine = _engine()
     if engine and hasattr(engine, "scenario"):
         body: dict[str, Any] = {}

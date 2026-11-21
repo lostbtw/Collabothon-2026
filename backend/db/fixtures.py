@@ -1,8 +1,4 @@
-"""Load contracts/fixtures into the database as demo data: the skeleton API serves them until real data flows.
-
-Run: `uv run python -m backend.db fixtures`. Idempotent. Entities whose JSON has no company_id get it from
-their parent (source, account, document or approved subject), so `?company_id=` filters work on them too.
-"""
+"""Load contracts/fixtures as demo data (idempotent); company_id comes from the parent when missing."""
 import json
 from pathlib import Path
 

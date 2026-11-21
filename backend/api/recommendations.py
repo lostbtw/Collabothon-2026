@@ -1,8 +1,4 @@
-"""Recommendations: the only way they are written, and the state machine of an owner Decision on one.
-
-States (recommendation.schema.json): new -> seen -> approved | rejected | expired | superseded,
-then approved -> executed_simulated. Execution is always simulated in this build; `permitted` is refused.
-"""
+"""The only writer of Recommendations, and their state machine (always simulated; `permitted` refused)."""
 import copy
 from typing import Any
 
@@ -23,8 +19,7 @@ class InvalidRecommendation(ValueError):
 
 
 def save_recommendation(c: psycopg.Connection, rec: dict[str, Any]) -> bool:
-    """Store a new Recommendation and emit `recommendation.created`. False when an open one already exists for the
-    same (type, subject). Refuses one without both labels, an explanation or evidence, or with execution `permitted`."""
+    """Store and emit `recommendation.created`; False if one is open for the same (type, subject)."""
     if rec.get("execution_mode") == "permitted":
         raise InvalidRecommendation("execution_mode 'permitted' is not enabled in this build")
     problems = contract.entity_errors("recommendation", rec)
@@ -54,9 +49,7 @@ def _apply_changes(rec: dict[str, Any], changes: dict[str, Any] | None) -> dict[
 
 
 def _subject_match(s: Store, rec: dict[str, Any]) -> str | None:
-    """The Match this Recommendation decides (one tap, D-20): its subject, or, for an ingestion card about a
-    Document, that Document's open Match. Hints (control level recommendation) decide nothing: dismissing
-    "mark as private?" must not reject the Match."""
+    """The Match this card decides; hints decide nothing."""
     if rec["control_level"] != "approval_required":
         return None
     subject = rec.get("subject") or {}

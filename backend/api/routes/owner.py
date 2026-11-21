@@ -1,5 +1,4 @@
-"""The owner's screens: settings, people, learned rules, costs per person, clients, subscriptions, chat history,
-the balance over time, and changing a bank line's type. The figures are computed in backend/api/owner.py."""
+"""Owner screen endpoints; figures from backend/api/owner.py."""
 import re
 from typing import Any
 

@@ -1,12 +1,4 @@
-"""Where role 5's code calls other roles' in-process code, with a stand-in until theirs exists.
-
-executor (role 2, backend/executor/simulated.py): execute_action(conn, approval, action, company)
-                                       -> {"reference", "result"}   (D-19; it emits execution.simulated)
-finance  (role 4, backend/finance/engine): recompute(conn, company_id) -> Forecast
-
-The real executor receives only the Approval; it finds the action as the Recommendation's `proposed_action` with
-the Approval's `changes` applied (dotted paths such as "proposed_action.params.limit").
-"""
+"""Calls into role 2's executor and role 4's finance engine, with a stand-in when absent."""
 import importlib
 import importlib.util
 from decimal import Decimal
@@ -92,10 +84,7 @@ def _stand_in_execute(c: psycopg.Connection, approval: dict[str, Any], action: d
 
 
 def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, Any], company: str) -> dict[str, str]:
-    """Run an approved action in simulation. Returns {"reference", "result"}.
-
-    Role 2's executor (backend/executor/simulated.py, #36) sends it to the Sandbox Bank and emits
-    `execution.simulated`; it gets the connection, the action with the owner's changes applied and the company."""
+    """Run an approved action in simulation -> {"reference", "result"}."""
     executor = optional_module("backend.executor.simulated")
     if executor is not None and hasattr(executor, "execute_action"):
         return executor.execute_action(c, approval, action, company)
@@ -103,8 +92,7 @@ def execute(c: psycopg.Connection, approval: dict[str, Any], action: dict[str, A
 
 
 def recompute_forecast(c: psycopg.Connection, company: str, note: str) -> dict[str, Any] | None:
-    """A new base forecast after an executed action. Stand-in: the latest one re-issued with the action as an
-    assumption (no numbers are invented; role 4's engine recomputes them)."""
+    """New base forecast after an executed action."""
     engine = finance_engine()
     if engine is not None and hasattr(engine, "recompute"):
         return engine.recompute(c, company)

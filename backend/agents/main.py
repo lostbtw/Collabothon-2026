@@ -1,11 +1,4 @@
-"""`uv run python -m backend agents`: the agent service. Handles the outbox deliveries of consumer group 'agents'.
-
-match.suggested  -> ingestion card (5.10)
-forecast.updated -> tax reserve card (5.10), credit-line card of the liquidity agent (5.6),
-                    reminders for late client invoices (receivables), FX Shield cards per foreign-currency invoice (#47)
-
-Claiming is role 2's backend/queue (contracts/events.md: SKIP LOCKED, done after commit, 3 failures -> dead).
-"""
+"""`python -m backend agents`: consumer group 'agents'; HANDLERS maps events to cards."""
 import logging
 from collections.abc import Callable
 from typing import Any
@@ -34,8 +27,7 @@ def _handle(conn: psycopg.Connection, event: dict[str, Any]) -> None:
 
 
 def process_pending(conn: psycopg.Connection, retry_after_seconds: int = 30) -> int:
-    """Handle every claimable delivery once. Returns how many were handled successfully.
-    `match.suggested` first: a new document's card must not wait behind a burst of forecast updates."""
+    """Handle each claimable delivery once; `match.suggested` first so receipts never wait."""
     return queue.process_pending(conn, CONSUMER, lambda event: _handle(conn, event),
                                  retry_after_seconds=retry_after_seconds, max_attempts=MAX_ATTEMPTS,
                                  first_types=["match.suggested"])

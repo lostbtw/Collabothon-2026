@@ -1,4 +1,4 @@
-"""Seam: the agent service's event handlers. match.suggested / forecast.updated -> inbox Recommendation (5.10)."""
+"""Seam: the agent service's event handlers. match.suggested / forecast.updated -> inbox Recommendation."""
 import copy
 import time
 

@@ -1,8 +1,4 @@
-"""Stand-ins for role 4's liquidity numbers until #44 (4.3) lands as backend/finance/engine.py.
-
-Every number here is from the role 4 spec (#4) or the illustrative price lists named in spec #5; none is made up
-by a model. When the engine exists, backend.agents.tools calls it instead.
-"""
+"""Fallback liquidity numbers from the specs when role 4's engine is absent; never from a model."""
 from decimal import ROUND_CEILING, Decimal
 
 # Stress case per company: role 4 spec, "Stress: Nordwind pays 21 Dec ... about -28,170".
@@ -10,7 +6,7 @@ STRESS = {
     "co_borsuk": {"label": "Nordwind pays 21 Dec", "date": "2026-12-21", "balance": {"amount": "-28170.00", "currency": "PLN"}},
 }
 
-# Illustrative price lists of the simulated bank (spec #5: product names; pricing illustrative, not an offer).
+# Illustrative price lists of the simulated bank (illustrative, not an offer).
 PRICE_LISTS = {
     "co_borsuk": {"bank": "Sandbox Bank", "product": "mBank kredyt w rachunku bieżącym (illustrative)",
                   "interest_rate_pct": "11.5", "arrangement_fee_pct_of_limit": "1", "min_limit": None,

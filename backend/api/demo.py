@@ -1,15 +1,4 @@
-"""The M3 and M4 demo flows, step by step and timed: `uv run python -m backend.api.demo hero|liquidity|all`.
-
-Runs against the API at --api (default http://localhost:8080/api/v1) and, for the stand-in steps, the database at
-ORDO_DATABASE_URL. A step that another role's code must do for real (mailbox connector, extraction, who paid,
-finance engine, frontend) runs on its stand-in and names the ticket that replaces it, so the same script is the
-acceptance run on the cluster once those land.
-
-    hero      (M3)  receipt from Jan -> Document + Match -> reimbursement card -> approve -> forecast re-issued
-    liquidity (M4)  over HTTP only, through the real agents, executor and finance engine: forecast alert ->
-                    credit-line card -> approve with 25,000 -> SIMULATED reference -> new forecast above zero;
-                    pizzeria: data-quality notes; "We are closed 1-30 June" in the chat -> low about -21.8k EUR
-"""
+"""Timed demo runs: `uv run python -m backend.api.demo hero|liquidity|all [--api URL]`."""
 import argparse
 import copy
 import sys
@@ -77,12 +66,12 @@ def _wait(fetch, until, timeout: float = 10.0, every: float = 0.25):
 
 
 def hero(api: httpx.Client, conn: psycopg.Connection, company: str = "co_borsuk") -> Run:
-    """M3: Jan forwards a receipt photo; the reimbursement card appears; the owner approves; the forecast moves."""
+    """Hero flow: Jan forwards a receipt photo; the reimbursement card appears; the owner approves; the forecast moves."""
     run = Run("M3 hero flow")
     tag = uuid.uuid4().hex[:6]
     before = api.get("/forecast/latest", params={"company_id": company}).json()["id"]
 
-    # Stand-in for mailbox connector (#33), extraction (#17) and who-paid (#25): what they write, written here.
+    # Stand-in for the mailbox, extraction and who-paid steps.
     raw = {**copy.deepcopy(next(r for r in read("raw_item") if r["id"] == "raw_mail412a1")), "id": f"raw_hero{tag}",
            "idempotency_key": uuid.uuid4().hex + uuid.uuid4().hex}
     document = {**copy.deepcopy(next(d for d in read("document") if d["id"] == "doc_rcpt412")), "id": f"doc_hero{tag}",
@@ -106,7 +95,7 @@ def hero(api: httpx.Client, conn: psycopg.Connection, company: str = "co_borsuk"
              f"paid by {banner and banner['paid_by']}, owed {banner and banner['consequences']['reimbursement_owed']['amount']}",
              stand_in_until=[25])
 
-    process_pending(conn)  # the agents process; on the cluster it runs on its own
+    process_pending(conn)
     card = _wait(lambda: next((r for r in api.get("/inbox", params={"company_id": company}).json()["items"]
                                if (r.get("subject") or {}).get("id") == document["id"]), None), bool)
     if not run.step("reimbursement card in the inbox", bool(card), card["title"] if card else "no card"):
@@ -160,12 +149,7 @@ def _drive_wait(fetch: Callable[[], Any], until: Callable[[Any], bool], drive: C
 
 
 def liquidity_flow(api: httpx.Client, *, drive: Callable[[], Any] = _no_drive, timeout: float = 60.0) -> Run:
-    """M4 over the HTTP API only, through the real agents, executor and finance engine: alert -> credit-line card ->
-    edit to 25,000 and approve -> SIMULATED SIM-CL-... -> new forecast above zero; pizzeria data-quality notes and
-    the June event in the chat (low about -21.8k EUR). Nothing is written to the database by this script.
-
-    It changes the demo state (the card is decided): a second run on the same data finds no open credit-line card
-    until the demo data is reloaded."""
+    """Liquidity flow over HTTP only. Decides the credit-line card: rerun only on reloaded demo data."""
     run = Run("M4 liquidity flow")
     company = "co_borsuk"
     forecast = _latest(api, company)

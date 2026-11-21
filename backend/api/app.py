@@ -1,10 +1,4 @@
-"""The Ordo API (contracts/openapi.yaml), served under /api/v1.
-
-Start locally: `uv run python -m backend.db setup --fixtures` then `uv run python -m backend api`.
-Entity endpoints read the database through the Store, so fixtures loaded as demo data and real data written by
-connectors, pipeline and finance engine are served the same way. Computations that belong to another role and do
-not exist yet answer from `stand_ins.py`.
-"""
+"""The Ordo API (contracts/openapi.yaml) under /api/v1; entities are read through the Store."""
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any
@@ -49,7 +43,6 @@ def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | 
             app.state.pool.close()
 
     app = FastAPI(title="Ordo API", version="0.1.0", lifespan=lifespan)
-    # Lists of bank lines, documents and cards are hundreds of KB of JSON; compressed they are about a tenth.
     app.add_middleware(_GzipExceptStream)
     app.state.chat_model = chat_model or default_client
     for module in (system, sources, documents, bank, ledger, forecast, recommendations, chat, stream, owner):

@@ -1,5 +1,4 @@
-"""The owner's screens: settings, people, learned rules, costs per person, clients, subscriptions, chat history,
-balance over time and the bank-line summary. Demo data = contracts/fixtures plus a few invented SAMPLE lines."""
+"""Owner screens on fixtures plus a few SAMPLE lines."""
 import pytest
 
 from backend.agents import receivables

@@ -1,9 +1,4 @@
-"""Seed the demo Companies and their People. Run: `uv run python -m backend.db seed`.
-
-People come from seed_data/people.json, a stand-in until role 4's scenario writes the full list (all invented,
-marked SAMPLE, `.sample` addresses). The real phone address used in the live demo is never in Git: it arrives
-through the Secret-backed environment variable ORDO_PERSON_ADDRESSES, a JSON object {"address": "per_..."}.
-"""
+"""Seed demo Companies and People. Real demo addresses come only from the ORDO_PERSON_ADDRESSES secret."""
 import json
 import os
 from pathlib import Path

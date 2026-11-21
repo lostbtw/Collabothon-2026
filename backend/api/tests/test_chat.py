@@ -1,5 +1,4 @@
-"""Seam: HTTP API, POST /api/v1/chat (5.7). Without a model the chat answers from its tools deterministically;
-with a model (a fake client here) the model picks the tools and its text passes the number check."""
+"""POST /chat, with and without a (fake) model."""
 import json
 from types import SimpleNamespace
 
@@ -68,7 +67,6 @@ def test_no_execution_or_decision_tool_is_reachable_from_chat():
     assert not {n for n in names if "execute" in n or "decide" in n or "approve" in n}
 
 
-# --- with a model --------------------------------------------------------------------------------------------------
 
 def turn(content=None, tool_calls=None):
     return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(role="assistant", content=content,
@@ -132,7 +130,6 @@ def test_a_model_that_tries_to_execute_gets_an_unknown_tool_and_nothing_moves(wi
     assert Store(db).get("recommendation", "rec_cl01")["status"] == "new"
 
 
-# --- 5.7b: multi-turn and recovery ------------------------------------------------------------------------------------
 
 def test_a_follow_up_question_gets_the_previous_turn_as_context(with_model):
     app, model = with_model(turn(content=json.dumps({"answer": "Your lowest balance is in December."})),

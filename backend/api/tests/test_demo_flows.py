@@ -1,5 +1,4 @@
-"""Seam: the M3 / M4 demo flows over the HTTP API. M3 still writes its first half on stand-ins; M4 runs through
-the real agents, executor and finance engine (`drive` runs them in-process)."""
+"""Demo flows; `drive` runs the agents and finance processes in-process."""
 import pytest
 from fastapi.testclient import TestClient
 

@@ -1,10 +1,4 @@
-"""The liquidity agent (5.6). On forecast.updated with a new or changed cash-gap alert it proposes one credit-line
-card: reasons, calculation, cheaper alternatives first, the stress case and evidence.
-
-Numbers come only from the tools (role 4's engine, stand-ins until #44). The card is first built from a template;
-the model may then rewrite the wording (title, summary, reasons) after choosing its own tool calls. Its text is
-rejected if it contains any number absent from the tool results, and any failure keeps the template.
-"""
+"""Liquidity agent: one credit-line card per cash-gap alert. Template first; the model may reword it, number-checked."""
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -56,8 +50,7 @@ def earliest_gap(forecast: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def gap_end(forecast: dict[str, Any], alert: dict[str, Any]) -> str:
-    """Last day of the gap. date_to is null when the balance has not recovered by the end of the forecast
-    (forecast.schema.json); the gap then lasts at least until the forecast's last day, as_of_date + horizon_days."""
+    """Last day of the gap; a null date_to means it lasts to the forecast's end."""
     if alert.get("date_to"):
         return alert["date_to"]
     last_day = date.fromisoformat(forecast["as_of_date"]) + timedelta(days=forecast.get("horizon_days") or 0)
@@ -256,8 +249,6 @@ def on_forecast_updated(conn: psycopg.Connection, event: dict[str, Any], model: 
                                 {"recommendation_id": old["id"], "status": "superseded"}, producer="agents"))
     if not save_recommendation(conn, card):
         return None
-    # The template card is in the inbox now; the model's wording replaces its text only if it passes the checks
-    # and the owner has not decided the card meanwhile.
     if model is _DEFAULT:
         model = default_client()
     if model is not None:

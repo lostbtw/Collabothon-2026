@@ -1,4 +1,4 @@
-"""Seam: the MCP server. An MCP client lists and calls the same tools the agents use (5.7b, OGX orchestration)."""
+"""Seam: the MCP server. An MCP client lists and calls the same tools the agents use (OGX orchestration)."""
 import anyio
 from mcp import Client
 

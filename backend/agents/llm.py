@@ -1,9 +1,4 @@
-"""The agents' model loop (D-10): plain openai SDK against the vLLM model served on the cluster, no framework.
-With ORDO_OGX_URL set, OGX runs the same loop and reaches the tools over MCP (backend/agents/ogx.py).
-
-messages + tools -> model -> tool calls -> results -> ... -> final JSON -> validated by the caller.
-At most `max_calls` tool calls; any failure returns None and the caller uses its template.
-"""
+"""The agents' tool loop: openai SDK against the cluster's vLLM. Any failure returns None -> caller's template."""
 import json
 import logging
 import os
@@ -23,8 +18,7 @@ MAX_TOOL_CALLS = 6
 
 
 def default_client():
-    """OpenAI-compatible client of the cluster's vLLM endpoint (hard rule 1: never a hosted LLM API).
-    None when ORDO_LLM_ENABLED=0."""
+    """Client of the cluster's vLLM (hard rule 1); None when ORDO_LLM_ENABLED=0."""
     if os.environ.get("ORDO_LLM_ENABLED", "1") == "0":
         return None
     from openai import DefaultHttpx2Client, OpenAI
