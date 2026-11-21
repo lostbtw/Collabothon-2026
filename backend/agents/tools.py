@@ -26,6 +26,7 @@ def get_forecast(conn: psycopg.Connection, company: str, forecast_id: str | None
     return {
         "forecast_id": forecast["id"],
         "as_of_date": forecast["as_of_date"],
+        "horizon_days": forecast.get("horizon_days"),
         "base_currency": forecast["base_currency"],
         "opening_balance": forecast["opening_balance"],
         "safety_buffer": forecast.get("safety_buffer"),

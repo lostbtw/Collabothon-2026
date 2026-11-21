@@ -90,6 +90,25 @@ def test_borsuk_alert_without_a_model_gives_the_template_credit_line_card(db, wo
     assert contract.entity_errors("recommendation", card) == []
 
 
+def test_a_gap_still_open_when_the_forecast_ends_gives_a_card_up_to_the_forecasts_last_day(db, world):
+    # forecast.schema.json allows date_to null: the balance has not recovered by the end of the forecast. The
+    # pizzeria's forecast is like that (below_buffer from 1 Jun, no end), and the agent crashed on it.
+    open_ended = forecast_fixture()
+    open_ended["id"] = "fc_open_gap"
+    open_ended["inputs_hash"] += "-open-gap"  # forecasts are unique by inputs_hash
+    open_ended["alerts"][0]["date_to"] = None
+    assert world.add("forecast", open_ended)
+
+    on_forecast_updated(db, updated("fc_open_gap"), model=None)
+
+    [card] = cards(world)
+    # as_of_date 2026-11-21 + horizon_days 45 = 5 Jan, the forecast's last day: 36 days from 30 Nov
+    assert card["summary"].startswith("From 30 Nov until at least 5 Jan, when the forecast ends, the accounts will be")
+    estimated_cost = next(row for row in card["explanation"]["calculation"] if row["label"] == "Estimated cost")
+    assert " x 36 days x " in estimated_cost["formula"]
+    assert contract.entity_errors("recommendation", card) == []
+
+
 def test_the_model_chooses_tools_and_writes_the_wording_with_engine_numbers_only(db, world):
     model = FakeModel(
         turn(tool_calls=[tool_call("get_forecast", {})]),
