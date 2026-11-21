@@ -20,7 +20,6 @@ Every receipt call is a new e-mail: the previous demo receipt is retired first (
 superseded), so the duplicate check does not swallow the next one. Set ORDO_DEMO_TRIGGER=0 to switch it off.
 The sender's address is read from the people table, never written in the code.
 """
-import copy
 import json
 import os
 import uuid
@@ -40,6 +39,7 @@ from backend.connectors.base import idempotency_key, raw_item_id
 from backend.connectors.mailbox import message_items
 from backend.db.events import new_event, publish
 from backend.pipeline.extract import worker
+from backend.pipeline.normalise.fx import StandInRates
 
 router = APIRouter()
 
@@ -137,14 +137,28 @@ def send_receipt(c: psycopg.Connection, company: str, receipt: str) -> dict[str,
         if item.content is not None:
             c.execute("insert into raw_item_content (raw_item_id, content_type, bytes) values (%s, %s, %s) "
                       "on conflict do nothing", (rid, item.content_type, item.content))
-        event = new_event("raw_item.received", company, {"raw_item_id": rid, "kind": item.kind, "source_id": source["id"]},
-                          producer="connector", correlation_id=rid)
+
+    # The photo's fields are preset (no reading by the model). The document is stored before any event goes out, so
+    # the extractor finds it and skips the photo; built by the extraction worker's own code, as after a real read.
+    worker_db = worker.Postgres(c)
+    events = []
+    for item in items:
+        rid = ids[item.external_id]
+        events.append(new_event("raw_item.received", company, {"raw_item_id": rid, "kind": item.kind,
+                                                               "source_id": source["id"]},
+                                producer="connector", correlation_id=rid))
+        if item.kind != "email_attachment":
+            continue
+        raw = worker_db.store.get("raw_item", rid)
+        fields = json.loads((ASSETS / spec["fields"]).read_text(encoding="utf-8"))
+        document = worker.build(raw, fields, worker_db.company(company), submitted_by=worker_db.submitted_by(company, raw),
+                                rates=StandInRates(), created_at=fetched)
+        worker_db.store.add("document", document, company_id=company)
+        worker_db.set_status(raw, company, "processed")
+        events.append(new_event("document.extracted", company, worker.extracted_payload(document),
+                                producer="extractor", correlation_id=rid, causation_id=events[-1]["id"]))
+    for event in events:
         publish(c, event, commit=False)
-        if item.kind == "email_attachment":
-            # The photo's fields are preset (no reading by the model): the extraction worker builds the document from
-            # them right here, exactly as after a real read, so the toasts and the to-do come within a second or two.
-            fields = json.loads((ASSETS / spec["fields"]).read_text(encoding="utf-8"))
-            worker.handle(c, event, lambda _data, _type: copy.deepcopy(fields))
     c.commit()
     return {"status": "sent", "from": name, "receipt": receipt, "raw_item_ids": list(ids.values()),
             "retired_documents": retired, "sent_at": fetched,

@@ -25,6 +25,8 @@ export function toastFor(e: OrdoEvent, sender?: string | null, title?: string | 
     return { id: e.id, text: title ? `New to-do: ${title}` : "New to-do", to: `/todo#${p.recommendation_id}` };
   }
   if (e.type === "forecast.updated" && isMoney(p.min_balance)) {
+    // Same lowest point as before: nothing the owner needs to see (the screens still reload).
+    if (isMoney(p.min_balance_previous) && p.min_balance_previous.amount === p.min_balance.amount) return null;
     const was = isMoney(p.min_balance_previous) ? ` (was ${formatMoney(p.min_balance_previous, { decimals: false })})` : "";
     return { id: e.id, text: `Forecast updated: lowest point ${formatMoney(p.min_balance, { decimals: false })}${was}`, to: "/#cash" };
   }
