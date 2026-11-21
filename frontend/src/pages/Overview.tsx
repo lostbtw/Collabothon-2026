@@ -167,7 +167,7 @@ function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean;
             <span className="medium">{monthInWords(estimate ? c.label.slice(0, -ESTIMATE.length) : c.label)}</span>
             {estimate && <span className="chip warn">estimate</span>}
           </span>
-          {c.explainer && <span className="small t2" style={{ marginTop: 2 }}>{c.explainer}</span>}
+          {open && c.explainer && <span className="small t2" style={{ marginTop: 2 }}>{c.explainer}</span>}
         </div>
         <span className="medium">{whole({ amount: c.amount_base.amount.replace("-", ""), currency: c.amount_base.currency })}</span>
         <span className="button" aria-hidden style={{ height: 30, padding: "0 12px", fontSize: 13, minWidth: 104, gap: 6 }}>
