@@ -38,6 +38,37 @@ class Kind(StrEnum):
     scenario_action = 'scenario_action'
 
 
+class Op(StrEnum):
+    """
+    start: first figure; plus/minus: applied to the running figure; equals: a result; note: text only, no amount
+    """
+
+    start = 'start'
+    plus = 'plus'
+    minus = 'minus'
+    equals = 'equals'
+    note = 'note'
+
+
+class BreakdownItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    label: Annotated[
+        str,
+        Field(
+            description="'VAT on 12 sales invoices', 'To pay, rounded to whole złoty'"
+        ),
+    ]
+    op: Annotated[
+        Op,
+        Field(
+            description='start: first figure; plus/minus: applied to the running figure; equals: a result; note: text only, no amount'
+        ),
+    ]
+    amount: common_schema.Money | None = None
+
+
 class Component(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -50,6 +81,13 @@ class Component(BaseModel):
     dates: list[date_aliased] | None = None
     confidence: Annotated[float, Field(description='0..1', ge=0.0, le=1.0)]
     evidence: list[common_schema.EvidenceLink] | None = None
+    explainer: str | None = None
+    breakdown: Annotated[
+        list[BreakdownItem] | None,
+        Field(
+            description='How the engine computed amount_base, step by step, top to bottom. Amounts are positive figures; op gives the arithmetic.'
+        ),
+    ] = None
 
 
 class MinBalance(BaseModel):

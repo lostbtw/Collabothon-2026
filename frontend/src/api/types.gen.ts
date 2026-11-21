@@ -241,6 +241,15 @@ export type Forecast = {
     /** 0..1 */
     confidence: number;
     evidence?: EvidenceLink[];
+    explainer?: string | null;
+    /** How the engine computed amount_base, step by step, top to bottom. Amounts are positive figures; op gives the arithmetic. */
+    breakdown?: Array<{
+      /** 'VAT on 12 sales invoices', 'To pay, rounded to whole złoty' */
+      label: string;
+      /** start: first figure; plus/minus: applied to the running figure; equals: a result; note: text only, no amount */
+      op: "start" | "plus" | "minus" | "equals" | "note";
+      amount?: Money | null;
+    }>;
   }>;
   min_balance: {
     date: string;

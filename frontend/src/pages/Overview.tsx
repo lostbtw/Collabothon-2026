@@ -147,8 +147,88 @@ export function TodoRow({ item }: { item: TodoItem }) {
 }
 
 const ESTIMATE = " (estimate)";
+const OP_SIGN: Record<string, string> = { start: "", plus: "+", minus: "−", equals: "=", note: "" };
 
+const monthInWords = (label: string) => label.replace(" (JPK_V7M)", "").replace(/\b(\d{2})\/(\d{4})\b/,
+  (_, m: string, y: string) => `${new Date(Number(y), Number(m) - 1, 1).toLocaleString("en-GB", { month: "long" })} ${y}`);
+
+type TaxComponent = Forecast["components"][number] & { date: string };
+
+function TaxRow({ c, first, open, onToggle }: { c: TaxComponent; first: boolean; open: boolean; onToggle: () => void }) {
+  const estimate = c.label.endsWith(ESTIMATE);
+  const steps = c.breakdown ?? [];
+  const rule = c.evidence?.find((e) => e.kind === "rule");
+  const sources = (c.evidence ?? []).filter((e) => e.kind !== "rule");
+  const formula = c.schedule?.split(": ").slice(1).join(": ") ?? "";
+  const due = c.schedule?.split(": ")[0];
+  const bold = (op: string) => (op === "equals" ? "medium" : "");
+  return (
+    <div style={first ? undefined : { borderTop: "1px solid var(--border)" }}>
+      <div role="button" tabIndex={0} aria-expanded={open} onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+        style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 0", cursor: "pointer" }}>
+        <span className="t3" style={{ minWidth: 56 }}>{shortDate(c.date)}</span>
+        <div className="stack grow" style={{ gap: 2 }}>
+          <span className="hstack" style={{ gap: 8 }}>
+            <span className="medium">{monthInWords(estimate ? c.label.slice(0, -ESTIMATE.length) : c.label)}</span>
+            {estimate && <span className="chip warn">estimate</span>}
+          </span>
+          {c.explainer && <span className="small t2" style={{ marginTop: 2 }}>{c.explainer}</span>}
+        </div>
+        <span className="medium">{whole({ amount: c.amount_base.amount.replace("-", ""), currency: c.amount_base.currency })}</span>
+        <span className="button" aria-hidden style={{ height: 30, padding: "0 12px", fontSize: 13, minWidth: 104, gap: 6 }}>
+          {open ? "Hide details" : "Details"}
+          <span style={{ display: "inline-block", transform: open ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform .15s" }}>›</span>
+        </span>
+      </div>
+      {open && (
+        <div className="stack" style={{ gap: 16, padding: "0 28px 20px 72px" }}>
+          {steps.length === 0 && formula && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="caption t3">How we got this number</span>
+              <span className="small">{formula}</span>
+            </div>
+          )}
+          {steps.length > 0 && (
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="caption t3">How we got this number</span>
+            {steps.map((s, i) => s.op === "note"
+              ? <span key={i} className="small t2">{s.label}</span>
+              : (
+                <div key={i} className="hstack" style={{ gap: 12, ...(s.op === "equals" ? { paddingTop: 6, borderTop: "1px solid var(--border)" } : {}) }}>
+                  <span className="t3" style={{ width: 12, textAlign: "center" }}>{OP_SIGN[s.op]}</span>
+                  <span className={`small grow ${bold(s.op)}`}>{s.label}</span>
+                  {s.amount && <span className={`small ${bold(s.op)}`} style={{ fontVariantNumeric: "tabular-nums" }}>{formatMoney(s.amount)}</span>}
+                </div>
+              ))}
+          </div>
+          )}
+          {due && (
+            <div className="stack" style={{ gap: 2 }}>
+              <span className="caption t3">Why this date</span>
+              <span className="small t2">Due on the {due}. Payment date: {shortDate(c.date)}.</span>
+              {rule && <span className="small t2">Rule: {rule.label}</span>}
+            </div>
+          )}
+          {sources.length > 0 && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="caption t3">Based on</span>
+              <span className="hstack" style={{ gap: 6, flexWrap: "wrap" }}>
+                {sources.map((e) => e.url
+                  ? <Link key={e.id} to={e.url} className="chip neutral">{e.label}</Link>
+                  : <span key={e.id} className="chip neutral">{e.label}</span>)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Every tax and social-security payment the forecast expects; each row opens the engine's calculation behind it. */
 export function TaxSection({ forecast, dueIn30, loading }: { forecast: Forecast | null; dueIn30: Money | null; loading?: boolean }) {
+  const [open, setOpen] = useState<string | null>(null);
   const taxes = (forecast?.components ?? [])
     .flatMap((c) => (c.kind === "tax" || c.kind === "social_security") && c.dates?.[0] ? [{ ...c, date: c.dates[0] }] : [])
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
@@ -157,30 +237,14 @@ export function TaxSection({ forecast, dueIn30, loading }: { forecast: Forecast 
       <div className="section-head">
         <div className="stack grow" style={{ gap: 2 }}>
           <h2>Taxes</h2>
-          <span className="small t2">VAT, CIT advance, PIT-4 and ZUS the forecast expects, moved to the next business day</span>
+          <span className="small t2">Tax payments coming up. Click a payment to see how we calculated it and what it is based on.</span>
         </div>
         {dueIn30 && <span className="small t2">Due in the next 30 days: <span className="medium">{whole(dueIn30)}</span></span>}
       </div>
-      <div className="card stack" style={{ gap: 0 }}>
+      <div className="card stack" style={{ gap: 0, paddingTop: 4, paddingBottom: 4 }}>
         {loading ? <Skeleton rows={4} /> : !forecast ? <span className="t2">No forecast yet.</span>
           : taxes.length === 0 ? <span className="t2">No tax payment in the next {forecast.horizon_days} days.</span>
-          : taxes.map((c) => {
-            const estimate = c.label.endsWith(ESTIMATE);
-            const formula = c.schedule?.split(": ").slice(1).join(": ") ?? "";
-            return (
-              <div key={c.id} className="list-row">
-                <span className="t3" style={{ minWidth: 56 }}>{shortDate(c.date)}</span>
-                <div className="stack grow" style={{ gap: 2 }}>
-                  <span className="hstack" style={{ gap: 8 }}>
-                    <span className="medium">{estimate ? c.label.slice(0, -ESTIMATE.length) : c.label}</span>
-                    {estimate && <span className="chip warn" title="The month is not closed yet: mean of the last closed months">estimate</span>}
-                  </span>
-                  {formula && <span className="caption t3">{formula}</span>}
-                </div>
-                <span className="medium">{whole({ amount: c.amount_base.amount.replace("-", ""), currency: c.amount_base.currency })}</span>
-              </div>
-            );
-          })}
+          : taxes.map((c, i) => <TaxRow key={c.id} c={c} first={i === 0} open={open === c.id} onToggle={() => setOpen(open === c.id ? null : c.id)} />)}
       </div>
     </section>
   );

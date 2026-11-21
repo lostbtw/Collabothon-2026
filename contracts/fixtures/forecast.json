@@ -137,6 +137,12 @@
             "label": "Output VAT 31,740 - deductible input VAT 17,440",
             "excerpt": "select sum(vat) ..."
           }
+        ],
+        "explainer": "VAT you charged clients minus VAT you paid suppliers",
+        "breakdown": [
+          {"label": "VAT on 14 sales invoices", "op": "start", "amount": {"amount": "31740.00", "currency": "PLN"}},
+          {"label": "VAT on 9 purchase invoices", "op": "minus", "amount": {"amount": "17440.00", "currency": "PLN"}},
+          {"label": "To pay, rounded to whole złoty", "op": "equals", "amount": {"amount": "14300.00", "currency": "PLN"}}
         ]
       },
       {
