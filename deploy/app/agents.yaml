@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordo-agents
+  namespace: cfo-ai
+  labels:
+    app.kubernetes.io/part-of: ordo
+    app.kubernetes.io/name: ordo-agents
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"ordo-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"agents\")].image"}]'
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ordo-agents
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ordo
+        app.kubernetes.io/name: ordo-agents
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: "*"
+    spec:
+      serviceAccountName: cfo-app
+      containers:
+        - name: agents
+          image: ordo-backend:latest
+          args: ["agents"]
+          envFrom:
+            - configMapRef:
+                name: ordo-config
+          env:
+            - name: ORDO_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ordo-db
+                  key: ORDO_DATABASE_URL
+            - name: LLM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-token
+                  key: token
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
