@@ -359,7 +359,7 @@ def main(ids: list[str]) -> None:
     if ids:
         docs = [d for d in docs if d["id"] in ids]
     exe = browser()
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:  # Edge may still hold its profile lock
         for d in docs:
             path = render(d, exe, Path(tmp))
             print(f"{d['id']:16} {d['kind']:8} {','.join(d.get('photo_defects') or []) or '-':14} -> "
