@@ -81,7 +81,24 @@ Where to look: in the console, **Observe → Metrics** for queries and **Observe
 | `OrdoDeploymentUnavailable` | Any Deployment in `cfo-ai` (ordo-*, docling-serve, postgresql, the model) has no ready pod for 5 min |
 | `OrdoPodRestarting` | A container in `cfo-ai` restarted more than twice in 15 min |
 
-Not covered yet: docling-serve v1.9.0 has no `/metrics`, and the outbox queues live in Postgres, not Prometheus.
+Not covered by these alerts: docling-serve v1.9.0 has no `/metrics`, and the outbox queues live in Postgres, not Prometheus (Grafana below shows them).
+
+## Grafana
+
+```bash
+deploy/platform/setup.sh grafana
+```
+
+Grafana runs in `cfo-ai` at the route `ordo-grafana` (`oc -n cfo-ai get route ordo-grafana`). Log in as `admin`; the password is in secret `ordo-grafana`: `oc -n cfo-ai extract secret/ordo-grafana --keys=GF_SECURITY_ADMIN_PASSWORD --to=-`. The stage creates that secret if missing, creates the database role `grafana_ro` (it can only read `outbox`, `outbox_delivery`, `outbox_subscription`, `recommendations`, `sources`, `sync_runs` and `companies`; read-only transactions, 15 s statement timeout), loads the dashboards and runs `check-grafana`.
+
+| Dashboard | Data source | Shows |
+|---|---|---|
+| **Ordo pipeline** (home) | Postgres: the outbox | The data flow as a node graph (processes, the events between them, what waits and what is dead); deliveries waiting per consumer group; events per minute by type; seconds per stage; every receipt and invoice followed through its `correlation_id` to document, match and inbox card; last sync per source; dead deliveries |
+| **Ordo model and GPU** | Prometheus (Thanos Querier) | Model up, requests running and waiting, KV cache, time to first token and request latency, tokens per second, answers by finish reason, GPU use, memory, power and temperature, CPU and memory per container (docling-serve's CPU is the OCR load) |
+
+The dashboards are generated: change the queries in `deploy/observability/make_dashboards.py`, run `python3 deploy/observability/make_dashboards.py`, then `setup.sh grafana`. They are read-only in Grafana. Grafana keeps no state of its own (emptyDir), so anything built by hand in the UI is gone after a restart. It sends nothing outside the cluster: usage reports, update checks, the news feed and plugin downloads are off.
+
+`check-grafana`: Grafana answers, both datasources pass their health check, both dashboards are loaded, and every panel query of every dashboard runs through Grafana's query API against the last 6 hours without an error.
 
 ## Demo day
 

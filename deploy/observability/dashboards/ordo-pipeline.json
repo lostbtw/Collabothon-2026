@@ -1,0 +1,1084 @@
+{
+  "uid": "ordo-pipeline",
+  "title": "Ordo pipeline",
+  "description": "The data flow through the outbox: what each process sent, what waits, how long each step took.",
+  "tags": [
+    "ordo"
+  ],
+  "timezone": "browser",
+  "editable": false,
+  "graphTooltip": 1,
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ordo"
+      ],
+      "asDropdown": false,
+      "title": "Ordo",
+      "includeVars": false,
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Events in time range",
+      "description": "Every event written to the outbox (contracts/events.md).",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(*) from outbox where $__timeFilter(occurred_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Waiting deliveries",
+      "description": "Events a consumer group has not handled yet, all time. A group with no running process only grows.",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(*) from outbox_delivery where status = 'pending' and consumer <> 'sse'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Oldest waiting delivery",
+      "description": "",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select coalesce(extract(epoch from now() - min(o.occurred_at)), 0)\nfrom outbox_delivery d join outbox o on o.id = d.event_id\nwhere d.status = 'pending' and d.consumer <> 'sse'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Dead deliveries",
+      "description": "A handler failed 3 times. The table at the bottom lists them.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(*) from outbox_delivery where status = 'dead'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Receipt → document, p50",
+      "description": "From raw_item.received to document.extracted: docling-serve OCR plus the gpt-oss-20b extraction.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select percentile_cont(0.5) within group (order by extract(epoch from c.occurred_at - p.occurred_at))\nfrom outbox c join outbox p on p.id = c.causation_id\nwhere c.type = 'document.extracted' and p.type = 'raw_item.received' and $__timeFilter(c.occurred_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Receipt → inbox card, p50",
+      "description": "The live-demo chain, target under 30 s. The last hop joins through recommendations.subject_id, because recommendation.created carries no correlation_id.",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select percentile_cont(0.5) within group (order by extract(epoch from rc.occurred_at - raw.occurred_at))\n  from outbox m\n  join outbox raw on raw.type = 'raw_item.received' and raw.correlation_id = m.correlation_id\n  join recommendations r on r.subject_id = m.payload->>'match_id'\n  join outbox rc on rc.type = 'recommendation.created' and rc.payload->>'recommendation_id' = r.id\n  where m.type = 'match.suggested' and $__timeFilter(rc.occurred_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 120
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "nodegraph",
+      "title": "Data flow in the time range",
+      "description": "Processes and the events between them. Edge: events in the time range, waiting and dead deliveries. Node: deliveries still waiting for that consumer group (all time). Orange: something waits over 2 min; red: dead deliveries. 'ui' gets the events no worker subscribes to (toasts, inbox badge).",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 14,
+        "h": 13
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "nodes",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "with ev as (\n  select o.id, o.type, o.occurred_at,\n    case\n      when o.producer in ('connector', 'connector-mail') then 'connectors'\n      when o.producer = 'finance-engine' then 'finance'\n      when o.producer = 'pipeline' and o.type in ('transaction.ingested', 'document.extracted') then 'normaliser'\n      when o.producer = 'pipeline' then 'matcher'\n      else o.producer\n    end as source\n  from outbox o\n  where $__timeFilter(o.occurred_at)\n),\nflows as (\n  -- one row per (event, consumer group); events no worker subscribes to only reach the browser\n  select ev.id, ev.type, ev.occurred_at, ev.source, coalesce(s.consumer, 'ui') as target, d.status\n  from ev\n  left join outbox_subscription s on s.event_type = ev.type\n  left join outbox_delivery d on d.event_id = ev.id and d.consumer = s.consumer\n),\nnames as (select source as id from flows union select target from flows),\nproduced as (select source as id, count(distinct id) as n from flows group by source),\nbacklog as (\n  -- all time, not only the time range: a waiting delivery matters however old it is\n  select d.consumer as id,\n    count(*) filter (where d.status = 'pending') as waiting,\n    count(*) filter (where d.status = 'dead') as dead,\n    extract(epoch from now() - min(o.occurred_at) filter (where d.status = 'pending')) as oldest\n  from outbox_delivery d join outbox o on o.id = d.event_id\n  where d.consumer <> 'sse'\n  group by d.consumer\n)\nselect n.id, n.id as title,\n  case n.id\n    when 'connectors' then 'ordo-connectors'\n    when 'extractor' then 'ordo-extractor'\n    when 'normaliser' then 'ordo-pipeline'\n    when 'matcher' then 'ordo-pipeline'\n    when 'agents' then 'ordo-agents'\n    when 'api' then 'ordo-api'\n    when 'executor' then 'ordo-api'\n    when 'finance' then 'backend/finance'\n    when 'ui' then 'browser, over SSE'\n    else ''\n  end as subtitle,\n  case when b.id is null then coalesce(p.n, 0) || ' sent' else b.waiting || ' waiting' end as mainstat,\n  case when b.id is null then '' else b.dead || ' dead' end as secondarystat,\n  case\n    when coalesce(b.dead, 0) > 0 then 'red'\n    when coalesce(b.oldest, 0) > 120 then 'orange'\n    else '#73bf69'\n  end as color\nfrom names n\nleft join produced p on p.id = n.id\nleft join backlog b on b.id = n.id"
+        },
+        {
+          "refId": "edges",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "with ev as (\n  select o.id, o.type, o.occurred_at,\n    case\n      when o.producer in ('connector', 'connector-mail') then 'connectors'\n      when o.producer = 'finance-engine' then 'finance'\n      when o.producer = 'pipeline' and o.type in ('transaction.ingested', 'document.extracted') then 'normaliser'\n      when o.producer = 'pipeline' then 'matcher'\n      else o.producer\n    end as source\n  from outbox o\n  where $__timeFilter(o.occurred_at)\n),\nflows as (\n  -- one row per (event, consumer group); events no worker subscribes to only reach the browser\n  select ev.id, ev.type, ev.occurred_at, ev.source, coalesce(s.consumer, 'ui') as target, d.status\n  from ev\n  left join outbox_subscription s on s.event_type = ev.type\n  left join outbox_delivery d on d.event_id = ev.id and d.consumer = s.consumer\n)\nselect source || '->' || target as id, source, target,\n  count(*) || ' events' as mainstat,\n  count(*) filter (where status = 'pending') || ' waiting, '\n    || count(*) filter (where status = 'dead') || ' dead' as secondarystat,\n  string_agg(distinct type, ', ') as detail__types,\n  least(1 + ln(count(*)::float8), 8) as thickness,\n  case\n    when count(*) filter (where status = 'dead') > 0 then 'red'\n    when count(*) filter (where status = 'pending' and occurred_at < now() - interval '2 minutes') > 0 then 'orange'\n    else '#73bf69'\n  end as color\nfrom flows\ngroup by source, target\norder by source, target"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "nodes": {},
+        "edges": {}
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Queues per consumer group",
+      "description": "outbox_delivery by consumer group, all time. 'sse' is left out: the browser stream reads by sequence and never marks its rows done.",
+      "gridPos": {
+        "x": 14,
+        "y": 4,
+        "w": 10,
+        "h": 13
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select d.consumer as \"Consumer group\",\n  count(*) filter (where d.status = 'pending') as \"Waiting\",\n  count(*) filter (where d.status = 'dead') as \"Dead\",\n  count(*) filter (where d.status = 'done') as \"Done\",\n  coalesce(extract(epoch from now() - min(o.occurred_at) filter (where d.status = 'pending')), 0) as \"Oldest waiting\"\nfrom outbox_delivery d\njoin outbox o on o.id = d.event_id\nwhere d.consumer <> 'sse'\ngroup by d.consumer\norder by 2 desc, 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Oldest waiting"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 60
+                    },
+                    {
+                      "color": "red",
+                      "value": 300
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Dead"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "transparent",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Waiting"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "transparent",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 100
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Events per minute by type",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "select $__timeGroupAlias(occurred_at, $__interval), type as metric, count(*) as value\nfrom outbox\nwhere $__timeFilter(occurred_at)\ngroup by 1, 2\norder by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1m"
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Time per stage (average)",
+      "description": "Seconds between an event and the event that caused it. Event times have whole-second precision.",
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "select $__timeGroupAlias(c.occurred_at, $__interval), p.type || ' → ' || c.type as metric,\n  avg(extract(epoch from c.occurred_at - p.occurred_at)) as value\nfrom outbox c\njoin outbox p on p.id = c.causation_id\nwhere $__timeFilter(c.occurred_at)\ngroup by 1, 2\nunion all\nselect $__timeGroupAlias(rc.occurred_at, $__interval), 'match.suggested → recommendation.created' as metric,\n  avg(extract(epoch from rc.occurred_at - m.occurred_at)) as value\n\n  from outbox m\n  join recommendations r on r.subject_id = m.payload->>'match_id'\n  join outbox rc on rc.type = 'recommendation.created' and rc.payload->>'recommendation_id' = r.id\n  where m.type = 'match.suggested' and $__timeFilter(rc.occurred_at)\ngroup by 1\norder by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1m"
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Receipts and invoices, newest first",
+      "description": "One line per document that entered the pipeline, followed through its correlation_id. Empty cell: that step has not happened (yet).",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select r.occurred_at as \"Received\", r.company_id as \"Company\", r.payload->>'kind' as \"Kind\",\n  d.payload->>'status' as \"Document\",\n  extract(epoch from d.occurred_at - r.occurred_at) as \"To document\",\n  extract(epoch from m.occurred_at - r.occurred_at) as \"To match\",\n  extract(epoch from rc.occurred_at - r.occurred_at) as \"To inbox card\",\n  r.correlation_id as \"Correlation id\"\nfrom outbox r\nleft join lateral (select x.* from outbox x where x.correlation_id = r.correlation_id\n                   and x.type = 'document.extracted' order by x.seq limit 1) d on true\nleft join lateral (select x.* from outbox x where x.correlation_id = r.correlation_id\n                   and x.type in ('match.suggested', 'match.decided') order by x.seq limit 1) m on true\nleft join lateral (select rec.id from recommendations rec where rec.subject_id = m.payload->>'match_id'\n                   order by rec.seq limit 1) rec on true\nleft join lateral (select x.* from outbox x where x.type = 'recommendation.created'\n                   and x.payload->>'recommendation_id' = rec.id order by x.seq limit 1) rc on true\nwhere r.type = 'raw_item.received'\n  and r.payload->>'kind' in ('email_attachment', 'upload', 'chat_photo', 'ksef_invoice_xml')\n  and $__timeFilter(r.occurred_at)\norder by r.seq desc\nlimit 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "To document"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 15
+                    },
+                    {
+                      "color": "red",
+                      "value": 30
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "To match"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "red",
+                      "value": 60
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "To inbox card"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 30
+                    },
+                    {
+                      "color": "red",
+                      "value": 120
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Received"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Connectors: last sync per source",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select s.connector as \"Connector\", s.company_id as \"Company\", s.doc->>'display_name' as \"Source\",\n  last.doc->>'status' as \"Last run\", (last.doc->>'items_new')::int as \"New items\",\n  extract(epoch from now() - last.started_at::timestamptz) as \"Last run age\",\n  (select count(*) from sync_runs f where f.source_id = s.id and f.doc->>'status' <> 'success'\n     and $__timeFilter(f.started_at::timestamptz)) as \"Failed runs\",\n  coalesce(last.doc->>'error', '') as \"Error\"\nfrom sources s\nleft join lateral (select r.* from sync_runs r where r.source_id = s.id order by r.seq desc limit 1) last on true\norder by 1, 2"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last run age"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 120
+                    },
+                    {
+                      "color": "red",
+                      "value": 600
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed runs"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "transparent",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Dead deliveries",
+      "description": "Handlers that failed 3 times (contracts/events.md rule 5).",
+      "gridPos": {
+        "x": 12,
+        "y": 35,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ordo-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "ordo-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select o.occurred_at as \"Event time\", d.consumer as \"Consumer group\", o.type as \"Event\", d.attempts as \"Attempts\",\n  o.company_id as \"Company\", o.id as \"Event id\", o.payload::text as \"Payload\"\nfrom outbox_delivery d\njoin outbox o on o.id = d.event_id\nwhere d.status = 'dead'\norder by o.seq desc\nlimit 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Event time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}
