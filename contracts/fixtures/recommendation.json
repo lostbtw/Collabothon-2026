@@ -104,10 +104,10 @@
           "currency": "PLN"
         },
         "tenor_days": 60,
-        "bank": "Sandbox Bank",
+        "bank": "Commerzbank",
         "account_id": "acc_pln"
       },
-      "preview": "SIMULATED: sends a credit-line application for 30,000 PLN / 60 days to the sandbox bank. No real bank is contacted."
+      "preview": "SIMULATED: sends a credit-line application for 30,000 PLN / 60 days to Commerzbank. No real bank is contacted."
     },
     "impact": {
       "cash_effect": {
@@ -201,7 +201,7 @@
         "title": "Zwrot kosztow - monitor 20.11.2026",
         "pay_on": "2026-11-30"
       },
-      "preview": "SIMULATED: books the cost, records 1,299.00 PLN owed to Jan and adds a transfer draft to the 30 Nov payment run in the sandbox bank."
+      "preview": "SIMULATED: books the cost, records 1,299.00 PLN owed to Jan and adds a transfer draft to the 30 Nov payment run at Commerzbank."
     },
     "impact": {
       "cash_effect": {
@@ -358,9 +358,9 @@
         "rate": "4.0491",
         "value_date": "2027-01-05",
         "hedge_ratio": 1.0,
-        "bank": "Sandbox Bank"
+        "bank": "Commerzbank"
       },
-      "preview": "SIMULATED: books a forward to sell 40,000 USD for 161,965 PLN on 5 Jan 2027 at the sandbox bank. No real bank is contacted."
+      "preview": "SIMULATED: books a forward to sell 40,000 USD for 161,965 PLN on 5 Jan 2027 at Commerzbank. No real bank is contacted."
     },
     "impact": {
       "cash_effect": null,

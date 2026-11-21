@@ -166,7 +166,7 @@ function AccountsSection({ accounts, sources }: { accounts: Account[]; sources: 
         const ok = !s || s.status === "connected" || s.status === "syncing";
         return (
           <Setting key={a.id} title={a.name}
-            note={[s?.is_sandbox === false ? "Bank" : "Sandbox Bank", iban && `${iban.slice(0, 4)} ${iban.slice(-4)}`, a.card_last4?.length ? `card ending ${a.card_last4.join(", ")}` : null,
+            note={["Commerzbank", iban && `${iban.slice(0, 4)} ${iban.slice(-4)}`, a.card_last4?.length ? `card ending ${a.card_last4.join(", ")}` : null,
               s?.items_total ? `${s.items_total.toLocaleString("en")} payments read` : null, a.include_in_liquidity ? null : "only company costs on it are counted"].filter(Boolean).join(" · ")}>
             <SourceStatus source={s} ok={ok} now={now} />
             {s && <SyncNow source={s} />}
@@ -174,11 +174,11 @@ function AccountsSection({ accounts, sources }: { accounts: Account[]; sources: 
           </Setting>
         );
       })}
-      {added.map((name) => <Setting key={name} title={name} note="Sandbox Bank · added in this tab"><span className="small t3">Connected</span></Setting>)}
+      {added.map((name) => <Setting key={name} title={name} note="Commerzbank · added in this tab"><span className="small t3">Connected</span></Setting>)}
       <div className="setting">
         {adding ? (
           <form className="hstack" onSubmit={connect}>
-            <label className="pill-select"><select aria-label="Bank" defaultValue="sandbox"><option value="sandbox">Sandbox Bank</option></select></label>
+            <label className="pill-select"><select aria-label="Bank" defaultValue="sandbox"><option value="sandbox">Commerzbank</option></select></label>
             <input type="text" name="name" placeholder="Account name" aria-label="Account name" autoFocus />
             <button type="submit" className="primary">Connect</button>
             <button type="button" className="quiet" onClick={() => setAdding(false)}>Cancel</button>

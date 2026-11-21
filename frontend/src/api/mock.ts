@@ -127,9 +127,9 @@ function mockDecide(rec: Recommendation, body: DecisionBody = {}): Approval {
   const params = (rec.proposed_action?.params ?? {}) as Record<string, unknown>;
   const money = (key: string) => formatMoney((body.changes?.[`proposed_action.params.${key}`] ?? params[key]) as Money | undefined);
   const outcomes: Record<string, () => { reference: string; result: string; effects?: Approval["execution"]["effects"] }> = {
-    apply_credit_line: () => ({ reference: "SIM-CL-2026-0007", result: `Sandbox bank accepted the application: limit ${money("limit")}, available from 2026-11-27.`, effects: template.execution.effects }),
-    create_payment_draft: () => ({ reference: "SIM-PAY-2026-0412", result: `Sandbox bank added a transfer draft of ${money("amount")} to the payment run on ${String(params.pay_on)}.` }),
-    book_fx_forward: () => ({ reference: "SIM-FX-2026-0003", result: `Sandbox bank booked the forward: sell ${money("notional")} at ${String(params.rate)}, value date ${String(params.value_date)}.` }),
+    apply_credit_line: () => ({ reference: "SIM-CL-2026-0007", result: `Commerzbank accepted the application: limit ${money("limit")}, available from 2026-11-27.`, effects: template.execution.effects }),
+    create_payment_draft: () => ({ reference: "SIM-PAY-2026-0412", result: `Commerzbank added a transfer draft of ${money("amount")} to the payment run on ${String(params.pay_on)}.` }),
+    book_fx_forward: () => ({ reference: "SIM-FX-2026-0003", result: `Commerzbank booked the forward: sell ${money("notional")} at ${String(params.rate)}, value date ${String(params.value_date)}.` }),
     send_email_draft: () => ({ reference: `SIM-MAIL-2026-${String(21 + decisions.size).padStart(4, "0")}`, result: `Draft e-mail to ${String(params.to)} prepared.` }),
   };
   const outcome = (outcomes[rec.proposed_action?.kind ?? "none"] ?? (() => ({ reference: `SIM-${rec.id.toUpperCase()}`, result: "Recorded in the sandbox." })))();
