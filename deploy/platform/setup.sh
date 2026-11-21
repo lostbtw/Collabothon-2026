@@ -26,6 +26,8 @@ SECRET_VALUES=(
   "whisper-api-key API_KEY"
 )
 WHISPER="$ROOT/deploy/models"
+WHISPER_SAMPLES="$WHISPER/whisper-samples"
+WHISPER_CANDIDATES=(deepdml/faster-whisper-large-v3-turbo-ct2 Systran/faster-whisper-large-v3 Systran/faster-whisper-medium)
 
 wait_for() {
   local what="$1" seconds="$2"
@@ -368,11 +370,28 @@ whisper() {
   check_whisper
 }
 
+whisper_in_api() {
+  local dir="$1"
+  shift
+  tar -C "$dir" -cf - . |
+    oc -n "$NS" exec -i deployment/ordo-api -c api -- python -c "$(cat "$WHISPER/bench_whisper.py")" "$@"
+}
+
 check_whisper() {
-  if ! oc -n "$NS" exec -i deployment/ordo-api -c api -- python - <"$WHISPER/check_whisper.py"; then
+  if ! oc -n "$NS" exec -i deployment/ordo-api -c api -- python - <"$WHISPER/check_whisper.py" ||
+    ! whisper_in_api "$WHISPER_SAMPLES" --check; then
     echo "FAIL whisper: see oc -n $NS logs deployment/whisper (and -c fetch-model for the download)" >&2
     return 1
   fi
+}
+
+whisper_bench() {
+  local dir="${1:-$WHISPER_SAMPLES}"
+  if [[ ! -f "$dir/samples.json" ]]; then
+    echo "usage: $0 whisper-bench [folder with samples.json and its clips, default $WHISPER_SAMPLES]" >&2
+    exit 2
+  fi
+  whisper_in_api "$dir" "${WHISPER_CANDIDATES[@]}"
 }
 
 db_fixtures() {
@@ -992,6 +1011,7 @@ case "$stage" in
   db-fixtures) db_fixtures ;;
   whisper) whisper ;;
   check-whisper) check_whisper ;;
+  whisper-bench) whisper_bench "$@" ;;
   ogx) ogx ;;
   check-ogx) check_ogx ;;
   ogx-off) ogx_off ;;
@@ -1011,7 +1031,7 @@ case "$stage" in
   stop-workbench) stop_workbench ;;
   smoke) smoke ;;
   *)
-    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|whisper|check-whisper|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
+    echo "usage: $0 secrets|apply|bank-csv|build|dev-build|dev-build-web|app|redeploy|db-fixtures|ogx|check-ogx|ogx-off|guardrails|check-guardrails|guardrails-off|check-m1|check-m2|check-bank|monitoring|check-monitoring|grafana|grafana-dashboards|check-grafana|mlflow|check-mlflow|eval-workbench|check-workbench|stop-workbench|whisper|check-whisper|whisper-bench|smoke|verify|webhook-urls|freeze|tag-demo [${IMAGES[*]}]" >&2
     exit 2
     ;;
 esac
