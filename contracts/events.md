@@ -29,7 +29,7 @@ Rules:
 | `document.duplicate_detected` | matcher | `document_id, duplicate_of, reason` | UI | (`document_id`) |
 | `transaction.ingested` | normaliser | `transaction_id, account_id, amount, booking_date` | matcher, finance engine | (`account_id`, `external_id`) unique |
 | `match.suggested` | matcher | `match_id, document_id, transaction_id?, paid_by, score` | agent service (creates Recommendation), UI | (`document_id`, `match_type`) for open matches |
-| `match.decided` | API (also when the owner decides a Recommendation whose subject is a Match: one tap decides both) | `match_id, status, approval_id` | finance engine (books the ledger entries, already approved), matcher (learn alias) | `approval_id` |
+| `match.decided` | API (also when the owner decides a Recommendation whose subject is a Match: one tap decides both); matcher when it auto-confirms a Match (`status` `auto_confirmed`, `approval_id` null) | `match_id, status, approval_id` | finance engine (books the ledger entries, already approved), matcher (learn alias) | `approval_id`; `match_id` when `approval_id` is null |
 | `ledger.entry.proposed` | finance engine | `ledger_entry_id, type, amount` | UI | (`match_id`, `type`). Not used in the demo flow: entries from a decided Match are booked approved directly (D-20) |
 | `ledger.entry.approved` | API / finance engine | `ledger_entry_id, approval_id` | finance engine (forecast) | `approval_id` |
 | `forecast.updated` | finance engine | `forecast_id, min_balance, min_balance_previous, first_negative_date` | agent service (liquidity agent), UI chart | `forecast.inputs_hash` (skip if unchanged) |
