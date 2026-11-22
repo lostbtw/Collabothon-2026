@@ -2,6 +2,7 @@
 import calendar
 import re
 import uuid
+from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -19,6 +20,9 @@ from backend.api.forecasting import add_forecast_event as store_forecast_event
 from backend.api.ports import finance_engine
 from backend.api.recommendations import save_recommendation
 from backend.db.store import Store
+from backend.finance.calendar import add_months
+from backend.finance.engine import load_inputs
+from backend.finance.forecast import build_forecast
 
 SUGGESTED = {
     "co_borsuk": ["Why will I be short in December?", "How much cash do I have?", "What does the credit line cost?",
@@ -44,10 +48,13 @@ SYSTEM = (
     "A below_buffer alert means the balance falls under the safety buffer but stays above zero; say 'below zero' "
     "only when goes_below_zero is true. "
     "When the owner states a future fact (closed days, a client paying on a date), call add_forecast_event. "
-    "Refuse politely anything that is not about this company's finances. If a tool returns an error, fix the "
-    "arguments or choose another tool. "
+    "The person writing is the owner: 'I', 'me' and 'my' mean the owner, whom the company pays as well. Pay is "
+    "company finance: for what anyone on the team, the owner included, was paid or will be paid, call get_team_pay. "
+    "Refuse politely only questions that are not about this company's finances, such as general knowledge or "
+    "investment advice. If a tool returns an error, fix the arguments or choose another tool. "
     'Answer with JSON {"answer": "..."}.'
 )
+PROJECTION_MAX_DAYS = 400
 FINAL_SCHEMA = {"type": "object", "required": ["answer"], "properties": {"answer": {"type": "string", "minLength": 1}}}
 
 MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
@@ -56,6 +63,9 @@ MONTHS |= {"czerwca": 6, "czerwiec": 6, "lipca": 7, "juni": 6, "juli": 7, "dezem
 CLAIMS_CARD = re.compile(r"\b(added|created|put|placed|prepared|drafted|sent)\b[^.]{0,80}\b(card|inbox|to-?do|reminder)\b"
                          r"|\b(card|reminder)\b[^.]{0,80}\b(added|created|waiting|prepared|drafted)\b", re.I)
 MONEY_WORDS = re.compile(r"\b(transfer|pay|send|wire|approve|execute|book|przelew|zapłać|überweis\w*|zahle)\b", re.I)
+PAY_WORDS = re.compile(r"salar|wage|payroll|board fee|wynagrodz|pensj|gehalt|lohn", re.I)
+IN_MONTHS = re.compile(r"\bin (\d+|a|one|two|three|four|five|six) months?\b")
+COUNT_WORDS = {"a": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
 
 
 def get_cash_position(conn: psycopg.Connection, company: str) -> dict[str, Any]:
@@ -171,6 +181,69 @@ def get_month_costs(conn: psycopg.Connection, company: str, month: str | None = 
             "evidence": [{"kind": "external", "id": f"costs_{month}", "label": f"Costs of {month} by type", "url": f"/money?month={month}"}]}
 
 
+def _pay_month(as_of: date, month: str | None, months_ahead: int | None) -> str | None:
+    if month:
+        return month if re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month) else None
+    year, mon = add_months(as_of.year, as_of.month, int(months_ahead or 0))
+    return f"{year}-{mon:02d}"
+
+
+def get_team_pay(conn: psycopg.Connection, company: str, month: str | None = None,
+                 months_ahead: int | None = None) -> dict[str, Any]:
+    as_of = _as_of(conn, company)
+    asked, month = month, _pay_month(as_of, month, months_ahead)
+    if month is None:
+        return {"error": f"month must be YYYY-MM, not {asked!r}; today is {as_of.isoformat()}"}
+    start, end = owner.month_range(month)
+    base = owner.settings(conn, company)["company"]["base_currency"]
+    team = owner.people(conn, company)
+    counterparties = {c["id"]: c for c in Store(conn).list("counterparty", company_id=company)}
+
+    paid: dict[str, list[tuple[str, Decimal]]] = defaultdict(list)
+    for t in Store(conn).list("transaction", company_id=company):
+        out = -Decimal(t["amount_base"]["amount"])
+        if out <= 0 or t.get("category") in owner.NOT_COSTS | {"social_security"}:
+            continue
+        person = owner.person_of(t, team, counterparties)
+        if person:
+            paid[person["id"]].append((t["booking_date"], out))
+
+    expected: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    runs_until = None
+    days = (date.fromisoformat(end) - as_of).days
+    if days > 0:
+        inputs = load_inputs(conn, company)
+        horizon = min(max(inputs["horizon_days"], days), PROJECTION_MAX_DAYS)
+        runs_until = date.fromordinal(as_of.toordinal() + horizon).isoformat()
+        for c in build_forecast(**{**inputs, "horizon_days": horizon})["components"]:
+            if c["kind"] not in ("salary", "fixed_recurring") or not c["dates"]:
+                continue
+            person = owner.person_of({"counterparty_name_raw": c["label"]}, team, counterparties)
+            if person is None:
+                continue
+            each = -Decimal(c["amount_base"]["amount"]) / len(c["dates"])
+            expected[person["id"]] += [{"date": d, "amount": owner.money(each, base)} for d in c["dates"] if start <= d <= end]
+
+    people = []
+    for p in team:
+        history = sorted(paid.get(p["id"], []))
+        if not history and not expected.get(p["id"]):
+            continue
+        people.append({
+            "name": p["name"].replace(" (SAMPLE)", ""), "role": p["role"], "is_the_owner": p["role"] == "owner",
+            "pay_type": p["pay_type"],
+            "paid_in_month": owner.money(sum((a for d, a in history if start <= d <= end), Decimal(0)), base),
+            "expected_in_month": expected.get(p["id"], []),
+            "last_payments": [{"date": d, "amount": owner.money(a, base)} for d, a in history[-3:]],
+        })
+    totals = {"paid_in_month": owner.money(sum((Decimal(p["paid_in_month"]["amount"]) for p in people), Decimal(0)), base),
+              "expected_in_month": owner.money(sum((Decimal(e["amount"]["amount"]) for p in people
+                                                    for e in p["expected_in_month"]), Decimal(0)), base)}
+    return {"as_of_date": as_of.isoformat(), "month": month, "forecast_runs_until": runs_until, "people": people,
+            "team_totals": totals, "evidence": [{"kind": "external", "id": f"people_{month}", "label": f"What each person is paid, {month}",
+                          "url": f"/money/people?month={month}"}]}
+
+
 def _schema(name, description, properties=None, required=()):
     return {"type": "function", "function": {"name": name, "description": description, "parameters": {
         "type": "object", "properties": properties or {}, "required": list(required), "additionalProperties": False}}}
@@ -195,6 +268,11 @@ CHAT_TOOLS: dict[str, tools.Tool] = {
                             {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_clients),
     "get_month_costs": (_schema("get_month_costs", "Costs of a month by category compared with the month before (why costs went up or down)",
                                 {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_month_costs),
+    "get_team_pay": (_schema("get_team_pay", "Salaries and pay of each person on the team, the owner (the user) included: "
+                             "what was paid in a month and what the forecast expects to be paid, with dates", {
+        "month": {"type": "string", "description": "YYYY-MM; a month named without a year is the next one from today"},
+        "months_ahead": {"type": "integer", "description": "Months from today when month is not given: 0 this month, "
+                                                           "1 next month, 2 in two months"}}), get_team_pay),
     "request_action": (_schema("request_action", "Put a request that would move money, or a reminder asking a client to pay sooner, into the owner's inbox", {
         "description": {"type": "string"},
         "kind": {"type": "string", "enum": ["payment", "transfer", "credit_line", "fx_hedge", "chase_receivable"]}},
@@ -278,6 +356,42 @@ def _component_evidence(conn: psycopg.Connection, forecast_id: str) -> list[dict
     return [e for c in forecast["components"] for e in c.get("evidence", [])]
 
 
+def _pay_period(text: str, as_of: date) -> dict[str, Any]:
+    m = IN_MONTHS.search(text)
+    if m:
+        return {"months_ahead": int(m.group(1)) if m.group(1).isdigit() else COUNT_WORDS[m.group(1)]}
+    if "next month" in text:
+        return {"months_ahead": 1}
+    named = next((MONTHS[t] for t in re.findall(r"[a-zà-ž]+", text) if t in MONTHS and t != "may"), None)
+    if named:
+        return {"month": f"{as_of.year + (named < as_of.month)}-{named:02d}"}
+    return {}
+
+
+def _pay_answer(result: dict[str, Any], mine: bool) -> str:
+    month = date.fromisoformat(result["month"] + "-01").strftime("%B %Y")
+
+    def line(p: dict[str, Any]) -> str:
+        coming = p["expected_in_month"]
+        if coming:
+            return " and ".join(f"{fmt_money(e['amount'])} on {short_date(e['date'])}" for e in coming)
+        if Decimal(p["paid_in_month"]["amount"]):
+            return f"{fmt_money(p['paid_in_month'])} paid"
+        return "nothing expected"
+
+    people = result["people"]
+    you = next((p for p in people if p["is_the_owner"]), None) if mine else None
+    if you:
+        answer = f"In {month} you can expect {line(you)}." if you["expected_in_month"] else f"In {month}: {line(you)}."
+        if you["last_payments"]:
+            last = you["last_payments"][-1]
+            answer += f" Your last pay was {fmt_money(last['amount'])} on {short_date(last['date'])} {last['date'][:4]}."
+        return answer
+    if not people:
+        return f"No pay to the team is recorded or expected in {month}."
+    return f"Pay in {month}: " + "; ".join(f"{p['name']} {line(p)}" for p in people) + "."
+
+
 def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple[str, list, list, str | None, dict | None]:
     text = message.lower()
     period = _closed_period(message, _as_of(conn, company))
@@ -299,6 +413,12 @@ def deterministic(conn: psycopg.Connection, company: str, message: str) -> tuple
                   "It runs only after you approve it, in simulation.")
         return (answer, _evidence([result]), [{"tool": "request_action", "arguments": {"description": message, "kind": kind},
                                                "duration_ms": 0}], result["recommendation_id"], _guardrail_for(conn, result["recommendation_id"]))
+
+    if PAY_WORDS.search(text):
+        args = _pay_period(text, _as_of(conn, company))
+        result = get_team_pay(conn, company, **args)
+        answer = _pay_answer(result, mine=bool(re.search(r"\b(i|me|my|mine)\b", text)))
+        return answer, _evidence([result]), [{"tool": "get_team_pay", "arguments": args, "duration_ms": 0}], None, None
 
     if re.search(r"short|gap|minus|lowest|low point|negative|zabrak|fehlt", text):
         facts = None
@@ -413,7 +533,8 @@ def answer(conn: psycopg.Connection, company: str, message: str, session_id: str
         with tracing.span("chat.turn", {"message": message, "session_id": session_id}) as step:
             tracing.tag(agent="chat", company_id=company, session_id=session_id)
             trace_id = tracing.trace_id()
-            messages = [{"role": "system", "content": SYSTEM}, *history(conn, session_id, company),
+            today = _as_of(conn, company).isoformat()
+            messages = [{"role": "system", "content": f"{SYSTEM} Today is {today}."}, *history(conn, session_id, company),
                         {"role": "user", "content": message}]
             result, results = run_tool_loop(model, conn, company, messages, CHAT_TOOLS, FINAL_SCHEMA, trace=trace)
             for r in results:
