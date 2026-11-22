@@ -60,7 +60,7 @@ cd frontend
 VITE_API_MODE=live npm run dev                   # http://localhost:5173, uses the API above
 ```
 
-If you copied `.env.example` to `.env`, remove its `ORDO_DATABASE_URL` line first: it points at a PostgreSQL on port 5432, and the API waits for it instead of starting its own. On Windows PowerShell set the variables like this: `$env:PORT=8000`, `$env:VITE_API_MODE="live"`.
+If your `.env` sets `ORDO_DATABASE_URL`, the API connects to that database instead of starting its own; remove the line to use the built-in one. On Windows PowerShell set the variables like this: `$env:PORT=8000`, `$env:VITE_API_MODE="live"`.
 
 **Bank simulator on its own:**
 
