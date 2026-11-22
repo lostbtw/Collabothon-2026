@@ -1,4 +1,4 @@
-"""Stand-ins for computations that live elsewhere; numbers from fixtures or GLOSSARY.md, never a model."""
+"""Stand-ins for computations that live elsewhere; numbers from fixtures, never a model."""
 from datetime import date, timedelta
 from decimal import Decimal
 
