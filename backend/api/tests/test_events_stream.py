@@ -44,3 +44,12 @@ def test_stream_relays_new_outbox_events_after_the_replay(client, db, monkeypatc
         events = read_events(r, 1)
 
     assert events[0]["type"] == "forecast.updated"
+
+
+def test_the_stream_holds_no_pool_connection_while_open():
+    from backend.api import deps
+    from backend.api.routes import stream
+
+    [route] = [r for r in stream.router.routes if r.path == "/events/stream"]
+    calls = [d.call for d in route.dependant.dependencies]
+    assert deps.conn not in calls and deps.company_id not in calls
