@@ -607,3 +607,206 @@ trailer
 startxref
 45774
 %%EOF
+
+% Written by MuPDF 1.28.6
+
+12 0 obj
+<</Type/Annot/Subtype/Widget/AP<</N 32 0 R>>/BS<</S/S/W 1>>/DA(0.066667 0.066667 0.066667 rg /Helv 8 Tf)/DV(THE PROBLEM\nWhat problem are you addressing? Who experiences it, and why is it important to solve?\n\nYOUR SOLUTION\nHow does your project address this problem? Describe the core idea and what makes it unique, useful or innovative.\n\nTHE WORKING PROTOTYPE\nWhat can users do with your project today? Walk us through the main features and distinguish what is already implemented and working.\n\nBEHIND THE BUILD\nExplain how the key components work together and the technical decisions that shaped the implementation. Identify existing tools, libraries, services or codebases you built upon, and what your team created during the hackathon.\n\nCHALLENGES AND DISCOVERIES\nWhat challenges did you encounter? What approaches did you try, and what did you learn?\n\nRESULTS AND NEXT STEPS\nWhat did you achieve, and how did you validate or test it? Share the outcome you are most proud of, current limitations and what you would improve next.)/F 4/FT/Tx/Ff 4096/MK<</BC[.721569 .721569 .721569]/BG[1 1 1]>>/P 11 0 R/Rect[42 176 553.2756 686]/T(project_overview)/V(THE PROBLEM\nSmall business owners decide what they can afford by looking at the bank balance. The balance does not show what is already committed: taxes due next week, money owed back to employees, clients who always pay late. The shortfall shows up only when a payment fails. An accountant closes last month's books, but nobody looks at the next six weeks.\n\nYOUR SOLUTION\nOrdo connects to the company's mailbox, bank accounts and the central bank's exchange rates. It reads receipts and invoices, matches each one to its bank payment and records it as a ledger entry. From these entries and recurring payments it predicts the bank balance for each of the next 45 days. When the balance is about to drop below a safety level, Ordo shows which payments cause it and prepares options: a reminder to a late client, a later payment date, or a credit line. A second agent, FX Shield, checks foreign-currency invoices and proposes fixing the rate only when a likely rate move would take a real part of the profit.\nOrdo works on its own and asks only when it is unsure: a doubtful match or a payment it cannot sort goes to the owner instead of being guessed. When the owner sorts a payment, Ordo saves the answer as a rule and sorts that payee's next payments itself. Every action that moves money needs the owner's approval and goes to a simulated bank. Amounts are always calculated by code; the language model reads and explains, but never produces a number. The model is open-weights and runs on OpenShift AI, so company data stays inside.\n\nTHE WORKING PROTOTYPE\nDeployed as a web app on Red Hat OpenShift AI with one GPU. It runs on two sample companies with synthetic data, a software studio and a pizzeria.\n- Data comes in automatically via the mailbox, the bank connection, the daily exchange-rate feed and KSeF e-invoices.\n- A receipt photo or PDF becomes structured fields, each with a confidence score.\n- Duplicate copies are merged, each document is matched to its bank payment, and Ordo works out whether the company or an employee paid.\n- An employee's receipt paid with a private card becomes a "Pay Jan back" task; one approval sends the transfer to the simulated bank.\n- A chart of the bank balance for the next 45 days: it marks the lowest day, lists the payments that cause it, shows what happens if a client pays late, and offers ways to cover it.\n- FX Shield: "hedge" or "no need" per foreign-currency invoice, from 756 days of exchange rates.\n- Ask Ordo: questions about the company's money by text or voice; account and card numbers are masked, off-topic questions refused.\n\nBEHIND THE BUILD\nHow it fits together: connectors store raw data \(mail, bank, rates, e-invoices\). A PostgreSQL table works as an event queue and hands each new item to the next step: OCR \(docling-serve\) reads the text and the language model \(gpt-oss-20b\) turns it into fields, the matching step pairs them with bank payments, the finance engine updates the ledger and the forecast, and the agents create proposals. The API records each approval and sends the action to the bank simulator.\nKey decisions: the forecast is rule-based \(recurring payments, averages, known invoices\) rather than machine learning, so every number can be explained; on the pizzeria data it was within about 1.2% seven weeks ahead. One model on one GPU does reading, sorting and tool calls; OCR runs on CPU. The bank simulator speaks a PSD2-style API, so the bank connector can switch to a real bank's PSD2 API once a licensed provider handles customer consent.\nExisting tools we built on: OpenShift AI, vLLM, gpt-oss-20b, docling-serve, Whisper, OGX, MCP, NeMo Guardrails with Presidio, MLflow, PostgreSQL, FastAPI, React.\nRed Hat bonus items used: vLLM, OGX with MCP, NeMo Guardrails, MLflow tracing and evaluation, Jupyter notebooks on OpenShift AI.\n\nCHALLENGES AND DISCOVERIES\n- Bank simulator: making it close enough to a real PSD2 bank API that the same connector code can later talk to a real bank, and loading the organisers' bank statement as it is, including Swiss-franc payments booked inside a euro account.\n- One GPU fits one model, so we dropped a vision model; OCR runs on CPU at about 11 seconds per document.\n- VAT on receipt photos is hard to read \(26 of 59 correct\), so every field shows how sure Ordo is and the owner confirms it.\n- Keeping the model honest: an answer containing a number that no calculation produced is rejected and replaced by a fixed template.\n\nRESULTS AND NEXT STEPS\nThe whole flow runs on OpenShift AI: data comes in, is recorded, forecast, turned into a proposal, approved and executed against the simulated bank.\nChecks: 850 backend tests and 110 frontend tests; an MLflow evaluation on 59 documents \(total right on 59, date and seller tax number on 58, VAT on 26\); a 40-second end-to-end check of the deployment.\nNext: better VAT reading, a real bank connection through a licensed partner such as Commerzbank, and a direct KSeF connection.)>>
+endobj
+
+31 0 obj
+<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>
+endobj
+
+32 0 obj
+<</Type/XObject/Subtype/Form/BBox[0 0 511.27558 510]/Matrix[1 0 0 1 0 0]/Resources<</Font<</Helv 31 0 R>>>>/Length 6611>>
+stream
+/Tx BMC
+q
+1 1 1 rg
+0 0 511.27558 510 re
+f
+1 w
+.721569 .721569 .721569 RG
+.5 .5 510.27558 509 re
+s
+1 1 509.27558 508 re
+W
+n
+BT
+.066667 .066667 .066667 rg
+2 508 Td
+0 -8.928 Td
+/Helv 8 Tf
+(THE PROBLEM) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Small business owners decide what they can afford by looking at the bank balance. The balance does not show what is already committed: ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(taxes due next week, money owed back to employees, clients who always pay late. The shortfall shows up only when a payment fails. An ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(accountant closes last month's books, but nobody looks at the next six weeks.) Tj
+0 -8.928 Td
+0 -8.928 Td
+/Helv 8 Tf
+(YOUR SOLUTION) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Ordo connects to the company's mailbox, bank accounts and the central bank's exchange rates. It reads receipts and invoices, matches each ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(one to its bank payment and records it as a ledger entry. From these entries and recurring payments it predicts the bank balance for each of ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(the next 45 days. When the balance is about to drop below a safety level, Ordo shows which payments cause it and prepares options: a ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(reminder to a late client, a later payment date, or a credit line. A second agent, FX Shield, checks foreign-currency invoices and proposes fixing ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(the rate only when a likely rate move would take a real part of the profit.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Ordo works on its own and asks only when it is unsure: a doubtful match or a payment it cannot sort goes to the owner instead of being ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(guessed. When the owner sorts a payment, Ordo saves the answer as a rule and sorts that payee's next payments itself. Every action that ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(moves money needs the owner's approval and goes to a simulated bank. Amounts are always calculated by code; the language model reads ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(and explains, but never produces a number. The model is open-weights and runs on OpenShift AI, so company data stays inside.) Tj
+0 -8.928 Td
+0 -8.928 Td
+/Helv 8 Tf
+(THE WORKING PROTOTYPE) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Deployed as a web app on Red Hat OpenShift AI with one GPU. It runs on two sample companies with synthetic data, a software studio and a ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(pizzeria.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- Data comes in automatically via the mailbox, the bank connection, the daily exchange-rate feed and KSeF e-invoices.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- A receipt photo or PDF becomes structured fields, each with a confidence score.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- Duplicate copies are merged, each document is matched to its bank payment, and Ordo works out whether the company or an employee ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(paid.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- An employee's receipt paid with a private card becomes a "Pay Jan back" task; one approval sends the transfer to the simulated bank.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- A chart of the bank balance for the next 45 days: it marks the lowest day, lists the payments that cause it, shows what happens if a client pays ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(late, and offers ways to cover it.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- FX Shield: "hedge" or "no need" per foreign-currency invoice, from 756 days of exchange rates.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- Ask Ordo: questions about the company's money by text or voice; account and card numbers are masked, off-topic questions refused.) Tj
+0 -8.928 Td
+0 -8.928 Td
+/Helv 8 Tf
+(BEHIND THE BUILD) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(How it fits together: connectors store raw data \(mail, bank, rates, e-invoices\). A PostgreSQL table works as an event queue and hands each ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(new item to the next step: OCR \(docling-serve\) reads the text and the language model \(gpt-oss-20b\) turns it into fields, the matching step pairs ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(them with bank payments, the finance engine updates the ledger and the forecast, and the agents create proposals. The API records each ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(approval and sends the action to the bank simulator.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Key decisions: the forecast is rule-based \(recurring payments, averages, known invoices\) rather than machine learning, so every number can ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(be explained; on the pizzeria data it was within about 1.2% seven weeks ahead. One model on one GPU does reading, sorting and tool calls; ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(OCR runs on CPU. The bank simulator speaks a PSD2-style API, so the bank connector can switch to a real bank's PSD2 API once a licensed ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(provider handles customer consent.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Existing tools we built on: OpenShift AI, vLLM, gpt-oss-20b, docling-serve, Whisper, OGX, MCP, NeMo Guardrails with Presidio, MLflow, ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(PostgreSQL, FastAPI, React.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Red Hat bonus items used: vLLM, OGX with MCP, NeMo Guardrails, MLflow tracing and evaluation, Jupyter notebooks on OpenShift AI.) Tj
+0 -8.928 Td
+0 -8.928 Td
+/Helv 8 Tf
+(CHALLENGES AND DISCOVERIES) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- Bank simulator: making it close enough to a real PSD2 bank API that the same connector code can later talk to a real bank, and loading the ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(organisers' bank statement as it is, including Swiss-franc payments booked inside a euro account.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- One GPU fits one model, so we dropped a vision model; OCR runs on CPU at about 11 seconds per document.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- VAT on receipt photos is hard to read \(26 of 59 correct\), so every field shows how sure Ordo is and the owner confirms it.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(- Keeping the model honest: an answer containing a number that no calculation produced is rejected and replaced by a fixed template.) Tj
+0 -8.928 Td
+0 -8.928 Td
+/Helv 8 Tf
+(RESULTS AND NEXT STEPS) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(The whole flow runs on OpenShift AI: data comes in, is recorded, forecast, turned into a proposal, approved and executed against the ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(simulated bank.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Checks: 850 backend tests and 110 frontend tests; an MLflow evaluation on 59 documents \(total right on 59, date and seller tax number on 58, ) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(VAT on 26\); a 40-second end-to-end check of the deployment.) Tj
+0 -8.928 Td
+/Helv 8 Tf
+(Next: better VAT reading, a real bank connection through a licensed partner such as Commerzbank, and a direct KSeF connection.) Tj
+ET
+Q
+EMC
+
+endstream
+endobj
+
+xref
+12 1
+0000046028 00000 n 
+31 2
+0000052213 00000 n 
+0000052303 00000 n 
+
+trailer
+<</Size 33/Info 20 0 R/Root 1 0 R/ID[<4A17EC7A4B64774F824ACF8D0B278334><EEFC82F17D963D6933AB7982F55B6295>]/Prev 45774>>
+startxref
+59071
+%%EOF
