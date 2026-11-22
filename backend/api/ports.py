@@ -35,8 +35,10 @@ def finance_engine():
 
 
 def latest_base_forecast(conn: psycopg.Connection, company: str) -> dict[str, Any] | None:
-    bases = [f for f in Store(conn).list("forecast", company_id=company) if not f.get("scenario_of")]
-    return bases[0] if bases else None
+    # One row, not every forecast ever made: they pile up with each event, and this runs on almost every request.
+    row = conn.execute("select doc from forecasts where company_id = %s and scenario_of is null order by seq desc limit 1",
+                       (company,)).fetchone()
+    return row[0] if row else None
 
 
 def reissue_forecast(conn: psycopg.Connection, company: str, base: dict[str, Any], **changes: Any) -> dict[str, Any]:
