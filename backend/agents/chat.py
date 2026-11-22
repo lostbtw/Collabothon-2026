@@ -181,18 +181,19 @@ def get_month_costs(conn: psycopg.Connection, company: str, month: str | None = 
             "evidence": [{"kind": "external", "id": f"costs_{month}", "label": f"Costs of {month} by type", "url": f"/money?month={month}"}]}
 
 
-def _pay_month(as_of: date, month: str | None, months_ahead: int | None) -> str:
-    if month and re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month):
-        return month
+def _pay_month(as_of: date, month: str | None, months_ahead: int | None) -> str | None:
+    if month:
+        return month if re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month) else None
     year, mon = add_months(as_of.year, as_of.month, int(months_ahead or 0))
     return f"{year}-{mon:02d}"
 
 
 def get_team_pay(conn: psycopg.Connection, company: str, month: str | None = None,
                  months_ahead: int | None = None) -> dict[str, Any]:
-    """Pay of each person, the owner included: bank payments so far, and the finance engine's expected payments."""
     as_of = _as_of(conn, company)
-    month = _pay_month(as_of, month, months_ahead)
+    asked, month = month, _pay_month(as_of, month, months_ahead)
+    if month is None:
+        return {"error": f"month must be YYYY-MM, not {asked!r}; today is {as_of.isoformat()}"}
     start, end = owner.month_range(month)
     base = owner.settings(conn, company)["company"]["base_currency"]
     team = owner.people(conn, company)
@@ -235,8 +236,11 @@ def get_team_pay(conn: psycopg.Connection, company: str, month: str | None = Non
             "expected_in_month": expected.get(p["id"], []),
             "last_payments": [{"date": d, "amount": owner.money(a, base)} for d, a in history[-3:]],
         })
+    totals = {"paid_in_month": owner.money(sum((Decimal(p["paid_in_month"]["amount"]) for p in people), Decimal(0)), base),
+              "expected_in_month": owner.money(sum((Decimal(e["amount"]["amount"]) for p in people
+                                                    for e in p["expected_in_month"]), Decimal(0)), base)}
     return {"as_of_date": as_of.isoformat(), "month": month, "forecast_runs_until": runs_until, "people": people,
-            "evidence": [{"kind": "external", "id": f"people_{month}", "label": f"What each person is paid, {month}",
+            "team_totals": totals, "evidence": [{"kind": "external", "id": f"people_{month}", "label": f"What each person is paid, {month}",
                           "url": f"/money/people?month={month}"}]}
 
 
@@ -266,7 +270,7 @@ CHAT_TOOLS: dict[str, tools.Tool] = {
                                 {"month": {"type": "string", "description": "YYYY-MM, default this month"}}), get_month_costs),
     "get_team_pay": (_schema("get_team_pay", "Salaries and pay of each person on the team, the owner (the user) included: "
                              "what was paid in a month and what the forecast expects to be paid, with dates", {
-        "month": {"type": "string", "description": "YYYY-MM"},
+        "month": {"type": "string", "description": "YYYY-MM; a month named without a year is the next one from today"},
         "months_ahead": {"type": "integer", "description": "Months from today when month is not given: 0 this month, "
                                                            "1 next month, 2 in two months"}}), get_team_pay),
     "request_action": (_schema("request_action", "Put a request that would move money, or a reminder asking a client to pay sooner, into the owner's inbox", {

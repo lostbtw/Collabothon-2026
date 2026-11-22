@@ -1,4 +1,3 @@
-"""The chat's pay tool on the Borsuk Labs bank history: the owner's own pay is company finance, answered from the engine."""
 import json
 from types import SimpleNamespace
 
@@ -44,6 +43,19 @@ def test_a_past_month_shows_what_was_paid_and_nothing_expected(labs):
     assert you["paid_in_month"] == OWNER_PAY
     assert you["expected_in_month"] == []
     assert result["forecast_runs_until"] is None
+
+
+def test_the_team_total_comes_from_the_tool_so_the_model_need_not_add_up(labs):
+    result = chat.get_team_pay(labs, "co_borsuk", month="2026-12")
+
+    assert result["team_totals"]["expected_in_month"] == {"amount": "58000.00", "currency": "PLN"}
+    assert len(result["people"]) == 7
+
+
+def test_a_month_name_instead_of_yyyy_mm_is_an_error_the_model_can_fix(labs):
+    assert chat.get_team_pay(labs, "co_borsuk", month="December") == {
+        "error": "month must be YYYY-MM, not 'December'; today is 2026-11-21"}
+    assert chat.get_team_pay(labs, "co_borsuk", month="", months_ahead=1)["month"] == "2026-12"
 
 
 def test_without_the_model_the_salary_question_gets_the_owners_pay(labs):
