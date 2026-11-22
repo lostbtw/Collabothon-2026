@@ -50,6 +50,18 @@ npm ci
 npm run dev            # http://localhost:5173
 ```
 
+**Web app with the real API and demo data** (no Docker; a local PostgreSQL starts on its own):
+
+```bash
+uv sync --group localdb
+PORT=8000 uv run python -m backend.api.dev       # API on http://localhost:8000/api/v1
+
+cd frontend
+VITE_API_MODE=live npm run dev                   # http://localhost:5173, uses the API above
+```
+
+If you copied `.env.example` to `.env`, remove its `ORDO_DATABASE_URL` line first: it points at a PostgreSQL on port 5432, and the API waits for it instead of starting its own. On Windows PowerShell set the variables like this: `$env:PORT=8000`, `$env:VITE_API_MODE="live"`.
+
 **Bank simulator on its own:**
 
 ```bash
