@@ -113,6 +113,7 @@ code { font-size: 13px; background: var(--sunken); border-radius: 4px; padding: 
 .ellipsis { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .coming .t2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coming > span > * { white-space: nowrap; }
 .bad-fill { fill: var(--bad); }
 .chev { width: 16px; flex: none; display: inline-flex; justify-content: flex-end; color: var(--text-3); transition: transform var(--t-fast) var(--ease-out); }
 a.trow:hover .chev, a.list-row:hover .chev { transform: translateX(2px); color: var(--text-2); }
@@ -209,6 +210,39 @@ tr:last-child td { border-bottom: 0; }
 .cost-bar span { display: block; height: 100%; }
 .progress { height: 8px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
 .progress span { display: block; height: 100%; background: var(--accent); }
+.progress span.warn { background: var(--warn); }
+.explained-label { padding-bottom: 4px; font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+.explained-row { gap: 12px; padding: 10px 0; }
+.explained-row .chip { flex: none; }
+.explained-amount { flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+.check-mark { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; font-size: 12px; font-weight: 600; }
+.check-mark.ok { background: var(--accent-soft); color: var(--good); }
+.check-mark.warn { background: var(--warn-soft); color: var(--warn); }
+.check-mark.neutral { background: var(--sunken); color: var(--text-2); }
+.check-mark.small-mark { width: 24px; height: 24px; }
+.review-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.review-stat { display: flex; flex-direction: column; gap: 2px; padding: 16px; border-radius: var(--radius-md); border: 1px solid transparent; color: inherit; transition: border-color var(--t-fast) var(--ease-out); }
+.review-stat.open { background: var(--warn-soft); }
+.review-stat.done { background: var(--accent-soft); }
+a.review-stat:hover { text-decoration: none; border-color: var(--border); }
+a.review-stat:hover .chev { transform: translateX(2px); }
+.review-value { font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.review-stat.open .review-value { color: var(--warn); }
+.review-stat.done .review-value { color: var(--good); }
+.spend-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.spend-part { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--page); }
+.spend-value { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.explained-row .warn { color: var(--warn); }
+
+.balance-hover { position: relative; align-self: flex-start; border-radius: var(--radius-md); outline-offset: 4px; }
+.balance-hover[tabindex] { cursor: default; }
+.balance-total { white-space: nowrap; }
+.balance-pop { position: absolute; z-index: 20; top: calc(100% + 8px); left: 0; min-width: 260px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out), visibility var(--t-fast); }
+.balance-hover:hover .balance-pop, .balance-hover:focus-visible .balance-pop { opacity: 1; visibility: visible; transform: none; }
+.balance-pop .explained-label { padding-bottom: 0; }
+
+button.link-button { height: auto; padding: 0; border: 0; background: none; color: var(--accent); font-weight: 400; }
+button.link-button:hover { filter: none; text-decoration: underline; }
 .coming { display: grid; grid-template-columns: 52px 1fr auto; gap: 8px 12px; font-size: 13px; line-height: 18px; }
 .legend { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
 .legend i { width: 18px; height: 0; border-top: 2px solid var(--text); display: inline-block; }

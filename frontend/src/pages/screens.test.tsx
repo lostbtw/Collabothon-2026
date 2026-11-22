@@ -18,7 +18,7 @@ const october = () => api.ledgerSummary("co_borsuk", { groupBy: "category", ...m
 describe("Overview", () => {
   it("shows the bank balance, the accounts and what is coming", async () => {
     const html = render(<CashCard accounts={await api.accounts("co_borsuk")} forecast={await api.forecast("co_borsuk")} />);
-    expect(html).toContain("38,400 PLN");
+    expect(html).toContain("38,400.00 PLN");
     expect(html).toContain("24,730.15 PLN");
     expect(html).toContain("VAT for October");
     expect(html).toContain("-58,000 PLN");
@@ -26,7 +26,8 @@ describe("Overview", () => {
   it("shows where October's money went, each type linking to its payments", async () => {
     const summary = await october();
     const html = render(<WhereItWent f={monthFigures(summary, "PLN")} month="2026-10" summary={summary} />);
-    expect(html).toContain("124,600 PLN spent in October");
+    expect(html).toContain("Fixed every month");
+    expect(html).toContain("Everything else");
     expect(html).toContain("Staff");
     expect(html).toContain("67,200 PLN");
     expect(html).toContain("24 payments");

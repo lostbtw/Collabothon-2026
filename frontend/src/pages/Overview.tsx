@@ -1,21 +1,23 @@
 // Overview: where the company stands today, how last month went, and cash over time.
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type AccountsResponse, type BalanceHistory, type LedgerSummary } from "../api/client";
 import type { Approval, Forecast, Money, Recommendation, Transaction } from "../api/types.gen";
 import { useAsk } from "../components/AskOrdo";
 import { CashChart } from "../components/CashChart";
-import { Change, DoneChip, MonthSelect, PageHead, SimButton, Skeleton, StatusLabel, Tile } from "../components/ui";
+import { Icon } from "../components/Icon";
+import { Modal } from "../components/Modal";
+import { Change, Chevron, DoneChip, MonthSelect, PageHead, SimButton, Skeleton, StatusLabel, Tile } from "../components/ui";
 import { compareAmounts, isZero, monthFigures, monthOnly, percent, previousMonth, recentMonths, type MonthFigures } from "../lib/costTypes";
 import { useCompany, useCompanyInfo, useToday } from "../lib/company";
-import { daysBetween, shortDate } from "../lib/dates";
+import { shortDate } from "../lib/dates";
 import { useLive } from "../lib/live";
 import { formatMoney } from "../lib/money";
 import { requestRefresh, useRefreshKey } from "../lib/refresh";
 import { useApi } from "../lib/useApi";
-import { plainName, whole } from "../lib/words";
+import { initials, plainName, whole } from "../lib/words";
 import { monthAndBefore } from "../lib/monthSummary";
-import { upcoming } from "./dashboard/model";
+import { upcoming, type Upcoming } from "./dashboard/model";
 import { buildDecision } from "./inbox/model";
 import { buildTodo, topThree, type TodoItem } from "./todo/model";
 
@@ -42,14 +44,17 @@ export function Overview() {
   const [transactions, parties] = lines.data ?? [null, null];
   const names = Object.fromEntries((parties?.items ?? []).map((c) => [c.id, plainName(c.name)]));
   const currency = company?.base_currency ?? forecast?.base_currency ?? "PLN";
+  const cashRef = useRef<HTMLDivElement>(null);
+  const todoRef = useRef<HTMLDivElement>(null);
+  const todoHeight = useRestingHeight(todoRef, cashRef);
   return (
     <>
       <PageHead title="Overview" sub="Your cash today, what waits for you, how the month went and what is coming." />
       <section className="section">
         <h2>Today</h2>
-        <div className="row">
-          <CashCard accounts={accounts} forecast={forecast} loading={now.loading && !now.data} />
-          <TodoCard items={inbox?.items ?? null} forecast={forecast} loading={now.loading && !now.data} />
+        <div className="row" style={{ alignItems: "flex-start" }}>
+          <div ref={cashRef}><CashCard accounts={accounts} forecast={forecast} loading={now.loading && !now.data} fillTo={todoHeight} /></div>
+          <div ref={todoRef}><TodoCard items={inbox?.items ?? null} forecast={forecast} loading={now.loading && !now.data} /></div>
         </div>
       </section>
       <MonthSection month={shown} months={recentMonths(today, 6)} onMonth={setMonth}
@@ -60,38 +65,77 @@ export function Overview() {
   );
 }
 
-export function CashCard({ accounts, forecast, loading }: { accounts: AccountsResponse | null; forecast: Forecast | null; loading?: boolean }) {
-  const coming = forecast ? upcoming(forecast).filter((u) => daysBetween(forecast.as_of_date, u.date) <= 14).slice(0, 4) : [];
+// The To-do card's height without the summaries it reveals on hover, while it sits beside the given card; null when stacked.
+function useRestingHeight(ref: RefObject<HTMLElement | null>, beside: RefObject<HTMLElement | null>): number | null {
+  const [height, setHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const revealed = [...el.querySelectorAll<HTMLElement>(".on-hover")].reduce((sum, e) => sum + e.offsetHeight, 0);
+      setHeight(beside.current && beside.current.offsetTop === el.offsetTop ? el.offsetHeight - revealed : null);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, beside]);
+  return height;
+}
+
+const COMING_SHOWN = 5;
+
+export function CashCard({ accounts, forecast, loading, fillTo }: { accounts: AccountsResponse | null; forecast: Forecast | null; loading?: boolean; fillTo?: number | null }) {
+  const [all, setAll] = useState(false);
+  const everything = forecast ? upcoming(forecast) : [];
+  const coming = everything.slice(0, COMING_SHOWN);
   const total = accounts?.total_liquidity_base ?? forecast?.opening_balance ?? null;
   const cash = accounts?.items.filter((a) => a.include_in_liquidity) ?? [];
   return (
-    <div className="card stack" style={{ gap: 16 }}>
+    <div className="card stack" style={{ gap: 16, minHeight: fillTo ?? undefined }}>
       <div className="stack" style={{ gap: 4 }}>
-        <span className="t2">Bank balance</span>
-        {loading ? <span className="skeleton big" /> : <span className="hero">{total ? whole(total) : "—"}</span>}
+        <span className="t2">Bank balance{cash.length > 1 ? ` · ${cash.length} accounts` : ""}</span>
+        {loading ? <span className="skeleton big" /> : (
+          <div className="balance-hover" tabIndex={cash.length ? 0 : undefined} aria-describedby={cash.length ? "balance-accounts" : undefined}>
+            <span className="hero balance-total">{total ? formatMoney(total) : "—"}</span>
+            {cash.length > 0 && (
+              <div className="balance-pop" id="balance-accounts" role="tooltip">
+                <span className="explained-label">By account</span>
+                {cash.map((a) => <div key={a.id} className="kv"><span className="t2">{a.name}</span><span className="medium">{formatMoney(a.balance)}</span></div>)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      {cash.length > 0 && (
-        <div className="stack" style={{ gap: 6 }}>
-          {cash.map((a) => <div key={a.id} className="kv"><span className="t2">{a.name}</span><span>{formatMoney(a.balance)}</span></div>)}
-        </div>
-      )}
       <hr className="divider" />
-      <div className="stack" style={{ gap: 8 }}>
-        <span className="small medium">Coming up</span>
+      <div className="stack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
+        <div className="section-head">
+          <span className="small medium grow">Coming up</span>
+          {everything.length > coming.length && <button type="button" className="link-button small" onClick={() => setAll(true)}>See all</button>}
+        </div>
         {forecast ? (
-          coming.length ? (
-            <div className="coming">
-              {coming.map((u) => (
-                <span key={u.id} style={{ display: "contents" }}>
-                  <span className="t3">{shortDate(u.date)}</span>
-                  <span className="t2">{u.label}</span>
-                  <span className={`right${u.amount.amount.startsWith("-") ? "" : " good"}`}>{u.amount.amount.startsWith("-") ? "" : "+"}{whole(u.amount)}</span>
-                </span>
-              ))}
-            </div>
-          ) : <span className="small t3">Nothing expected in the next two weeks.</span>
+          coming.length ? <ComingList items={coming} /> : <span className="small t3">Nothing expected yet.</span>
         ) : (loading ? <span className="skeleton line" style={{ width: "70%" }} /> : <span className="small t3">No forecast yet.</span>)}
       </div>
+      {all && forecast && (
+        <Modal title="Coming up" onClose={() => setAll(false)}
+          head={<span className="small t2">Everything Ordo expects in the next {Math.round(forecast.horizon_days / 7)} weeks, from known payments</span>}>
+          <ComingList items={everything} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function ComingList({ items }: { items: Upcoming[] }) {
+  return (
+    <div className="coming">
+      {items.map((u) => (
+        <span key={u.id} style={{ display: "contents" }}>
+          <span className="t3">{shortDate(u.date)}</span>
+          <span className="t2">{u.label}</span>
+          <span className={`right${u.amount.amount.startsWith("-") ? "" : " good"}`}>{u.amount.amount.startsWith("-") ? "" : "+"}{whole(u.amount)}</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -304,9 +348,9 @@ function MonthSection({ month, months, onMonth, summary, before, transactions, n
             <Tile label="Costs" value={whole(f.costs)} note={prev && <Change now={f.costs} before={prev.costs} upIsGood={false} />} />
             <Tile label="Left over" value={whole(f.leftOver)} note={prev && <Change now={f.leftOver} before={prev.leftOver} upIsGood />} />
           </div>
-          <div className="row">
+          <div className="row" style={{ alignItems: "flex-start" }}>
             <WhereItWent f={f} month={month} summary={summary} />
-            <Explained f={f} month={month} summary={summary} transactions={transactions} names={names} />
+            <ReviewCard f={f} month={month} summary={summary} transactions={transactions} names={names} />
           </div>
         </>
       )}
@@ -318,13 +362,10 @@ export function WhereItWent({ f, month, summary }: { f: MonthFigures; month: str
   const entries = (key: string) => summary.rows.find((r) => r.key === key)?.entries ?? 0;
   return (
     <div className="card stack" style={{ gap: 16, flex: 2 }}>
-      <div className="stack" style={{ gap: 2 }}>
-        <h2>Where the money went</h2>
-        <span className="small t2">{whole(f.costs)} spent in {monthOnly(month)}</span>
-      </div>
-      <div className="hstack" style={{ gap: 32 }}>
-        <div className="stack" style={{ gap: 0 }}><span className="small t2">Fixed every month</span><span className="medium">{whole(f.fixed)}</span></div>
-        <div className="stack" style={{ gap: 0 }}><span className="small t2">Everything else</span><span className="medium">{whole(f.other)}</span></div>
+      <h2>Where the money went</h2>
+      <div className="spend-summary">
+        <SpendPart label="Fixed every month" amount={f.fixed} share={percent(f.fixed.amount, f.costs.amount)} />
+        <SpendPart label="Everything else" amount={f.other} share={percent(f.other.amount, f.costs.amount)} />
       </div>
       <div className="cost-bar" role="img" aria-label="Costs by type">
         {f.types.map((t) => <span key={t.type.key} title={`${t.type.label}: ${whole(t.amount)}`} style={{ background: t.type.color, width: `${Math.max(0.5, percent(t.amount.amount, f.costs.amount))}%` }} />)}
@@ -344,36 +385,78 @@ export function WhereItWent({ f, month, summary }: { f: MonthFigures; month: str
   );
 }
 
-function Explained({ f, month, summary, transactions, names }: { f: MonthFigures; month: string; summary: LedgerSummary; transactions: Transaction[]; names: Record<string, string> }) {
-  const explained = 100 - percent(f.unexplained.amount, f.costs.amount);
+function SpendPart({ label, amount, share }: { label: string; amount: Money; share: number }) {
+  return (
+    <div className="spend-part">
+      <span className="small t2">{label}</span>
+      <span className="spend-value">{whole(amount)}</span>
+      <span className="caption t3">{share}% of costs</span>
+    </div>
+  );
+}
+
+function ReviewCard({ f, month, summary, transactions, names }: { f: MonthFigures; month: string; summary: LedgerSummary; transactions: Transaction[]; names: Record<string, string> }) {
+  const unsorted = percent(f.unexplained.amount, f.costs.amount);
+  const untyped = summary.rows.find((r) => r.key === "other")?.entries ?? 0;
+  const missing = summary.kpis.documents_missing;
   const open = transactions
     .filter((t) => t.booking_date.startsWith(month) && t.amount_base.amount.startsWith("-") && (t.category === "other" || t.match_status === "missing_document"))
     .sort((a, b) => compareAmounts(a.amount_base.amount, b.amount_base.amount)).slice(0, 3);
   return (
-    <div className="card stack" style={{ gap: 12 }}>
-      <h2>Explained</h2>
-      <span className="hero">{isZero(f.costs.amount) ? "—" : `${explained}%`}</span>
-      <span className="t2">of {monthOnly(month)}'s costs have a category.</span>
-      <div className="progress"><span style={{ width: `${explained}%` }} /></div>
-      <div className="kv"><span className="t2">Payments without an invoice</span><span>{summary.kpis.documents_missing}</span></div>
-      <div className="kv"><span className="t2">Not explained yet</span><span>{whole(f.unexplained)}</span></div>
+    <div className="card stack review" style={{ gap: 16 }}>
+      <div className="stack" style={{ gap: 2 }}>
+        <h2>Review</h2>
+        <span className="small t2">{monthOnly(month)}'s costs: sorted and backed by an invoice</span>
+      </div>
+
+      <div className="review-stats">
+        <ReviewStat done={untyped === 0} value={isZero(f.costs.amount) ? "—" : untyped > 0 && unsorted === 0 ? "<1%" : `${unsorted}%`} label="of costs not sorted"
+          to={`/money/payments?month=${month}&type=unexplained`} />
+        <ReviewStat done={missing === 0} value={String(missing)} label={missing === 1 ? "payment without an invoice" : "payments without an invoice"}
+          to={`/money/payments?month=${month}&doc=missing`} />
+      </div>
+
       {open.length > 0 && (
-        <div className="stack" style={{ gap: 8, marginTop: 4 }}>
-          <span className="small t2">Biggest ones</span>
-          {open.map((t) => (
-            <Link key={t.id} to={`/money/payments/${t.id}?month=${month}`} className="kv" style={{ color: "inherit" }}>
-              <span className="stack" style={{ gap: 0 }}>
-                <span>{names[t.counterparty_id ?? ""] ?? t.counterparty_name_raw ?? t.description}</span>
-                <span className="caption t3">{t.match_status === "missing_document" ? "no invoice" : "no type yet"}</span>
-              </span>
-              <span>{whole({ amount: t.amount_base.amount.replace("-", ""), currency: t.amount_base.currency })}</span>
-            </Link>
-          ))}
+        <div className="stack" style={{ gap: 0 }}>
+          <span className="explained-label">Biggest open payments</span>
+          {open.map((t) => {
+            const name = names[t.counterparty_id ?? ""] ?? t.counterparty_name_raw ?? t.description;
+            return (
+              <ExplainedRow key={t.id} mark={<span className="check-mark neutral" aria-hidden="true">{initials(name)}</span>} title={name}
+                to={`/money/payments/${t.id}?month=${month}`}
+                detail={<>{shortDate(t.booking_date)} · <span className="warn">{t.match_status === "missing_document" ? "no invoice" : "no type"}</span></>}
+                value={whole({ amount: t.amount_base.amount.replace("-", ""), currency: t.amount_base.currency })} />
+            );
+          })}
         </div>
       )}
-      <span className="grow" />
-      <Link to={`/money/payments?month=${month}&doc=missing`} className="button" style={{ alignSelf: "flex-start" }}>Review</Link>
     </div>
+  );
+}
+
+function ReviewStat({ done, value, label, to }: { done: boolean; value: string; label: string; to: string }) {
+  return (
+    <Link to={to} className={`review-stat ${done ? "done" : "open"}`}>
+      <span className="hstack" style={{ gap: 8, flexWrap: "nowrap" }}>
+        <span className="review-value grow">{value}</span>
+        {done ? <span className="check-mark ok small-mark" role="img" aria-label="Done"><Icon name="check" size={14} /></span> : <Chevron />}
+      </span>
+      <span className="medium">{label}</span>
+    </Link>
+  );
+}
+
+function ExplainedRow({ mark, title, detail, value, to }: { mark: React.ReactNode; title: string; detail: React.ReactNode; value: string | null; to: string }) {
+  return (
+    <Link to={to} className="list-row explained-row">
+      {mark}
+      <span className="stack grow" style={{ gap: 0 }}>
+        <span className="ellipsis">{title}</span>
+        <span className="caption t3">{detail}</span>
+      </span>
+      {value && <span className="medium explained-amount">{value}</span>}
+      <Chevron />
+    </Link>
   );
 }
 

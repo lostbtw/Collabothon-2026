@@ -215,6 +215,48 @@
             "url": "/matches/mat_412"
           }
         ]
+      },
+      {
+        "id": "c_meblostyl",
+        "label": "Invoice 2026/10/042 Meblostyl sp. z o.o., 36,900 PLN - due 27 Nov",
+        "kind": "known_receivable",
+        "amount_base": {
+          "amount": "36900.00",
+          "currency": "PLN"
+        },
+        "schedule": "due 2026-11-27, this client pays on time",
+        "dates": [
+          "2026-11-27"
+        ],
+        "confidence": 0.85,
+        "evidence": [
+          {
+            "kind": "document",
+            "id": "doc_fv1042",
+            "label": "Sales invoice 2026/10/042, 36,900 PLN"
+          }
+        ]
+      },
+      {
+        "id": "c_zus",
+        "label": "ZUS social security for November",
+        "kind": "social_security",
+        "amount_base": {
+          "amount": "-9400.00",
+          "currency": "PLN"
+        },
+        "schedule": "due 2026-12-15",
+        "dates": [
+          "2026-12-15"
+        ],
+        "confidence": 0.9,
+        "evidence": [
+          {
+            "kind": "rule",
+            "id": "PL-CAL-03",
+            "label": "ZUS contributions are due on the 15th of the following month"
+          }
+        ]
       }
     ],
     "min_balance": {
