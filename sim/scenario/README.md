@@ -25,9 +25,9 @@ Tests: `python3 -m unittest discover -s sim/scenario/tests -v` (or `python -m py
 
 ## November documents (`out/november_documents.json`)
 
-47 documents dated 1–20 Nov 2026 (41 originals and 6 duplicates): the values role 3 renders as PDF or photo (#16). Each entry has seller, buyer, number, dates, lines, totals (decimal strings), payment, who paid, the bank line (Sandbox Bank entry reference) and the target file `november/<id>.pdf|jpg`.
+47 documents dated 1–20 Nov 2026 (41 originals and 6 duplicates): the values role 3 renders as PDF or photo (#16). Each entry has seller, buyer, number, dates, lines, totals (decimal strings), payment, who paid, the bank line (bank simulator entry reference) and the target file `november/<id>.pdf|jpg`.
 
-- 10 receipts paid with private cards (reimbursements owed on 30 Nov, 5,169.00 PLN), ids `doc_rcpt401`–`doc_rcpt412`. The hero receipt `doc_rcpt412` (1,299 PLN, no company NIP) has the same values as `contracts/fixtures/document.json` and `live_in_demo: true`.
+- 10 receipts paid with private cards (reimbursements owed on 30 Nov, 5,169.00 PLN), ids `doc_rcpt401`–`doc_rcpt412`.
 - Company-card purchases: photographed receipts (fuel, food, taxi) or e-mailed PDF invoices (online shops, coworking, accounting office). About half of the small daily purchases have no document (M7).
 - Foreign SaaS invoices in USD/EUR, reverse charge (M6); the Lingua Bridge invoice (EUR).
 - Owner's card (M3): train, hotel, taxi, Figment.
@@ -42,7 +42,7 @@ Tests: `python3 -m unittest discover -s sim/scenario/tests -v` (or `python -m py
 - `duplicates`: 6 clusters (original + copies).
 - `bank_lines_without_document`: every other bank line with a reason: `bank_fee` (M7), `tax_or_social_security`, `salary`, `reimbursement_payout`, `internal_transfer`, `private_purchase_on_company_account` (M4), `foreign_invoice_not_in_backfill`, `document_missing` (M7), `private`.
 
-Entry references (`E000000001`, ...) are the ones the Sandbox Bank (`sim/bank`) gives when it loads the account's CSV: booking order, and within a day the reverse of the file order.
+Entry references (`E000000001`, ...) are the ones the bank simulator (`sim/bank`) gives when it loads the account's CSV: booking order, and within a day the reverse of the file order.
 
 ## Release plan (`out/release_plan.json`)
 
@@ -50,7 +50,7 @@ What role 2's releaser (#37) sends: 1,616 items, each with `mode`, `scenario_dat
 
 - `backfill` (before the demo, in date order): 1,070 bank lines, 500 FA(3) invoices (purchases by e-mail, sales by the accounting API with e-mail as fallback), 31 November documents.
 - `drip` (during the demo, 20–40 s apart, `offset_seconds`): 15 items, the foreign SaaS invoices and the duplicates.
-- `live`: the hero receipt, photographed with a real phone; the rendered photo is the backup.
+- `live`: a receipt photographed with a phone during the demo.
 - `via_model` is true only for November PDFs and photos. FA(3) XML, bank lines and the accounting API need no model.
 - Senders: `faktury@dostawcy.sample` (supplier invoices), `owner@borsuk-labs.sample` and each team member's own address (8 in total).
 
@@ -74,26 +74,13 @@ Same fields as `backend/db/seed_data/people.json` (role 5): `id`, `company_id`, 
 
 ## Story items (`out/story_items.json`)
 
-The known future cash items of the liquidity story, as of 21 Nov 2026: VAT, Meblostyl, the pay run (7 items = 58,000), 10 reimbursement receipts (= 5,169, the live receipt `doc_rcpt412` 1,299 included), 1–5 Dec costs (= 5,701), Nordwind 18,400 EUR (expected 7 Dec, stress 21 Dec), ZUS, PIT-4 and CIT-5 in December, and the Lakeshore order (40,000 USD = 162,452 PLN, due 5 Jan 2027). Each item has `amount` (decimal string + currency) and `amount_pln` at the demo-day rate.
+The known future cash items of the liquidity story, as of 21 Nov 2026: VAT, Meblostyl, the pay run (7 items = 58,000), 10 reimbursement receipts, 1–5 Dec costs (= 5,701), Nordwind 18,400 EUR (expected 7 Dec, stress 21 Dec), ZUS, PIT-4 and CIT-5 in December, and the Lakeshore order (40,000 USD = 162,452 PLN, due 5 Jan 2027). Each item has `amount` (decimal string + currency) and `amount_pln` at the demo-day rate.
 
 Only items that the story table uses are listed. It is not a full forecast: the forecast engine (#28) adds recurring items, such as the accounting office on 10 Dec.
 
 ### Story check
 
-`story_2026.py` starts from the bank closing balances (24,730.15 PLN + 3,100 EUR × 4.41) and applies the items day by day (money out first within a day). It stops with an error if a value differs from the story table by more than 50 PLN, if the lowest point is not on 5 Dec, or if the People rules fail.
-
-| Date | Story | Exact | Difference |
-|---|---|---|---|
-| 21 Nov | 38,400 | 38,401.15 | +1.15 |
-| 25 Nov | 24,100 | 24,101.15 | +1.15 |
-| 27 Nov | 61,000 | 61,001.15 | +1.15 |
-| 30 Nov | −2,169 | −2,167.85 | +1.15 |
-| 5 Dec (lowest) | −7,870 | −7,868.85 | +1.15 |
-| 7 Dec | 73,230 | 73,275.15 | +45.15 |
-| Stress (Nordwind 21 Dec) | −28,170 | −28,168.85 | +1.15 |
-| Before the live receipt | −6,571 | −6,569.85 | +1.15 |
-
-The differences come from the story's rounding: 3,100 EUR × 4.41 = 13,671 (story: 13,670), 18,400 EUR × 4.41 = 81,144 (story: 81,100). The spec says: if they differ, change the script, not the engine.
+`story_2026.py` starts from the bank closing balances (24,730.15 PLN + 3,100 EUR × 4.41) and applies the items day by day (money out first within a day). It stops with an error if a balance differs from the planned story by more than 50 PLN, if the lowest point is not on 5 Dec, or if the People rules fail.
 
 ## Bank lines, 1 Jan – 20 Nov 2026
 
@@ -128,5 +115,5 @@ The closing balances are fixed by the story: 24,730 PLN + 3,100 EUR × 4.41 ≈ 
 - One irregular purchase of 3–9k per month (hardware, conference, chairs, legal).
 - About 40 daily card purchases per month on *4417, about 6 on the EUR card *2290, about 20 private ones on the owner's card.
 - Messiness: M3 (Figment design tool monthly and a Warsaw trip in May on the owner's card, plus 4 rows in November), M4 (4 private purchases on the company card), M6, M7 (bank fees without document), M9 (noisy descriptors with order numbers).
-- Not in the bank: the 1,299 PLN live receipt (Jan paid with his private card); everything after 20 Nov (VAT 25 Nov, Meblostyl 27 Nov, pay run 30 Nov, Nordwind 7 Dec).
+- Not in the bank: everything after 20 Nov (VAT 25 Nov, Meblostyl 27 Nov, pay run 30 Nov, Nordwind 7 Dec).
 - Rows without the word SAMPLE: bank fees and payments to public institutions (ZUS, tax office), as in the pizzeria file.
