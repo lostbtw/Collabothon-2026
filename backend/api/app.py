@@ -36,7 +36,7 @@ def create_app(database_url: str | None = None, chat_model: Callable[[], Any] | 
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        app.state.pool = ConnectionPool(url, min_size=1, max_size=10, open=True)
+        app.state.pool = ConnectionPool(url, min_size=2, max_size=20, open=True)
         try:
             yield
         finally:

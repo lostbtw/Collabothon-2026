@@ -4,11 +4,11 @@ import time
 from collections.abc import Iterator
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
 
 from backend import settings
-from backend.api.deps import company_id
+from backend.api.deps import resolve_company
 from backend.db.events import events_after
 
 router = APIRouter()
@@ -23,9 +23,12 @@ def _message(event: dict) -> str:
 
 
 @router.get("/events/stream")
-def stream(request: Request, company: str = Depends(company_id),
+def stream(request: Request, company_id: str | None = Query(None),
            max_events: int | None = Query(None, description="Close after this many events (tests, debugging)")):
+    # No connection is held while the stream is open: each open tab used to keep one of the pool's for good.
     pool = request.app.state.pool
+    with pool.connection() as c:
+        company = resolve_company(c, company_id)
 
     def generate() -> Iterator[str]:
         sent = 0

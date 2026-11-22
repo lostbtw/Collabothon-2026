@@ -34,6 +34,10 @@ def store(c: psycopg.Connection = Depends(conn)) -> Store:
 
 
 def company_id(c: psycopg.Connection = Depends(conn), company_id: str | None = Query(None)) -> str:
+    return resolve_company(c, company_id)
+
+
+def resolve_company(c: psycopg.Connection, company_id: str | None) -> str:
     known = [co["id"] for co in companies(c)]
     if company_id is None:
         if not known:
